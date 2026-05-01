@@ -1053,18 +1053,10 @@ pub fn init(app: &mut AppContext) {
         ]);
     }
 
-    app.register_editable_bindings([EditableBinding::new(
-        "workspace:log_out",
-        "Log out",
-        WorkspaceAction::LogOut,
-    )
-    .with_group(bindings::BindingGroup::Settings.as_str())
-    .with_context_predicate(id!("Workspace") & !id!("IsAnonymousUser"))]);
-
     if !FeatureFlag::AvatarInTabBar.is_enabled() {
         app.register_editable_bindings([EditableBinding::new(
             "workspace:toggle_resource_center",
-            "Toggle resource center",
+            "Toggle Resource Center",
             WorkspaceAction::ToggleResourceCenter,
         )
         .with_group(bindings::BindingGroup::Navigation.as_str())
@@ -1338,7 +1330,7 @@ pub fn init(app: &mut AppContext) {
 fn add_open_setting_pages_as_editable_binding(app: &mut AppContext) {
     use warpui::keymap::macros::*;
 
-    // Add the ability to open setting modals to the command palette.
+    // Add the ability to open terminal-core setting modals to the command palette.
     app.register_editable_bindings([
         EditableBinding::new(
             "workspace:show_settings",
@@ -1349,14 +1341,6 @@ fn add_open_setting_pages_as_editable_binding(app: &mut AppContext) {
         .with_context_predicate(id!("Workspace"))
         .with_group(bindings::BindingGroup::Settings.as_str())
         .with_custom_action(CustomAction::ShowSettings),
-        EditableBinding::new(
-            "workspace:show_settings_account_page",
-            "Open Settings: Account",
-            WorkspaceAction::ShowSettingsPage(SettingsSection::Account),
-        )
-        .with_context_predicate(id!("Workspace"))
-        .with_group(bindings::BindingGroup::Settings.as_str())
-        .with_custom_action(CustomAction::ShowAccount),
         EditableBinding::new(
             "workspace:show_settings_appearance_page",
             BindingDescription::new("Open Settings: Appearance")
@@ -1373,15 +1357,6 @@ fn add_open_setting_pages_as_editable_binding(app: &mut AppContext) {
         )
         .with_group(bindings::BindingGroup::Settings.as_str())
         .with_context_predicate(id!("Workspace")),
-        EditableBinding::new(
-            "workspace:show_settings_shared_blocks_page",
-            BindingDescription::new("Open Settings: Shared Blocks")
-                .with_custom_description(bindings::MAC_MENUS_CONTEXT, "View Shared Blocks..."),
-            WorkspaceAction::ShowSettingsPage(SettingsSection::SharedBlocks),
-        )
-        .with_group(bindings::BindingGroup::Settings.as_str())
-        .with_context_predicate(id!("Workspace"))
-        .with_custom_action(CustomAction::ViewSharedBlocks),
         EditableBinding::new(
             "workspace:show_settings_keyboard_shortcuts_page",
             BindingDescription::new("Open Settings: Keyboard Shortcuts").with_custom_description(
@@ -1403,69 +1378,9 @@ fn add_open_setting_pages_as_editable_binding(app: &mut AppContext) {
         .with_context_predicate(id!("Workspace"))
         .with_custom_action(CustomAction::ShowAboutWarp),
         EditableBinding::new(
-            "workspace:show_settings_teams_page",
-            BindingDescription::new("Open Settings: Teams")
-                .with_custom_description(bindings::MAC_MENUS_CONTEXT, "Open Team Settings"),
-            WorkspaceAction::ShowSettingsPage(SettingsSection::Teams),
-        )
-        .with_group(bindings::BindingGroup::Settings.as_str())
-        .with_custom_action(CustomAction::OpenTeamSettings)
-        .with_context_predicate(id!("Workspace")),
-        EditableBinding::new(
             "workspace:show_settings_privacy_page",
             BindingDescription::new("Open Settings: Privacy"),
             WorkspaceAction::ShowSettingsPage(SettingsSection::Privacy),
-        )
-        .with_group(bindings::BindingGroup::Settings.as_str())
-        .with_context_predicate(id!("Workspace")),
-        EditableBinding::new(
-            "workspace:show_settings_warpify_page",
-            BindingDescription::new("Open Settings: Warpify")
-                .with_custom_description(bindings::MAC_MENUS_CONTEXT, "Configure Warpify..."),
-            WorkspaceAction::ShowSettingsPage(SettingsSection::Warpify),
-        )
-        .with_group(bindings::BindingGroup::Settings.as_str())
-        .with_context_predicate(id!("Workspace")),
-        EditableBinding::new(
-            "workspace:show_ai_settings_page",
-            BindingDescription::new("Open Settings: AI"),
-            WorkspaceAction::ShowSettingsPage(SettingsSection::WarpAgent),
-        )
-        .with_enabled(|| FeatureFlag::AgentMode.is_enabled())
-        .with_group(bindings::BindingGroup::Settings.as_str())
-        .with_context_predicate(id!("Workspace")),
-        EditableBinding::new(
-            "workspace:show_settings_billing_and_usage_page",
-            BindingDescription::new("Open Settings: Billing and usage"),
-            WorkspaceAction::ShowSettingsPage(SettingsSection::BillingAndUsage),
-        )
-        .with_group(bindings::BindingGroup::Settings.as_str())
-        .with_context_predicate(id!("Workspace")),
-        EditableBinding::new(
-            "workspace:show_settings_code_page",
-            BindingDescription::new("Open Settings: Code"),
-            WorkspaceAction::ShowSettingsPage(SettingsSection::CodeIndexing),
-        )
-        .with_group(bindings::BindingGroup::Settings.as_str())
-        .with_context_predicate(id!("Workspace")),
-        EditableBinding::new(
-            "workspace:show_settings_referrals_page",
-            BindingDescription::new("Open Settings: Referrals"),
-            WorkspaceAction::ShowSettingsPage(SettingsSection::Referrals),
-        )
-        .with_group(bindings::BindingGroup::Settings.as_str())
-        .with_context_predicate(id!("Workspace")),
-        EditableBinding::new(
-            "workspace:show_settings_environments_page",
-            BindingDescription::new("Open Settings: Environments"),
-            WorkspaceAction::ShowSettingsPage(SettingsSection::CloudEnvironments),
-        )
-        .with_group(bindings::BindingGroup::Settings.as_str())
-        .with_context_predicate(id!("Workspace")),
-        EditableBinding::new(
-            "workspace:show_mcp_servers_settings_page",
-            BindingDescription::new("Open Settings: MCP Servers"),
-            WorkspaceAction::ShowSettingsPage(SettingsSection::MCPServers),
         )
         .with_group(bindings::BindingGroup::Settings.as_str())
         .with_context_predicate(id!("Workspace")),
@@ -1483,35 +1398,8 @@ fn add_open_setting_pages_as_editable_binding(app: &mut AppContext) {
 fn add_overflow_menu_items_as_editable_binding(app: &mut AppContext) {
     use warpui::keymap::macros::*;
 
-    // Add the ability to open all overflow menu items to the command palette.
+    // Add terminal-core overflow menu items to the command palette.
     app.register_editable_bindings([
-        EditableBinding::new(
-            "workspace:show_invite_modal",
-            "Invite People...",
-            WorkspaceAction::ShowReferralSettingsPage,
-        )
-        .with_context_predicate(id!("Workspace"))
-        .with_custom_action(CustomAction::ReferAFriend),
-        EditableBinding::new(
-            "workspace:link_to_slack",
-            "Join our Slack community (opens external link)",
-            WorkspaceAction::JoinSlack,
-        )
-        .with_context_predicate(id!("Workspace")),
-        EditableBinding::new(
-            "workspace:link_to_user_docs",
-            "View user docs (opens external link)",
-            WorkspaceAction::ViewUserDocs,
-        )
-        .with_context_predicate(id!("Workspace")),
-        EditableBinding::new(
-            "workspace:send_feedback",
-            BindingDescription::new("Send feedback (opens external link)").with_dynamic_override(
-                |ctx| is_feedback_skill_available(ctx).then(|| "Send feedback with Oz".into()),
-            ),
-            WorkspaceAction::SendFeedback,
-        )
-        .with_context_predicate(id!("Workspace")),
         #[cfg(not(target_family = "wasm"))]
         EditableBinding::new(
             "workspace:view_logs",

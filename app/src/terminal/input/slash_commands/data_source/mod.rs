@@ -257,8 +257,7 @@ impl SlashCommandDataSource {
                 .filter(|(_, command)| {
                     command.name != commands::ORCHESTRATE_NAME || is_orchestration_enabled
                 })
-                // The static `/feedback` command is an AI-off fallback for the richer bundled
-                // `feedback` skill. Hide it whenever the bundled skill will actually take over,
+                // Hide the static `/feedback` command whenever the bundled skill takes over,
                 // matching the precedence used by `Workspace::send_feedback`.
                 .filter(|(_, command)| {
                     command.name != commands::FEEDBACK.name

@@ -245,7 +245,7 @@ pub static FEEDBACK: LazyLock<StaticCommand> = LazyLock::new(|| StaticCommand {
     name: "/feedback",
     description: "Send feedback",
     icon_path: "bundled/svg/feedback.svg",
-    availability: Availability::ALWAYS,
+    availability: Availability::AI_ENABLED,
     auto_enter_ai_mode: false,
     argument: Some(Argument::optional().with_execute_on_selection()),
 });

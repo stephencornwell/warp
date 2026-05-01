@@ -1043,7 +1043,7 @@ pub fn init(app: &mut AppContext) {
         "Load agent mode conversation (from debug link in clipboard)",
         TerminalAction::LoadAgentModeConversation,
     )
-    .with_enabled(ChannelState::enable_debug_features)
+    .with_enabled(|| ChannelState::enable_debug_features() && FeatureFlag::AgentMode.is_enabled())
     .with_context_predicate(id!("Terminal"))]);
 
     app.register_editable_bindings([EditableBinding::new(

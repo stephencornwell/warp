@@ -74,7 +74,9 @@ impl HeaderToolbarItemKind {
                     && FeatureFlag::AgentManagementView.is_enabled()
                     && !is_web_anonymous_user
             }
-            Self::CodeReview => cfg!(feature = "local_fs"),
+            Self::CodeReview => {
+                cfg!(feature = "local_fs") && FeatureFlag::HoaCodeReview.is_enabled()
+            }
             Self::NotificationsMailbox => FeatureFlag::HOANotifications.is_enabled(),
         }
     }

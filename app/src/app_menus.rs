@@ -3,14 +3,12 @@ use std::fs::File;
 use std::path::PathBuf;
 
 use crate::ai::persisted_workspace::PersistedWorkspace;
-use crate::auth::AuthStateProvider;
 use crate::default_terminal::DefaultTerminal;
 use crate::features::{runtime_flags_menu_items, FeatureFlag};
+use crate::report_if_error;
 use crate::root_view::OpenLaunchConfigArg;
 use crate::server::telemetry::LaunchConfigUiLocation;
-use crate::settings::{
-    AISettings, BlockVisibilitySettings, DebugSettings, DefaultSessionMode, SelectionSettings,
-};
+use crate::settings::{BlockVisibilitySettings, DebugSettings, SelectionSettings};
 use crate::terminal::alt_screen_reporting::AltScreenReporting;
 use crate::terminal::session_settings::SessionSettings;
 use crate::terminal::settings::{SpacingMode, TerminalSettings};
@@ -19,7 +17,6 @@ use crate::user_config::WarpConfig;
 use crate::util::bindings::{self, trigger_to_keystroke, CustomAction};
 use crate::util::links;
 use crate::workspace::sync_inputs::SyncedInputState;
-use crate::{auth, report_if_error};
 use ai::workspace::WorkspaceMetadata;
 use csv::Writer;
 use enclose::enclose;
@@ -68,10 +65,7 @@ pub fn menu_bar(ctx: &mut AppContext) -> MenuBar {
         make_new_view_menu(ctx),
         make_new_tab_menu(ctx),
         make_new_blocks_menu(ctx),
-        make_new_ai_menu(ctx),
-        make_new_drive_menu(ctx),
         make_new_window_menu(),
-        make_new_help_menu(),
     ])
 }
 
@@ -149,11 +143,7 @@ fn make_new_app_menu(ctx: &AppContext) -> Menu {
         ))
     }
 
-    menu_items.extend([
-        MenuItem::Separator,
-        updateable_custom_item_without_checkmark(CustomAction::ReferAFriend, ctx),
-        MenuItem::Separator,
-    ]);
+    menu_items.push(MenuItem::Separator);
 
     let preferences_menu_items = vec![
         updateable_custom_item_without_checkmark(CustomAction::ShowSettings, ctx),
@@ -172,13 +162,6 @@ fn make_new_app_menu(ctx: &AppContext) -> Menu {
         None,
         preferences_menu_items,
     )));
-
-    if FeatureFlag::Changelog.is_enabled() {
-        menu_items.push(updateable_custom_item_without_checkmark(
-            CustomAction::ViewChangelog,
-            ctx,
-        ));
-    }
 
     #[cfg(target_os = "macos")]
     {
@@ -227,21 +210,6 @@ fn make_new_app_menu(ctx: &AppContext) -> Menu {
         None,
     )));
     menu_items.push(MenuItem::Separator);
-    menu_items.push(MenuItem::Custom(CustomMenuItem::new(
-        "Log out",
-        auth::maybe_log_out,
-        move |_, ctx| {
-            let is_anonymous = AuthStateProvider::handle(ctx)
-                .as_ref(ctx)
-                .get()
-                .is_anonymous_or_logged_out();
-            MenuItemPropertyChanges {
-                disabled: Some(is_anonymous),
-                ..Default::default()
-            }
-        },
-        None,
-    )));
     menu_items.push(MenuItem::Standard(StandardAction::Quit));
     Menu::new("Warp", menu_items)
 }
@@ -375,19 +343,15 @@ fn make_new_edit_menu(ctx: &AppContext) -> Menu {
 
 fn make_new_view_menu(ctx: &AppContext) -> Menu {
     let mut items = vec![
-        updateable_custom_item_without_checkmark(CustomAction::ToggleWarpDrive, ctx),
-        MenuItem::Separator,
         updateable_custom_item_without_checkmark(CustomAction::CommandPalette, ctx),
         updateable_custom_item_without_checkmark(CustomAction::NavigationPalette, ctx),
         updateable_custom_item_without_checkmark(CustomAction::LaunchConfigPalette, ctx),
         updateable_custom_item_without_checkmark(CustomAction::FilesPalette, ctx),
-        updateable_custom_item_without_checkmark(CustomAction::ToggleConversationListView, ctx),
         updateable_custom_item_without_checkmark(CustomAction::ToggleProjectExplorer, ctx),
         updateable_custom_item_without_checkmark(CustomAction::ToggleGlobalSearch, ctx),
         MenuItem::Separator,
         updateable_custom_item_without_checkmark(CustomAction::History, ctx),
         updateable_custom_item_without_checkmark(CustomAction::CommandSearch, ctx),
-        updateable_custom_item_without_checkmark(CustomAction::Workflows, ctx),
         MenuItem::Separator,
         MenuItem::Custom(CustomMenuItem::new(
             "Toggle Mouse Reporting",
@@ -512,39 +476,6 @@ fn make_new_tab_menu(ctx: &AppContext) -> Menu {
     Menu::new("Tab", items)
 }
 
-fn make_new_ai_menu(ctx: &AppContext) -> Menu {
-    let mut items = vec![updateable_custom_item_without_checkmark(
-        CustomAction::NewAgentModePane,
-        ctx,
-    )];
-
-    items.push(updateable_custom_item_without_checkmark(
-        CustomAction::AttachSelectionAsAgentModeContext,
-        ctx,
-    ));
-
-    items.extend([
-        MenuItem::Separator,
-        updateable_custom_item_without_checkmark(CustomAction::AISearch, ctx),
-    ]);
-
-    if FeatureFlag::AIRules.is_enabled() {
-        items.extend([
-            MenuItem::Separator,
-            updateable_custom_item_without_checkmark(CustomAction::OpenAIFactCollection, ctx),
-        ]);
-    }
-
-    if FeatureFlag::McpServer.is_enabled() && ContextFlag::ShowMCPServers.is_enabled() {
-        items.push(updateable_custom_item_without_checkmark(
-            CustomAction::OpenMCPServerCollection,
-            ctx,
-        ));
-    }
-
-    Menu::new("AI", items)
-}
-
 fn make_new_blocks_menu(ctx: &AppContext) -> Menu {
     let mut items = vec![
         updateable_custom_item_without_checkmark(CustomAction::ClearBlocks, ctx),
@@ -581,50 +512,6 @@ fn make_new_blocks_menu(ctx: &AppContext) -> Menu {
     }
 
     Menu::new("Blocks", items)
-}
-
-fn make_new_drive_menu(ctx: &AppContext) -> Menu {
-    let mut items = vec![
-        updateable_custom_item_without_checkmark(CustomAction::NewPersonalWorkflow, ctx),
-        updateable_custom_item_without_checkmark(CustomAction::NewPersonalNotebook, ctx),
-        updateable_custom_item_without_checkmark(CustomAction::NewPersonalAIPrompt, ctx),
-    ];
-    items.push(updateable_custom_item_without_checkmark(
-        CustomAction::NewPersonalEnvVars,
-        ctx,
-    ));
-    items.extend([
-        MenuItem::Separator,
-        updateable_custom_item_without_checkmark(CustomAction::NewTeamWorkflow, ctx),
-        updateable_custom_item_without_checkmark(CustomAction::NewTeamNotebook, ctx),
-        updateable_custom_item_without_checkmark(CustomAction::NewTeamAIPrompt, ctx),
-    ]);
-    items.push(updateable_custom_item_without_checkmark(
-        CustomAction::NewTeamEnvVars,
-        ctx,
-    ));
-    items.extend([
-        MenuItem::Separator,
-        updateable_custom_item_without_checkmark(CustomAction::ToggleWarpDrive, ctx),
-        updateable_custom_item_without_checkmark(CustomAction::SearchDrive, ctx),
-        updateable_custom_item_without_checkmark(CustomAction::OpenTeamSettings, ctx),
-        updateable_custom_item_without_checkmark(CustomAction::OpenAIFactCollection, ctx),
-        updateable_custom_item_without_checkmark(CustomAction::OpenMCPServerCollection, ctx),
-    ]);
-
-    items.push(updateable_custom_item_without_checkmark(
-        CustomAction::SharePaneContents,
-        ctx,
-    ));
-
-    if FeatureFlag::CreatingSharedSessions.is_enabled() {
-        items.extend([
-            MenuItem::Separator,
-            updateable_custom_item_without_checkmark(CustomAction::ShareCurrentSession, ctx),
-        ])
-    }
-
-    Menu::new("Drive", items)
 }
 
 /// Returns [`MenuItem`]s that aid debugging to be included in the Block menu.
@@ -905,32 +792,6 @@ fn link_menu_item(title: &'static str, link: Cow<'static, str>) -> MenuItem {
     ))
 }
 
-fn feedback_menu_item() -> MenuItem {
-    MenuItem::Custom(CustomMenuItem::new(
-        "Send Feedback...",
-        move |ctx| {
-            // Route through the root-view action so workspace windows can open the
-            // guided AI flow, while non-workspace windows still fall back to the
-            // browser-based feedback form.
-            ctx.dispatch_global_action("root_view:send_feedback", &());
-        },
-        no_updates,
-        None,
-    ))
-}
-
-fn make_new_help_menu() -> Menu {
-    Menu::new(
-        "Help",
-        vec![
-            feedback_menu_item(),
-            link_menu_item("Warp Documentation...", links::USER_DOCS_URL.into()),
-            link_menu_item("GitHub Issues...", links::GITHUB_ISSUES_URL.into()),
-            link_menu_item("Warp Slack Community...", links::SLACK_URL.into()),
-        ],
-    )
-}
-
 fn make_launch_config_menu_items(ctx: &mut AppContext) -> Vec<MenuItem> {
     let mut launch_config_menu_items = vec![];
 
@@ -983,58 +844,8 @@ fn make_new_elements_menu_items(ctx: &AppContext) -> Vec<MenuItem> {
         MenuItem::Custom(CustomMenuItem::new(
             "New Terminal Tab",
             open_new_default_tab_or_window,
-            move |_props: &MenuItemProperties, ctx: &mut AppContext| {
-                let mut changes = MenuItemPropertyChanges::default();
-                let is_default_session_mode_agent =
-                    AISettings::handle(ctx).read(ctx, |ai_settings, ctx| {
-                        ai_settings.is_any_ai_enabled(ctx)
-                            && ai_settings.default_session_mode(ctx) == DefaultSessionMode::Agent
-                    });
-                let trigger = if is_default_session_mode_agent {
-                    Trigger::Custom(CustomAction::NewTerminalTab.into())
-                } else {
-                    Trigger::Custom(CustomAction::NewTab.into())
-                };
-                let binding = ctx
-                    .get_key_bindings()
-                    .find(|b| b.trigger == &trigger || b.original_trigger == Some(&trigger));
-                if let Some(binding) = binding {
-                    changes.keystroke = Some(bindings::trigger_to_keystroke(binding.trigger));
-                }
-                changes
-            },
+            custom_action_updater(CustomAction::NewTab, Box::new(|_| false)),
             Some(Keystroke::parse("cmd-t").expect("Valid keystroke")),
-        )),
-        MenuItem::Custom(CustomMenuItem::new(
-            "New Agent Tab",
-            open_new_agent_tab_or_window,
-            move |_props: &MenuItemProperties, ctx: &mut AppContext| {
-                let mut changes = MenuItemPropertyChanges::default();
-                let (is_any_ai_enabled, is_default_session_mode_agent) = AISettings::handle(ctx)
-                    .read(ctx, |ai_settings, ctx| {
-                        let enabled = ai_settings.is_any_ai_enabled(ctx);
-                        let agent = enabled
-                            && ai_settings.default_session_mode(ctx) == DefaultSessionMode::Agent;
-                        (enabled, agent)
-                    });
-                if !is_any_ai_enabled {
-                    changes.disabled = Some(true);
-                    return changes;
-                }
-                let trigger = if is_default_session_mode_agent {
-                    Trigger::Custom(CustomAction::NewTab.into())
-                } else {
-                    Trigger::Custom(CustomAction::NewAgentTab.into())
-                };
-                let binding = ctx
-                    .get_key_bindings()
-                    .find(|b| b.trigger == &trigger || b.original_trigger == Some(&trigger));
-                if let Some(binding) = binding {
-                    changes.keystroke = Some(bindings::trigger_to_keystroke(binding.trigger));
-                }
-                changes
-            },
-            None,
         )),
         non_updateable_custom_item(CustomAction::NewFile, ctx),
     ];
@@ -1084,16 +895,6 @@ fn custom_action_dispatcher(action: CustomAction) -> impl Fn(&mut AppContext) + 
 fn open_new_default_tab_or_window(ctx: &mut AppContext) {
     if let Some(wid) = WindowManager::handle(ctx).as_ref(ctx).active_window() {
         ctx.dispatch_custom_action(CustomAction::NewTab, wid)
-    } else {
-        open_new_window(ctx)
-    }
-}
-
-/// Dispatch events to open an agent tab in the active window
-/// or make a new window if there is no active window.
-fn open_new_agent_tab_or_window(ctx: &mut AppContext) {
-    if let Some(wid) = WindowManager::handle(ctx).as_ref(ctx).active_window() {
-        ctx.dispatch_custom_action(CustomAction::NewAgentTab, wid)
     } else {
         open_new_window(ctx)
     }

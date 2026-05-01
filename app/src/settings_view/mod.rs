@@ -36,7 +36,7 @@ use itertools::Itertools as _;
 use keybindings::KeybindingsView;
 use main_page::{MainPageAction, MainSettingsPageEvent, MainSettingsPageView};
 use mcp_servers_page::MCPServersSettingsPageView;
-use nav::{SettingsNavItem, SettingsUmbrella};
+use nav::SettingsNavItem;
 use pathfinder_geometry::vector::Vector2F;
 use privacy_page::{PrivacyPageView, PrivacyPageViewEvent};
 use referrals_page::{ReferralsPageEvent, ReferralsPageView};
@@ -312,6 +312,31 @@ impl SettingsSection {
     /// The ordered list of Cloud platform subpage sections.
     pub fn cloud_platform_subpages() -> &'static [Self] {
         &[Self::CloudEnvironments, Self::OzCloudAPIKeys]
+    }
+
+    pub fn is_hidden_for_terminal_minimal_phase_1(&self) -> bool {
+        matches!(
+            self,
+            Self::Account
+                | Self::AI
+                | Self::WarpAgent
+                | Self::AgentProfiles
+                | Self::AgentMCPServers
+                | Self::Knowledge
+                | Self::ThirdPartyCLIAgents
+                | Self::Code
+                | Self::CodeIndexing
+                | Self::EditorAndCodeReview
+                | Self::CloudEnvironments
+                | Self::OzCloudAPIKeys
+                | Self::MCPServers
+                | Self::BillingAndUsage
+                | Self::Teams
+                | Self::Referrals
+                | Self::SharedBlocks
+                | Self::WarpDrive
+                | Self::Warpify
+        )
     }
 }
 
@@ -1180,37 +1205,11 @@ impl SettingsView {
             SettingsPage::new(about_page_handle),
         ]);
 
-        // Build sidebar nav items. AI page is presented as an "Agents" umbrella
-        // with subpages; the actual AI SettingsPage is hidden from direct sidebar listing.
+        // Build sidebar nav items.
         let mut nav_items = vec![
-            SettingsNavItem::Page(SettingsSection::Account),
-            SettingsNavItem::Umbrella(SettingsUmbrella::new(
-                "Agents",
-                SettingsSection::ai_subpages().to_vec(),
-            )),
-            SettingsNavItem::Page(SettingsSection::BillingAndUsage),
-            SettingsNavItem::Umbrella(SettingsUmbrella::new(
-                "Code",
-                vec![
-                    SettingsSection::CodeIndexing,
-                    SettingsSection::EditorAndCodeReview,
-                ],
-            )),
-            SettingsNavItem::Umbrella(SettingsUmbrella::new(
-                "Cloud platform",
-                vec![
-                    SettingsSection::CloudEnvironments,
-                    SettingsSection::OzCloudAPIKeys,
-                ],
-            )),
-            SettingsNavItem::Page(SettingsSection::Teams),
             SettingsNavItem::Page(SettingsSection::Appearance),
             SettingsNavItem::Page(SettingsSection::Features),
             SettingsNavItem::Page(SettingsSection::Keybindings),
-            SettingsNavItem::Page(SettingsSection::Warpify),
-            SettingsNavItem::Page(SettingsSection::Referrals),
-            SettingsNavItem::Page(SettingsSection::SharedBlocks),
-            SettingsNavItem::Page(SettingsSection::WarpDrive),
             SettingsNavItem::Page(SettingsSection::Privacy),
             SettingsNavItem::Page(SettingsSection::About),
         ];
@@ -1219,8 +1218,11 @@ impl SettingsView {
         let initial_page = match page {
             Some(SettingsSection::AI) => SettingsSection::WarpAgent,
             Some(SettingsSection::Code) => SettingsSection::CodeIndexing,
+            Some(section) if section.is_hidden_for_terminal_minimal_phase_1() => {
+                SettingsSection::Appearance
+            }
             Some(section) if section.is_subpage() => section,
-            other => other.unwrap_or_default(),
+            other => other.unwrap_or(SettingsSection::Appearance),
         };
 
         // Auto-expand the umbrella if the initial page is one of its subpages.
@@ -1853,6 +1855,11 @@ impl SettingsView {
             SettingsSection::Code => SettingsSection::CodeIndexing,
             other => other,
         };
+        let section = if section.is_hidden_for_terminal_minimal_phase_1() {
+            SettingsSection::Appearance
+        } else {
+            section
+        };
 
         // For AI subpages, the backing page is the AI page. Check it exists.
         let page_section = section.parent_page_section();
@@ -1944,6 +1951,13 @@ impl SettingsView {
     }
 
     fn should_render_page(&self, settings_page: &SettingsPage, app: &AppContext) -> bool {
+        if settings_page
+            .section
+            .is_hidden_for_terminal_minimal_phase_1()
+        {
+            return false;
+        }
+
         match &settings_page.view_handle {
             SettingsPageViewHandle::Main(v) => v.as_ref(app).should_render(app),
             SettingsPageViewHandle::Teams(v) => v.as_ref(app).should_render(app),

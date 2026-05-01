@@ -272,22 +272,13 @@ impl MainSettingsPageView {
             ctx.notify();
         });
 
-        let mut widgets: Vec<Box<dyn SettingsWidget<View = Self>>> = vec![
-            Box::new(AccountWidget::default()),
-            Box::new(DividerWidget {}),
-        ];
-
-        widgets.push(Box::new(SettingsSyncWidget::default()));
-
-        widgets.push(Box::new(EarnRewardsWidget::default()));
+        let mut widgets: Vec<Box<dyn SettingsWidget<View = Self>>> = Vec::new();
 
         if ChannelState::app_version().is_some() {
             widgets.push(Box::new(VersionInfoWidget::default()));
         }
 
-        widgets.push(Box::new(LogoutWidget::default()));
-
-        let page = PageType::new_uncategorized(widgets, Some("Account"));
+        let page = PageType::new_uncategorized(widgets, Some("About"));
 
         MainSettingsPageView { page, auth_state }
     }
@@ -301,6 +292,7 @@ impl MainSettingsPageView {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Default)]
 struct AccountWidgetStateHandles {
     upgrade_link: MouseStateHandle,
@@ -309,6 +301,7 @@ struct AccountWidgetStateHandles {
     stripe_billing_portal_link: MouseStateHandle,
 }
 
+#[allow(dead_code)]
 #[derive(Default)]
 struct AccountWidget {
     ui_state_handles: AccountWidgetStateHandles,
@@ -641,6 +634,7 @@ impl SettingsWidget for AccountWidget {
     }
 }
 
+#[allow(dead_code)]
 struct DividerWidget {}
 
 impl SettingsWidget for DividerWidget {
@@ -666,6 +660,7 @@ impl SettingsWidget for DividerWidget {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Default)]
 struct SettingsSyncWidget {
     tooltip_state: MouseStateHandle,
@@ -725,6 +720,7 @@ impl SettingsWidget for SettingsSyncWidget {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Default)]
 struct EarnRewardsWidget {
     refer_link_mouse_handle: MouseStateHandle,
@@ -1038,6 +1034,7 @@ impl SettingsWidget for VersionInfoWidget {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Default)]
 struct LogoutWidget {
     mouse_state: MouseStateHandle,

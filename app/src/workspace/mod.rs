@@ -1400,6 +1400,13 @@ fn add_overflow_menu_items_as_editable_binding(app: &mut AppContext) {
 
     // Add terminal-core overflow menu items to the command palette.
     app.register_editable_bindings([
+        EditableBinding::new(
+            "workspace:toggle_resource_center",
+            "Toggle Resource Center",
+            WorkspaceAction::ToggleResourceCenter,
+        )
+        .with_context_predicate(id!("Workspace"))
+        .with_custom_action(CustomAction::ToggleResourceCenter),
         #[cfg(not(target_family = "wasm"))]
         EditableBinding::new(
             "workspace:view_logs",

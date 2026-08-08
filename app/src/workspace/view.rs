@@ -689,12 +689,6 @@ enum FocusRegion {
     Other,
 }
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
-pub enum PanelPosition {
-    Left,
-    Right,
-}
-
 pub struct TabPaneGroupIdentifiers {
     pub tab_idx: usize,
     pub pane_group_id: EntityId,
@@ -798,23 +792,6 @@ enum DefaultSessionModeBehavior {
     Apply,
     /// Skip default-session-mode auto-entry because the caller is explicitly specifying the mode for the new session.
     Ignore,
-}
-
-#[cfg_attr(not(feature = "local_fs"), allow(dead_code))]
-struct CodeReviewPaneContext {
-    repo_path: Option<PathBuf>,
-    diff_state_model: ModelHandle<DiffStateModel>,
-    terminal_view: WeakViewHandle<TerminalView>,
-}
-
-/// Parameters for updating the right panel's 'state.
-#[cfg_attr(not(feature = "local_fs"), allow(dead_code))]
-struct RightPanelUpdateParams<'a> {
-    pane_group: &'a ViewHandle<PaneGroup>,
-    target_open_state: bool,
-    entrypoint: Option<CodeReviewPaneEntrypoint>,
-    cli_agent: Option<crate::terminal::CLIAgent>,
-    review_pane_context: Option<&'a CodeReviewPaneContext>,
 }
 
 /// Groups a modal view handle with the ID of the tab that was created to host
@@ -3236,12 +3213,6 @@ impl Workspace {
                 ctx.notify();
             }
             TabSettingsChangedEvent::ShowCodeReviewButton { .. } => {
-                // Close the right panel if it's open and the setting was just disabled.
-                if !*TabSettings::as_ref(ctx).show_code_review_button {
-                    let pane_group = self.active_tab_pane_group().clone();
-                    if pane_group.as_ref(ctx).right_panel_open {
-                    }
-                }
                 ctx.notify();
             }
             TabSettingsChangedEvent::ShowCodeReviewDiffStats { .. } => {
@@ -12331,9 +12302,6 @@ impl Workspace {
                     .as_ref(ctx)
                     .active_session_view(ctx)
                 {
-                    #[cfg(feature = "local_fs")]
-                    if self.active_tab_pane_group().as_ref(ctx).right_panel_open {
-                    }
                     // Get the ID of the workflow that's active in the pane, if there is one.
                     let active_workflow_id = terminal_view
                         .read(ctx, |terminal_view, _| terminal_view.input().clone())
@@ -12448,10 +12416,6 @@ impl Workspace {
             }
             pane_group::Event::RepoChanged => {
                 self.refresh_working_directories_for_pane_group(&pane_group, ctx);
-                #[cfg(feature = "local_fs")]
-                if self.active_tab_pane_group().as_ref(ctx).right_panel_open {
-                }
-
                 if FeatureFlag::DirectoryTabColors.is_enabled() {
                     if let Some(tab) = self
                         .tabs

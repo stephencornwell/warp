@@ -11890,12 +11890,6 @@ impl Workspace {
                 self.update_active_session(ctx);
                 ctx.notify();
             }
-            pane_group::Event::OnboardingTutorialCompleted => {
-                self.pending_session_config_tab_config_chip = false;
-                self.show_session_config_tab_config_chip = false;
-                self.pending_session_config_tab_config_chip_tutorial = None;
-                ctx.notify();
-            }
             pane_group::Event::InvalidatedActiveConversation => {
                 self.handle_task_status_reset(pane_group.id(), ctx);
             }

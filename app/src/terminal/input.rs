@@ -1565,15 +1565,8 @@ pub struct Input {
     user_query_menu_view: ViewHandle<UserQueryMenuView>,
 
 
-    /// Inline history menu for up-arrow with conversations and commands.
-    inline_history_menu_view: ViewHandle<InlineHistoryMenuView>,
-
-    pub(super) cloud_mode_v2_history_menu_view: Option<ViewHandle<CloudModeV2HistoryMenuView>>,
-
-    inline_terminal_menu_positioner: ModelHandle<InlineMenuPositioner>,
-
-    /// Model for managing slash command state.
-    slash_command_model: ModelHandle<SlashCommandModel>,
+    /// Model for managing terminal input state.
+    slash_command_model: Option<ModelHandle<SlashCommandModel>>,
 
     /// Cached flag indicating whether the editor buffer is empty, used to track changes between
     /// empty and non-empty states.
@@ -2535,61 +2528,6 @@ impl Input {
             )
         });
 
-        let inline_history_menu_view = ctx.add_view({
-            let active_session = active_session.clone();
-            let buffer_model = buffer_model.clone();
-            |ctx| {
-                inline_history::InlineHistoryMenuView::new(
-                    terminal_view_id,
-                    active_session,
-                    &suggestions_mode_model,
-                    agent_view_controller.clone(),
-                    &inline_terminal_menu_positioner,
-                    buffer_model,
-                    ctx,
-                )
-            }
-        });
-        if FeatureFlag::InlineHistoryMenu.is_enabled() {
-            ctx.subscribe_to_view(&inline_history_menu_view, |me, _, event, ctx| {
-                if me.is_cloud_mode_input_v2_composing(ctx) {
-                    return;
-                }
-                me.handle_inline_history_menu_event(event, ctx);
-            });
-        }
-        let inline_history_model = inline_history_menu_view.as_ref(ctx).model().clone();
-
-        let cloud_mode_v2_history_menu_view = if FeatureFlag::CloudModeInputV2.is_enabled() {
-            let view = ctx.add_view({
-                let active_session = active_session.clone();
-                let buffer_model = buffer_model.clone();
-                let agent_view_controller = agent_view_controller.clone();
-                |ctx| {
-                    CloudModeV2HistoryMenuView::new(
-                        terminal_view_id,
-                        active_session,
-                        &suggestions_mode_model,
-                        agent_view_controller,
-                        &inline_terminal_menu_positioner,
-                        buffer_model,
-                        ctx,
-                    )
-                }
-            });
-            if FeatureFlag::InlineHistoryMenu.is_enabled() {
-                ctx.subscribe_to_view(&view, |me, _, event, ctx| {
-                    if !me.is_cloud_mode_input_v2_composing(ctx) {
-                        return;
-                    }
-                    me.handle_inline_history_menu_event(event, ctx);
-                });
-            }
-            Some(view)
-        } else {
-            None
-        };
-
         let terminal_input_message_bar = ctx.add_view(|ctx| {
             TerminalInputMessageBar::new(
                 model.clone(),
@@ -2597,7 +2535,7 @@ impl Input {
                 buffer_model.clone(),
                 ai_context_model.clone(),
                 suggestions_mode_model.clone(),
-                inline_history_model,
+                None,
                 ctx,
             )
         });
@@ -3231,8 +3169,7 @@ impl Input {
             inline_skill_selector_view,
             skill_selector_should_invoke: false,
             user_query_menu_view,
-            inline_history_menu_view,
-            cloud_mode_v2_history_menu_view,
+            slash_command_model: None,
             inline_terminal_menu_positioner,
             cached_agent_mode_hint_text: None,
             is_editor_empty_on_last_edit: is_editor_empty,

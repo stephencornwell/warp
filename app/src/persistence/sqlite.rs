@@ -71,7 +71,7 @@ use crate::ai::mcp::{
 use crate::ai::persisted_workspace::EnablementState;
 use crate::app_state::{
     CodeReviewPaneSnapshot,
-    EnvVarCollectionPaneSnapshot, LeftPanelSnapshot, RightPanelSnapshot, SettingsPaneSnapshot,
+    EnvVarCollectionPaneSnapshot, LeftPanelSnapshot, SettingsPaneSnapshot,
     WorkflowPaneSnapshot,
 };
 use crate::auth::auth_manager::PersistedCurrentUserInformation;
@@ -923,17 +923,14 @@ fn save_app_state(conn: &mut SqliteConnection, app_state: &AppState) -> Result<(
                     parent_pane_node_id: None,
                 });
 
-                if tab.left_panel.is_some() || tab.right_panel.is_some() {
+                if tab.left_panel.is_some() {
                     let new_panel = model::NewPanel {
                         tab_id: *tab_id,
                         left_panel: tab
                             .left_panel
                             .as_ref()
                             .and_then(|p| serde_json::to_string(p).ok()),
-                        right_panel: tab
-                            .right_panel
-                            .as_ref()
-                            .and_then(|p| serde_json::to_string(p).ok()),
+                        right_panel: None,
                     };
                     diesel::insert_into(schema::panels::dsl::panels)
                         .values(new_panel)
@@ -2574,10 +2571,6 @@ fn read_sqlite_data(
                         .and_then(|p| p.left_panel.as_ref())
                         .and_then(|s| serde_json::from_str::<LeftPanelSnapshot>(s).ok());
 
-                    let right_panel = panel
-                        .and_then(|p| p.right_panel.as_ref())
-                        .and_then(|s| serde_json::from_str::<RightPanelSnapshot>(s).ok());
-
                     Some(TabSnapshot {
                         root,
                         custom_title: tab.custom_title,
@@ -2597,7 +2590,6 @@ fn read_sqlite_data(
                             })
                             .unwrap_or_default(),
                         left_panel,
-                        right_panel,
                     })
                 })
                 .collect();
@@ -2651,13 +2643,7 @@ fn read_sqlite_data(
                 _ => None,
             });
 
-            let right_panel_width: Option<f32> =
-                saved_tabs
-                    .get(tab_index)
-                    .and_then(|tab| match tab.right_panel.as_ref() {
-                        Some(RightPanelSnapshot { width, .. }) => Some(*width as f32),
-                        _ => None,
-                    });
+            let right_panel_width: Option<f32> = None;
 
             let window_left_panel_open = window.left_panel_open.unwrap_or_else(|| {
                 saved_tabs

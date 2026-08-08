@@ -50,7 +50,6 @@ pub struct TabSnapshot {
     pub default_directory_color: Option<AnsiColorIdentifier>,
     pub selected_color: SelectedTabColor,
     pub left_panel: Option<LeftPanelSnapshot>,
-    pub right_panel: Option<RightPanelSnapshot>,
 }
 
 impl TabSnapshot {
@@ -238,13 +237,6 @@ pub struct LeftPanelSnapshot {
     pub left_panel_displayed_tab: LeftPanelDisplayedTab,
     pub pane_group_id: String,
     pub width: usize,
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct RightPanelSnapshot {
-    pub pane_group_id: String,
-    pub width: usize,
-    pub is_maximized: bool,
 }
 
 /// Copied from pane group model, which should be private to pane group.

@@ -231,10 +231,6 @@ impl BillingAndUsagePageView {
             ctx.notify();
         });
 
-        ctx.subscribe_to_model(&AIRequestUsageModel::handle(ctx), |_, _, _, ctx| {
-            ctx.notify()
-        });
-
         ctx.subscribe_to_model(&PricingInfoModel::handle(ctx), |me, _handle, event, ctx| {
             #[allow(irrefutable_let_patterns)]
             if let PricingInfoModelEvent::PricingInfoUpdated = event {

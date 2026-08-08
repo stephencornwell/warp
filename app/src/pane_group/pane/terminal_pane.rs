@@ -810,34 +810,6 @@ fn handle_terminal_view_event(
             Event::OpenCodeDiff { view } => {
                 ctx.emit(pane_group::Event::OpenCodeDiff { view: view.clone() });
             }
-            Event::OpenCodeReviewPane(arg) => {
-                ctx.emit(pane_group::Event::OpenCodeReviewPane(arg.clone()));
-            }
-            Event::OpenCodeReviewPaneAndScrollToComment {
-                open_code_review,
-                comment,
-                diff_mode,
-            } => {
-                ctx.emit(pane_group::Event::OpenCodeReviewPaneAndScrollToComment {
-                    open_code_review: open_code_review.clone(),
-                    comment: comment.clone(),
-                    diff_mode: diff_mode.clone(),
-                });
-            }
-            Event::ImportAllCodeReviewComments {
-                open_code_review,
-                comments,
-                diff_mode,
-            } => {
-                ctx.emit(pane_group::Event::ImportAllCodeReviewComments {
-                    open_code_review: open_code_review.clone(),
-                    comments: comments.clone(),
-                    diff_mode: diff_mode.clone(),
-                });
-            }
-            Event::ToggleCodeReviewPane(arg) => {
-                ctx.emit(pane_group::Event::ToggleCodeReviewPane(arg.clone()));
-            }
             Event::OpenShareSessionModal { open_source } => {
                 group.open_share_session_modal(terminal_pane_id, *open_source, ctx)
             }
@@ -1085,19 +1057,6 @@ fn handle_terminal_view_event(
             Event::OpenAgentProfileEditor { profile_id } => {
                 ctx.emit(pane_group::Event::OpenAgentProfileEditor {
                     profile_id: *profile_id,
-                });
-            }
-            Event::InsertCodeReviewComments {
-                repo_path,
-                comments,
-                diff_mode,
-                open_code_review,
-            } => {
-                ctx.emit(pane_group::Event::InsertCodeReviewComments {
-                    repo_path: repo_path.to_path_buf(),
-                    comments: comments.to_owned(),
-                    diff_mode: diff_mode.to_owned(),
-                    open_code_review: open_code_review.clone(),
                 });
             }
             Event::ShowCloudAgentCapacityModal { variant } => {

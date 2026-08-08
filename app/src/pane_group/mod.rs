@@ -19,8 +19,6 @@ use crate::cloud_object::Space;
 #[cfg(feature = "local_fs")]
 use crate::code::editor_management::CodeSource;
 use crate::code::view::CodeViewAction;
-use crate::code_review::comments::{AttachedReviewComment, PendingImportedReviewComment};
-use crate::code_review::diff_state::DiffMode;
 use crate::env_vars::EnvVarCollectionType;
 use crate::notebooks::file::FileNotebookView;
 use crate::pane_group::focus_state::PaneGroupFocusEvent;
@@ -170,7 +168,6 @@ use focus_state::PaneGroupFocusState;
 #[path = "mod_tests.rs"]
 mod tests;
 
-pub use crate::code_review::CodeReviewPanelArg;
 pub use pane::env_var_collection_pane::EnvVarCollectionPane;
 pub use pane::environment_management_pane::EnvironmentManagementPane;
 pub use pane::file_pane::FilePane;
@@ -526,8 +523,6 @@ pub enum Event {
     OpenCodeDiff {
         view: ViewHandle<CodeDiffView>,
     },
-    OpenCodeReviewPane(CodeReviewPanelArg),
-    ToggleCodeReviewPane(CodeReviewPanelArg),
     /// Tell the workspace to run a workflow in the active tab's active session.
     RunWorkflow {
         workflow: Arc<WorkflowType>,
@@ -688,22 +683,6 @@ pub enum Event {
     },
     OpenDirectoryInNewTab {
         path: PathBuf,
-    },
-    InsertCodeReviewComments {
-        repo_path: PathBuf,
-        comments: Vec<PendingImportedReviewComment>,
-        diff_mode: DiffMode,
-        open_code_review: Option<CodeReviewPanelArg>,
-    },
-    OpenCodeReviewPaneAndScrollToComment {
-        open_code_review: CodeReviewPanelArg,
-        comment: AttachedReviewComment,
-        diff_mode: DiffMode,
-    },
-    ImportAllCodeReviewComments {
-        open_code_review: CodeReviewPanelArg,
-        comments: Vec<AttachedReviewComment>,
-        diff_mode: DiffMode,
     },
     RunTabConfigSkill {
         path: PathBuf,

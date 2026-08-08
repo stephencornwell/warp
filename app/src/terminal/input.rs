@@ -4128,11 +4128,6 @@ impl Input {
                     }
                 });
             }
-            inline_history::InlineHistoryMenuEvent::SelectConversation => {
-                self.editor.update(ctx, |editor, ctx| {
-                    editor.set_buffer_text_ignoring_undo("", ctx);
-                });
-            }
             inline_history::InlineHistoryMenuEvent::Close => {
                 if self
                     .suggestions_mode_model

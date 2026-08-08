@@ -37,13 +37,6 @@ pub use crate::terminal::view::rich_content::{
 };
 use crate::view_components::action_button::{ActionButton, ButtonSize, KeystrokeSource};
 
-#[cfg(feature = "local_fs")]
-use crate::code_review::context::{
-    convert_file_diffs_to_diffset_hunks, create_attachment_reference_and_key,
-    register_diffset_attachment,
-};
-#[cfg(feature = "local_fs")]
-use crate::code_review::DiffSetScope;
 use crate::terminal::model::blocks::RemovableBlocklistItem;
 #[cfg(feature = "local_fs")]
 use crate::util::file::external_editor::{settings::EditorLayout, EditorSettings};

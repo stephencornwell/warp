@@ -22996,25 +22996,6 @@ impl TerminalView {
         }
     }
 
-    fn show_rewind_confirmation_dialog(
-        &mut self,
-        ai_block_view_id: EntityId,
-        exchange_id: AIAgentExchangeId,
-        conversation_id: AIConversationId,
-        entrypoint: AgentModeRewindEntrypoint,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        send_telemetry_from_ctx!(
-            TelemetryEvent::AgentModeRewindDialogOpened { entrypoint },
-            ctx
-        );
-        ctx.dispatch_typed_action(&WorkspaceAction::ShowRewindConfirmationDialog {
-            ai_block_view_id,
-            exchange_id,
-            conversation_id,
-        });
-    }
-
     fn rewind_ai_conversation(
         &mut self,
         ai_block_view_id: EntityId,
@@ -24553,16 +24534,13 @@ impl TypedActionView for TerminalView {
                 ai_block_view_id,
                 exchange_id,
                 conversation_id,
-                entrypoint,
-            } => {
-                self.show_rewind_confirmation_dialog(
-                    *ai_block_view_id,
-                    *exchange_id,
-                    *conversation_id,
-                    *entrypoint,
-                    ctx,
-                );
-            }
+                ..
+            } => self.rewind_ai_conversation(
+                *ai_block_view_id,
+                *exchange_id,
+                *conversation_id,
+                ctx,
+            ),
             ExecuteRewindAIConversation {
                 ai_block_view_id,
                 exchange_id,
@@ -24588,11 +24566,10 @@ impl TypedActionView for TerminalView {
                 });
 
                 if let Some(ai_block_view_id) = ai_block_view_id {
-                    self.show_rewind_confirmation_dialog(
+                    self.rewind_ai_conversation(
                         ai_block_view_id,
                         *exchange_id,
                         *conversation_id,
-                        AgentModeRewindEntrypoint::SlashCommand,
                         ctx,
                     );
                 } else {

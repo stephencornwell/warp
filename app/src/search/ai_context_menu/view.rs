@@ -9,7 +9,6 @@ use crate::search::ai_context_menu::code::data_source::{code_data_source, CodeSy
 use crate::search::ai_context_menu::code::is_code_symbols_indexing;
 #[cfg(not(target_family = "wasm"))]
 use crate::search::ai_context_menu::commands::data_source::CommandDataSource;
-use crate::search::ai_context_menu::conversations::data_source::ConversationDataSource;
 #[cfg(not(target_family = "wasm"))]
 use crate::search::ai_context_menu::diffset::data_source::DiffSetDataSource;
 #[cfg(not(target_family = "wasm"))]
@@ -114,7 +113,6 @@ pub enum AIContextMenuCategory {
     RecentBlock,
     Code,
     DiffSet,
-    Conversations,
     Skills,
 }
 
@@ -139,7 +137,6 @@ impl AIContextMenuCategory {
             AIContextMenuCategory::RecentBlock => "Most recent block",
             AIContextMenuCategory::Code => "Code",
             AIContextMenuCategory::DiffSet => "Diff sets",
-            AIContextMenuCategory::Conversations => "Conversations",
             AIContextMenuCategory::Skills => "Skills",
         }
     }
@@ -164,7 +161,6 @@ impl AIContextMenuCategory {
             AIContextMenuCategory::RecentBlock => "bundled/svg/block.svg",
             AIContextMenuCategory::Code => "bundled/svg/code-02.svg",
             AIContextMenuCategory::DiffSet => "bundled/svg/diff.svg",
-            AIContextMenuCategory::Conversations => "bundled/svg/conversation.svg",
             AIContextMenuCategory::Skills => "bundled/svg/stars-01.svg",
         }
     }
@@ -485,9 +481,6 @@ impl AIContextMenu {
                 && !is_shared_session_viewer
             {
                 categories.push(AIContextMenuCategory::DiffSet);
-            }
-            if FeatureFlag::ConversationsAsContext.is_enabled() {
-                categories.push(AIContextMenuCategory::Conversations);
             }
             if show_warp_drive {
                 categories.push(AIContextMenuCategory::Rules);
@@ -1009,19 +1002,6 @@ impl AIContextMenu {
                     );
                 });
             }
-            NavigationState::Category(AIContextMenuCategory::Conversations) => {
-                let conversation_data_source = ctx.add_model(|_| ConversationDataSource);
-                self.mixer.update(ctx, |mixer, ctx| {
-                    mixer.add_sync_source(conversation_data_source, [QueryFilter::Conversations]);
-                    mixer.run_query(
-                        Query {
-                            text: "".into(),
-                            filters: HashSet::new(),
-                        },
-                        ctx,
-                    );
-                });
-            }
             #[cfg(not(target_family = "wasm"))]
             NavigationState::Category(AIContextMenuCategory::Skills) => {
                 let skills_data_source = ctx.add_model(|_| SkillsDataSource::new());
@@ -1157,15 +1137,6 @@ impl AIContextMenu {
                         mixer.add_sync_source(diffset_data_source, [QueryFilter::DiffSets]);
                     });
                 }
-                AIContextMenuCategory::Conversations => {
-                    let conversation_data_source = ctx.add_model(|_| ConversationDataSource);
-                    self.mixer.update(ctx, |mixer, _ctx| {
-                        mixer.add_sync_source(
-                            conversation_data_source,
-                            [QueryFilter::Conversations],
-                        );
-                    });
-                }
                 AIContextMenuCategory::Skills => {
                     let skills_data_source = ctx.add_model(|_| SkillsDataSource::new());
                     self.mixer.update(ctx, |mixer, _ctx| {
@@ -1203,15 +1174,6 @@ impl AIContextMenu {
             self.state.is_cli_agent_input,
             ctx,
         );
-        for category in categories.iter() {
-            if matches!(category, AIContextMenuCategory::Conversations) {
-                let conversation_data_source = ctx.add_model(|_| ConversationDataSource);
-                self.mixer.update(ctx, |mixer, _ctx| {
-                    mixer.add_sync_source(conversation_data_source, [QueryFilter::Conversations]);
-                });
-            }
-        }
-
         self.mixer.update(ctx, |mixer, ctx| {
             mixer.run_query(
                 Query {

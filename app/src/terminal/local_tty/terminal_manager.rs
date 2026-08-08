@@ -1,5 +1,3 @@
-use crate::ai::aws_credentials::AwsCredentialRefresher as _;
-use crate::ai::llms::{LLMPreferences, LLMPreferencesEvent};
 use crate::auth::auth_state::AuthState;
 use crate::auth::AuthStateProvider;
 use crate::terminal::model::terminal_model::ExitReason;

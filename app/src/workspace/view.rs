@@ -19628,59 +19628,6 @@ impl TypedActionView for Workspace {
                     );
                 }
             }
-            ShowRewindConfirmationDialog {
-                ai_block_view_id,
-                exchange_id,
-                conversation_id,
-            } => {
-                self.show_rewind_confirmation_dialog(
-                    RewindDialogSource {
-                        ai_block_view_id: *ai_block_view_id,
-                        exchange_id: *exchange_id,
-                        conversation_id: *conversation_id,
-                    },
-                    ctx,
-                );
-            }
-            ExecuteRewindAIConversation {
-                ai_block_view_id,
-                exchange_id,
-                conversation_id,
-            } => {
-                // Extract the user query before the rewind to prefill the input
-                let user_query = BlocklistAIHistoryModel::as_ref(ctx)
-                    .conversation(conversation_id)
-                    .and_then(|c| c.root_task_exchanges().find(|e| e.id == *exchange_id))
-                    .and_then(|e| {
-                        e.input
-                            .iter()
-                            .find(|i| i.is_user_query())
-                            .and_then(|i| i.user_query())
-                    });
-
-                // Dispatch to the active terminal to execute the rewind
-                if let Some(terminal_view) = self
-                    .active_tab_pane_group()
-                    .as_ref(ctx)
-                    .focused_session_view(ctx)
-                {
-                    terminal_view.update(ctx, |terminal, ctx| {
-                        terminal.handle_action(
-                            &TerminalAction::ExecuteRewindAIConversation {
-                                ai_block_view_id: *ai_block_view_id,
-                                exchange_id: *exchange_id,
-                                conversation_id: *conversation_id,
-                            },
-                            ctx,
-                        );
-                    });
-                }
-
-                // Prefill the input after the rewind
-                if let Some(query) = user_query {
-                    self.insert_in_input(&query, true, false, true, ctx);
-                }
-            }
             ExecuteDeleteConversation {
                 conversation_id,
                 terminal_view_id,

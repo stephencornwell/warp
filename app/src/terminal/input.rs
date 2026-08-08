@@ -4510,11 +4510,6 @@ impl Input {
                     return;
                 };
 
-                ctx.dispatch_typed_action(&TerminalAction::ExecuteRewindFromInlineMenu {
-                    conversation_id,
-                    exchange_id: *exchange_id,
-                });
-
                 let is_in_agent_view = FeatureFlag::AgentView.is_enabled()
                     && self.agent_view_controller.as_ref(ctx).is_active();
                 send_telemetry_from_ctx!(

@@ -59,7 +59,6 @@ pub mod mock_terminal_manager;
 pub mod model;
 pub mod model_events;
 pub mod platform;
-pub mod profile_model_selector;
 pub mod prompt;
 pub mod prompt_render_helper;
 pub mod recorder;
@@ -73,7 +72,6 @@ pub mod settings;
 mod share_block_modal;
 pub mod shared_session;
 mod shell_launch_state;
-pub mod universal_developer_input;
 
 pub mod ssh;
 pub mod terminal_manager;

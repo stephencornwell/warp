@@ -703,25 +703,6 @@ impl TypedActionView for CodeSettingsPageView {
                 });
                 ctx.notify();
             }
-            CodeSettingsPageAction::ToggleAutoOpenCodeReviewPane => {
-                GeneralSettings::handle(ctx).update(ctx, |settings, ctx| {
-                    report_if_error!(settings
-                        .auto_open_code_review_pane_on_first_agent_change
-                        .toggle_and_save_value(ctx));
-                });
-                send_telemetry_from_ctx!(
-                    TelemetryEvent::FeaturesPageAction {
-                        action: "ToggleAutoOpenCodeReviewPane".to_string(),
-                        value: format!(
-                            "{}",
-                            *GeneralSettings::as_ref(ctx)
-                                .auto_open_code_review_pane_on_first_agent_change
-                        )
-                    },
-                    ctx
-                );
-                ctx.notify();
-            }
             CodeSettingsPageAction::InstallAndEnableLspServer {
                 workspace_path,
                 server_type,

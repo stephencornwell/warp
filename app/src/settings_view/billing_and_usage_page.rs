@@ -100,7 +100,6 @@ const RESTRICTED_BILLING_USAGE_WARNING_STRING: &str =
     "Auto reload is disabled due to recent failed reload. Please update your payment method and try again.";
 
 const OVERVIEW_TAB_TEXT: &str = "Overview";
-const USAGE_HISTORY_TAB_TEXT: &str = "Usage History";
 
 const ENTERPRISE_USAGE_CALLOUT_HEADER: &str = "Usage reporting is currently limited";
 const ENTERPRISE_USAGE_CALLOUT_BODY_ADMIN_PREFIX: &str =

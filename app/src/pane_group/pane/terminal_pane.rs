@@ -1000,9 +1000,6 @@ fn handle_terminal_view_event(
                     force_open: *force_open,
                 });
             }
-            Event::HideAIDocumentPanes => {
-                group.close_all_ai_document_panes(ctx);
-            }
             Event::OpenAIDocumentPane {
                 document_id,
                 document_version,

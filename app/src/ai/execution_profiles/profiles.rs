@@ -363,10 +363,6 @@ impl AIExecutionProfilesModel {
             .unwrap_or_else(|| self.default_profile(ctx))
     }
 
-    pub fn default_profile_id(&self) -> ClientProfileId {
-        self.default_profile_state.id()
-    }
-
     pub fn default_profile(&self, ctx: &AppContext) -> AIExecutionProfileInfo {
         match &self.default_profile_state {
             DefaultProfileState::Unsynced { id, profile } => AIExecutionProfileInfo {

@@ -21,7 +21,6 @@ use crate::auth::auth_manager::AuthManager;
 use crate::auth::auth_state::AuthState;
 use crate::server::graphql::default_request_options;
 use crate::server::server_api::presigned_upload::HttpStatusError;
-use ai::AIClient;
 use auth::{AuthClient, AMBIENT_WORKLOAD_TOKEN_HEADER, CLOUD_AGENT_ID_HEADER};
 use base64::prelude::BASE64_URL_SAFE;
 use base64::Engine;
@@ -1385,10 +1384,6 @@ impl ServerApiProvider {
     }
 
     pub fn get_team_client(&self) -> Arc<dyn TeamClient> {
-        self.server_api.clone()
-    }
-
-    pub fn get_ai_client(&self) -> Arc<dyn AIClient> {
         self.server_api.clone()
     }
 

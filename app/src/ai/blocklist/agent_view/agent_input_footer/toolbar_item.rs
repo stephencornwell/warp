@@ -63,9 +63,6 @@ pub enum AgentToolbarItemKind {
     FileAttach,
     ShareSession,
 
-    // CLI agent only – opens settings to the Coding Agents section.
-    Settings,
-
     // Agent view only – shows fast-forward (auto-approve) toggle in the footer
     FastForwardToggle,
 }
@@ -80,7 +77,7 @@ impl AgentToolbarItemKind {
             | Self::NLDToggle
             | Self::ContextWindowUsage
             | Self::FastForwardToggle => ToolbarAvailability::AgentViewOnly,
-            Self::FileExplorer | Self::RichInput | Self::Settings => {
+            Self::FileExplorer | Self::RichInput => {
                 ToolbarAvailability::CLIAgentOnly
             }
         }
@@ -95,7 +92,7 @@ impl AgentToolbarItemKind {
         is_cloud_mode: bool,
     ) -> bool {
         match self {
-            Self::Settings | Self::ShareSession | Self::FileExplorer => !status.is_viewer(),
+            Self::ShareSession | Self::FileExplorer => !status.is_viewer(),
             Self::FileAttach => !status.is_viewer() || is_cloud_mode,
             Self::FastForwardToggle => !status.is_viewer() || status.is_executor(),
             Self::ContextChip(_)
@@ -118,7 +115,6 @@ impl AgentToolbarItemKind {
             Self::FileExplorer => "File Explorer",
             Self::RichInput => "Rich Input",
             Self::ShareSession => "/remote-control",
-            Self::Settings => "Settings",
             Self::FastForwardToggle => "Fast Forward",
         }
     }
@@ -134,7 +130,6 @@ impl AgentToolbarItemKind {
             Self::FileExplorer => Some(Icon::FileCopy),
             Self::RichInput => Some(Icon::TextInput),
             Self::ShareSession => Some(Icon::Phone01),
-            Self::Settings => Some(Icon::Settings),
             Self::FastForwardToggle => Some(Icon::FastForward),
         }
     }
@@ -230,7 +225,6 @@ impl AgentToolbarItemKind {
         vec![
             Self::ContextChip(ContextChipKind::WorkingDirectory),
             Self::ContextChip(ContextChipKind::ShellGitBranch),
-            Self::Settings,
         ]
     }
 
@@ -245,7 +239,6 @@ impl AgentToolbarItemKind {
             Self::RichInput,
             Self::FileAttach,
             Self::VoiceInput,
-            Self::Settings,
         ]);
         if FeatureFlag::CreatingSharedSessions.is_enabled()
             && FeatureFlag::HOARemoteControl.is_enabled()

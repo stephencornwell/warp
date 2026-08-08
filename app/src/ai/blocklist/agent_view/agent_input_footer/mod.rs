@@ -210,7 +210,6 @@ pub struct AgentInputFooter {
     // CLI agent-specific buttons (rendered when a CLI agent session is active).
     file_explorer_button: ViewHandle<ActionButton>,
     rich_input_button: ViewHandle<ActionButton>,
-    settings_button: ViewHandle<ActionButton>,
     install_plugin_button: ViewHandle<ActionButton>,
     plugin_instructions_button: ViewHandle<ActionButton>,
     update_plugin_button: ViewHandle<ActionButton>,
@@ -379,17 +378,6 @@ impl AgentInputFooter {
                     ctx.dispatch_typed_action(AgentInputFooterAction::ToggleRichInput);
                 })
         });
-        let settings_button = ctx.add_typed_action_view(|_ctx| {
-            ActionButton::new("", AgentInputButtonTheme)
-                .with_icon(Icon::Settings)
-                .with_tooltip("Open coding agent settings")
-                .with_size(cli_button_size)
-                .with_tooltip_alignment(TooltipAlignment::Left)
-                .on_click(|ctx| {
-                    ctx.dispatch_typed_action(AgentInputFooterAction::OpenCodingAgentSettings);
-                })
-        });
-
         let install_plugin_button = ctx.add_typed_action_view(|_ctx| {
             ActionButton::new("Enable notifications", InstallPluginButtonTheme)
                 .with_icon(Icon::Download)
@@ -747,7 +735,6 @@ impl AgentInputFooter {
             file_button,
             file_explorer_button,
             rich_input_button,
-            settings_button,
             start_remote_control_button,
             stop_remote_control_button,
             install_plugin_button,
@@ -1358,7 +1345,6 @@ impl AgentInputFooter {
                 };
                 Some(ChildView::new(button).finish())
             }
-            AgentToolbarItemKind::Settings => Some(ChildView::new(&self.settings_button).finish()),
             // Handled by the available_in() guard above; included for exhaustiveness.
             AgentToolbarItemKind::ModelSelector
             | AgentToolbarItemKind::NLDToggle
@@ -1950,8 +1936,7 @@ impl AgentInputFooter {
                 .then(|| ChildView::new(&self.fast_forward_button).finish()),
             // Handled by the available_in() guard above; included for exhaustiveness.
             AgentToolbarItemKind::FileExplorer
-            | AgentToolbarItemKind::RichInput
-            | AgentToolbarItemKind::Settings => None,
+            | AgentToolbarItemKind::RichInput => None,
         }
     }
 
@@ -2210,7 +2195,6 @@ pub enum AgentInputFooterAction {
     DismissPluginChip,
     StartRemoteControl,
     StopRemoteControl,
-    OpenCodingAgentSettings,
     ShowContextMenu {
         position: Vector2F,
     },
@@ -2399,13 +2383,6 @@ impl TypedActionView for AgentInputFooter {
             }
             AgentInputFooterAction::StopRemoteControl => {
                 ctx.emit(AgentInputFooterEvent::StopRemoteControl);
-            }
-            AgentInputFooterAction::OpenCodingAgentSettings => {
-                #[cfg(not(target_family = "wasm"))]
-                ctx.dispatch_typed_action_deferred(WorkspaceAction::ScrollToSettingsWidget {
-                    page: SettingsSection::ThirdPartyCLIAgents,
-                    widget_id: crate::settings_view::cli_agent_settings_widget_id(),
-                });
             }
             AgentInputFooterAction::ShowContextMenu { position } => {
                 ctx.emit(AgentInputFooterEvent::ShowContextMenu {

@@ -9,10 +9,8 @@ mod app_services;
 mod app_state;
 mod autoupdate;
 mod banner;
-mod billing;
 mod changelog_model;
 mod chip_configurator;
-mod cloud_object;
 mod code;
 mod coding_entrypoints;
 mod coding_panel_enablement_state;
@@ -28,7 +26,6 @@ mod debounce;
 mod debug_dump;
 mod default_terminal;
 mod download_method;
-mod drive;
 #[cfg(windows)]
 mod dynamic_libraries;
 mod env_vars;
@@ -45,7 +42,6 @@ mod login_item;
 mod menu;
 mod modal;
 mod network;
-mod notebooks;
 mod notification;
 mod palette;
 mod persistence;
@@ -151,7 +147,6 @@ use terminal::keys_settings::KeysSettings;
 #[cfg(all(not(target_family = "wasm"), feature = "local_tty"))]
 use terminal::local_shell::LocalShellState;
 pub use util::bindings::cmd_or_ctrl_shift;
-pub mod workflows;
 pub mod workspace;
 
 #[cfg(feature = "integration_tests")]

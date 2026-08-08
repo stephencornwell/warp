@@ -99,7 +99,6 @@ pub fn init(app: &mut AppContext) {
     modal::init(app);
     native_modal::init(app);
     lightbox_view::init(app);
-    rewind_confirmation_dialog::init(app);
     crate::tab_configs::remove_confirmation_dialog::init(app);
     hoa_onboarding::init(app);
     tab_configs::session_config_modal::init(app);

@@ -3240,7 +3240,6 @@ impl Workspace {
                 if !*TabSettings::as_ref(ctx).show_code_review_button {
                     let pane_group = self.active_tab_pane_group().clone();
                     if pane_group.as_ref(ctx).right_panel_open {
-                        self.close_right_panel(&pane_group, ctx);
                     }
                 }
                 ctx.notify();
@@ -7540,7 +7539,6 @@ impl Workspace {
                     },
                     ctx
                 );
-                self.setup_code_review_panel(panel_update_params.review_pane_context, ctx);
             }
         } else {
             self.focus_active_tab(ctx);
@@ -12517,7 +12515,6 @@ impl Workspace {
                 self.run_tab_config_skill(path, ctx);
             }
             pane_group::Event::OpenCodeReviewPane(arg) => {
-                self.open_code_review_panel_from_arg(arg, pane_group.clone(), ctx);
             }
             pane_group::Event::ToggleCodeReviewPane(arg) => {
                 self.toggle_right_panel(&pane_group, ctx);
@@ -12623,7 +12620,6 @@ impl Workspace {
                 {
                     #[cfg(feature = "local_fs")]
                     if self.active_tab_pane_group().as_ref(ctx).right_panel_open {
-                        self.setup_code_review_panel(None, ctx);
                     }
                     // Get the ID of the workflow that's active in the pane, if there is one.
                     let active_workflow_id = terminal_view
@@ -12741,7 +12737,6 @@ impl Workspace {
                 self.refresh_working_directories_for_pane_group(&pane_group, ctx);
                 #[cfg(feature = "local_fs")]
                 if self.active_tab_pane_group().as_ref(ctx).right_panel_open {
-                    self.setup_code_review_panel(None, ctx);
                 }
 
                 if FeatureFlag::DirectoryTabColors.is_enabled() {
@@ -13304,7 +13299,6 @@ impl Workspace {
                 open_code_review,
             } => {
                 if let Some(open_code_review) = open_code_review {
-                    self.open_code_review_panel_from_arg(open_code_review, pane_group.clone(), ctx);
                 }
 
                 self.working_directories_model
@@ -13323,7 +13317,6 @@ impl Workspace {
                 comment,
                 diff_mode,
             } => {
-                self.open_code_review_panel_from_arg(open_code_review, pane_group.clone(), ctx);
 
                 let Some(repo_path) = &open_code_review.repo_path else {
                     return;
@@ -13353,7 +13346,6 @@ impl Workspace {
                 diff_mode,
                 open_code_review,
             } => {
-                self.open_code_review_panel_from_arg(open_code_review, pane_group.clone(), ctx);
 
                 let Some(repo_path) = &open_code_review.repo_path else {
                     return;
@@ -13701,7 +13693,6 @@ impl Workspace {
                 });
 
                 if self.active_tab_pane_group().as_ref(ctx).right_panel_open {
-                    self.setup_code_review_panel(None, ctx);
                 }
             }
         } else {
@@ -19331,7 +19322,6 @@ impl TypedActionView for Workspace {
                     self.close_left_panel(ctx);
                 } else if self.right_panel_view.is_self_or_child_focused(ctx) {
                     let pane_group_handle = self.active_tab_pane_group().clone();
-                    self.close_right_panel(&pane_group_handle, ctx);
                 }
             }
             OpenInExplorer { path } => {

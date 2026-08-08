@@ -8,25 +8,6 @@ diesel::table! {
 }
 
 diesel::table! {
-    agent_conversations (id) {
-        id -> Integer,
-        conversation_id -> Text,
-        conversation_data -> Text,
-        last_modified_at -> Timestamp,
-    }
-}
-
-diesel::table! {
-    agent_tasks (id) {
-        id -> Integer,
-        conversation_id -> Text,
-        task_id -> Text,
-        task -> Binary,
-        last_modified_at -> Timestamp,
-    }
-}
-
-diesel::table! {
     ai_document_panes (id) {
         id -> Integer,
         kind -> Text,

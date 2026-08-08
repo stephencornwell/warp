@@ -5,10 +5,9 @@ use std::collections::{HashMap, HashSet};
 use chrono::NaiveDateTime;
 use diesel::prelude::*;
 use serde::{Deserialize, Deserializer, Serialize};
-use warp_multi_agent_api::{self as api, response_event::stream_finished};
 
 use super::schema::{
-    active_mcp_servers, agent_conversations, agent_tasks, ai_document_panes, ai_memory_panes,
+    active_mcp_servers, ai_document_panes, ai_memory_panes,
     ambient_agent_panes, app, blocks, cloud_objects_refreshes, code_pane_tabs, code_panes,
     code_review_panes, commands, current_user_information, env_var_collection_panes, folders,
     generic_string_objects, ignored_suggestions, mcp_environment_variables,
@@ -887,28 +886,6 @@ pub struct NewActiveMCPServer {
     pub mcp_server_uuid: String,
 }
 
-// Queryable structs for reading from the database
-#[derive(Debug, PartialEq, Default, Queryable, Selectable, Clone)]
-#[diesel(table_name = agent_conversations)]
-#[diesel(primary_key(id))]
-pub struct AgentConversationRecord {
-    pub id: i32,
-    pub conversation_id: String,
-    pub conversation_data: String,
-    pub last_modified_at: NaiveDateTime,
-}
-
-#[derive(Debug, PartialEq, Queryable, Selectable)]
-#[diesel(table_name = agent_tasks)]
-#[diesel(primary_key(id))]
-pub struct AgentTaskRecord {
-    pub id: i32,
-    pub conversation_id: String,
-    pub task_id: String,
-    pub task: Vec<u8>,
-    pub last_modified_at: NaiveDateTime,
-}
-
 #[derive(Debug, PartialEq, Queryable, Selectable, Clone)]
 #[diesel(table_name = ai_document_panes)]
 #[diesel(primary_key(id))]
@@ -929,118 +906,6 @@ pub struct NewAIDocumentPane {
     pub version: i32,
     pub content: Option<String>,
     pub title: Option<String>,
-}
-
-#[derive(Debug, PartialEq, Default, Clone)]
-pub struct AgentConversation {
-    pub conversation: AgentConversationRecord,
-    pub tasks: Vec<api::Task>,
-}
-
-impl AgentConversation {
-    /// Returns `true` if the conversation is restorable.
-    ///
-    /// A conversation is restorable if:
-    /// - It contains a single task or fewer, OR
-    /// - It contains multiple tasks where every task other than the root task has a parent task ID.
-    pub fn is_restorable(&self) -> bool {
-        if self.tasks.len() <= 1 {
-            return true;
-        }
-
-        // Find the root task(s) - tasks with no parent_task_id or empty parent_task_id
-        let root_tasks: Vec<_> = self
-            .tasks
-            .iter()
-            .filter(|task| {
-                task.dependencies
-                    .as_ref()
-                    .map(|deps| deps.parent_task_id.is_empty())
-                    .unwrap_or(true)
-            })
-            .collect();
-
-        // Must have exactly one root task
-        if root_tasks.len() != 1 {
-            return false;
-        }
-
-        // All non-root tasks must have a non-empty parent_task_id
-        self.tasks.iter().all(|task| {
-            // Root task is always valid
-            if task
-                .dependencies
-                .as_ref()
-                .map(|deps| deps.parent_task_id.is_empty())
-                .unwrap_or(true)
-            {
-                return true;
-            }
-
-            // Non-root tasks must have a non-empty parent_task_id
-            task.dependencies
-                .as_ref()
-                .is_some_and(|deps| !deps.parent_task_id.is_empty())
-        })
-    }
-}
-
-#[derive(Debug, Serialize, Clone, Copy, PartialEq, Eq, Default)]
-pub enum PersistedAutoexecuteMode {
-    #[default]
-    RespectUserSettings,
-    RunToCompletion,
-}
-
-impl<'de> Deserialize<'de> for PersistedAutoexecuteMode {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let value = String::deserialize(deserializer)?;
-        Ok(match value.as_str() {
-            "RespectUserSettings" => Self::RespectUserSettings,
-            "RunToCompletion" => Self::RunToCompletion,
-            _ => Self::default(),
-        })
-    }
-}
-// Serializes to `conversation_data` column in `agent_conversations`.
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct AgentConversationData {
-    pub server_conversation_token: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub conversation_usage_metadata: Option<ConversationUsageMetadata>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub reverted_action_ids: Option<HashSet<AIAgentActionId>>,
-    /// The server conversation ID of the source conversation if this conversation was forked.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub forked_from_server_conversation_token: Option<String>,
-    /// Serialized Vec<Artifact> for local artifact tracking.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub artifacts_json: Option<String>,
-    /// Server-side identifier of the parent agent that spawned this child.
-    /// In v1 this is the parent's conversation token; in v2 it is the parent's run_id.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub parent_agent_id: Option<String>,
-    /// The display name for this agent, assigned by the orchestrator.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub agent_name: Option<String>,
-    /// The local conversation ID of the parent conversation.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub parent_conversation_id: Option<String>,
-    /// The server-assigned run identifier (`ai_tasks.id`) for v2 orchestration.
-    /// For local agents this arrives via StreamInit; for cloud agents it will
-    /// come from SpawnAgentResponse once the local→cloud spawn path is wired.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub run_id: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub autoexecute_override: Option<PersistedAutoexecuteMode>,
-    /// The last event sequence number from the v2 orchestration event log
-    /// that this conversation has observed. Used on restore to resume event
-    /// delivery without re-delivering already-processed events.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub last_event_sequence: Option<i64>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]

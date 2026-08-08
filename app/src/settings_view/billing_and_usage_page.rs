@@ -924,14 +924,6 @@ impl TypedActionView for BillingAndUsagePageView {
                     );
                 });
             }
-            BillingAndUsagePageAction::DismissAmbientAgentTrialWidget => {
-                AISettings::handle(ctx).update(ctx, |settings, ctx| {
-                    let _ = settings
-                        .ambient_agent_trial_widget_dismissed
-                        .set_value(true, ctx);
-                });
-                ctx.notify();
-            }
             BillingAndUsagePageAction::NavigateToByokSettings => {
                 ctx.dispatch_typed_action_deferred(WorkspaceAction::ShowSettingsPageWithSearch {
                     search_query: "api".to_string(),

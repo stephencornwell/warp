@@ -691,20 +691,6 @@ impl TypedActionView for CodeSettingsPageView {
                     rule_paths: rule_paths.clone(),
                 });
             }
-            CodeSettingsPageAction::ToggleCodeReviewPanel => {
-                TabSettings::handle(ctx).update(ctx, |settings, ctx| {
-                    report_if_error!(settings.show_code_review_button.toggle_and_save_value(ctx));
-                });
-                ctx.notify();
-            }
-            CodeSettingsPageAction::ToggleShowCodeReviewDiffStats => {
-                TabSettings::handle(ctx).update(ctx, |settings, ctx| {
-                    report_if_error!(settings
-                        .show_code_review_diff_stats
-                        .toggle_and_save_value(ctx));
-                });
-                ctx.notify();
-            }
             CodeSettingsPageAction::ToggleProjectExplorer => {
                 CodeSettings::handle(ctx).update(ctx, |settings, ctx| {
                     report_if_error!(settings.show_project_explorer.toggle_and_save_value(ctx));

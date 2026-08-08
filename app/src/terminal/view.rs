@@ -2232,11 +2232,6 @@ enum SecretTooltip {
     },
 }
 
-pub fn is_prompt_suggestions_enabled(app: &AppContext) -> bool {
-    AISettings::as_ref(app).is_prompt_suggestions_enabled(app)
-        && UserWorkspaces::as_ref(app).is_prompt_suggestions_toggleable()
-}
-
 type TerminalViewCallback = Box<dyn FnOnce(&mut TerminalView, &mut ViewContext<TerminalView>)>;
 type ConversationFinishedCallback =
     Box<dyn FnOnce(&mut TerminalView, FinishReason, &mut ViewContext<TerminalView>)>;
@@ -4227,25 +4222,6 @@ impl TerminalView {
     }
 
     /// Exits the active agent, either:
-    /// * Exiting agent view for the selected conversation
-    /// * Popping the current view off the navigation stack (for cloud mode agents)
-    fn exit_agent_view(&mut self, ctx: &mut ViewContext<Self>) {
-        // For ambient agent sessions (cloud mode), always pop from pane stack.
-        // These sessions are pushed onto a nav stack and have no underlying terminal
-        // to return to via the normal agent view exit path.
-        if self.is_ambient_agent_session(ctx) {
-            if let Some(pane_stack) = self.pane_stack.as_ref().and_then(|h| h.upgrade(ctx)) {
-                pane_stack.update(ctx, |stack, ctx| {
-                    stack.pop(ctx);
-                });
-            }
-        } else {
-            self.agent_view_controller.update(ctx, |controller, ctx| {
-                controller.exit_agent_view(ctx);
-            });
-        }
-    }
-
     /// Schedule a callback to run after the next
     /// [`BlocklistAIControllerEvent::FinishedReceivingOutput`] received, regardless of whether the
     /// conversation completed successfully, was cancelled, or encountered an error.

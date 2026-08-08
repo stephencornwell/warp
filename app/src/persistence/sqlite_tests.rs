@@ -190,7 +190,7 @@ fn test_sqlite_loads_legacy_vertical_tabs_panel_open_and_discards_it() {
 }
 
 #[test]
-fn test_sqlite_loads_legacy_custom_vertical_tabs_title_and_discards_it() {
+fn test_sqlite_round_trips_custom_pane_title() {
     let tempdir = tempfile::tempdir().expect("tempdir should be created");
     let database_path = tempdir.path().join("warp.sqlite");
     let mut conn = setup_database(&database_path).expect("database should initialize");
@@ -255,7 +255,10 @@ fn test_sqlite_loads_legacy_custom_vertical_tabs_title_and_discards_it() {
     else {
         panic!("Expected terminal pane leaf");
     };
-    assert_eq!(custom_vertical_tabs_title, &None);
+    assert_eq!(
+        custom_vertical_tabs_title,
+        &Some("Production API".to_string())
+    );
 }
 
 #[test]

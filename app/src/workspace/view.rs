@@ -4963,6 +4963,7 @@ impl Workspace {
         title: String,
         ctx: &mut ViewContext<Self>,
     ) {
+        let title = title.trim().to_owned();
         let Some(pane_group_view) = self.get_pane_group_view_with_id(locator.pane_group_id) else {
             log::warn!("Tried to rename pane in a missing pane group");
             return;
@@ -4973,7 +4974,8 @@ impl Workspace {
                 return;
             };
             pane.pane_configuration().update(ctx, |configuration, ctx| {
-                configuration.set_title(title, ctx)
+                configuration.set_title(title.clone(), ctx);
+                configuration.set_custom_title(title, ctx);
             });
             ctx.emit(pane_group::Event::AppStateChanged);
         });
@@ -4989,8 +4991,10 @@ impl Workspace {
                 log::warn!("Tried to clear a missing pane name");
                 return;
             };
-            pane.pane_configuration()
-                .update(ctx, |configuration, ctx| configuration.set_title("", ctx));
+            pane.pane_configuration().update(ctx, |configuration, ctx| {
+                configuration.set_title("", ctx);
+                configuration.clear_custom_title(ctx);
+            });
             ctx.emit(pane_group::Event::AppStateChanged);
         });
         ctx.dispatch_global_action("workspace:save_app", ());

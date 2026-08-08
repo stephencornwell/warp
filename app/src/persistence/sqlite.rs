@@ -1072,7 +1072,7 @@ fn save_pane_state(
         pane_node_id: id,
         kind: kind.into(),
         is_focused: snapshot.is_focused,
-        custom_vertical_tabs_title: None,
+        custom_vertical_tabs_title: snapshot.custom_vertical_tabs_title.clone(),
     };
 
     diesel::insert_into(schema::pane_leaves::dsl::pane_leaves)
@@ -2604,7 +2604,7 @@ fn read_node(conn: &mut SqliteConnection, node: model::PaneNode) -> Result<PaneN
 
             Ok(PaneNodeSnapshot::Leaf(LeafSnapshot {
                 is_focused: pane.is_focused,
-                custom_vertical_tabs_title: None,
+                custom_vertical_tabs_title: pane.custom_vertical_tabs_title,
                 contents,
             }))
         }

@@ -1509,6 +1509,7 @@ impl PaneGroup {
         deferred_panes: &mut Vec<(PaneId, LeafSnapshot)>,
         pending_ambient_restorations: &mut Vec<(AmbientAgentTaskId, PaneId)>,
     ) -> anyhow::Result<(PaneData, InitialFocus)> {
+        let custom_title = leaf.custom_vertical_tabs_title.clone();
         let result = match leaf.contents {
             LeafContents::AIDocument(_) => {
                 // Defer AI document pane restoration until after terminal panes are restored.
@@ -1924,7 +1925,19 @@ impl PaneGroup {
             }
         };
 
-        result
+        result.map(|(pane_data, focus)| {
+            if let (Some(custom_title), PaneNode::Leaf(pane_id)) = (custom_title, &pane_data.root) {
+                if let Some(pane) = pane_contents.get(pane_id) {
+                    pane.as_pane()
+                        .pane_configuration()
+                        .update(ctx, |configuration, ctx| {
+                            configuration.set_title(custom_title.clone(), ctx);
+                            configuration.set_custom_title(custom_title, ctx);
+                        });
+                }
+            }
+            (pane_data, focus)
+        })
     }
 
     #[cfg_attr(not(feature = "local_fs"), allow(unused_variables, unused_mut))]
@@ -2024,6 +2037,13 @@ impl PaneGroup {
                 })
             }
             PaneNode::Leaf(pane_id) => {
+                let custom_title = self.pane_contents.get(pane_id).and_then(|pane| {
+                    pane.as_pane()
+                        .pane_configuration()
+                        .read(app, |configuration, _| {
+                            configuration.custom_title().map(str::to_owned)
+                        })
+                });
                 let contents = match self.pane_contents.get(pane_id) {
                     Some(pane) => pane.as_pane().snapshot(app),
                     None => {
@@ -2047,7 +2067,7 @@ impl PaneGroup {
                 };
                 PaneNodeSnapshot::Leaf(LeafSnapshot {
                     is_focused: *pane_id == self.focused_pane_id(app),
-                    custom_vertical_tabs_title: None,
+                    custom_vertical_tabs_title: custom_title,
                     contents,
                 })
             }
@@ -6424,8 +6444,7 @@ impl PaneGroup {
         ctx.subscribe_to_model(&pane.pane_configuration(), |_group, _, event, ctx| {
             if matches!(
                 event,
-                PaneConfigurationEvent::TitleUpdated
-                    | PaneConfigurationEvent::VerticalTabsTitleUpdated
+                PaneConfigurationEvent::TitleUpdated | PaneConfigurationEvent::CustomTitleUpdated
             ) {
                 ctx.emit(Event::PaneTitleUpdated);
             }

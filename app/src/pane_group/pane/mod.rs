@@ -689,7 +689,7 @@ where
 pub struct PaneConfiguration {
     title: String,
     title_secondary: String,
-    custom_vertical_tabs_title: Option<String>,
+    custom_title: Option<String>,
     show_active_pane_indicator: bool,
 
     /// If true, we draw an accent border around the pane.
@@ -716,7 +716,7 @@ impl PaneConfiguration {
         Self {
             title: title.into(),
             title_secondary: String::from(""),
-            custom_vertical_tabs_title: None,
+            custom_title: None,
             show_active_pane_indicator: false,
             show_accent_border: false,
             has_open_modal: false,
@@ -733,8 +733,8 @@ impl PaneConfiguration {
         &self.title_secondary
     }
 
-    pub fn custom_vertical_tabs_title(&self) -> Option<&str> {
-        self.custom_vertical_tabs_title.as_deref()
+    pub fn custom_title(&self) -> Option<&str> {
+        self.custom_title.as_deref()
     }
 
     pub fn dim_even_if_focused(&self) -> bool {
@@ -773,23 +773,19 @@ impl PaneConfiguration {
         }
     }
 
-    pub fn set_custom_vertical_tabs_title(
-        &mut self,
-        title: impl Into<String>,
-        ctx: &mut ModelContext<Self>,
-    ) {
+    pub fn set_custom_title(&mut self, title: impl Into<String>, ctx: &mut ModelContext<Self>) {
         let title = title.into();
         let title = title.trim();
         let title = (!title.is_empty()).then(|| title.to_string());
-        if self.custom_vertical_tabs_title != title {
-            self.custom_vertical_tabs_title = title;
-            ctx.emit(PaneConfigurationEvent::VerticalTabsTitleUpdated);
+        if self.custom_title != title {
+            self.custom_title = title;
+            ctx.emit(PaneConfigurationEvent::CustomTitleUpdated);
         }
     }
 
-    pub fn clear_custom_vertical_tabs_title(&mut self, ctx: &mut ModelContext<Self>) {
-        if self.custom_vertical_tabs_title.take().is_some() {
-            ctx.emit(PaneConfigurationEvent::VerticalTabsTitleUpdated);
+    pub fn clear_custom_title(&mut self, ctx: &mut ModelContext<Self>) {
+        if self.custom_title.take().is_some() {
+            ctx.emit(PaneConfigurationEvent::CustomTitleUpdated);
         }
     }
 
@@ -860,7 +856,7 @@ impl PaneConfiguration {
 
 pub enum PaneConfigurationEvent {
     TitleUpdated,
-    VerticalTabsTitleUpdated,
+    CustomTitleUpdated,
     ShowActivePaneIndicatorUpdated,
     RenderElementFnUpdated,
     ShowAccentBorderUpdated,

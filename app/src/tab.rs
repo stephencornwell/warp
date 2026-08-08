@@ -338,7 +338,7 @@ impl TabData {
             return vec![];
         };
         let configuration = pane.pane_configuration();
-        let has_custom_name = !configuration.as_ref(ctx).title().is_empty();
+        let has_custom_name = configuration.as_ref(ctx).custom_title().is_some();
 
         let mut menu_items = vec![MenuItemFields::new(target.rename_label)
             .with_on_select_action(WorkspaceAction::RenamePane(target.locator))

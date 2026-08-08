@@ -3284,8 +3284,6 @@ impl RootView {
                     view.set_pending_onboarding_intention(intention);
                     view.show_session_config_modal(ctx);
                 });
-            } else {
-                workspace.update(ctx, |_, _| {});
             }
         } else if *AISettings::as_ref(ctx).is_any_ai_enabled {
             workspace.update(ctx, |view, ctx| {

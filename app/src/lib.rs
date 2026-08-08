@@ -208,7 +208,6 @@ use terminal::input;
 use terminal::session_settings::SessionSettings;
 use url::Url;
 use warp_core::execution_mode::{AppExecutionMode, ExecutionMode};
-use warp_managed_secrets::ManagedSecretManager;
 use workspace::sync_inputs::SyncedInputState;
 
 use warpui::{integration::TestDriver, App, AssetProvider, Event};

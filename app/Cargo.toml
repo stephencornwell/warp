@@ -238,7 +238,6 @@ repo_metadata.workspace = true
 vim.workspace = true
 warp_isolation_platform.workspace = true
 warp_ripgrep.workspace = true
-warp_managed_secrets.workspace = true
 
 [target.'cfg(target_os = "macos")'.dependencies]
 block.workspace = true
@@ -714,7 +713,6 @@ revert_to_checkpoints = []
 rewind_slash_command = []
 agent_view = []
 agent_view_block_context = ["agent_view"]
-warp_managed_secrets = []
 v4a_file_diffs = []
 agent_tips = []
 agent_toolbar_editor = ["agent_view"]

@@ -4,6 +4,11 @@ members = [
   "app",
 ]
 resolver = "2"
+exclude = [
+  "crates/graphql",
+  "crates/warp_graphql_schema",
+  "crates/warp_server_client",
+]
 
 # Include all members except serve-wasm (since it's a helper helper for serving
 # wasm binaries and not something we want to regularly compile or run
@@ -71,7 +76,6 @@ warp_files = { path = "crates/warp_files" }
 warp_isolation_platform = { path = "crates/isolation_platform" }
 warp_js = { path = "crates/warp_js" }
 warp_logging = { path = "crates/warp_logging" }
-warp_managed_secrets = { path = "crates/managed_secrets" }
 warp_ripgrep = { path = "crates/warp_ripgrep" }
 warp_terminal = { path = "crates/warp_terminal" }
 warp_util = { path = "crates/warp_util" }

@@ -1411,12 +1411,6 @@ fn initialize_app(
     ctx.add_singleton_model(|_| ResizableData::default());
 
     // Add a singleton model to maintain state of shared session across all windows.
-    ctx.add_singleton_model(terminal::shared_session::manager::Manager::new);
-
-    ctx.add_singleton_model(
-        terminal::shared_session::permissions_manager::SessionPermissionsManager::new,
-    );
-
     ctx.add_singleton_model(EnvVarCollectionManager::new);
     AutoupdateState::register(ctx, server_api.clone());
 

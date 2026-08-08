@@ -57,7 +57,6 @@ pub fn init(app: &mut AppContext) {
     auth_view_modal::init(app);
     auth_view_body::init(app);
     auth_override_warning_body::init(app);
-    login_slide::init(app);
     paste_auth_token_modal::init(app);
 }
 

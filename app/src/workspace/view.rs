@@ -3326,10 +3326,7 @@ impl Workspace {
             } => {
                 self.configure_empty_workspace(previous_active_window, shell, ctx);
             }
-            NewWorkspaceSource::Restored {
-                window_snapshot,
-                block_lists,
-            } => {
+            NewWorkspaceSource::Restored { window_snapshot } => {
                 let active_tab_index = window_snapshot.active_tab_index;
                 let restored_left_panel_open = window_snapshot.left_panel_open;
 
@@ -3341,7 +3338,7 @@ impl Workspace {
                         let custom_title = saved_tab.custom_title.clone();
                         self.add_tab_with_pane_layout(
                             PanesLayout::Snapshot(Box::new(saved_tab.root.clone())),
-                            block_lists.clone(),
+                            Arc::new(HashMap::new()),
                             custom_title,
                             ctx,
                         );
@@ -3401,9 +3398,6 @@ impl Workspace {
             }
             NewWorkspaceSource::SharedSessionAsViewer { session_id } => {
                 self.add_tab_for_joining_shared_session(session_id, ctx);
-            }
-            NewWorkspaceSource::FromCloudConversationId { conversation_id } => {
-                self.open_cloud_conversation_from_server_token(conversation_id, ctx);
             }
             NewWorkspaceSource::AgentSession {
                 options,

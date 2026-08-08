@@ -1,6 +1,5 @@
 use pathfinder_geometry::rect::RectF;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
 use warpui::platform::FullscreenState;
@@ -21,7 +20,6 @@ use crate::workspace::Workspace;
 pub struct AppState {
     pub windows: Vec<WindowSnapshot>,
     pub active_window_index: Option<usize>,
-    pub block_lists: Arc<HashMap<PaneUuid, Vec<SerializedBlockListItem>>>,
     pub running_mcp_servers: Vec<uuid::Uuid>,
 }
 
@@ -298,7 +296,6 @@ pub fn get_app_state(app: &AppContext) -> AppState {
     AppState {
         windows,
         active_window_index,
-        block_lists: Default::default(),
         running_mcp_servers: Vec::new(),
     }
 }

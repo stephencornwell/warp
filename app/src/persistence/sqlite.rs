@@ -89,7 +89,7 @@ use crate::env_vars::{CloudEnvVarCollection, CloudEnvVarCollectionModel};
 use crate::features::FeatureFlag;
 use crate::notebooks::{CloudNotebook, NotebookId};
 use crate::persistence::agent::read_agent_conversations;
-use crate::persistence::block_list::{get_all_restored_blocks, read_ai_queries};
+use crate::persistence::block_list::read_ai_queries;
 use crate::persistence::model::{
     NewCloudObjectsRefresh, NewGenericStringObject, NewPersistedObjectAction, NewTeamSettings,
     ProjectRules, UserProfile, CODE_REVIEW_PANE_KIND, GET_STARTED_PANE_KIND,
@@ -3086,15 +3086,12 @@ fn read_sqlite_data(
         })
         .collect();
 
-    let restored_blocks = get_all_restored_blocks(conn)?;
-
     // Load active MCP servers from database
     let running_mcp_servers = load_active_mcp_servers(conn)?;
 
     let app_state = AppState {
         windows: saved_windows,
         active_window_index,
-        block_lists: Arc::new(restored_blocks),
         running_mcp_servers,
     };
 

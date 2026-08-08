@@ -771,7 +771,6 @@ fn open_from_restored(arg: &OpenFromRestoredArg, ctx: &mut AppContext) {
                                 global_resource_handles.clone(),
                                 NewWorkspaceSource::Restored {
                                     window_snapshot: window.clone(),
-                                    block_lists: app_state.block_lists.clone(),
                                 },
                                 ctx,
                             );
@@ -811,7 +810,6 @@ fn open_from_restored(arg: &OpenFromRestoredArg, ctx: &mut AppContext) {
                                     global_resource_handles.clone(),
                                     NewWorkspaceSource::Restored {
                                         window_snapshot: window.clone(),
-                                        block_lists: app_state.block_lists.clone(),
                                     },
                                     ctx,
                                 );
@@ -863,7 +861,6 @@ fn open_from_restored(arg: &OpenFromRestoredArg, ctx: &mut AppContext) {
                             global_resource_handles,
                             NewWorkspaceSource::Restored {
                                 window_snapshot: window.clone(),
-                                block_lists: app_state.block_lists.clone(),
                             },
                             ctx,
                         );
@@ -1510,16 +1507,12 @@ pub enum NewWorkspaceSource {
     },
     Restored {
         window_snapshot: WindowSnapshot,
-        block_lists: Arc<HashMap<PaneUuid, Vec<SerializedBlockListItem>>>,
     },
     Session {
         options: Box<NewTerminalOptions>,
     },
     SharedSessionAsViewer {
         session_id: SessionId,
-    },
-    FromCloudConversationId {
-        conversation_id: ServerConversationToken,
     },
     NotebookFromFilePath {
         file_path: Option<PathBuf>,

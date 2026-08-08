@@ -4122,14 +4122,10 @@ impl Workspace {
         if self.left_panel_view.is_self_or_child_focused(app) {
             return FocusRegion::LeftPanel;
         }
-        if self.right_panel_view.is_self_or_child_focused(app) {
-            return FocusRegion::RightPanel;
-        }
-
         if self.ai_assistant_panel.is_self_or_child_focused(app)
             || self.resource_center_view.is_self_or_child_focused(app)
         {
-            return FocusRegion::RightPanel;
+            return FocusRegion::Other;
         }
 
         FocusRegion::Other
@@ -4140,8 +4136,8 @@ impl Workspace {
     }
 
     fn has_right_region(&self, app: &AppContext) -> bool {
-        let group = self.active_tab_pane_group().as_ref(app);
-        group.right_panel_open || self.current_workspace_state.is_right_panel_open()
+        let _ = app;
+        false
     }
 
     fn focus_next_pane_in_group(&mut self, ctx: &mut ViewContext<Self>) -> bool {
@@ -4173,11 +4169,6 @@ impl Workspace {
     }
 
     fn focus_right_region_entry(&mut self, ctx: &mut ViewContext<Self>) {
-        let group = self.active_tab_pane_group().as_ref(ctx);
-        if group.right_panel_open {
-            ctx.focus(&self.right_panel_view);
-            return;
-        }
         if self.current_workspace_state.is_ai_assistant_panel_open {
             ctx.focus(&self.ai_assistant_panel);
         } else if self.current_workspace_state.is_resource_center_open {
@@ -4225,15 +4216,6 @@ impl Workspace {
                 FocusRegion::PaneGroup
             }
             // NEXT: Right panel to left panel if open, else first pane
-            (FocusRegion::RightPanel, PanePanelDirection::Next) => {
-                if has_left_panel {
-                    self.focus_left_region_entry(ctx);
-                    FocusRegion::LeftPanel
-                } else {
-                    self.focus_first_visible_pane_in_group(ctx);
-                    FocusRegion::PaneGroup
-                }
-            }
             // NEXT: Pane group to next pane, or at end to right panel, left panel, first pane
             // Included Other here for cases like the command palette action "Activate next Pane"
             (FocusRegion::PaneGroup, PanePanelDirection::Next)
@@ -4241,9 +4223,6 @@ impl Workspace {
                 let moved = self.focus_next_pane_in_group(ctx);
                 if moved {
                     FocusRegion::PaneGroup
-                } else if has_right_panel {
-                    self.focus_right_region_entry(ctx);
-                    FocusRegion::RightPanel
                 } else if has_left_panel {
                     self.focus_left_region_entry(ctx);
                     FocusRegion::LeftPanel
@@ -4255,22 +4234,10 @@ impl Workspace {
             }
 
             // PREV: Right panel to last pane
-            (FocusRegion::RightPanel, PanePanelDirection::Prev) => {
-                // Always attempt to focus the last pane in the group and ensure the pane group
-                // regains application focus.
-                self.focus_last_visible_pane_in_group(ctx);
-                self.focus_active_tab(ctx);
-                FocusRegion::PaneGroup
-            }
             // PREV: Left panel to right panel if open, else last pane
             (FocusRegion::LeftPanel, PanePanelDirection::Prev) => {
-                if has_right_panel {
-                    self.focus_right_region_entry(ctx);
-                    FocusRegion::RightPanel
-                } else {
-                    self.focus_last_visible_pane_in_group(ctx);
-                    FocusRegion::PaneGroup
-                }
+                self.focus_last_visible_pane_in_group(ctx);
+                FocusRegion::PaneGroup
             }
             // PREV: Pane group to prev pane, or at beginning to left panel to right panel to last pane
             // Included Other here for cases like the command palette action "Activate next Pane"
@@ -4282,9 +4249,6 @@ impl Workspace {
                 } else if has_left_panel {
                     self.focus_left_region_entry(ctx);
                     FocusRegion::LeftPanel
-                } else if has_right_panel {
-                    self.focus_right_region_entry(ctx);
-                    FocusRegion::RightPanel
                 } else {
                     // No panels, wrap within panes.
                     self.focus_last_visible_pane_in_group(ctx);
@@ -4300,8 +4264,7 @@ impl Workspace {
     }
 
     fn set_pane_dimming_for_region(&mut self, region: FocusRegion, ctx: &mut ViewContext<Self>) {
-        let dim_even_if_focused =
-            matches!(region, FocusRegion::LeftPanel | FocusRegion::RightPanel);
+        let dim_even_if_focused = matches!(region, FocusRegion::LeftPanel);
         let handle = self.active_tab_pane_group().clone();
         handle.update(ctx, |pane_group, ctx| {
             pane_group.set_dim_even_if_focused_for_all_panes(dim_even_if_focused, ctx);

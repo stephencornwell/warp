@@ -208,10 +208,6 @@ pub fn maybe_log_out(app: &mut AppContext) {
 pub fn log_out(app: &mut AppContext) {
     send_telemetry_sync_from_app_ctx!(TelemetryEvent::LogOut, app);
 
-    CodebaseIndexManager::handle(app).update(app, |index_manager, ctx| {
-        index_manager.reset_codebase_indexing(ctx);
-    });
-
     let global_resource_handles = GlobalResourceHandlesProvider::as_ref(app).get();
 
     // As part of Logout v0, we remove sqlite3 so sessions and cloud objects don't persist between accounts.
@@ -220,15 +216,6 @@ pub fn log_out(app: &mut AppContext) {
 
     AuthManager::handle(app).update(app, |auth_manager, ctx| {
         auth_manager.log_out(ctx);
-    });
-    AIExecutionProfilesModel::handle(app).update(app, |ai_execution_profiles_model, _| {
-        ai_execution_profiles_model.reset();
-    });
-    BlocklistAIHistoryModel::handle(app).update(app, |history_model, _| {
-        history_model.reset();
-    });
-    AgentConversationsModel::handle(app).update(app, |agent_conversations_model, _| {
-        agent_conversations_model.reset();
     });
     CloudModel::handle(app).update(app, |cloud_model, _| {
         cloud_model.reset();

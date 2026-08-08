@@ -4,7 +4,6 @@ pub mod bonus_grant_notification_model;
 #[cfg(target_os = "macos")]
 mod cli_install;
 mod close_session_confirmation_dialog;
-pub mod delete_conversation_confirmation_dialog;
 mod global_actions;
 pub mod header_toolbar_editor;
 pub mod header_toolbar_item;
@@ -14,7 +13,6 @@ mod lightbox_view;
 mod native_modal;
 mod one_time_modal_model;
 mod registry;
-pub mod rewind_confirmation_dialog;
 pub mod sync_inputs;
 pub mod tab_settings;
 mod toast_stack;

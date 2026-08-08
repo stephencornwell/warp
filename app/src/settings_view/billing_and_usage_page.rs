@@ -393,9 +393,6 @@ impl BillingAndUsagePageView {
                 self.usage_based_pricing_toggle_override = None;
                 self.usage_based_pricing_toggle_loading = false;
             }
-            UserWorkspacesEvent::AiOveragesUpdated => {
-                ctx.notify();
-            }
             UserWorkspacesEvent::PurchaseAddonCreditsSuccess => {
                 self.purchase_addon_credits_loading = false;
                 self.show_toast(

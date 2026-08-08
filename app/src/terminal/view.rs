@@ -13,13 +13,10 @@ use crate::ai::block_context::BlockContext;
 #[cfg(feature = "local_fs")]
 use crate::ai::skills::SkillOpenOrigin;
 use crate::global_resource_handles::GlobalResourceHandlesProvider;
-use crate::terminal::view::ambient_agent::is_cloud_agent_pre_first_exchange;
 pub use init_project::{
     InitActionResult, InitProjectModel, InitProjectModelEvent, InitStepBlock, InitStepKind,
     ProjectScopedRulesResult,
 };
-use onboarding::callout::{FinalState, OnboardingCalloutViewEvent, OnboardingQuery};
-use onboarding::{OnboardingCalloutView, OnboardingKeybindings};
 pub(crate) mod docker_sandbox;
 mod link_detection;
 mod open_in_warp;
@@ -59,7 +56,6 @@ use crate::ai::predict::prompt_suggestions::{
     is_accept_prompt_suggestion_bound_to_ctrl_enter,
 };
 use crate::search::slash_command_menu::static_commands::commands;
-use crate::terminal::input::inline_menu::InlineMenuPositioner;
 use crate::terminal::view::passive_suggestions::PromptSuggestionResolution;
 pub use crate::terminal::view::rich_content::{
     AIBlockMetadata, AgentViewEntryMetadata, RichContent, RichContentInsertionPosition,
@@ -68,10 +64,6 @@ pub use crate::terminal::view::rich_content::{
 use crate::terminal::view::zero_state_block::TerminalViewZeroStateBlock;
 use crate::view_components::action_button::{ActionButton, ButtonSize, KeystrokeSource};
 
-use use_agent_footer::UseAgentToolbar;
-
-use super::cli_agent;
-use super::CLIAgent;
 #[cfg(feature = "local_fs")]
 use crate::ai::agent::{CurrentHead, DiffBase};
 use crate::ai::agent_conversations_model::{AgentConversationsModel, AgentConversationsModelEvent};
@@ -132,18 +124,6 @@ use crate::remote_server::manager::{
 };
 use crate::settings::ai::FocusedTerminalInfo;
 use crate::settings_view::mcp_servers_page::MCPServersSettingsPage;
-use crate::terminal::cli_agent_sessions::event::{
-    parse_event, CLIAgentEvent, CLIAgentEventPayload, CLIAgentEventType,
-    CLI_AGENT_NOTIFICATION_SENTINEL,
-};
-use crate::terminal::cli_agent_sessions::listener::{is_agent_supported, CLIAgentSessionListener};
-#[cfg(not(target_family = "wasm"))]
-use crate::terminal::cli_agent_sessions::plugin_manager::{plugin_manager_for, PluginModalKind};
-use crate::terminal::cli_agent_sessions::{
-    CLIAgentInputEntrypoint, CLIAgentInputState, CLIAgentRichInputCloseReason, CLIAgentSession,
-    CLIAgentSessionContext, CLIAgentSessionStatus, CLIAgentSessionsModel,
-    CLIAgentSessionsModelEvent,
-};
 use crate::terminal::view::init_environment::{
     mode_selector::{
         EnvironmentSetupMode, EnvironmentSetupModeSelector, EnvironmentSetupModeSelectorEvent,
@@ -164,14 +144,10 @@ pub use self::link_detection::GridHighlightedLink;
 pub use self::link_detection::{RichContentLink, RichContentLinkTooltipInfo};
 use crate::ai::llms::{LLMId, LLMModelHost, LLMPreferences};
 use crate::settings::CodeSettings;
-pub use action::{AgentOnboardingVersion, OnboardingIntention, OnboardingVersion, TerminalAction};
+pub use action::TerminalAction;
 use ai::api_keys::{ApiKeyManager, AwsCredentialsState};
 use ai::index::full_source_code_embedding::manager::{BuildSource, CodebaseIndexManager};
 pub use block_banner::{WithinBlockBanner, BLOCK_BANNER_HEIGHT};
-use block_onboarding::onboarding_agentic_suggestions_block::{
-    OnboardingAgenticSuggestionsBlock, OnboardingAgenticSuggestionsBlockEvent, OnboardingChipType,
-};
-use block_onboarding::onboarding_drive_sharing_block::OnboardingDriveSharingBlock;
 pub use init::{
     init, CANCEL_COMMAND_KEYBINDING, TOGGLE_AUTOEXECUTE_MODE_KEYBINDING,
     TOGGLE_HIDE_CLI_RESPONSES_KEYBINDING, TOGGLE_QUEUE_NEXT_PROMPT_KEYBINDING,

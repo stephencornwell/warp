@@ -14,50 +14,11 @@ mod tests;
 mod wasm_view;
 
 
-use crate::ai::active_agent_views_model::ActiveAgentViewsModel;
-use crate::ai::agent_conversations_model::AgentConversationsModel;
-use crate::ai::agent_conversations_model::ConversationOrTask;
-use crate::ai::agent_management::notifications::toast_stack::AgentNotificationToastStack;
-use crate::ai::agent_management::notifications::view::{
-    NotificationMailboxView, NotificationMailboxViewEvent,
-};
-use crate::ai::agent_management::notifications::NotificationFilter;
-use crate::ai::agent_management::telemetry::AgentManagementTelemetryEvent;
-use crate::ai::agent_management::view::{AgentManagementView, AgentManagementViewEvent};
-use crate::ai::agent_management::AgentManagementEvent;
-use crate::ai::ambient_agents::telemetry::{CloudAgentTelemetryEvent, CloudModeEntryPoint};
-use crate::ai::ambient_agents::AmbientAgentTaskId;
-use crate::ai::blocklist::agent_view::agent_input_footer::editor::AgentToolbarEditorMode;
-use crate::ai::blocklist::agent_view::AgentViewEntryOrigin;
-use crate::ai::blocklist::history_model::load_conversation_from_server;
-use crate::ai::blocklist::suggested_agent_mode_workflow_modal::SuggestedAgentModeWorkflowAndId;
-use crate::ai::blocklist::suggested_rule_modal::{
-    SuggestedRuleAndId, SuggestedRuleModal, SuggestedRuleModalEvent,
-};
-use crate::ai::conversation_utils;
-use crate::ai::document::ai_document_model::{AIDocumentId, AIDocumentModel};
-use crate::ai::llms::LLMPreferences;
-use crate::ai::persisted_workspace::PersistedWorkspace;
-use crate::ai::{
-    agent::{api::ServerConversationToken, conversation::AIConversationId, EntrypointType},
-    blocklist::{
-        inline_action::code_diff_view::CodeDiffView,
-        suggested_agent_mode_workflow_modal::{
-            SuggestedAgentModeWorkflowModal, SuggestedAgentModeWorkflowModalEvent,
-        },
-        SlashCommandRequest,
-    },
-    facts::{view::AIFactPage, AIFactManager, AIFactView, AIFactViewEvent},
-};
 use crate::app_state::{
     LeafContents, LeafSnapshot, LeftPanelDisplayedTab, LeftPanelSnapshot, NotebookPaneSnapshot,
     PaneNodeSnapshot, PaneUuid, SettingsPaneSnapshot, TabSnapshot,
     TerminalPaneSnapshot, WindowSnapshot, WorkflowPaneSnapshot,
 };
-use crate::code_review::diff_state::DiffStateModel;
-#[cfg(feature = "local_fs")]
-use crate::code_review::CodeReviewTelemetryEvent;
-use crate::code_review::GlobalCodeReviewModel;
 use crate::coding_panel_enablement_state::CodingPanelEnablementState;
 use crate::default_terminal::DefaultTerminal;
 use crate::notebooks::CloudNotebook;
@@ -70,12 +31,6 @@ use crate::terminal::enable_auto_reload_modal::{
 };
 use crate::terminal::model::terminal_model::ConversationTranscriptViewerStatus;
 use crate::terminal::session_settings::SessionSettings;
-use crate::terminal::view::inline_banner::ZeroStatePromptSuggestionType;
-use crate::terminal::view::load_ai_conversation::{RestorationDirState, RestoredAIConversation};
-use crate::terminal::view::{
-    AgentOnboardingVersion, ConversationRestorationInNewPaneType, OnboardingIntention,
-    OnboardingVersion,
-};
 use crate::ui_components::red_notification_dot::RedNotificationDot;
 #[cfg(feature = "local_fs")]
 use crate::util::file::external_editor::settings::OpenConversationPreference;
@@ -95,11 +50,6 @@ use crate::util::openable_file_type::FileTarget;
 #[cfg(feature = "local_fs")]
 use crate::util::openable_file_type::{resolve_file_target_with_editor_choice, EditorLayout};
 
-use crate::ai::blocklist::history_model::CloudConversationData;
-use crate::ai::blocklist::FORK_PREFIX;
-#[cfg(not(target_family = "wasm"))]
-use crate::terminal::cli_agent_sessions::plugin_manager::{plugin_manager_for, PluginModalKind};
-use crate::terminal::cli_agent_sessions::{CLIAgentSessionsModel, CLIAgentSessionsModelEvent};
 use crate::workspace::header_toolbar_editor::{HeaderToolbarEditorEvent, HeaderToolbarEditorModal};
 use crate::workspace::header_toolbar_item::HeaderToolbarItemKind;
 use crate::workspace::tab_settings::TabCloseButtonPosition;

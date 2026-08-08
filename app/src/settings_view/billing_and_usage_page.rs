@@ -400,9 +400,6 @@ impl BillingAndUsagePageView {
                     ToastFlavor::Success,
                     ctx,
                 );
-                AIRequestUsageModel::handle(ctx).update(ctx, |ai_request_usage_model, ctx| {
-                    ai_request_usage_model.refresh_request_usage_async(ctx)
-                });
             }
             UserWorkspacesEvent::PurchaseAddonCreditsRejected(err) => {
                 self.purchase_addon_credits_loading = false;

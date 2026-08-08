@@ -4128,18 +4128,6 @@ impl Input {
                     }
                 });
             }
-            inline_history::InlineHistoryMenuEvent::Close => {
-                if self
-                    .suggestions_mode_model
-                    .as_ref(ctx)
-                    .is_inline_history_menu()
-                {
-                    self.suggestions_mode_model.update(ctx, |model, ctx| {
-                        model.close_and_restore_buffer(ctx);
-                    });
-                    ctx.notify();
-                }
-            }
             inline_history::InlineHistoryMenuEvent::NoResults => {
                 // Both the regular inline view and the cloud-mode V2 wrapper
                 // render their own "No results" placeholder UI when the

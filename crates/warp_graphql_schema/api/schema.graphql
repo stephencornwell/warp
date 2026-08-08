@@ -36,48 +36,6 @@ directive @provides on FIELD_DEFINITION
 
 directive @requires on FIELD_DEFINITION
 
-"""
-AIConversation represents an AI agent conversation that can be shared via Warp Drive.
-"""
-type AIConversation {
-  """
-  The ID of the ambient agent task associated with this conversation, if any.
-  """
-  ambientAgentTaskId: ID
-
-  """Artifacts (plans, PRs) created during this conversation."""
-  artifacts: [AIConversationArtifact!]!
-  conversationId: ID!
-
-  """Base64-encoded proto binary of the final task list."""
-  finalTaskList: String!
-
-  """Describes the format of the conversation transcript data."""
-  format: AIConversationFormat!
-
-  """The harness that produced this conversation."""
-  harness: AgentHarness!
-  metadata: ObjectMetadata!
-  permissions: ObjectPermissions!
-  title: String!
-  usage: ConversationUsage!
-
-  """The working directory where the conversation was started."""
-  workingDirectory: String
-}
-
-union AIConversationArtifact = FileArtifact | PlanArtifact | PullRequestArtifact | ScreenshotArtifact
-
-type AIConversationFormat {
-  """
-  Format of the TUI serialized block, or null if no serialized block is available.
-  """
-  blockSnapshot: SerializedBlockFormat
-
-  """True if there's a Warp MAA task list available for this format."""
-  hasTaskList: Boolean!
-}
-
 enum AICreditsUsageAndCostSubjectType {
   SERVICE_ACCOUNT
   TEAM
@@ -210,14 +168,6 @@ enum AdminEnablementSetting {
   DISABLE
   ENABLE
   RESPECT_USER_SETTING
-}
-
-"""The harness that produced an agent conversation."""
-enum AgentHarness {
-  CLAUDE_CODE
-  CODEX
-  GEMINI
-  OZ
 }
 
 """Controls how many agent identities (service accounts) a team can have."""
@@ -637,7 +587,7 @@ enum CloudEnvironmentSortBy {
   NAME
 }
 
-union CloudObject = AIConversation | Folder | GenericStringObject | Notebook | Workflow
+union CloudObject = Folder | GenericStringObject | Notebook | Workflow
 
 """
 Used to represent the entrypoint that a user came from when performing an action.
@@ -668,7 +618,7 @@ type CloudObjectOutput implements Response {
 
 union CloudObjectResult = CloudObjectOutput | UserFacingError
 
-union CloudObjectWithDescendants = AIConversation | FolderWithDescendants | GenericStringObject | Notebook | Workflow
+union CloudObjectWithDescendants = FolderWithDescendants | GenericStringObject | Notebook | Workflow
 
 type CodebaseContextConfigOutput implements Response {
   embeddingCadence: Int!
@@ -722,33 +672,6 @@ inside a folder or at the root of a drive.
 union Container = FolderContainer | Space
 
 scalar ContentHash
-
-"""Represents usage data for a single multi-agent conversation."""
-type ConversationUsage {
-  conversationId: String!
-  lastUpdated: Time!
-  title: String!
-  usageMetadata: ConversationUsageMetadata!
-}
-
-"""Metadata about resource usage within a conversation."""
-type ConversationUsageMetadata {
-  """Token usage using a user's API key, keyed by model."""
-  byokTokenUsage: [TokenUsage!]!
-  contextWindowUsage: Float!
-  creditsSpent: Float!
-  summarized: Boolean!
-
-  """
-  Deprecated: Use warpTokenUsage and byokTokenUsage instead.
-  This field combines both Warp API key and user API key usage.
-  """
-  tokenUsage: [ModelTokenUsage!]! @deprecated(reason: "Use warpTokenUsage and byokTokenUsage instead")
-  toolUsageMetadata: ToolUsageMetadata!
-
-  """Token usage using the Warp API key, keyed by model."""
-  warpTokenUsage: [TokenUsage!]!
-}
 
 """Worker type for agent tasks."""
 input CreateAgentTaskInput {
@@ -1754,21 +1677,6 @@ input LinkSharingSettingsInput {
   directLinkSharingEnabled: Boolean
 }
 
-input ListAIConversationsInput {
-  """
-  If specified, fetch only these conversation IDs.
-  If empty or null, fetches all conversations for the user.
-  """
-  conversationIds: [ID!]
-}
-
-type ListAIConversationsOutput implements Response {
-  conversations: [AIConversation!]!
-  responseContext: ResponseContext!
-}
-
-union ListAIConversationsResult = ListAIConversationsOutput | UserFacingError
-
 type ListWarpDevImagesOutput implements Response {
   """List of available Warp dev base images from Docker Hub"""
   images: [ImageTag!]!
@@ -2204,7 +2112,6 @@ type ObjectPermissionsUpdated {
 }
 
 enum ObjectType {
-  AIConversation
   Folder
   GenericStringObject
   Notebook
@@ -2635,7 +2542,6 @@ type RootMutation {
   Creates a new agent task with the given parameters.
   Used by local CLI runs to create tasks before execution.
   """
-  createAgentTask(input: CreateAgentTaskInput!, requestContext: RequestContext!): CreateAgentTaskResult!
   createAnonymousUser(input: CreateAnonymousUserInput!, requestContext: RequestContext!): CreateAnonymousUserResult!
   createFileArtifactUploadTarget(input: CreateFileArtifactUploadTargetInput!, requestContext: RequestContext!): CreateFileArtifactUploadTargetResult!
   createFolder(input: CreateFolderInput!, requestContext: RequestContext!): CreateFolderResult!
@@ -2657,8 +2563,6 @@ type RootMutation {
   """Generates source code embeddings for the given set of code fragments."""
   generateCodeEmbeddings(input: GenerateCodeEmbeddingsInput!, requestContext: RequestContext!): GenerateCodeEmbeddingsResult!
   generateCommands(input: GenerateCommandsInput!, requestContext: RequestContext!): GenerateCommandsResult!
-  generateDialogue(input: GenerateDialogueInput!, requestContext: RequestContext!): GenerateDialogueResult!
-  generateMetadataForCommand(input: GenerateMetadataForCommandInput!, requestContext: RequestContext!): GenerateMetadataForCommandResult!
   generateUniqueUpgradePromoCode(requestContext: RequestContext!): GenerateUniqueUpgradePromoCodeResult!
   giveUpNotebookEditAccess(input: UpdateNotebookEditAccessInput!, requestContext: RequestContext!): UpdateNotebookEditAccessResult!
   grabNotebookEditAccess(input: UpdateNotebookEditAccessInput!, requestContext: RequestContext!): UpdateNotebookEditAccessResult!
@@ -2670,7 +2574,6 @@ type RootMutation {
   mintCustomToken(requestContext: RequestContext!): MintCustomTokenResult!
   moveObject(input: MoveObjectInput!, requestContext: RequestContext!): MoveObjectResult!
   populateMerkleTreeCache(input: PopulateMerkleTreeCacheInput!, requestContext: RequestContext!): PopulateMerkleTreeCacheResult!
-  provideNegativeFeedbackResponseForAiConversation(input: ProvideNegativeFeedbackResponseForAiConversationInput!, requestContext: RequestContext!): RequestsRefundedResult!
   purchaseAddonCredits(input: PurchaseAddonCreditsInput!, requestContext: RequestContext!): PurchaseAddonCreditsResult!
 
   """
@@ -2706,7 +2609,6 @@ type RootMutation {
   untrashObject(input: UntrashObjectInput!, requestContext: RequestContext!): UntrashObjectResult!
 
   """This is how the client updates the server with its progress on a task."""
-  updateAgentTask(input: UpdateAgentTaskInput!, requestContext: RequestContext!): UpdateAgentTaskResult!
   updateFolder(input: UpdateFolderInput!, requestContext: RequestContext!): UpdateFolderResult!
   updateGenericStringObject(input: UpdateGenericStringObjectInput!, requestContext: RequestContext!): UpdateGenericStringObjectResult!
   updateManagedSecret(input: UpdateManagedSecretInput!, requestContext: RequestContext!): UpdateManagedSecretResult!
@@ -2740,7 +2642,6 @@ type RootQuery {
   getIntegrationsUsingEnvironment(input: GetIntegrationsUsingEnvironmentInput!, requestContext: RequestContext!): GetIntegrationsUsingEnvironmentResult!
   getOAuthConnectTxStatus(input: GetOAuthConnectTxStatusInput!, requestContext: RequestContext!): GetOAuthConnectTxStatusResult!
   getRelevantFragments(input: GetRelevantFragmentsInput!, requestContext: RequestContext!): GetRelevantFragmentsResult!
-  listAIConversations(input: ListAIConversationsInput!, requestContext: RequestContext!): ListAIConversationsResult!
 
   """
   List available Warp development base images from Docker Hub.
@@ -2875,10 +2776,6 @@ type SendTeamInviteEmailOutput implements Response {
 }
 
 union SendTeamInviteEmailResult = SendTeamInviteEmailOutput | UserFacingError
-
-enum SerializedBlockFormat {
-  JSON_V1
-}
 
 type ServiceAgreement {
   addonCreditAutoReloadStatus: AddonCreditAutoReloadStatus
@@ -3780,14 +3677,6 @@ type User {
   bonusGrants: [BonusGrant!]!
   completedOzWebappFtue: Boolean!
 
-  """
-  Returns a history of user's conversation usage data over the past N days
-  (defaulting to 30 days).
-  Results can be paginated by providing a limit.
-  If lastUpdatedEndTimestamp is provided, only conversations with lastUpdated
-  earlier than this timestamp are returned. This enables cursor-based pagination.
-  """
-  conversationUsage(days: Int, lastUpdatedEndTimestamp: Time, limit: Int): [ConversationUsage!]!
   discoverableTeams: [DiscoverableTeamData!]!
 
   """

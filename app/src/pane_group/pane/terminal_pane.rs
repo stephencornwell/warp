@@ -1000,22 +1000,6 @@ fn handle_terminal_view_event(
                     force_open: *force_open,
                 });
             }
-            Event::ToggleAIDocumentPane {
-                document_id,
-                document_version,
-            } => {
-                if let Some(conversation_id) =
-                    crate::ai::document::ai_document_model::AIDocumentModel::as_ref(ctx)
-                        .get_conversation_id_for_document_id(document_id)
-                {
-                    group.toggle_ai_document_pane(
-                        conversation_id,
-                        *document_id,
-                        *document_version,
-                        ctx,
-                    );
-                }
-            }
             Event::HideAIDocumentPanes => {
                 group.close_all_ai_document_panes(ctx);
             }

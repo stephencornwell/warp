@@ -15478,22 +15478,6 @@ impl TerminalView {
                             }
                         }
 
-                        // We can't revert restored blocks since we don't restore the full diff
-                        if FeatureFlag::RevertToCheckpoints.is_enabled()
-                            && !ai_metadata.ai_block_handle.as_ref(ctx).is_restored()
-                        {
-                            items.push(
-                                MenuItemFields::new("Rewind to before here")
-                                    .with_on_select_action(TerminalAction::RewindAIConversation {
-                                        ai_block_view_id: *rich_content_view_id,
-                                        exchange_id: ai_metadata.exchange_id,
-                                        conversation_id: ai_metadata.conversation_id,
-                                        entrypoint: AgentModeRewindEntrypoint::ContextMenu,
-                                    })
-                                    .into_item(),
-                            );
-                        }
-
                         let debugging_items = self.create_copy_debugging_menu_item(
                             ai_metadata.exchange_id,
                             ai_metadata.conversation_id,
@@ -16477,20 +16461,6 @@ impl TerminalView {
                         .into_item(),
                 );
             }
-        }
-
-        // We can't revert restored blocks since we don't restore the full diff
-        if FeatureFlag::RevertToCheckpoints.is_enabled() && !is_restored {
-            menu_items.push(
-                MenuItemFields::new("Rewind to before here")
-                    .with_on_select_action(TerminalAction::RewindAIConversation {
-                        ai_block_view_id,
-                        exchange_id: ai_exchange_id,
-                        conversation_id: ai_conversation_id,
-                        entrypoint: AgentModeRewindEntrypoint::ContextMenu,
-                    })
-                    .into_item(),
-            );
         }
 
         let debugging_items =
@@ -22996,100 +22966,6 @@ impl TerminalView {
         }
     }
 
-    fn rewind_ai_conversation(
-        &mut self,
-        ai_block_view_id: EntityId,
-        exchange_id: AIAgentExchangeId,
-        conversation_id: AIConversationId,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        // First, cancel any in-progress conversation
-        self.ai_controller.update(ctx, |controller, ctx| {
-            controller.cancel_conversation_progress(
-                conversation_id,
-                CancellationReason::Reverted,
-                ctx,
-            );
-        });
-
-        // If the active block is a running command from this conversation, stop it and
-        // set the take-over reason to Stop to prevent automatic conversation resume.
-        let should_stop_running_command = {
-            let mut model = self.model.lock();
-            let active_block = model.block_list_mut().active_block_mut();
-
-            let is_from_this_conversation = active_block.is_executing()
-                && active_block.ai_conversation_id() == Some(conversation_id);
-
-            if is_from_this_conversation {
-                active_block.set_user_control_with_stop_reason();
-            }
-
-            is_from_this_conversation
-        };
-
-        // Note: CTRL-C isn't guaranteed to stop everything, such as a Python REPL.
-        if should_stop_running_command {
-            self.user_write_ctrl_c_to_pty(ctx);
-        }
-
-        // Iterate from end backwards, reverting all diffs in each AIBlock from this conversation until the block the user clicked on (inclusive)
-        let mut num_blocks_reverted = 0;
-        for rich_content in self.rich_content_views.iter().rev() {
-            if let Some(ai_metadata) = rich_content.ai_block_metadata() {
-                // Only revert blocks from the same conversation
-                if ai_metadata.conversation_id == conversation_id {
-                    ai_metadata.ai_block_handle.update(ctx, |block, ctx| {
-                        block.revert_all_diffs(ctx);
-                    });
-                    num_blocks_reverted += 1;
-                    if ai_metadata.ai_block_handle.id() == ai_block_view_id {
-                        break;
-                    }
-                }
-            }
-        }
-
-        // Save a backup of the conversation before truncating, so users can restore it later.
-        BlocklistAIHistoryModel::handle(ctx).update(ctx, |history_model, ctx| {
-            if let Some(conversation) = history_model.conversation(&conversation_id).cloned() {
-                if let Err(e) = history_model.fork_conversation(&conversation, PRE_REWIND_PREFIX, ctx) {
-                    log::warn!("Failed to save pre-rewind backup of conversation {conversation_id}: {e}");
-                }
-            } else {
-                log::warn!("Failed to save pre-rewind backup: conversation {conversation_id} not found in memory");
-            }
-        });
-
-        // Truncate the conversation history
-        let removed_exchange_ids =
-            BlocklistAIHistoryModel::handle(ctx).update(ctx, |history_model, ctx| {
-                history_model.truncate_conversation_from_exchange(conversation_id, exchange_id, ctx)
-            });
-
-        // Truncate the blocklist UI
-        match removed_exchange_ids {
-            Ok(removed_ids) => {
-                self.remove_ai_blocks_for_exchanges(&conversation_id, &removed_ids, ctx);
-            }
-            Err(e) => {
-                log::warn!("Failed to truncate conversation: {e}");
-            }
-        }
-
-        // Clear stale action results that reference truncated tool calls.
-        self.ai_controller.update(ctx, |controller, ctx| {
-            controller.clear_finished_action_results(conversation_id, ctx);
-        });
-
-        send_telemetry_from_ctx!(
-            TelemetryEvent::AgentModeRewindExecuted {
-                num_blocks_reverted
-            },
-            ctx
-        );
-    }
-
     fn handle_input_context_menu_action(
         &mut self,
         action: &InputContextMenuAction,
@@ -24341,15 +24217,6 @@ impl TypedActionView for TerminalView {
                 "Open overflow menu with copy options for this AI block.".to_owned(),
                 WarpA11yRole::PopoverRole,
             )),
-            RewindAIConversation { .. } => Custom(AccessibilityContent::new_without_help(
-                "Show confirmation dialog to rewind to before this point in the AI conversation."
-                    .to_owned(),
-                WarpA11yRole::ButtonRole,
-            )),
-            ExecuteRewindAIConversation { .. } => Custom(AccessibilityContent::new_without_help(
-                "Execute rewind to before this point in the AI conversation.".to_owned(),
-                WarpA11yRole::ButtonRole,
-            )),
             SelectAIAttachedBlock(_) => Custom(AccessibilityContent::new_without_help(
                 "Click on a block attached as context to this AI query.".to_owned(),
                 WarpA11yRole::ButtonRole,
@@ -24441,7 +24308,6 @@ impl TypedActionView for TerminalView {
             | ResolvePromptSuggestion(..)
             | AwsBedrockLoginBanner(_)
             | AwsCliNotInstalledBanner(_)
-            | ExecuteRewindFromInlineMenu { .. }
             | ToggleUsageFooter
             | RevealChildAgent { .. }
             | SwitchAgentViewToConversation { .. }
@@ -24530,56 +24396,6 @@ impl TypedActionView for TerminalView {
                 *is_restored,
                 ctx,
             ),
-            RewindAIConversation {
-                ai_block_view_id,
-                exchange_id,
-                conversation_id,
-                ..
-            } => self.rewind_ai_conversation(
-                *ai_block_view_id,
-                *exchange_id,
-                *conversation_id,
-                ctx,
-            ),
-            ExecuteRewindAIConversation {
-                ai_block_view_id,
-                exchange_id,
-                conversation_id,
-            } => {
-                self.rewind_ai_conversation(*ai_block_view_id, *exchange_id, *conversation_id, ctx)
-            }
-            ExecuteRewindFromInlineMenu {
-                exchange_id,
-                conversation_id,
-            } => {
-                // Find the ai_block_view_id for this exchange_id
-                let ai_block_view_id = self.rich_content_views.iter().find_map(|rich_content| {
-                    rich_content.ai_block_metadata().and_then(|metadata| {
-                        if metadata.exchange_id == *exchange_id
-                            && metadata.conversation_id == *conversation_id
-                        {
-                            Some(metadata.ai_block_handle.id())
-                        } else {
-                            None
-                        }
-                    })
-                });
-
-                if let Some(ai_block_view_id) = ai_block_view_id {
-                    self.rewind_ai_conversation(
-                        ai_block_view_id,
-                        *exchange_id,
-                        *conversation_id,
-                        ctx,
-                    );
-                } else {
-                    log::warn!(
-                        "Could not find AI block view for exchange_id {:?} in conversation {:?}",
-                        exchange_id,
-                        conversation_id
-                    );
-                }
-            }
             CloseContextMenu => self.close_context_menu(ctx, true),
             Paste => self.paste(false, ctx),
             Copy => self.copy(ctx),

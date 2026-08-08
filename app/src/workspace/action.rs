@@ -539,12 +539,6 @@ pub enum WorkspaceAction {
     ViewAgentRunsForEnvironment {
         environment_id: String,
     },
-    /// Execute the actual rewind after confirmation
-    ExecuteRewindAIConversation {
-        ai_block_view_id: EntityId,
-        exchange_id: AIAgentExchangeId,
-        conversation_id: AIConversationId,
-    },
     /// Execute the actual deletion of a conversation after confirmation
     ExecuteDeleteConversation {
         conversation_id: AIConversationId,
@@ -867,7 +861,6 @@ impl WorkspaceAction {
             | ToggleAIDocumentPane { .. }
             | HideAIDocumentPanes
             | OpenAIDocumentPane { .. }
-            | ExecuteRewindAIConversation { .. }
             | ExecuteDeleteConversation { .. }
             | OpenAmbientAgentSession { .. }
             | OpenConversationTranscriptViewer { .. }

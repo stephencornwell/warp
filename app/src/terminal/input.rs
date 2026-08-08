@@ -105,13 +105,7 @@ use crate::{
     resource_center::{
         mark_feature_used_and_write_to_user_defaults, Tip, TipAction, TipHint, TipsCompleted,
     },
-    search::{
-        ai_context_menu::{
-            mixer::AIContextMenuSearchableAction, search::is_valid_search_query,
-            view::AIContextMenuAction,
-        },
-        QueryFilter,
-    },
+    search::QueryFilter,
     send_telemetry_from_ctx,
     server::{
         cloud_objects::update_manager::UpdateManager,
@@ -283,9 +277,6 @@ use super::{
 };
 use crate::ai::blocklist::agent_view::{
     AgentInputFooter, AgentInputFooterEvent, AgentViewController,
-};
-use crate::terminal::view::ambient_agent::{
-    HarnessSelector, HarnessSelectorEvent, HostSelector, HostSelectorEvent, NakedHeaderButtonTheme,
 };
 use async_channel::Sender;
 use futures::stream::AbortHandle;

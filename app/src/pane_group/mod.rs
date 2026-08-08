@@ -1831,57 +1831,7 @@ impl PaneGroup {
     ) -> (PaneData, InitialFocus) {
         for (placeholder_id, leaf) in deferred_panes {
             match leaf.contents {
-                LeafContents::AIDocument(aidocument_snapshot) => {
-                    match aidocument_snapshot {
-                        crate::app_state::AIDocumentPaneSnapshot::Local {
-                            document_id,
-                            version,
-                            content,
-                            title,
-                        } => {
-                            // Parse the document_id from string to AIDocumentId
-                            let doc_id = match AIDocumentId::try_from(document_id.as_str()) {
-                                Ok(id) => id,
-                                Err(err) => {
-                                    log::warn!("Failed to parse AI document ID: {err:#}");
-                                    continue;
-                                }
-                            };
-
-                            // Apply persisted SQLite content on top of conversation-restored
-                            // content. This handles user edits that weren't part of the
-                            // conversation, and the cross-tab edge case where conversation
-                            // restoration hasn't run yet.
-                            if let Some(persisted_content) = &content {
-                                AIDocumentModel::handle(ctx).update(ctx, |model, ctx| {
-                                    model.apply_persisted_content(
-                                        doc_id,
-                                        persisted_content,
-                                        title.as_deref(),
-                                        ctx,
-                                    );
-                                });
-                            }
-
-                            let doc_version = AIDocumentVersion(version as usize);
-
-                            let document_view = ctx.add_typed_action_view(|view_ctx| {
-                                AIDocumentView::new(doc_id, doc_version, view_ctx)
-                            });
-
-                            // Create the AIDocumentPane
-                            let pane: Box<dyn AnyPaneContent + 'static> =
-                                Box::new(AIDocumentPane::new(document_view.clone(), ctx));
-
-                            let real_id = pane.as_pane().id();
-                            result.0.replace_pane(placeholder_id, real_id, false);
-                            if result.1.focused_pane == Some(placeholder_id) {
-                                result.1.focused_pane = Some(real_id);
-                            }
-                            pane_contents.insert(real_id, pane);
-                        }
-                    }
-                }
+                LeafContents::AIDocument(_) => continue,
                 _ => {
                     // Ignore other pane types in deferred processing
                 }

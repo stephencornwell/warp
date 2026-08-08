@@ -811,7 +811,6 @@ define_settings_group!(AISettings, settings: [
         private: false,
         toml_path: "agents.warp_agent.active_ai.natural_language_autosuggestions_enabled",
         description: "Controls whether ghosted text autosuggestions are shown for AI input queries.",
-        feature_flag: FeatureFlag::PredictAMQueries,
     }
     // This field should not be referenced directly to lookup shared block title generations
     // enablement -- use the `is_shared_block_title_generation_enabled()` getter.

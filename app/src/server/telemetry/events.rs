@@ -5386,7 +5386,6 @@ impl TelemetryEventDesc for TelemetryEventDiscriminants {
             | Self::UnitTestSuggestionAccepted { .. }
             | Self::UnitTestSuggestionCancelled { .. } => EnablementState::Always,
             Self::ToggleNaturalLanguageAutosuggestionsSetting => {
-                EnablementState::Flag(FeatureFlag::PredictAMQueries)
             }
             Self::ToggleSharedBlockTitleGenerationSetting => {
                 EnablementState::Flag(FeatureFlag::SharedBlockTitleGeneration)

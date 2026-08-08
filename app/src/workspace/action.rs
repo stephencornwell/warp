@@ -502,7 +502,6 @@ pub enum WorkspaceAction {
     ToggleProjectExplorer,
     ToggleGlobalSearch,
     OpenGlobalSearch,
-    ToggleConversationListView,
     /// Open the Build Plan Migration Modal (for debugging)
     #[cfg(debug_assertions)]
     OpenBuildPlanMigrationModal,
@@ -868,7 +867,6 @@ impl WorkspaceAction {
             | ToggleProjectExplorer
             | ToggleGlobalSearch
             | OpenGlobalSearch
-            | ToggleConversationListView
             | ToggleNotificationMailbox { .. }
             | ToggleAgentManagementView
             | ViewAgentRunsForEnvironment { .. }

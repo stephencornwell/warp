@@ -22,11 +22,21 @@ use warpui::text_layout::ClipConfig;
 use warpui::{AppContext, Element};
 
 use crate::appearance::Appearance;
-use crate::search::ai_context_menu::safe_truncate;
 use crate::search::ItemHighlightState;
 use warpui::SingletonEntity;
 
 pub const MAX_COMBINED_LENGTH: usize = 55;
+
+fn safe_truncate(value: &mut String, max_len: usize) {
+    if value.len() <= max_len {
+        return;
+    }
+    let mut end = max_len;
+    while !value.is_char_boundary(end) {
+        end -= 1;
+    }
+    value.truncate(end);
+}
 
 pub struct FileSearchRowOptions<'a> {
     pub match_result: Option<&'a FuzzyMatchResult>,

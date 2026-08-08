@@ -16,14 +16,12 @@ use super::{
     GridType, TerminalModel,
 };
 
-pub mod ai_agent;
 pub mod manager;
 pub mod network;
 pub mod participant_avatar_view;
 pub mod permissions_manager;
 pub mod presence_manager;
 pub mod render_util;
-pub mod replay_agent_conversations;
 pub mod role_change_modal;
 mod selections;
 pub mod settings;

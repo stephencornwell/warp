@@ -7549,49 +7549,6 @@ impl Workspace {
         ctx.notify();
     }
 
-    fn toggle_right_panel(
-        &mut self,
-        pane_group_handle: &ViewHandle<PaneGroup>,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        let target_open_state =
-            pane_group_handle.read(ctx, |pane_group, _| !pane_group.right_panel_open);
-
-        // Read repo_path and terminal_view from pane group (immutable context).
-        let read_result = pane_group_handle.read(ctx, |pane_group, ctx| {
-            pane_group.active_session_view(ctx).map(|terminal_view| {
-                let repo_path = terminal_view.as_ref(ctx).current_repo_path().cloned();
-                (repo_path, terminal_view.downgrade())
-            })
-        });
-        // Resolve DiffStateModel outside the read closure (needs mutable context).
-        let context = read_result.and_then(
-            |(repo_path, terminal_view): (Option<PathBuf>, WeakViewHandle<TerminalView>)| {
-                let diff_state_model = repo_path.as_ref().and_then(|rp: &PathBuf| {
-                    self.working_directories_model.update(ctx, |model, ctx| {
-                        model.get_or_create_diff_state_model(rp.clone(), ctx)
-                    })
-                })?;
-                Some(CodeReviewPaneContext {
-                    repo_path,
-                    diff_state_model,
-                    terminal_view,
-                })
-            },
-        );
-
-        self.update_right_panel_open_state(
-            RightPanelUpdateParams {
-                pane_group: pane_group_handle,
-                target_open_state,
-                entrypoint: Some(CodeReviewPaneEntrypoint::RightPanel),
-                cli_agent: None,
-                review_pane_context: context.as_ref(),
-            },
-            ctx,
-        );
-    }
-
     #[cfg(feature = "local_fs")]
     fn open_right_panel(
         &mut self,
@@ -7653,26 +7610,6 @@ impl Workspace {
             },
             ctx,
         );
-    }
-
-    #[cfg_attr(not(feature = "local_fs"), allow(dead_code))]
-    fn toggle_right_panel_maximized(&mut self, ctx: &mut ViewContext<Self>) {
-        let pane_group = self.active_tab_pane_group().clone();
-        let is_maximized = pane_group.update(ctx, |pane_group, _| {
-            pane_group.is_right_panel_maximized = !pane_group.is_right_panel_maximized;
-            pane_group.is_right_panel_maximized
-        });
-
-        self.right_panel_view.update(ctx, |view, ctx| {
-            view.set_maximized(is_maximized, ctx);
-            if is_maximized {
-                view.focus_active_code_review_view(ctx);
-            }
-        });
-        if !is_maximized {
-            self.focus_active_tab(ctx);
-        }
-        ctx.notify();
     }
 
     fn user_menu_items(&self, app: &AppContext) -> Vec<MenuItem<WorkspaceAction>> {
@@ -19284,10 +19221,6 @@ impl TypedActionView for Workspace {
                     }
                 }
             }
-            ToggleRightPanel => {
-                let pane_group_handle = self.active_tab_pane_group().clone();
-                self.toggle_right_panel(&pane_group_handle, ctx);
-            }
             #[cfg(feature = "local_fs")]
             OpenCodeReviewPanel(locator) => {
                 let pane_group_handle = self
@@ -19674,7 +19607,6 @@ impl TypedActionView for Workspace {
                 self.navigate_pane_or_panel(PanePanelDirection::Next, ctx);
             }
             FocusLeftPanel => self.focus_left_panel(ctx),
-            FocusRightPanel => self.focus_right_panel(ctx),
             ViewObjectInWarpDrive(item_id) => {
                 // Focus newly created object in WD
                 self.view_in_and_focus_warp_drive(*item_id, ctx);

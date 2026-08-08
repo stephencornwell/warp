@@ -57,7 +57,6 @@ mod prompt;
 mod quit_warning;
 mod referral_theme_status;
 #[allow(dead_code)]
-mod remote_server;
 mod resource_limits;
 mod reward_view;
 mod safe_triangle;
@@ -544,16 +543,6 @@ pub fn run() -> Result<()> {
                         panic!("The minidump server is not supported on this platform");
                     }
                 }
-            }
-            #[cfg(not(target_family = "wasm"))]
-            warp_cli::Command::Worker(warp_cli::WorkerCommand::RemoteServerProxy(args)) => {
-                init_common(&LaunchMode::RemoteServerProxy, None)?;
-                return crate::remote_server::run_proxy(args.identity_key.clone());
-            }
-            #[cfg(not(target_family = "wasm"))]
-            warp_cli::Command::Worker(warp_cli::WorkerCommand::RemoteServerDaemon(args)) => {
-                init_common(&LaunchMode::RemoteServerDaemon, None)?;
-                return crate::remote_server::run_daemon(args.identity_key.clone());
             }
             #[cfg(not(target_family = "wasm"))]
             warp_cli::Command::Worker(warp_cli::WorkerCommand::RipgrepSearch {
@@ -1283,27 +1272,6 @@ fn initialize_app(
 
         ctx.add_singleton_model(|ctx| {
             let model = RepoMetadataModel::new(ctx);
-
-            // Subscribe to RemoteServerManager push events so that remote repo
-            // metadata snapshots and incremental updates populate the remote
-            // sub-model and trigger RepoMetadataEvent emissions.
-            {
-                use remote_server::manager::{RemoteServerManager, RemoteServerManagerEvent};
-                let mgr = RemoteServerManager::handle(ctx);
-                ctx.subscribe_to_model(&mgr, |me, event, ctx| match event {
-                    RemoteServerManagerEvent::RepoMetadataSnapshot { host_id, update } => {
-                        me.insert_remote_snapshot(host_id.clone(), update, ctx);
-                    }
-                    RemoteServerManagerEvent::RepoMetadataUpdated { host_id, update }
-                    | RemoteServerManagerEvent::RepoMetadataDirectoryLoaded { host_id, update } => {
-                        me.apply_remote_incremental_update(host_id, update, ctx);
-                    }
-                    RemoteServerManagerEvent::HostDisconnected { host_id } => {
-                        me.remove_remote_repositories_for_host(host_id, ctx);
-                    }
-                    _ => {}
-                });
-            }
 
             model
         });

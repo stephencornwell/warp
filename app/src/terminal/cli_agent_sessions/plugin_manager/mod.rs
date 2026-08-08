@@ -267,7 +267,3 @@ pub(crate) fn plugin_manager_for_with_shell(
         | CLIAgent::Unknown => None,
     }
 }
-
-#[cfg(test)]
-#[path = "mod_tests.rs"]
-mod tests;

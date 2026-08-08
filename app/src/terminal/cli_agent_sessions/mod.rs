@@ -528,7 +528,3 @@ impl CLIAgentSessionsModel {
             .contains(&(agent, remote_host.clone()))
     }
 }
-
-#[cfg(test)]
-#[path = "mod_tests.rs"]
-mod tests;

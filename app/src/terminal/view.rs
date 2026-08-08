@@ -46,7 +46,6 @@ use crate::projects::ProjectManagementModel;
 use crate::remote_server::manager::{
     RemoteServerInitPhase, RemoteServerManager, RemoteServerManagerEvent,
 };
-use crate::settings::ai::FocusedTerminalInfo;
 use crate::settings_view::mcp_servers_page::MCPServersSettingsPage;
 use crate::terminal::view::init_environment::{
     mode_selector::{

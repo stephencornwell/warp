@@ -1485,28 +1485,6 @@ pub struct Input {
     input_contents_before_prompt_chip_command: Option<String>,
 }
 
-struct AmbientAgentViewState {
-    view_model: ModelHandle<AmbientAgentViewModel>,
-    #[allow(dead_code)]
-    harness_selector: ViewHandle<HarnessSelector>,
-    host_selector: Option<ViewHandle<HostSelector>>,
-}
-
-impl AmbientAgentViewState {
-    fn view_model(&self) -> &ModelHandle<AmbientAgentViewModel> {
-        &self.view_model
-    }
-}
-
-#[derive(Clone)]
-struct AttachmentChip {
-    file_name: String,
-    mouse_state_handle: MouseStateHandle,
-    attachment_type: AttachmentType,
-    /// Index into the unified pending_attachments list for deletion.
-    index: usize,
-}
-
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct IntelligentAutosuggestionResult {
     #[serde(rename = "was_autosuggestion_accepted")]

@@ -4264,25 +4264,21 @@ impl Workspace {
         }
         // Starts from a left panel: Warp Drive
         else if self.is_warp_drive_view_focused(ctx) {
-            if self.current_workspace_state.is_right_panel_open() {
-                self.set_selected_object(None, ctx);
-                if self.current_workspace_state.is_ai_assistant_panel_open {
-                    ctx.focus(&self.ai_assistant_panel);
-                } else if self.current_workspace_state.is_resource_center_open {
-                    ctx.focus(&self.resource_center_view);
-                }
+            self.set_selected_object(None, ctx);
+            if self.current_workspace_state.is_ai_assistant_panel_open {
+                ctx.focus(&self.ai_assistant_panel);
+            } else if self.current_workspace_state.is_resource_center_open {
+                ctx.focus(&self.resource_center_view);
             } else {
                 self.focus_active_tab(ctx);
             }
         }
         // Starts from a left panel: theme chooser
         else if self.theme_chooser_view.is_self_or_child_focused(ctx) {
-            if self.current_workspace_state.is_right_panel_open() {
-                if self.current_workspace_state.is_ai_assistant_panel_open {
-                    ctx.focus(&self.ai_assistant_panel);
-                } else if self.current_workspace_state.is_resource_center_open {
-                    ctx.focus(&self.resource_center_view);
-                }
+            if self.current_workspace_state.is_ai_assistant_panel_open {
+                ctx.focus(&self.ai_assistant_panel);
+            } else if self.current_workspace_state.is_resource_center_open {
+                ctx.focus(&self.resource_center_view);
             } else {
                 self.focus_active_tab(ctx);
             }

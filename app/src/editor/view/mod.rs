@@ -3,8 +3,6 @@ mod figma_utils;
 mod model;
 mod movement;
 mod snapshot;
-#[cfg(feature = "voice_input")]
-mod voice;
 
 /// The editor interfaces that we publicly expose to consumers.
 /// This should be a very limited set; if you need to add something here,

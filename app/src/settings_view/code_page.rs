@@ -727,13 +727,6 @@ impl TypedActionView for CodeSettingsPageView {
                 let server_type = *server_type;
                 PersistedWorkspace::handle(ctx).update(ctx, |workspace, _ctx| {
                     workspace.enable_lsp_server_for_path(&workspace_path, server_type);
-                    #[cfg(feature = "local_fs")]
-                    workspace.execute_lsp_task(
-                        crate::ai::persisted_workspace::LspTask::Spawn {
-                            file_path: workspace_path,
-                        },
-                        _ctx,
-                    );
                 });
                 ctx.notify();
             }

@@ -69,8 +69,6 @@ use super::{
     admin_actions::AdminActions,
     billing_and_usage::{
         overage_limit_modal::{SpendingLimitModal, SpendingLimitModalEvent},
-        usage_history_entry::UsageHistoryEntry,
-        usage_history_model::UsageHistoryModel,
     },
     settings_page::{
         build_sub_header, render_body_item, render_customer_type_badge, render_info_icon,

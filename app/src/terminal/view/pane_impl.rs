@@ -2,12 +2,6 @@
 //! business logic for integrating the terminal view with the pane infra (`crate::pane_group`).
 use super::shared_session::adapter::Kind as SharedSessionKind;
 use super::{Event, PaneConfiguration, TerminalAction, TerminalViewState, Viewer};
-use crate::ai::agent::conversation::{AIConversation, ConversationStatus};
-use crate::ai::blocklist::agent_view::agent_view_bg_fill;
-use crate::ai::blocklist::agent_view::orchestration_conversation_links::parent_conversation_navigation_card;
-use crate::ai::blocklist::agent_view::render_orchestration_breadcrumbs;
-use crate::ai::blocklist::BlocklistAIHistoryModel;
-use crate::ai::conversation_status_ui::{render_status_element, STATUS_ELEMENT_PADDING};
 use crate::appearance::Appearance;
 use crate::drive::sharing::ShareableObject;
 use crate::features::FeatureFlag;
@@ -23,7 +17,6 @@ use crate::pane_group::{pane::view, pane::view::PaneHeaderAction, BackingView, S
 use crate::settings::app_installation_detection::{
     UserAppInstallDetectionSettings, UserAppInstallStatus,
 };
-use crate::terminal::cli_agent_sessions::CLIAgentSessionsModel;
 use crate::terminal::model::terminal_model::ConversationTranscriptViewerStatus;
 use crate::terminal::shared_session::participant_avatar_view::render_participants_and_role_elements;
 use crate::terminal::shared_session::render_util::shared_session_indicator_color;

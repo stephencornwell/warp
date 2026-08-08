@@ -34,7 +34,6 @@ use warp_graphql::scalars::time::ServerTimestamp;
 use warpui::platform::FullscreenState;
 use warpui::{AppContext, SingletonEntity};
 
-use super::agent::{delete_agent_conversations, upsert_agent_conversation};
 use super::block_list::{
     delete_ai_conversation, delete_blocks, save_block, update_block_agent_view_visibility,
     upsert_ai_query,
@@ -53,7 +52,6 @@ use super::{
     BlockCompleted, FinishedCommandMetadata, ModelEvent, PersistedData, StartedCommandMetadata,
     WriterHandles,
 };
-use crate::ai::agent::conversation::AIConversationId;
 use crate::ai::ambient_agents::scheduled::{
     CloudScheduledAmbientAgent, CloudScheduledAmbientAgentModel,
 };
@@ -88,8 +86,6 @@ use crate::drive::OpenWarpDriveObjectSettings;
 use crate::env_vars::{CloudEnvVarCollection, CloudEnvVarCollectionModel};
 use crate::features::FeatureFlag;
 use crate::notebooks::{CloudNotebook, NotebookId};
-use crate::persistence::agent::read_agent_conversations;
-use crate::persistence::block_list::read_ai_queries;
 use crate::persistence::model::{
     NewCloudObjectsRefresh, NewGenericStringObject, NewPersistedObjectAction, NewTeamSettings,
     ProjectRules, UserProfile, CODE_REVIEW_PANE_KIND, GET_STARTED_PANE_KIND,
@@ -641,29 +637,6 @@ fn handle_model_event(event: ModelEvent, connection: &mut SqliteConnection) -> a
         }
         ModelEvent::SaveExperiments { experiments } => {
             save_experiments(connection, experiments).context("error saving experiments")
-        }
-        ModelEvent::UpsertAIQuery { query } => {
-            upsert_ai_query(connection, query).context("error upserting AI query")
-        }
-        ModelEvent::DeleteAIConversation { conversation_id } => {
-            delete_ai_conversation(connection, &conversation_id)
-                .context("error deleting AI conversation")
-        }
-        ModelEvent::UpdateMultiAgentConversation {
-            conversation_id,
-            updated_tasks,
-            conversation_data,
-        } => upsert_agent_conversation(
-            connection,
-            &conversation_id,
-            &updated_tasks,
-            conversation_data,
-        )
-        .map_err(anyhow::Error::from),
-        ModelEvent::DeleteMultiAgentConversations { conversation_ids } => {
-            delete_agent_conversations(connection, conversation_ids)
-                .map_err(anyhow::Error::from)
-                .context("error deleting multi-agent conversation")
         }
         ModelEvent::UpsertCurrentUserInformation { user_information } => {
             upsert_current_user_information(connection, user_information)
@@ -2280,27 +2253,6 @@ fn upsert_folders(
     })
 }
 
-/// Parse conversation IDs from JSON string.
-fn parse_conversation_ids(ids_json: &Option<String>) -> Vec<AIConversationId> {
-    let Some(ids_str) = ids_json.as_ref() else {
-        return vec![];
-    };
-
-    let Ok(id_strings) = serde_json::from_str::<Vec<String>>(ids_str) else {
-        log::warn!("Failed to deserialize conversation IDs from column");
-        return vec![];
-    };
-
-    id_strings
-        .into_iter()
-        .map(AIConversationId::try_from)
-        .collect::<Result<Vec<_>, _>>()
-        .unwrap_or_else(|_| {
-            log::warn!("Failed to parse conversation IDs");
-            vec![]
-        })
-}
-
 fn read_root_node(conn: &mut SqliteConnection, tab_id_val: i32) -> Result<Option<PaneNodeSnapshot>> {
     use schema::pane_nodes::dsl::*;
 
@@ -3089,11 +3041,8 @@ fn read_sqlite_data(
             .map(|refresh| refresh.time_of_next_refresh.and_utc())
             .min();
 
-    let ai_queries = read_ai_queries(conn)?;
-
     let codebase_indices = get_all_codebase_index_metadata(conn)?;
     let workspace_language_servers = get_all_workspace_language_servers_by_workspace(conn)?;
-    let multi_agent_conversations = read_agent_conversations(conn)?;
     let projects = get_all_projects(conn)?;
     let project_rules = get_all_project_rules(conn)?;
     let ignored_suggestions = get_all_ignored_suggestions(conn)?;
@@ -3110,10 +3059,8 @@ fn read_sqlite_data(
         time_of_next_force_object_refresh,
         object_actions,
         experiments: server_experiments,
-        ai_queries,
         codebase_indices,
         workspace_language_servers,
-        multi_agent_conversations,
         projects,
         project_rules,
         ignored_suggestions,

@@ -30,10 +30,8 @@ use lsp::supported_servers::LSPServerType;
 use uuid::Uuid;
 use warp_core::command::ExitCode;
 use warp_graphql::scalars::time::ServerTimestamp;
-use warp_multi_agent_api as api;
 use warpui::{AppContext, Entity, SingletonEntity};
 
-use crate::ai::blocklist::PersistedAIInput;
 use crate::ai::mcp::TemplatableMCPServerInstallation;
 use crate::app_state::AppState;
 use crate::auth::auth_manager::PersistedCurrentUserInformation;
@@ -56,7 +54,7 @@ use crate::workspaces::user_profiles::UserProfileWithUID;
 use crate::workspaces::workspace::{Workspace as WorkspaceMetadata, WorkspaceUid};
 use ai::workspace::WorkspaceMetadata as CodeWorkspaceMetadata;
 
-use self::model::{AgentConversation, AgentConversationData, Project};
+use self::model::Project;
 
 #[cfg(any(feature = "local_fs", feature = "integration_tests"))]
 pub use sqlite::database_file_path;
@@ -188,10 +186,8 @@ pub struct PersistedData {
     pub time_of_next_force_object_refresh: Option<DateTime<Utc>>,
     pub object_actions: Vec<ObjectAction>,
     pub experiments: Vec<ServerExperiment>,
-    pub ai_queries: Vec<PersistedAIInput>,
     pub codebase_indices: Vec<CodeWorkspaceMetadata>,
     pub workspace_language_servers: HashMap<PathBuf, HashMap<LSPServerType, EnablementState>>,
-    pub multi_agent_conversations: Vec<AgentConversation>,
     pub projects: Vec<Project>,
     pub project_rules: Vec<ProjectRulePath>,
     pub ignored_suggestions: Vec<(String, SuggestionType)>,
@@ -307,22 +303,6 @@ pub enum ModelEvent {
     },
     /// Close the SQLite writer thread when the app is about to quit.
     Terminate,
-    UpsertAIQuery {
-        query: Arc<PersistedAIInput>,
-    },
-    /// Delete the AI query and related data for a given conversation.
-    DeleteAIConversation {
-        conversation_id: String,
-    },
-    UpdateMultiAgentConversation {
-        conversation_id: String,
-        updated_tasks: Vec<api::Task>,
-        conversation_data: AgentConversationData,
-    },
-    DeleteMultiAgentConversations {
-        conversation_ids: Vec<String>,
-    },
-
     UpsertCurrentUserInformation {
         user_information: PersistedCurrentUserInformation,
     },

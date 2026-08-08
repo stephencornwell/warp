@@ -84,7 +84,6 @@ use crate::cloud_object::{
     CloudObject, JsonObjectType, ObjectIdType, ObjectType, Owner, RevisionAndLastEditor,
     GENERIC_STRING_OBJECT_PREFIX, JSON_OBJECT_PREFIX,
 };
-use crate::code::editor_management::CodeSource;
 use crate::drive::folders::{CloudFolder, CloudFolderModel, FolderId};
 use crate::drive::OpenWarpDriveObjectSettings;
 use crate::env_vars::{CloudEnvVarCollection, CloudEnvVarCollectionModel};
@@ -113,7 +112,7 @@ use crate::workspaces::workspace::Workspace as WorkspaceMetadata;
 use crate::workspaces::workspace::WorkspaceUid;
 use crate::{
     app_state::{
-        AppState, BranchSnapshot, CodePaneSnapShot, CodePaneTabSnapshot, LeafContents,
+        AppState, BranchSnapshot, LeafContents,
         LeafSnapshot, NotebookPaneSnapshot, PaneFlex, PaneNodeSnapshot, SplitDirection,
         TabSnapshot, TerminalPaneSnapshot, WindowSnapshot,
     },
@@ -1144,37 +1143,7 @@ fn save_pane_state(
                 .values(notebook)
                 .execute(conn)?;
         }
-        LeafContents::Code(code_snapshot) => {
-            let CodePaneSnapShot::Local {
-                tabs,
-                active_tab_index,
-                source,
-            } = code_snapshot;
-
-            let serialized_source = source.as_ref().and_then(|s| serde_json::to_string(s).ok());
-
-            let code = model::NewCodePane {
-                id,
-                active_tab_index: *active_tab_index as i32,
-                source_data: serialized_source,
-            };
-
-            diesel::insert_into(schema::code_panes::dsl::code_panes)
-                .values(code)
-                .execute(conn)?;
-
-            // Write ordered tab rows.
-            for (tab_idx, tab) in tabs.iter().enumerate() {
-                let tab_row = model::NewCodePaneTab {
-                    code_pane_id: id,
-                    tab_index: tab_idx as i32,
-                    local_path: tab.path.clone().map(encode_path),
-                };
-                diesel::insert_into(schema::code_pane_tabs::dsl::code_pane_tabs)
-                    .values(tab_row)
-                    .execute(conn)?;
-            }
-        }
+        LeafContents::Code(_) => {}
         LeafContents::EnvVarCollection(env_var_collection_snapshot) => {
             let env_var_collection_id = match env_var_collection_snapshot {
                 EnvVarCollectionPaneSnapshot::CloudEnvVarCollection {
@@ -2466,39 +2435,7 @@ fn read_node(conn: &mut SqliteConnection, node: model::PaneNode) -> Result<Optio
                         settings: OpenWarpDriveObjectSettings::default(),
                     })
                 }
-                CODE_PANE_KIND => {
-                    let code_pane = schema::code_panes::dsl::code_panes
-                        .find(node.id)
-                        .select(model::CodePane::as_select())
-                        .first(conn)?;
-
-                    // Read child code_pane_tabs rows ordered by tab_index.
-                    let tab_rows: Vec<model::CodePaneTab> =
-                        schema::code_pane_tabs::dsl::code_pane_tabs
-                            .filter(schema::code_pane_tabs::columns::code_pane_id.eq(code_pane.id))
-                            .order(schema::code_pane_tabs::columns::tab_index.asc())
-                            .select(model::CodePaneTab::as_select())
-                            .load(conn)?;
-
-                    let tabs: Vec<CodePaneTabSnapshot> = tab_rows
-                        .into_iter()
-                        .map(|row| CodePaneTabSnapshot {
-                            path: row.local_path.map(decode_path),
-                        })
-                        .collect();
-                    let active_tab_index = code_pane.active_tab_index as usize;
-
-                    let source = code_pane
-                        .source_data
-                        .as_deref()
-                        .and_then(|data| serde_json::from_str::<CodeSource>(data).ok());
-
-                    LeafContents::Code(CodePaneSnapShot::Local {
-                        tabs,
-                        active_tab_index,
-                        source,
-                    })
-                }
+                CODE_PANE_KIND => return Ok(None),
                 ENV_VAR_COLLECTION_PANE_KIND => {
                     let env_var_collection_pane =
                         schema::env_var_collection_panes::dsl::env_var_collection_panes

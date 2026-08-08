@@ -101,8 +101,6 @@ use warpui::{SingletonEntity, ViewContext};
 
 use crate::ai::blocklist::SerializedBlockListItem;
 use crate::ai_assistant::AskAIType;
-#[cfg(feature = "local_fs")]
-use crate::app_state::CodePaneSnapShot;
 use crate::app_state::{
     self, AIFactPaneSnapshot, BranchSnapshot, EnvVarCollectionPaneSnapshot, LeafContents,
     LeafSnapshot, NotebookPaneSnapshot, PaneNodeSnapshot, PaneUuid, SettingsPaneSnapshot,
@@ -1683,36 +1681,7 @@ impl PaneGroup {
 
                 Ok((PaneData::new(pane_id), focus))
             }
-            #[cfg(feature = "local_fs")]
-            LeafContents::Code(snapshot) => {
-                let CodePaneSnapShot::Local {
-                    tabs,
-                    active_tab_index,
-                    source,
-                } = snapshot;
-
-                let Some(source) = source.filter(|s: &CodeSource| s.is_restorable()) else {
-                    return Err(anyhow::anyhow!(
-                        "Skipping code pane with non-restorable source"
-                    ));
-                };
-
-                let code_view = ctx.add_typed_action_view(move |ctx| {
-                    CodeView::restore(&tabs, active_tab_index, source, ctx)
-                });
-                let pane = CodePane::from_view(code_view, ctx);
-                let pane_id = pane.id();
-                pane_contents.insert(pane_id, Box::new(pane));
-                let focus = InitialFocus {
-                    focused_pane: leaf.is_focused.then_some(pane_id),
-                    active_session: None,
-                };
-                Ok((PaneData::new(pane_id), focus))
-            }
-            #[cfg(not(feature = "local_fs"))]
-            LeafContents::Code(_) => Err(anyhow::anyhow!(
-                "Code pane restoration not supported on this platform"
-            )),
+            LeafContents::Code(_) => Err(anyhow::anyhow!("Skipping removed code pane")),
             LeafContents::EnvVarCollection(snapshot) => {
                 let pane: Box<dyn AnyPaneContent + 'static> = match snapshot {
                     EnvVarCollectionPaneSnapshot::CloudEnvVarCollection {

@@ -6317,10 +6317,6 @@ impl TerminalView {
         self.model.lock().shared_session_status().is_active_sharer()
     }
 
-    pub fn is_shared_ambient_agent_session(&self) -> bool {
-        self.model.lock().is_shared_ambient_agent_session()
-    }
-
     pub fn is_shared_session_viewer(&self) -> bool {
         self.model.lock().is_shared_session_viewer()
     }

@@ -64,9 +64,7 @@ use warp_graphql::{
         UsageBasedPricingPolicy as GqlUsageBasedPricingPolicy, WarpAiPolicy as GqlWarpAiPolicy,
     },
     object::CloudObjectWithDescendants,
-    queries::{
-        get_conversation_usage as gql_usage, get_workspaces_metadata_for_user::User as GqlUser,
-    },
+    queries::get_workspaces_metadata_for_user::User as GqlUser,
     subscriptions::get_warp_drive_updates::WarpDriveUpdate,
     user::{DiscoverableTeamData as GqlDiscoverableTeamData, PublicUserProfile},
     workspace::{

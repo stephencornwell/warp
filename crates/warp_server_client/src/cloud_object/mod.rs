@@ -206,9 +206,6 @@ impl TryFrom<warp_graphql::object::ObjectType> for ObjectIdType {
     type Error = anyhow::Error;
     fn try_from(object_type: warp_graphql::object::ObjectType) -> Result<Self, Self::Error> {
         match object_type {
-            warp_graphql::object::ObjectType::AIConversation => Err(anyhow!(
-                "AIConversation is not a supported object type for this operation"
-            )),
             warp_graphql::object::ObjectType::Notebook => Ok(ObjectIdType::Notebook),
             warp_graphql::object::ObjectType::Workflow => Ok(ObjectIdType::Workflow),
             warp_graphql::object::ObjectType::Folder => Ok(ObjectIdType::Folder),

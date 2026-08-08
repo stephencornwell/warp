@@ -72,7 +72,6 @@ pub mod settings;
 mod share_block_modal;
 mod shell_launch_state;
 
-pub mod ssh;
 pub mod terminal_manager;
 mod terminal_size_element;
 pub mod view;

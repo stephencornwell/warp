@@ -400,15 +400,8 @@ use super::action::{
 use super::close_session_confirmation_dialog::{
     CloseSessionConfirmationDialog, CloseSessionConfirmationEvent, OpenDialogSource,
 };
-use super::delete_conversation_confirmation_dialog::{
-    DeleteConversationConfirmationDialog, DeleteConversationConfirmationEvent,
-    DeleteConversationDialogSource,
-};
 use super::native_modal::{NativeModal, NativeModalEvent};
 use super::one_time_modal_model::OneTimeModalEvent;
-use super::rewind_confirmation_dialog::{
-    RewindConfirmationDialog, RewindConfirmationEvent, RewindDialogSource,
-};
 use super::{ActiveSession, TabBarDropTargetData, TabBarLocation};
 
 use super::tab_settings::{
@@ -888,8 +881,6 @@ pub struct Workspace {
         Option<PendingSessionConfigTabConfigChipTutorial>,
     new_worktree_modal: ModalViewState<Modal<NewWorktreeModal>>,
     close_session_confirmation_dialog: ViewHandle<CloseSessionConfirmationDialog>,
-    rewind_confirmation_dialog: ViewHandle<RewindConfirmationDialog>,
-    delete_conversation_confirmation_dialog: ViewHandle<DeleteConversationConfirmationDialog>,
     resource_center_view: ViewHandle<ResourceCenterView>,
     command_search_view: ViewHandle<CommandSearchView>,
     autoupdate_unable_to_update_banner_dismissed: bool,
@@ -2532,9 +2523,6 @@ impl Workspace {
         let enable_auto_reload_modal = Self::build_enable_auto_reload_modal(ctx);
 
         let close_session_confirmation_dialog = Self::build_close_session_confirmation_dialog(ctx);
-        let rewind_confirmation_dialog = Self::build_rewind_confirmation_dialog(ctx);
-        let delete_conversation_confirmation_dialog =
-            Self::build_delete_conversation_confirmation_dialog(ctx);
         let command_search_view = ctx.add_typed_action_view(CommandSearchView::new);
         ctx.subscribe_to_view(&command_search_view, |me, _, event, ctx| {
             me.handle_command_search_event(event, ctx);
@@ -2920,8 +2908,6 @@ impl Workspace {
             pending_session_config_tab_config_chip_tutorial: None,
             new_worktree_modal,
             close_session_confirmation_dialog,
-            rewind_confirmation_dialog,
-            delete_conversation_confirmation_dialog,
             resource_center_view,
             command_search_view,
             autoupdate_unable_to_update_banner_dismissed: false,

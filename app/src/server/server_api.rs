@@ -1,4 +1,3 @@
-pub mod auth;
 pub mod block;
 pub mod harness_support;
 pub mod integrations;

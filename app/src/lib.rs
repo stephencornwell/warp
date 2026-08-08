@@ -7,7 +7,6 @@ mod antivirus;
 mod app_menus;
 mod app_services;
 mod app_state;
-mod auth;
 mod autoupdate;
 mod banner;
 mod billing;

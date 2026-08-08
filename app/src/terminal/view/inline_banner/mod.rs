@@ -5,13 +5,11 @@ mod alias_expansion;
 mod notifications_discovery;
 mod notifications_error;
 mod open_in_warp;
-pub(crate) mod prompt_suggestions;
 mod shared_sessions;
 mod shell_process_terminated;
 mod ssh;
 mod vim_mode;
 
-pub use self::prompt_suggestions::*;
 pub use alias_expansion::*;
 pub use notifications_discovery::*;
 pub use notifications_error::*;

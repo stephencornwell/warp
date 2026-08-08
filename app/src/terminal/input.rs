@@ -3217,24 +3217,6 @@ impl Input {
         &self.agent_input_footer
     }
 
-    fn ambient_agent_view_model(&self) -> Option<&ModelHandle<AmbientAgentViewModel>> {
-        self.ambient_agent_view_state
-            .as_ref()
-            .map(AmbientAgentViewState::view_model)
-    }
-
-    fn harness_selector(&self) -> Option<&ViewHandle<HarnessSelector>> {
-        self.ambient_agent_view_state
-            .as_ref()
-            .map(|state| &state.harness_selector)
-    }
-
-    fn host_selector(&self) -> Option<&ViewHandle<HostSelector>> {
-        self.ambient_agent_view_state
-            .as_ref()
-            .and_then(|state| state.host_selector.as_ref())
-    }
-
     /// Opens the V2 cloud-mode host selector popover, if the feature is enabled and the
     /// selector is constructed. No-op otherwise. Used by the `/host` slash command to
     /// programmatically open the same popover that the V2 footer's host button toggles.

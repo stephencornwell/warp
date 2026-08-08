@@ -1,6 +1,5 @@
 use super::auth::AuthClient;
 use super::ServerApi;
-use crate::ai::generate_block_title::api::{GenerateBlockTitleRequest, GenerateBlockTitleResponse};
 use crate::server::{
     block::{Block, DisplaySetting},
     graphql::{get_request_context, get_user_facing_error_message},
@@ -43,10 +42,6 @@ pub trait BlockClient: 'static + Send + Sync {
 
     async fn blocks_owned_by_user(&self) -> Result<Vec<Block>, anyhow::Error>;
 
-    async fn generate_shared_block_title(
-        &self,
-        request: GenerateBlockTitleRequest,
-    ) -> Result<GenerateBlockTitleResponse, anyhow::Error>;
 }
 
 #[cfg_attr(not(target_family = "wasm"), async_trait)]
@@ -141,28 +136,6 @@ impl BlockClient for ServerApi {
         }
     }
 
-    async fn generate_shared_block_title(
-        &self,
-        request: GenerateBlockTitleRequest,
-    ) -> Result<GenerateBlockTitleResponse, anyhow::Error> {
-        let auth_token = self.get_or_refresh_access_token().await?;
-        let request_builder = self.client.post(format!(
-            "{}/ai/generate_block_title",
-            ChannelState::server_root_url()
-        ));
-        let response = if let Some(token) = auth_token.as_bearer_token() {
-            request_builder.bearer_auth(token)
-        } else {
-            request_builder
-        }
-        .json(&request)
-        .send()
-        .await?
-        .error_for_status()?
-        .json()
-        .await?;
-        Ok(response)
-    }
 }
 
 impl TryFrom<GqlBlock> for Block {

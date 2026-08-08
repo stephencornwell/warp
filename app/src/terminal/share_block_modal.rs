@@ -25,10 +25,7 @@ use crate::{
 
 use super::grid_renderer::CellGlyphCache;
 use super::model::grid::RespectDisplayedOutput;
-use crate::ai::generate_block_title::api::GenerateBlockTitleRequest;
 use crate::editor::EditOrigin;
-use crate::settings::AISettings;
-use crate::workspaces::user_workspaces::UserWorkspaces;
 use anyhow::Result;
 use parking_lot::FairMutex;
 use pathfinder_geometry::{
@@ -37,7 +34,6 @@ use pathfinder_geometry::{
 };
 use serde::Serialize;
 use std::{ops::RangeInclusive, sync::Arc};
-use warp_core::features::FeatureFlag;
 use warp_core::ui::theme::Fill;
 use warpui::r#async::SpawnedFutureHandle;
 use warpui::{
@@ -432,44 +428,6 @@ impl ShareBlockModal {
             self.scan_selected_block_for_secrets(ctx);
         }
 
-        if !should_send_title_gen_request(ctx) {
-            return;
-        }
-
-        // Scope to release the mutex.
-        let request = {
-            let model = self.model.as_ref().expect("Model should be set").lock();
-            let block = match self
-                .selected_block
-                .and_then(|block_index| model.block_list().block_at(block_index))
-            {
-                None => {
-                    log::error!("Opened block share modal without block");
-                    return;
-                }
-                Some(block) => block,
-            };
-
-            let terminal_width: usize = model.block_list().size().columns;
-            let (command, output) = block.get_block_content_summary(terminal_width, 100, 200);
-
-            GenerateBlockTitleRequest { command, output }
-        };
-
-        let block_client = self.block_client.clone();
-        self.title_generation_future_handle = Some(ctx.spawn(
-            async move { block_client.generate_shared_block_title(request).await },
-            |me, response, ctx| {
-                me.title_generation_future_handle = None;
-                if let Ok(resp) = response {
-                    me.block_title_editor.update(ctx, |editor, ctx| {
-                        if !editor.is_dirty(ctx) {
-                            editor.set_buffer_text(&resp.title, ctx);
-                        }
-                    })
-                }
-            },
-        ));
     }
 
     fn link(&self) -> Option<String> {
@@ -1154,12 +1112,6 @@ impl View for ShareBlockModal {
             .with_background_color(Fill::blur().into())
             .finish()
     }
-}
-
-fn should_send_title_gen_request(ctx: &ViewContext<ShareBlockModal>) -> bool {
-    FeatureFlag::SharedBlockTitleGeneration.is_enabled()
-        && AISettings::as_ref(ctx).is_shared_block_title_generation_enabled(ctx)
-        && UserWorkspaces::as_ref(ctx).ai_allowed_for_current_team()
 }
 
 struct SingleBlock {

@@ -708,22 +708,6 @@ impl TypedActionView for CodeSettingsPageView {
                     },
                     ctx
                 );
-                #[cfg(feature = "local_fs")]
-                {
-                    let workspace_path = workspace_path.clone();
-                    let server_type = *server_type;
-                    PersistedWorkspace::handle(ctx).update(ctx, |workspace, _ctx| {
-                        workspace.execute_lsp_task(
-                            crate::ai::persisted_workspace::LspTask::Install {
-                                file_path: workspace_path.clone(),
-                                repo_root: workspace_path,
-                                server_type,
-                            },
-                            _ctx,
-                        );
-                    });
-                }
-                #[cfg(not(feature = "local_fs"))]
                 let _ = workspace_path;
                 ctx.notify();
             }

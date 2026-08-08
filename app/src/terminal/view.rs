@@ -26445,16 +26445,6 @@ fn maybe_wrap_terminal_element_in_scrollable(
     }
 }
 
-/// Returns `true` when the Rich Input chip is present in the user's CLI agent
-/// footer toolbar configuration.
-fn is_rich_input_chip_in_cli_toolbar(app: &AppContext) -> bool {
-    let sel = &SessionSettings::as_ref(app).cli_agent_footer_chip_selection;
-    sel.left_items()
-        .iter()
-        .chain(sel.right_items().iter())
-        .any(|item| matches!(item, AgentToolbarItemKind::RichInput))
-}
-
 #[cfg(test)]
 #[path = "view_test.rs"]
 mod tests;

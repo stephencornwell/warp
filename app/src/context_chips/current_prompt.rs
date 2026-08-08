@@ -1104,15 +1104,6 @@ impl CurrentPrompt {
                 }
             }
 
-            // Also include chips configured for the CLI agent footer.
-            let cli_footer_chips = SessionSettings::as_ref(ctx)
-                .cli_agent_footer_chip_selection
-                .all_chips();
-            for chip_kind in cli_footer_chips {
-                if !chips.contains(&chip_kind) {
-                    chips.push(chip_kind);
-                }
-            }
         }
 
         chips
@@ -1193,9 +1184,6 @@ impl CurrentPrompt {
             self.update_states_with_new_context(ctx);
         }
 
-        if let SessionSettingsChangedEvent::CLIAgentToolbarChipSelectionSetting { .. } = event {
-            self.update_states_with_new_context(ctx);
-        }
     }
 
     fn clear_chips(&mut self) {

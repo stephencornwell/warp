@@ -570,12 +570,8 @@ pub enum WorkspaceAction {
         index: usize,
         image: lightbox::LightboxImage,
     },
-    StartAgentOnboardingTutorial(OnboardingTutorial),
     ShowSessionConfigModal,
     DismissSessionConfigTabConfigChip,
-    /// Start the HOA onboarding flow (for debugging)
-    #[cfg(debug_assertions)]
-    ShowHoaOnboardingFlow,
     /// Open the "New worktree" modal for creating a reusable worktree tab config.
     OpenNewWorktreeModal,
     /// Open the native folder picker for the repo field in the new-worktree modal.
@@ -866,7 +862,6 @@ impl WorkspaceAction {
             | OpenConversationTranscriptViewer { .. }
             | OpenLightbox { .. }
             | UpdateLightboxImage { .. }
-            | StartAgentOnboardingTutorial(_)
             | ShowSessionConfigModal
             | DismissSessionConfigTabConfigChip
             | SaveCurrentTabAsNewConfig(_)
@@ -879,7 +874,6 @@ impl WorkspaceAction {
             | FixSettingsWithOz { .. }
             | OpenNetworkLogPane => false,
             #[cfg(debug_assertions)]
-            ShowHoaOnboardingFlow => false,
             #[cfg(target_family = "wasm")]
             ToggleConversationTranscriptDetailsPanel => false,
             #[cfg(debug_assertions)]

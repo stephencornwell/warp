@@ -3,7 +3,6 @@ use crate::ai::ambient_agents::telemetry::{CloudAgentTelemetryEvent, CloudModeEn
 use crate::terminal::view::OnboardingIntention;
 use crate::ui_components::icons::Icon;
 use crate::workspace::action::WorkspaceAction;
-use crate::workspace::view::OnboardingTutorial;
 use crate::workspaces::user_workspaces::UserWorkspaces;
 use crate::workspaces::workspace::{AdminEnablementSetting, UgcCollectionEnablementSetting};
 use asset_macro::bundled_or_fetched_asset;
@@ -150,11 +149,6 @@ impl Slide for OzLaunchSlide {
                     ctx
                 );
                 ctx.emit(LaunchModalEvent::Close);
-                ctx.dispatch_typed_action(&WorkspaceAction::StartAgentOnboardingTutorial(
-                    OnboardingTutorial::NoProject {
-                        intention: OnboardingIntention::AgentDrivenDevelopment,
-                    },
-                ));
                 ctx.dispatch_typed_action(&WorkspaceAction::AddAmbientAgentTab);
             }),
         }
@@ -189,11 +183,6 @@ impl Slide for OzLaunchSlide {
     }
 
     fn on_close(&self, ctx: &mut warpui::ViewContext<super::LaunchModal<Self>>) {
-        ctx.dispatch_typed_action(&WorkspaceAction::StartAgentOnboardingTutorial(
-            OnboardingTutorial::NoProject {
-                intention: OnboardingIntention::AgentDrivenDevelopment,
-            },
-        ));
     }
 }
 

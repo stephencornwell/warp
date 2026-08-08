@@ -85,7 +85,6 @@ impl OneTimeModalModel {
             is_build_plan_migration_modal_open: false,
             is_oz_launch_modal_open: false,
             is_openwarp_launch_modal_open: false,
-            is_hoa_onboarding_open: false,
             target_window_id: None,
         }
     }

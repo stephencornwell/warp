@@ -141,13 +141,11 @@ pub fn create_discount_badge(discount: u32, appearance: &Appearance) -> Box<dyn 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BillingUsageTab {
     Overview,
-    UsageHistory,
 }
 impl BillingUsageTab {
     pub fn get_tab_from_label(label: &str) -> Self {
         match label {
             OVERVIEW_TAB_TEXT => BillingUsageTab::Overview,
-            USAGE_HISTORY_TAB_TEXT => BillingUsageTab::UsageHistory,
             _ => BillingUsageTab::Overview,
         }
     }
@@ -155,7 +153,6 @@ impl BillingUsageTab {
     pub fn label(&self) -> &str {
         match self {
             BillingUsageTab::Overview => OVERVIEW_TAB_TEXT,
-            BillingUsageTab::UsageHistory => USAGE_HISTORY_TAB_TEXT,
         }
     }
 }
@@ -213,16 +210,6 @@ pub struct BillingAndUsagePageView {
     current_sort_order: SortOrder,
     // Which view tab is currently selected
     selected_tab: BillingUsageTab,
-    // Model for Usage History tab data
-    usage_history_model: ModelHandle<UsageHistoryModel>,
-    // Track which usage history entries have been expanded
-    expanded_usage_entries: HashMap<String, bool>,
-    // Persistent mouse states for usage history entries, keyed by conversation_id
-    usage_entries_mouse_states: RefCell<HashMap<String, MouseStateHandle>>,
-    // Persistent mouse states for tooltips in usage history entries, keyed by conversation_id
-    usage_entries_tooltip_mouse_states: RefCell<HashMap<String, MouseStateHandle>>,
-    // Action button for loading more usage history entries
-    load_more_button: ViewHandle<ActionButton>,
     selected_addon_denomination: usize,
     addon_credits_options: Vec<AddonCreditsOption>,
     addon_credit_denomination_buttons: Vec<ViewHandle<ActionButton>>,
@@ -259,13 +246,6 @@ impl BillingAndUsagePageView {
                 ctx.notify();
             }
         });
-
-        let usage_history_model = ctx.add_model(UsageHistoryModel::new);
-        ctx.subscribe_to_model(&usage_history_model, |_, _, _, ctx| {
-            ctx.notify();
-        });
-        // On page init, fetch the usage history for the current user.
-        usage_history_model.update(ctx, |m, ctx| m.refresh_usage_history_async(ctx));
 
         let auth_state = AuthStateProvider::as_ref(ctx).get().clone();
 
@@ -327,12 +307,6 @@ impl BillingAndUsagePageView {
             }
         });
 
-        let load_more_button = ctx.add_typed_action_view(|_ctx| {
-            ActionButton::new("Load more", SecondaryTheme).on_click(|ctx| {
-                ctx.dispatch_typed_action(BillingAndUsagePageAction::RenderMoreUsageEntries);
-            })
-        });
-
         let mut me = Self {
             page: Self::build_page(),
             auth_state,
@@ -342,14 +316,9 @@ impl BillingAndUsagePageView {
             usage_based_pricing_toggle_loading: false,
             sorting_menu,
             sorting_menu_open: false,
-            usage_history_model,
             current_sort_key: Some(SortKey::DisplayName),
             current_sort_order: SortOrder::Asc,
             selected_tab: BillingUsageTab::Overview,
-            expanded_usage_entries: HashMap::new(),
-            usage_entries_mouse_states: RefCell::new(HashMap::new()),
-            usage_entries_tooltip_mouse_states: RefCell::new(HashMap::new()),
-            load_more_button,
             selected_addon_denomination: 0,
             addon_credits_options: Default::default(),
             addon_credit_denomination_buttons: Default::default(),
@@ -702,9 +671,6 @@ impl SettingsPageMeta for BillingAndUsagePageView {
             ai_request_usage_model.refresh_request_usage_async(ctx)
         });
 
-        self.usage_history_model
-            .update(ctx, |m, ctx| m.refresh_usage_history_async(ctx));
-
         self.refresh_addon_credits_settings(ctx);
     }
 
@@ -899,21 +865,6 @@ impl TypedActionView for BillingAndUsagePageView {
                     ctx.notify();
                 }
             }
-            BillingAndUsagePageAction::ToggleUsageEntryExpanded { conversation_id } => {
-                let is_expanded = self
-                    .expanded_usage_entries
-                    .get(conversation_id)
-                    .copied()
-                    .unwrap_or(false);
-
-                self.expanded_usage_entries
-                    .insert(conversation_id.clone(), !is_expanded);
-                ctx.notify();
-            }
-            BillingAndUsagePageAction::RenderMoreUsageEntries => {
-                self.usage_history_model
-                    .update(ctx, |m, ctx| m.load_more_usage_history_async(ctx));
-            }
             BillingAndUsagePageAction::SelectTopupDenomination(i) => {
                 self.selected_addon_denomination = *i;
                 self.update_denomination_buttons_focus(ctx);
@@ -1043,10 +994,6 @@ pub enum BillingAndUsagePageAction {
         order: SortOrder,
     },
     SelectTab(BillingUsageTab),
-    ToggleUsageEntryExpanded {
-        conversation_id: String,
-    },
-    RenderMoreUsageEntries,
     SelectTopupDenomination(usize),
     PurchaseAddonCredits {
         team_uid: ServerId,
@@ -1093,7 +1040,6 @@ struct UsageWidget {
     refresh_icon_mouse_state: MouseStateHandle,
     sort_icon_mouse_state: MouseStateHandle,
     overview_tab_mouse_state: MouseStateHandle,
-    usage_history_tab_mouse_state: MouseStateHandle,
     addon_info_icon_mouse_state: MouseStateHandle,
     edit_monthly_limit: MouseStateHandle,
     auto_reload_switch: SwitchStateHandle,
@@ -2485,10 +2431,6 @@ impl SettingsWidget for UsageWidget {
                 BillingUsageTab::Overview.label(),
                 self.overview_tab_mouse_state.clone(),
             ),
-            SettingsTab::new(
-                BillingUsageTab::UsageHistory.label(),
-                self.usage_history_tab_mouse_state.clone(),
-            ),
         ];
 
         let tab_selector = tab_selector::render_tab_selector(
@@ -2516,8 +2458,6 @@ impl SettingsWidget for UsageWidget {
                 &view.prorated_request_limits_info_mouse_states,
             );
             usage.add_child(usage_content);
-        } else {
-            usage.add_child(self.render_usage_history_content(view, appearance, app));
         }
 
         usage.finish()

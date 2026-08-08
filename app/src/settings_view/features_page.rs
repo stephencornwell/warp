@@ -38,11 +38,7 @@ use crate::search::command_search::settings::{
     CommandSearchSettings, ShowGlobalWorkflowsInUniversalSearch,
 };
 use crate::server::telemetry::TelemetryEvent;
-use crate::settings::ai::AISettings;
-use crate::settings::{
-    AISettingsChangedEvent, ScrollSettingsChangedEvent, ShowChangelogAfterUpdate,
-    UserNativeRedirectPreference,
-};
+use crate::settings::{ScrollSettingsChangedEvent, ShowChangelogAfterUpdate, UserNativeRedirectPreference};
 use crate::settings::{
     AliasExpansionEnabled, AliasExpansionSettings, AppEditorSettings, AtContextMenuInTerminalMode,
     AutocompleteSymbols, AutosuggestionKeybindingHint, ChangelogSettings, CloudPreferencesSettings,

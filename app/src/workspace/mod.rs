@@ -230,12 +230,6 @@ pub fn init(app: &mut AppContext) {
                     WorkspaceAction::ShowSessionConfigModal,
                 )
                 .with_context_predicate(id!("Workspace")),
-                EditableBinding::new(
-                    "workspace:show_hoa_onboarding_flow",
-                    "[Debug] Start HOA Onboarding Flow",
-                    WorkspaceAction::ShowHoaOnboardingFlow,
-                )
-                .with_context_predicate(id!("Workspace")),
             ]);
         }
     }

@@ -360,15 +360,6 @@ pub fn init(app: &mut AppContext) {
         );
     }
 
-    app.add_global_action(
-        "root_view:open_conversation_viewer",
-        open_conversation_viewer,
-    );
-    app.add_action(
-        "root_view:open_cloud_conversation_in_existing_window",
-        RootView::open_cloud_conversation_in_existing_window,
-    );
-
     app.add_global_action("root_view:create_environment", create_environment);
     app.add_global_action(
         "root_view:create_environment_and_run",
@@ -935,6 +926,7 @@ fn open_shared_session_as_viewer(session_id: &SessionId, ctx: &mut AppContext) {
 
 /// Opens a new window to view a persisted view-only cloud conversation.
 /// The conversation data is loaded via GraphQL API.
+#[cfg(any())]
 fn open_conversation_viewer(conversation_id: &ServerConversationToken, ctx: &mut AppContext) {
     // Trigger the workspace loading mechanism by dispatching the LoadConversationData event
     // This will open a new window with a loading state, fetch data via GraphQL, and display it
@@ -1801,6 +1793,7 @@ impl RootView {
         true
     }
 
+    #[cfg(any())]
     fn build_plan_yearly_price_cents(ctx: &AppContext) -> Option<i32> {
         PricingInfoModel::as_ref(ctx)
             .plan_pricing(&StripeSubscriptionPlan::Build)
@@ -2511,6 +2504,7 @@ impl RootView {
     /// Opens a cloud conversation in an existing window.
     /// If the user owns the conversation, restores or navigates to it directly.
     /// Otherwise, opens a read-only transcript viewer.
+    #[cfg(any())]
     pub fn open_cloud_conversation_in_existing_window(
         &mut self,
         conversation_id: &ServerConversationToken,

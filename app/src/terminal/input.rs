@@ -4416,60 +4416,6 @@ impl Input {
         ctx.notify();
     }
 
-    fn handle_rewind_menu_event(&mut self, event: &RewindMenuEvent, ctx: &mut ViewContext<Self>) {
-        if !self.suggestions_mode_model.as_ref(ctx).is_rewind_menu() {
-            log::error!("handle_rewind_menu_event called when mode is not RewindMenu");
-            return;
-        }
-
-        match event {
-            RewindMenuEvent::Dismissed => {
-                self.suggestions_mode_model.update(ctx, |model, ctx| {
-                    model.close_and_restore_buffer(ctx);
-                });
-                ctx.notify();
-            }
-            RewindMenuEvent::AcceptedRewindPoint { exchange_id } => {
-                // If exchange_id is None, user selected "Current" - just close menu
-                let Some(exchange_id) = exchange_id else {
-                    self.suggestions_mode_model.update(ctx, |model, ctx| {
-                        model.set_mode(InputSuggestionsMode::Closed, ctx);
-                    });
-                    ctx.notify();
-                    self.clear_buffer_and_reset_undo_stack(ctx);
-                    return;
-                };
-
-                let Some(conversation_id) = self
-                    .suggestions_mode_model
-                    .as_ref(ctx)
-                    .rewind_conversation_id()
-                else {
-                    log::error!("No conversation_id in RewindMenu mode when accepting");
-                    return;
-                };
-
-                let is_in_agent_view = FeatureFlag::AgentView.is_enabled()
-                    && self.agent_view_controller.as_ref(ctx).is_active();
-                send_telemetry_from_ctx!(
-                    TelemetryEvent::SlashCommandAccepted {
-                        command_details: SlashCommandAcceptedDetails::StaticCommand {
-                            command_name: commands::REWIND.name.to_owned(),
-                        },
-                        is_in_agent_view,
-                    },
-                    ctx
-                );
-
-                self.suggestions_mode_model.update(ctx, |model, ctx| {
-                    model.set_mode(InputSuggestionsMode::Closed, ctx);
-                });
-                ctx.notify();
-                self.clear_buffer_and_reset_undo_stack(ctx);
-            }
-        }
-    }
-
     fn open_inline_history_menu(&mut self, ctx: &mut ViewContext<Self>) {
         if !FeatureFlag::InlineHistoryMenu.is_enabled() {
             return;
@@ -11705,10 +11651,6 @@ impl Input {
         } else if self.suggestions_mode_model.as_ref(ctx).is_user_query_menu() {
             self.user_query_menu_view
                 .update(ctx, |view, ctx| view.accept_selected_item(false, ctx));
-            return;
-        } else if self.suggestions_mode_model.as_ref(ctx).is_rewind_menu() {
-            self.rewind_menu_view
-                .update(ctx, |view, ctx| view.accept_selected_item(ctx));
             return;
         } else if self
             .suggestions_mode_model

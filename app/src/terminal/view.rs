@@ -18,7 +18,6 @@ pub(crate) mod docker_sandbox;
 mod link_detection;
 mod open_in_warp;
 mod pane_impl;
-mod passive_suggestions;
 pub mod rich_content;
 mod shared_session;
 mod shell_terminated_banner;
@@ -36,7 +35,6 @@ use warpui::clipboard_utils::get_image_filepaths_from_paths;
 use std::ops::Deref as _;
 
 use crate::search::slash_command_menu::static_commands::commands;
-use crate::terminal::view::passive_suggestions::PromptSuggestionResolution;
 pub use crate::terminal::view::rich_content::{
     AIBlockMetadata, AgentViewEntryMetadata, RichContent, RichContentInsertionPosition,
     RichContentMetadata,

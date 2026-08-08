@@ -5107,18 +5107,7 @@ impl Workspace {
     }
 
     fn sync_panel_positions_from_config(&mut self, ctx: &mut ViewContext<Self>) {
-        let config = TabSettings::as_ref(ctx)
-            .header_toolbar_chip_selection
-            .clone();
-        let left_items = config.left_items();
-        let tools_position = if left_items.contains(&HeaderToolbarItemKind::ToolsPanel) {
-            PanelPosition::Left
-        } else {
-            PanelPosition::Right
-        };
-        self.left_panel_view.update(ctx, |view, ctx| {
-            view.set_panel_position(tools_position, ctx);
-        });
+        let _ = ctx;
     }
 
     fn build_header_toolbar_context_menu(
@@ -17284,36 +17273,20 @@ impl Workspace {
         &self,
         app: &AppContext,
         contents: Box<dyn Element>,
-        side: &PanelPosition,
     ) -> Box<dyn Element> {
         let appearance = Appearance::as_ref(app);
 
         let mut col = Flex::column().with_main_axis_size(MainAxisSize::Max);
         let mut contents = contents;
 
-        let traffic_light_data = traffic_light_data(app, self.window_id);
-        // Add a spacer for the traffic light buttons on Windows/Linux.
-        if traffic_light_data.is_some_and(|data| data.side == TrafficLightSide::Right)
-            && *side == PanelPosition::Right
-        {
-            col.add_child(
-                ConstrainedBox::new(Empty::new().finish())
-                    .with_height(TAB_BAR_HEIGHT)
-                    .finish(),
-            );
-            contents = Container::new(contents)
-                .with_border(Border::top(1.).with_border_fill(appearance.theme().surface_2()))
-                .finish();
-        }
         col.add_child(Shrinkable::new(1.0, contents).finish());
 
-        self.wrap_in_panel_surface(appearance, side, col.finish(), *PANEL_CORNER_RADIUS)
+        self.wrap_in_panel_surface(appearance, col.finish(), *PANEL_CORNER_RADIUS)
     }
 
     fn wrap_in_panel_surface(
         &self,
         appearance: &Appearance,
-        side: &PanelPosition,
         contents: Box<dyn Element>,
         corner_radius: CornerRadius,
     ) -> Box<dyn Element> {
@@ -17321,10 +17294,7 @@ impl Workspace {
             .with_background(appearance.theme().surface_1().with_opacity(90))
             .with_corner_radius(corner_radius);
 
-        match side {
-            PanelPosition::Left => container = container.with_margin_right(2.0),
-            PanelPosition::Right => container = container.with_margin_left(2.0),
-        };
+        container = container.with_margin_right(2.0);
 
         container.finish()
     }
@@ -17370,7 +17340,6 @@ impl Workspace {
             panels_view.add_child(self.render_panel(
                 app,
                 self.render_theme_chooser(),
-                &PanelPosition::Left,
             ));
             prev_panel_added = false;
         }
@@ -17390,30 +17359,6 @@ impl Workspace {
         {
             if let Some(panel_content) = self.render_transcript_details_panel(app) {
                 panels_view = panels_view.with_child(panel_content);
-            }
-        }
-
-        // Resource center and AI assistant are workspace-level panels, not configurable.
-        #[cfg(not(target_family = "wasm"))]
-        if self.current_workspace_state.is_right_panel_open() {
-            let right_panel_content = if self.current_workspace_state.is_resource_center_open {
-                Some(self.render_panel(app, self.render_resource_center(), &PanelPosition::Right))
-            } else if self.current_workspace_state.is_ai_assistant_panel_open {
-                Some(self.render_panel(
-                    app,
-                    ChildView::new(&self.ai_assistant_panel).finish(),
-                    &PanelPosition::Right,
-                ))
-            } else {
-                log::warn!(
-                    "is_right_panel_open() returned true, but neither the resource center nor AI \
-                    assistant are open"
-                );
-                None
-            };
-
-            if let Some(right_panel_content) = right_panel_content {
-                panels_view = panels_view.with_child(right_panel_content);
             }
         }
 

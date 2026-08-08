@@ -45,17 +45,10 @@ use warpui::ui_components::button::ButtonTooltipPosition;
 use warpui::ui_components::components::{Coords, UiComponent, UiComponentStyles};
 use warpui::{elements, ViewHandle};
 
-use crate::ai::agent::ImageContext;
-use crate::ai::blocklist::{BlocklistAIContextModel, PendingAttachment, PendingFile};
-use crate::ai::predict::next_command_model::{NextCommandModel, NextCommandSuggestionState};
 use crate::appearance::Appearance;
 use crate::channel::{Channel, ChannelState};
 use crate::editor::accept_autosuggestion_keybinding_view::AcceptAutosuggestionKeybinding;
 use crate::editor::autosuggestion_ignore_view::{AutosuggestionIgnore, AutosuggestionIgnoreEvent};
-use crate::search::ai_context_menu::mixer::AIContextMenuSearchableAction;
-use crate::search::ai_context_menu::view::{
-    AIContextMenu, AIContextMenuCategory, AIContextMenuEvent,
-};
 use crate::server::telemetry::TelemetryEvent;
 use crate::settings_view::flags;
 use crate::suggestions::ignored_suggestions_model::{IgnoredSuggestionsModel, SuggestionType};
@@ -64,12 +57,10 @@ use crate::ui_components::icons;
 use crate::view_components::DismissibleToast;
 use crate::vim_registers::{RegisterContent, VimRegisters};
 use crate::workspace::ToastStack;
-use crate::{ai::blocklist::InputType, settings::AISettings};
+use crate::settings::AISettings;
 
 use crate::editor::RangeExt;
 use crate::features::FeatureFlag;
-#[cfg(feature = "voice_input")]
-use crate::settings::AISettingsChangedEvent;
 use crate::settings::{AppEditorSettings, CursorBlink};
 use crate::settings::{
     AppEditorSettingsChangedEvent, CursorDisplayType, InputSettings, SelectionSettings,
@@ -1449,7 +1440,6 @@ pub struct EditorOptions {
     /// If true, the user's [`CursorDisplayType`] will be respected.
     pub allow_user_cursor_preference: bool,
     pub convert_newline_to_space: bool,
-    pub include_ai_context_menu: bool,
     /// If true, this editor will delegate handling of paste events to its parent instead of
     /// inserting clipboard contents directly.
     pub delegate_paste_handling: bool,
@@ -1492,7 +1482,6 @@ impl Default for EditorOptions {
             middle_click_paste: true,
             allow_user_cursor_preference: false,
             convert_newline_to_space: false,
-            include_ai_context_menu: false,
             delegate_paste_handling: false,
             drag_drop_path_transformer: None,
             is_password: false,
@@ -1527,7 +1516,6 @@ impl From<SingleLineEditorOptions> for EditorOptions {
             middle_click_paste: options.middle_click_paste,
             allow_user_cursor_preference: options.allow_user_cursor_preference,
             convert_newline_to_space: options.convert_newline_to_space,
-            include_ai_context_menu: false,
             delegate_paste_handling: false,
             drag_drop_path_transformer: None,
             is_password: options.is_password,
@@ -1742,13 +1730,6 @@ impl ImageContextOptions {
     }
 }
 
-pub struct AIContextMenuState {
-    ai_context_menu: ViewHandle<AIContextMenu>,
-
-    /// The mouse handle for the at context menu icon.
-    at_context_menu_button_mouse_handle: MouseStateHandle,
-}
-
 pub struct EditorView {
     view_id: EntityId,
     editor_model: ModelHandle<EditorModel>,
@@ -1878,22 +1859,6 @@ pub struct EditorView {
     #[cfg(feature = "voice_input")]
     voice_new_feature_popup: ViewHandle<FeaturePopup>,
 
-    context_model: Option<ModelHandle<BlocklistAIContextModel>>,
-
-    /// Options for attaching image context.
-    /// Made public to allow terminal input to access image attachment state and limits.
-    pub image_context_options: ImageContextOptions,
-
-    /// The mouse handle for the image context icon.
-    image_context_button_mouse_handle: MouseStateHandle,
-
-    /// Because the AIContextMenu also contains a text editor,
-    /// we need to avoid infinite recursion and selectively
-    /// allow the creation of AIContextMenuState.
-    pub ai_context_menu_state: Option<AIContextMenuState>,
-
-    /// Whether this editor is in AI input mode.
-    is_ai_input: bool,
 
     /// Whether this editor should delegate handling of paste events to its parent.
     delegate_paste_handling: bool,
@@ -2949,13 +2914,6 @@ impl EditorView {
         }
     }
 
-    pub fn with_context_model(self, context_model: ModelHandle<BlocklistAIContextModel>) -> Self {
-        Self {
-            context_model: Some(context_model),
-            ..self
-        }
-    }
-
     /// Creates an [`EditorView`] with the initial text
     /// equal to `base_text` and with behaviour specified by `options`.
     #[cfg(test)]
@@ -2982,28 +2940,6 @@ impl EditorView {
                 }
             },
         );
-
-        #[cfg(feature = "voice_input")]
-        {
-            use crate::workspaces::user_workspaces::UserWorkspaces;
-
-            ctx.subscribe_to_model(&UserWorkspaces::handle(ctx), |me, _handle, _event, ctx| {
-                me.update_voice_transcription_options(Self::voice_options(ctx), ctx);
-                // Re-render if teams-related data changed that may affect whether features such as voice input are enabled.
-                ctx.notify();
-            });
-
-            ctx.subscribe_to_model(
-                &AISettings::handle(ctx),
-                |editor, _, event, ctx| match event {
-                    AISettingsChangedEvent::VoiceInputEnabled { .. } => {
-                        editor.update_voice_transcription_options(Self::voice_options(ctx), ctx)
-                    }
-                    AISettingsChangedEvent::VoiceInputToggleKey { .. } => ctx.notify(),
-                    _ => {}
-                },
-            );
-        }
 
         let editor_model = ctx.add_model(|ctx| {
             EditorModel::new(
@@ -3046,75 +2982,6 @@ impl EditorView {
             },
         );
 
-        let ai_context_menu_state = if options.include_ai_context_menu {
-            let ai_context_menu = ctx.add_typed_action_view(AIContextMenu::new);
-            ctx.subscribe_to_view(
-                &ai_context_menu,
-                |me, _, event: &AIContextMenuEvent, ctx| {
-                    let is_udi_enabled =
-                        InputSettings::as_ref(ctx).is_universal_developer_input_enabled(ctx);
-                    let current_input_mode = if me.is_ai_input {
-                        InputType::AI
-                    } else {
-                        InputType::Shell
-                    };
-                    match event {
-                        AIContextMenuEvent::Close {
-                            item_count,
-                            query_length,
-                        } => {
-                            send_telemetry_from_ctx!(
-                                TelemetryEvent::AtMenuInteracted {
-                                    action: "cancelled".to_string(),
-                                    item_count: *item_count,
-                                    query_length: Some(*query_length),
-                                    is_udi_enabled,
-                                    current_input_mode,
-                                },
-                                ctx
-                            );
-
-                            ctx.emit(Event::SetAIContextMenuOpen(false));
-                            ctx.focus_self();
-                            ctx.notify();
-                        }
-                        AIContextMenuEvent::ResultAccepted {
-                            action,
-                            item_count,
-                            query_length,
-                        } => {
-                            send_telemetry_from_ctx!(
-                                TelemetryEvent::AtMenuInteracted {
-                                    action: "item_selected".to_string(),
-                                    item_count: *item_count,
-                                    query_length: Some(*query_length),
-                                    is_udi_enabled,
-                                    current_input_mode,
-                                },
-                                ctx
-                            );
-
-                            ctx.emit(Event::AcceptAIContextMenuItem(action.clone()));
-                            ctx.focus_self();
-                            ctx.notify();
-                        }
-                        AIContextMenuEvent::CategorySelected { category } => {
-                            ctx.emit(Event::SelectAIContextMenuCategory(*category));
-                            ctx.focus_self();
-                            ctx.notify();
-                        }
-                    }
-                },
-            );
-
-            Some(AIContextMenuState {
-                at_context_menu_button_mouse_handle: Default::default(),
-                ai_context_menu,
-            })
-        } else {
-            None
-        };
-
         Self {
             view_id: ctx.view_id(),
             editor_model,
@@ -3138,7 +3005,6 @@ impl EditorView {
             autocomplete_symbols_setting: *editor_settings_handle.as_ref(ctx).autocomplete_symbols,
             cursor_display_override,
             autosuggestion_state: None,
-            next_command_model: None,
             editor_height_shrink_delay: Arc::new(Mutex::new(EditorHeightShrinkDelay {
                 editor_height_before_shrink: 0.,
                 editor_height_shrink_start: None,
@@ -3179,36 +3045,13 @@ impl EditorView {
             voice_transcription_options: Self::voice_options(ctx),
             #[cfg(feature = "voice_input")]
             voice_new_feature_popup: Self::create_voice_new_feature_popup(ctx),
-            is_ai_input: false,
             convert_newline_to_space: options.convert_newline_to_space,
-            context_model: None,
-            image_context_options: ImageContextOptions::Disabled,
-            image_context_button_mouse_handle: Default::default(),
-            ai_context_menu_state,
             delegate_paste_handling: options.delegate_paste_handling,
             drag_drop_path_transformer: options.drag_drop_path_transformer,
             process_attached_images_future_handle: None,
             is_password: options.is_password,
             keymap_context_modifier: options.keymap_context_modifier,
         }
-    }
-
-    pub fn set_is_ai_input(&mut self, is_ai_input: bool, ctx: &mut ViewContext<Self>) {
-        self.is_ai_input = is_ai_input;
-        if !self.is_ai_input && !FeatureFlag::AtMenuOutsideOfAIMode.is_enabled() {
-            ctx.emit(Event::SetAIContextMenuOpen(false));
-        }
-        ctx.notify();
-    }
-
-    pub fn update_image_context_options(
-        &mut self,
-        options: ImageContextOptions,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        log::debug!("update_image_context_options: {options:?}");
-        self.image_context_options = options;
-        ctx.notify();
     }
 
     pub fn abort_attached_images_future_handle(&mut self, ctx: &mut ViewContext<Self>) {

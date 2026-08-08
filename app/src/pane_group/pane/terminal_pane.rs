@@ -243,37 +243,6 @@ impl PaneContent for TerminalPane {
             }
         });
 
-        #[cfg(feature = "local_fs")]
-        {
-            ctx.subscribe_to_model(
-                &BlocklistAIHistoryModel::handle(ctx),
-                move |group, _, event, ctx| {
-                    let Some(model_event_sender) = group.model_event_sender.clone() else {
-                        return;
-                    };
-
-                    let is_shared_ambient_agent_session = group
-                        .terminal_view_from_pane_id(terminal_pane_id, ctx)
-                        .map(|view| {
-                            view.as_ref(ctx)
-                                .model
-                                .lock()
-                                .is_shared_ambient_agent_session()
-                        })
-                        .unwrap_or(false);
-
-                    handle_ai_history_event(
-                        event,
-                        terminal_view_id,
-                        terminal_pane_id,
-                        model_event_sender,
-                        is_shared_ambient_agent_session,
-                        ctx,
-                    );
-                },
-            );
-        }
-
         // Store the pane group entity ID on the agent view controller so the
         // message bar can perform pane-group-scoped visibility checks.
         let pane_group_id = ctx.view_id();

@@ -1,10 +1,8 @@
 //! These types are named after the database tables, and are used to represent specific queries.
 
-use std::collections::{HashMap, HashSet};
-
 use chrono::NaiveDateTime;
 use diesel::prelude::*;
-use serde::{Deserialize, Deserializer, Serialize};
+use serde::{Deserialize, Serialize};
 
 use super::schema::{
     active_mcp_servers, ai_document_panes, ai_memory_panes,

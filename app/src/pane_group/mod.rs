@@ -956,18 +956,6 @@ enum AmbientRestoreKind {
     NewCloudConversation,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum AIDocumentPaneVisibilityAction {
-    /// Ensure the requested AI document pane is visible.
-    ///
-    /// If the requested pane is already open, this will keep it open.
-    Open,
-    /// Toggle visibility of the requested AI document pane.
-    ///
-    /// If the requested pane is open, this will close it. Otherwise it will open it.
-    Toggle,
-}
-
 impl PaneGroup {
     /// Executes the provided callback for each TerminalView contained within
     /// this pane group.

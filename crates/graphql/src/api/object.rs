@@ -1,5 +1,4 @@
 use crate::{
-    ai::AIConversation,
     folder::{Folder, FolderWithDescendants},
     generic_string_object::GenericStringObject,
     notebook::Notebook,
@@ -23,8 +22,6 @@ pub struct ObjectMetadata {
 
 #[derive(cynic::Enum, Clone, Copy, Debug)]
 pub enum ObjectType {
-    #[cynic(rename = "AIConversation")]
-    AIConversation,
     #[cynic(rename = "Folder")]
     Folder,
     #[cynic(rename = "GenericStringObject")]
@@ -45,7 +42,6 @@ pub struct ObjectUpdateSuccess {
 
 #[derive(cynic::InlineFragments, Debug, Clone)]
 pub enum CloudObject {
-    AIConversation(AIConversation),
     Folder(Folder),
     GenericStringObject(GenericStringObject),
     Notebook(Notebook),
@@ -56,7 +52,6 @@ pub enum CloudObject {
 
 #[derive(cynic::InlineFragments, Debug, Clone)]
 pub enum CloudObjectWithDescendants {
-    AIConversation(AIConversation),
     FolderWithDescendants(FolderWithDescendants),
     GenericStringObject(GenericStringObject),
     Notebook(Notebook),

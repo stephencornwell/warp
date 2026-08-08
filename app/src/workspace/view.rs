@@ -7371,164 +7371,6 @@ impl Workspace {
         ctx.notify();
     }
 
-    #[cfg(feature = "local_fs")]
-    fn setup_code_review_panel(
-        &mut self,
-        context: Option<&CodeReviewPaneContext>,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        if !*TabSettings::as_ref(ctx).show_code_review_button {
-            return;
-        }
-
-        // If context is provided, use it directly. Otherwise, derive from active pane group.
-        let context_data: Option<(
-            Option<PathBuf>,
-            ModelHandle<DiffStateModel>,
-            WeakViewHandle<TerminalView>,
-        )> = if let Some(context) = context {
-            Some((
-                context.repo_path.clone(),
-                context.diff_state_model.clone(),
-                context.terminal_view.clone(),
-            ))
-        } else {
-            let active_pane_group = self.active_tab_pane_group().clone();
-            // Read repo_path and terminal_view from the pane group (immutable context).
-            let read_result = active_pane_group.read(ctx, |pane_group, ctx| {
-                pane_group.active_session_view(ctx).map(|terminal_view| {
-                    let repo_path = terminal_view.as_ref(ctx).current_repo_path().cloned();
-                    (repo_path, terminal_view.downgrade())
-                })
-            });
-            // Resolve DiffStateModel outside the read closure (needs mutable context).
-            read_result.and_then(
-                |(repo_path, terminal_view): (Option<PathBuf>, WeakViewHandle<TerminalView>)| {
-                    let diff_state_model = repo_path.as_ref().and_then(|rp: &PathBuf| {
-                        self.working_directories_model.update(ctx, |model, ctx| {
-                            model.get_or_create_diff_state_model(rp.clone(), ctx)
-                        })
-                    })?;
-                    Some((repo_path, diff_state_model, terminal_view))
-                },
-            )
-        };
-
-        if let Some((repo, diff_state_model, terminal_view)) = context_data {
-            self.right_panel_view.update(ctx, |right_pane_view, ctx| {
-                right_pane_view.open_code_review(
-                    repo.clone(),
-                    diff_state_model,
-                    terminal_view,
-                    ctx,
-                );
-            });
-        } else {
-            self.right_panel_view.update(ctx, |right_panel_view, ctx| {
-                right_panel_view.close_code_review(ctx);
-            })
-        }
-    }
-
-    fn open_code_review_panel_from_arg(
-        &mut self,
-        panel_context: &CodeReviewPanelArg,
-        pane_group: ViewHandle<PaneGroup>,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        // Skip the full panel setup when the panel is already open for the target repo.
-        let panel_already_showing_repo = pane_group.as_ref(ctx).right_panel_open
-            && panel_context
-                .repo_path
-                .as_ref()
-                .is_some_and(|target_repo_path| {
-                    self.right_panel_view.as_ref(ctx).selected_repo_path() == Some(target_repo_path)
-                });
-        if panel_already_showing_repo {
-            return;
-        }
-
-        let repo_path = panel_context.repo_path.clone();
-        let diff_state_model = repo_path.as_ref().and_then(|rp| {
-            self.working_directories_model.update(ctx, |model, ctx| {
-                model.get_or_create_diff_state_model(rp.clone(), ctx)
-            })
-        });
-        let Some(diff_state_model) = diff_state_model else {
-            return;
-        };
-        let context = CodeReviewPaneContext {
-            repo_path,
-            diff_state_model,
-            terminal_view: panel_context.terminal_view.clone(),
-        };
-
-        self.open_right_panel(
-            &context,
-            &pane_group,
-            panel_context.entrypoint,
-            panel_context.cli_agent,
-            ctx,
-        );
-
-        let active_conversation_id = panel_context
-            .terminal_view
-            .upgrade(ctx)
-            .and_then(|tv| BlocklistAIHistoryModel::as_ref(ctx).active_conversation_id(tv.id()));
-
-        if let Some(conversation_id) = active_conversation_id {
-            BlocklistAIHistoryModel::handle(ctx).update(ctx, |history_model, _| {
-                history_model.set_has_code_review_opened_to_true(conversation_id);
-            });
-        }
-    }
-
-    #[cfg(feature = "local_fs")]
-    fn open_right_panel(
-        &mut self,
-        context: &CodeReviewPaneContext,
-        pane_group_handle: &ViewHandle<PaneGroup>,
-        entrypoint: CodeReviewPaneEntrypoint,
-        cli_agent: Option<crate::terminal::CLIAgent>,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        if pane_group_handle.as_ref(ctx).right_panel_open {
-            if let Some(repo_path) = &context.repo_path {
-                self.right_panel_view.update(ctx, |right_panel, ctx| {
-                    right_panel.update_selected_repo(repo_path.clone(), ctx);
-                });
-            }
-            return;
-        }
-
-        self.update_right_panel_open_state(
-            RightPanelUpdateParams {
-                pane_group: pane_group_handle,
-                target_open_state: true,
-                entrypoint: Some(entrypoint),
-                cli_agent,
-                review_pane_context: Some(context),
-            },
-            ctx,
-        );
-        if let Some(repo_path) = &context.repo_path {
-            self.right_panel_view.update(ctx, |right_panel, ctx| {
-                right_panel.update_selected_repo(repo_path.clone(), ctx);
-            });
-        }
-    }
-
-    #[cfg(not(feature = "local_fs"))]
-    fn open_right_panel(
-        &mut self,
-        _context: &CodeReviewPaneContext,
-        _pane_group_handle: &ViewHandle<PaneGroup>,
-        _entrypoint: CodeReviewPaneEntrypoint,
-        _cli_agent: Option<crate::terminal::CLIAgent>,
-        _ctx: &mut ViewContext<Self>,
-    ) {
-    }
-
     fn user_menu_items(&self, app: &AppContext) -> Vec<MenuItem<WorkspaceAction>> {
         let mut items = Vec::new();
         if !self.auth_state.is_anonymous_or_logged_out() {
@@ -9087,19 +8929,10 @@ impl Workspace {
                         .size()
                 });
 
-                let right_panel_width = modal_sizes.map(|ms| {
-                    ms.right_panel_width
-                        .lock()
-                        .expect("should be able to lock right panel handle")
-                        .size()
-                });
-
                 let pane_group = pane_group_view.as_ref(app);
                 let root = pane_group.snapshot(app);
                 let left_panel =
                     self.compute_left_panel_snapshot(pane_group_view, left_panel_width, app);
-                let right_panel =
-                    self.compute_right_panel_snapshot(pane_group_view, right_panel_width, app);
                 TabSnapshot {
                     root,
                     custom_title: pane_group.custom_title(app),
@@ -9112,7 +8945,7 @@ impl Workspace {
                         .get(tab_index)
                         .map_or(SelectedTabColor::Unset, |tab| tab.selected_color),
                     left_panel,
-                    right_panel,
+                    right_panel: None,
                 }
             })
             .filter(|tab| {
@@ -9218,27 +9051,6 @@ impl Workspace {
                 pane_group_id: pane_group_id.to_string(),
                 width: left_panel_width.unwrap_or(DEFAULT_LEFT_PANEL_WIDTH) as usize,
             })
-        })
-    }
-
-    fn compute_right_panel_snapshot(
-        &self,
-        pane_group: &ViewHandle<PaneGroup>,
-        right_panel_width: Option<f32>,
-        app: &AppContext,
-    ) -> Option<RightPanelSnapshot> {
-        let pane_group_ref = pane_group.as_ref(app);
-        if !pane_group_ref.right_panel_open {
-            return None;
-        }
-
-        let pane_group_id = pane_group.id();
-        let is_maximized = pane_group_ref.is_right_panel_maximized;
-
-        Some(RightPanelSnapshot {
-            pane_group_id: pane_group_id.to_string(),
-            width: right_panel_width.unwrap_or(DEFAULT_RIGHT_PANEL_WIDTH) as usize,
-            is_maximized,
         })
     }
 

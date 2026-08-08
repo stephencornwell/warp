@@ -16448,7 +16448,6 @@ impl Workspace {
             HeaderToolbarItemKind::AgentManagement => {
                 self.render_agent_management_view_button(appearance, ctx)
             }
-            HeaderToolbarItemKind::CodeReview => self.render_right_panel_button(appearance, ctx),
             HeaderToolbarItemKind::NotificationsMailbox => {
                 self.render_notifications_mailbox_button(appearance, ctx)
             }

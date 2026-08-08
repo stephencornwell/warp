@@ -1103,9 +1103,6 @@ fn handle_terminal_view_event(
             Event::ShowCloudAgentCapacityModal { variant } => {
                 ctx.emit(pane_group::Event::ShowCloudAgentCapacityModal { variant: *variant });
             }
-            Event::FreeTierLimitCheckTriggered => {
-                ctx.emit(pane_group::Event::FreeTierLimitCheckTriggered);
-            }
             Event::RevealChildAgent { conversation_id } => {
                 if let Some(&child_pane_id) = group.child_agent_panes.get(conversation_id) {
                     group.panes.show_pane_for_child_agent(child_pane_id);

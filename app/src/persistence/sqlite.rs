@@ -57,7 +57,6 @@ use crate::ai::agent::conversation::AIConversationId;
 use crate::ai::ambient_agents::scheduled::{
     CloudScheduledAmbientAgent, CloudScheduledAmbientAgentModel,
 };
-use crate::ai::ambient_agents::AmbientAgentTaskId;
 use crate::ai::cloud_environments::{
     CloudAmbientAgentEnvironment, CloudAmbientAgentEnvironmentModel,
 };
@@ -71,7 +70,7 @@ use crate::ai::mcp::{
 };
 use crate::ai::persisted_workspace::EnablementState;
 use crate::app_state::{
-    AIFactPaneSnapshot, AmbientAgentPaneSnapshot, CodeReviewPaneSnapshot,
+    CodeReviewPaneSnapshot,
     EnvVarCollectionPaneSnapshot, LeftPanelSnapshot, RightPanelSnapshot, SettingsPaneSnapshot,
     WorkflowPaneSnapshot,
 };
@@ -1231,37 +1230,7 @@ fn save_pane_state(
                 .values(welcome_pane)
                 .execute(conn)?;
         }
-        LeafContents::AIDocument(ai_document_snapshot) => match ai_document_snapshot {
-            crate::app_state::AIDocumentPaneSnapshot::Local {
-                document_id,
-                version,
-                content,
-                title,
-            } => {
-                let ai_document_pane = model::NewAIDocumentPane {
-                    id,
-                    document_id: document_id.clone(),
-                    version: *version,
-                    content: content.clone(),
-                    title: title.clone(),
-                };
-
-                diesel::insert_into(schema::ai_document_panes::dsl::ai_document_panes)
-                    .values(ai_document_pane)
-                    .execute(conn)?;
-            }
-        },
-        LeafContents::AmbientAgent(snapshot) => {
-            let ambient_agent_pane = model::NewAmbientAgentPane {
-                id,
-                uuid: snapshot.uuid.clone(),
-                task_id: snapshot.task_id.map(|t| t.to_string()),
-            };
-
-            diesel::insert_into(schema::ambient_agent_panes::dsl::ambient_agent_panes)
-                .values(ambient_agent_pane)
-                .execute(conn)?;
-        }
+        LeafContents::AIDocument(_) | LeafContents::AmbientAgent(_) => {}
         LeafContents::NetworkLog => {
             // Unreachable: filtered by `is_persisted` in `save_app_state`.
         }
@@ -2472,7 +2441,7 @@ fn read_node(conn: &mut SqliteConnection, node: model::PaneNode) -> Result<Optio
                         search_query: None,
                     })
                 }
-                AI_FACT_PANE_KIND => LeafContents::AIFact(AIFactPaneSnapshot::Personal),
+                AI_FACT_PANE_KIND => return Ok(None),
                 MCP_SERVER_PANE_KIND => {
                     // Legacy MCP server panes are no longer supported.
                     bail!("Legacy MCP server panes are no longer supported")
@@ -2508,34 +2477,7 @@ fn read_node(conn: &mut SqliteConnection, node: model::PaneNode) -> Result<Optio
                         startup_directory: welcome_pane.startup_directory.map(PathBuf::from),
                     }
                 }
-                AI_DOCUMENT_PANE_KIND => {
-                    let ai_document_pane = schema::ai_document_panes::dsl::ai_document_panes
-                        .find(node.id)
-                        .select(model::AIDocumentPane::as_select())
-                        .first(conn)?;
-
-                    LeafContents::AIDocument(crate::app_state::AIDocumentPaneSnapshot::Local {
-                        document_id: ai_document_pane.document_id,
-                        version: ai_document_pane.version,
-                        content: ai_document_pane.content,
-                        title: ai_document_pane.title,
-                    })
-                }
-                AMBIENT_AGENT_PANE_KIND => {
-                    let pane = schema::ambient_agent_panes::dsl::ambient_agent_panes
-                        .find(node.id)
-                        .select(model::AmbientAgentPane::as_select())
-                        .first(conn)?;
-
-                    let task_id = pane
-                        .task_id
-                        .and_then(|id_str| id_str.parse::<AmbientAgentTaskId>().ok());
-
-                    LeafContents::AmbientAgent(AmbientAgentPaneSnapshot {
-                        uuid: pane.uuid,
-                        task_id,
-                    })
-                }
+                AI_DOCUMENT_PANE_KIND | AMBIENT_AGENT_PANE_KIND => return Ok(None),
                 other => {
                     log::warn!("Skipping unsupported pane kind during restore: {other}");
                     return Ok(None);

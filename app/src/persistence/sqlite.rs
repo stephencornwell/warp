@@ -2599,7 +2599,10 @@ fn read_node(conn: &mut SqliteConnection, node: model::PaneNode) -> Result<Optio
                         task_id,
                     })
                 }
-                other => bail!("Unrecognized pane kind: {other}"),
+                other => {
+                    log::warn!("Skipping unsupported pane kind during restore: {other}");
+                    return Ok(None);
+                }
             };
 
             Ok(Some(PaneNodeSnapshot::Leaf(LeafSnapshot {

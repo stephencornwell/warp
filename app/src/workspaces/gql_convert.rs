@@ -245,29 +245,6 @@ impl From<GqlUgcCollectionEnablementSetting> for UgcCollectionEnablementSetting 
     }
 }
 
-impl From<&gql_usage::ConversationUsage> for ConversationUsageInfo {
-    fn from(gql: &gql_usage::ConversationUsage) -> Self {
-        let persistence::model::ConversationUsageMetadata {
-            credits_spent,
-            token_usage: models,
-            tool_usage_metadata: tool,
-            context_window_usage,
-            ..
-        } = (&gql.usage_metadata).into();
-        ConversationUsageInfo {
-            credits_spent,
-            credits_spent_for_last_block: None,
-            tool_calls: tool.total_tool_calls(),
-            models,
-            context_window_usage,
-            files_changed: tool.apply_file_diff_stats.files_changed,
-            lines_added: tool.apply_file_diff_stats.lines_added,
-            lines_removed: tool.apply_file_diff_stats.lines_removed,
-            commands_executed: tool.run_command_stats.commands_executed,
-        }
-    }
-}
-
 impl From<GqlAdminEnablementSetting> for AdminEnablementSetting {
     fn from(gql_admin_enablement_setting: GqlAdminEnablementSetting) -> AdminEnablementSetting {
         match gql_admin_enablement_setting {

@@ -694,9 +694,6 @@ impl TypedActionView for AgentAssistedEnvironmentModal {
 
                 ctx.emit(AgentAssistedEnvironmentModalEvent::Confirmed { repo_paths });
             }
-            AgentAssistedEnvironmentModalAction::AddRepo(index) => {
-                self.add_repo(*index, ctx);
-            }
             AgentAssistedEnvironmentModalAction::RemoveRepo(index) => {
                 self.remove_repo(*index, ctx);
             }

@@ -2478,19 +2478,6 @@ pub struct TerminalView {
     /// Cached view ids for usage footers keyed by the AI block view id that owns them.
     usage_footer_view_ids: HashMap<EntityId, EntityId>,
 
-    // Whether the block onboarding view is active or not.
-    block_onboarding_active: bool,
-
-    // View handles for the onboarding blocks.
-    onboarding_prompt_block: Option<ViewHandle<OnboardingPromptBlock>>,
-    settings_import_onboarding_block: Option<ViewHandle<SettingsImportView>>,
-    onboarding_agentic_suggestions_block: Option<ViewHandle<OnboardingAgenticSuggestionsBlock>>,
-
-    onboarding_callout_view: Option<ViewHandle<onboarding::OnboardingCalloutView>>,
-
-    // If the agentic suggestions onboarding block is pending, mark it here.
-    pending_onboarding_agentic_suggestions_block: bool,
-
     /// The type of the subshell that we will bootstrap/"warpify"" on the next [`AfterBlockStarted`]
     /// terminal model event. Will only be `Some` with a [`ShellType`] we can bootstrap.
     pending_auto_bootstrap_shell_type: Option<ShellType>,
@@ -2499,16 +2486,9 @@ pub struct TerminalView {
     show_snackbar: bool,
     hover_near_snackbar_area: bool,
 
-    ai_controller: ModelHandle<BlocklistAIController>,
     passive_suggestions_models: PassiveSuggestionsModels,
-    ai_action_model: ModelHandle<BlocklistAIActionModel>,
-    ai_input_model: ModelHandle<BlocklistAIInputModel>,
-    ai_context_model: ModelHandle<BlocklistAIContextModel>,
-    get_relevant_files_controller: ModelHandle<GetRelevantFilesController>,
 
     pending_env_var_collection: Option<CloudEnvVarCollection>,
-
-    ai_render_context: Rc<RefCell<BlocklistAIRenderContext>>,
 
     // TODO(suraj): consider flattening this to the [`SharedSessionKind`]
     // and adding a `Unshared` variant to it. This would require [`SharedSessionKind::Sharer`]
@@ -2521,10 +2501,6 @@ pub struct TerminalView {
 
     /// When true, automatically stop the shared session when the CLI agent session ends.
     /// Set when sharing is started from the remote control entrypoint.
-    auto_stop_sharing_on_cli_end: bool,
-
-    /// Whether we've already inserted the conversation-ended tombstone for this view.
-    has_inserted_conversation_ended_tombstone: bool,
 
     /// The ID of the containing window.
     window_id: WindowId,
@@ -2622,37 +2598,6 @@ pub struct TerminalView {
     // we want to keep the title as the conversation title, so we should ignore the model event setting the title after bootstrapping finishes
     ignore_next_set_title_event: bool,
 
-    cli_subagent_views: HashMap<BlockId, ViewHandle<CLISubagentView>>,
-    cli_subagent_controller: ModelHandle<CLISubagentController>,
-    use_agent_footer: ViewHandle<UseAgentToolbar>,
-
-    agent_view_controller: ModelHandle<AgentViewController>,
-    agent_view_back_button: ViewHandle<ActionButton>,
-    /// Pill bar shown above the agent view header listing the orchestrator and
-    /// child agents. Gated by `FeatureFlag::OrchestrationPillBar`. The view is
-    /// always constructed; render-time guards control whether it draws anything.
-    orchestration_pill_bar: ViewHandle<OrchestrationPillBar>,
-    is_using_conversation_for_pane_header_title: bool,
-
-    ambient_agent_view_model: Option<ModelHandle<ambient_agent::AmbientAgentViewModel>>,
-
-    /// Cloud mode conversation details panel (side panel showing task metadata).
-    cloud_mode_details_panel:
-        ViewHandle<crate::ai::conversation_details_panel::ConversationDetailsPanel>,
-    /// Whether the cloud mode details panel is currently open.
-    is_cloud_mode_details_panel_open: bool,
-    /// Whether we've already auto-opened the panel when the agent started running.
-    /// This prevents re-opening the panel if the user manually closes it.
-    has_auto_opened_cloud_mode_details_panel: bool,
-    /// Mouse state handle for the cloud mode details panel toggle button in the pane header.
-    /// Only available on non-WASM platforms (WASM uses a per-window button instead).
-    #[cfg(not(target_arch = "wasm32"))]
-    cloud_mode_details_panel_toggle_mouse_state: warpui::elements::MouseStateHandle,
-    /// Mouse state handle for the ambient agent cancel button in the pane header.
-    ambient_agent_cancel_mouse_state: warpui::elements::MouseStateHandle,
-
-    /// First-time cloud agent setup view (full-screen overlay for creating initial environment).
-    first_time_cloud_agent_setup_view: ViewHandle<ambient_agent::FirstTimeCloudAgentSetupView>,
 
     /// Environment setup mode selector modal for /create-environment command.
     environment_setup_mode_selector: ViewHandle<EnvironmentSetupModeSelector>,
@@ -4011,28 +3956,14 @@ impl TerminalView {
             active_filter_editor_block_index: None,
             rich_content_views: Vec::new(),
             usage_footer_view_ids: Default::default(),
-            block_onboarding_active: false,
-            onboarding_agentic_suggestions_block: None,
-            onboarding_prompt_block: None,
-            settings_import_onboarding_block: None,
-            onboarding_callout_view: None,
-            pending_onboarding_agentic_suggestions_block: true,
             pending_auto_bootstrap_shell_type: None,
             pending_env_var_collection: None,
             env_vars: Vec::new(),
             show_snackbar: true,
             hover_near_snackbar_area: false,
-            ai_controller,
             passive_suggestions_models,
-            ai_action_model,
-            ai_render_context,
-            get_relevant_files_controller,
             shared_session: None,
             pending_share_source: None,
-            auto_stop_sharing_on_cli_end: false,
-            has_inserted_conversation_ended_tombstone: false,
-            ai_input_model,
-            ai_context_model,
             window_id,
             content_element_position_id: terminal_content_element_position_id,
             input_position_id,
@@ -4062,24 +3993,9 @@ impl TerminalView {
             current_repo_path: None,
             terminal_title: Default::default(),
             ignore_next_set_title_event: false,
-            cli_subagent_views: Default::default(),
-            cli_subagent_controller,
-            use_agent_footer: use_agent_button_bar,
-            agent_view_controller,
-            agent_view_back_button,
-            orchestration_pill_bar,
-            is_using_conversation_for_pane_header_title: false,
-            ambient_agent_view_model,
-            cloud_mode_details_panel,
-            is_cloud_mode_details_panel_open: false,
-            has_auto_opened_cloud_mode_details_panel: false,
-            #[cfg(not(target_arch = "wasm32"))]
-            cloud_mode_details_panel_toggle_mouse_state: Default::default(),
-            ambient_agent_cancel_mouse_state: Default::default(),
             active_init_project_model: None,
             is_pending_aws_login: false,
             manual_pty_shutdown_requested: false,
-            first_time_cloud_agent_setup_view,
             environment_setup_mode_selector,
             is_environment_setup_mode_selector_open: false,
             pane_stack: None,

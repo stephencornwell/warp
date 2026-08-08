@@ -4,16 +4,12 @@ use crate::ai::agent::conversation::{AIAgentHarness, AIConversation, AIConversat
 use crate::ai::agent_conversations_model::{
     AgentConversationsModel, AgentConversationsModelEvent, ConversationOrTask,
 };
-use crate::ai::ai_document_view::AIDocumentView;
 use crate::ai::ambient_agents::AmbientAgentTaskId;
 use crate::ai::blocklist::agent_view::AgentViewEntryOrigin;
 use crate::ai::blocklist::history_model::CloudConversationData;
-use crate::ai::blocklist::inline_action::code_diff_view::CodeDiffView;
 use crate::ai::blocklist::suggested_agent_mode_workflow_modal::SuggestedAgentModeWorkflowAndId;
 use crate::ai::blocklist::suggested_rule_modal::SuggestedRuleAndId;
 use crate::ai::blocklist::{BlocklistAIHistoryModel, InputConfig};
-use crate::ai::document::ai_document_model::{AIDocumentId, AIDocumentModel, AIDocumentVersion};
-use crate::ai::execution_profiles::profiles::{AIExecutionProfilesModel, ClientProfileId};
 use crate::ai::llms::LLMId;
 use crate::ai::restored_conversations::RestoredAgentConversations;
 use crate::auth::auth_manager::AuthManager;
@@ -102,7 +98,7 @@ use warpui::{SingletonEntity, ViewContext};
 use crate::ai::blocklist::SerializedBlockListItem;
 use crate::ai_assistant::AskAIType;
 use crate::app_state::{
-    self, AIFactPaneSnapshot, BranchSnapshot, EnvVarCollectionPaneSnapshot, LeafContents,
+    self, BranchSnapshot, EnvVarCollectionPaneSnapshot, LeafContents,
     LeafSnapshot, NotebookPaneSnapshot, PaneNodeSnapshot, PaneUuid, SettingsPaneSnapshot,
     TerminalPaneSnapshot, WorkflowPaneSnapshot,
 };
@@ -176,13 +172,8 @@ use focus_state::PaneGroupFocusState;
 mod tests;
 
 pub use crate::code_review::CodeReviewPanelArg;
-pub use pane::ai_document_pane::AIDocumentPane;
-pub use pane::ai_fact_pane::AIFactPane;
-pub use pane::code_diff_pane::CodeDiffPane;
-pub use pane::code_pane::CodePane;
 pub use pane::env_var_collection_pane::EnvVarCollectionPane;
 pub use pane::environment_management_pane::EnvironmentManagementPane;
-pub use pane::execution_profile_editor_pane::ExecutionProfileEditorPane;
 pub use pane::file_pane::FilePane;
 pub use pane::network_log_pane::NetworkLogPane;
 pub use pane::notebook_pane::NotebookPane;

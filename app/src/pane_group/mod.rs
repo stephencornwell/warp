@@ -841,10 +841,6 @@ pub struct PaneGroup {
 
     /// If the left panel is open for this pane group
     pub left_panel_open: bool,
-    /// If the right panel is open for this pane group
-    pub right_panel_open: bool,
-    /// If the right panel is maximized
-    pub is_right_panel_maximized: bool,
 
     /// Ambient agent panes whose task data was not yet cached at restoration time.
     /// Entries are removed as each task's data arrives and the pane is replaced.
@@ -2908,9 +2904,7 @@ impl PaneGroup {
             terminal_with_open_summarization_dialog: None,
             pane_with_open_environment_setup_mode_selector: None,
             pane_with_open_agent_assisted_environment_modal: None,
-            right_panel_open: false,
             left_panel_open: false,
-            is_right_panel_maximized: false,
             pending_ambient_agent_conversation_restorations: HashMap::new(),
             child_agent_panes: HashMap::new(),
             custom_title: None,

@@ -686,7 +686,6 @@ enum PanePanelDirection {
 enum FocusRegion {
     LeftPanel,
     PaneGroup,
-    RightPanel,
     Other,
 }
 

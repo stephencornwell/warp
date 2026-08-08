@@ -1,8 +1,5 @@
 mod action;
-mod agent_view;
 mod block_banner;
-pub mod block_onboarding;
-pub(crate) mod blocklist_filter;
 mod bookmarks;
 pub mod init;
 pub mod inline_banner;

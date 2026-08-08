@@ -1,17 +1,3 @@
-use crate::ai::active_agent_views_model::ActiveAgentViewsModel;
-use crate::ai::agent::api::ServerConversationToken;
-use crate::ai::agent::conversation::{AIAgentHarness, AIConversation, AIConversationId};
-use crate::ai::agent_conversations_model::{
-    AgentConversationsModel, AgentConversationsModelEvent, ConversationOrTask,
-};
-use crate::ai::ambient_agents::AmbientAgentTaskId;
-use crate::ai::blocklist::agent_view::AgentViewEntryOrigin;
-use crate::ai::blocklist::history_model::CloudConversationData;
-use crate::ai::blocklist::suggested_agent_mode_workflow_modal::SuggestedAgentModeWorkflowAndId;
-use crate::ai::blocklist::suggested_rule_modal::SuggestedRuleAndId;
-use crate::ai::blocklist::{BlocklistAIHistoryModel, InputConfig};
-use crate::ai::llms::LLMId;
-use crate::ai::restored_conversations::RestoredAgentConversations;
 use crate::auth::auth_manager::AuthManager;
 use crate::auth::auth_view_modal::AuthViewVariant;
 use crate::auth::AuthStateProvider;
@@ -29,15 +15,10 @@ use crate::quit_warning::UnsavedStateSummary;
 #[cfg(target_family = "wasm")]
 use crate::server::cloud_objects::update_manager::UpdateManager;
 use crate::server::server_api::ServerApiProvider;
-use crate::settings::{AISettings, DefaultSessionMode, PaneSettings};
+use crate::settings::PaneSettings;
 use crate::settings_view::SettingsSection;
 use crate::shell_indicator::ShellIndicatorType;
 use crate::terminal::available_shells::{AvailableShell, AvailableShells};
-#[cfg(not(target_family = "wasm"))]
-use crate::terminal::view::inline_banner::{
-    ZeroStatePromptSuggestionTriggeredFrom, ZeroStatePromptSuggestionType,
-};
-use crate::terminal::view::load_ai_conversation::RestoredAIConversation;
 use crate::undo_close::UndoCloseStack;
 use crate::undo_close::UndoCloseStackEvent;
 #[cfg(target_family = "wasm")]

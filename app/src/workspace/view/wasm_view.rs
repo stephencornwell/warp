@@ -7,8 +7,6 @@ use warp_core::channel::ChannelState;
 
 use crate::uri::browser_url_handler::parse_current_url;
 
-use super::PanelPosition;
-
 use crate::ai::agent_conversations_model::AgentConversationsModel;
 use crate::ai::conversation_details_panel::{
     ConversationDetailsData, ConversationDetailsPanel, ConversationDetailsPanelEvent,
@@ -158,7 +156,6 @@ impl Workspace {
         Some(self.render_panel(
             app,
             ChildView::new(&self.transcript_details_panel).finish(),
-            &PanelPosition::Right,
         ))
     }
 

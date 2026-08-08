@@ -4594,13 +4594,6 @@ impl Workspace {
                 ctx,
             );
         });
-        self.right_panel_view.update(ctx, |right_pane, ctx| {
-            right_pane.set_active_pane_group(
-                right_active_pane_group,
-                &working_directories_model,
-                ctx,
-            );
-        });
 
         let pane_group = self.active_tab_pane_group();
         let focused_terminal_view_id = self
@@ -5156,16 +5149,8 @@ impl Workspace {
         } else {
             PanelPosition::Right
         };
-        let code_review_position = if left_items.contains(&HeaderToolbarItemKind::CodeReview) {
-            PanelPosition::Left
-        } else {
-            PanelPosition::Right
-        };
         self.left_panel_view.update(ctx, |view, ctx| {
             view.set_panel_position(tools_position, ctx);
-        });
-        self.right_panel_view.update(ctx, |view, ctx| {
-            view.set_panel_position(code_review_position, ctx);
         });
     }
 
@@ -7305,9 +7290,6 @@ impl Workspace {
         // Notify panels about the agent management view state change so they can
         // update their top border visibility accordingly.
         self.left_panel_view.update(ctx, |panel, ctx| {
-            panel.set_agent_management_view_open(is_open, ctx);
-        });
-        self.right_panel_view.update(ctx, |panel, ctx| {
             panel.set_agent_management_view_open(is_open, ctx);
         });
     }
@@ -13419,12 +13401,6 @@ impl Workspace {
 
             #[cfg(feature = "local_fs")]
             {
-                self.right_panel_view.update(ctx, |right_panel, ctx| {
-                    right_panel.update_session_env(is_remote, is_wsl_session, ctx);
-                });
-
-                if self.active_tab_pane_group().as_ref(ctx).right_panel_open {
-                }
             }
         } else {
             let enablement = CodingPanelEnablementState::from_session_env(
@@ -13440,9 +13416,6 @@ impl Workspace {
 
             #[cfg(feature = "local_fs")]
             {
-                self.right_panel_view.update(ctx, |right_panel, ctx| {
-                    right_panel.update_session_env(false, false, ctx);
-                });
             }
         }
     }

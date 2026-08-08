@@ -4,7 +4,6 @@ use crate::server::telemetry::MCPServerCollectionPaneEntrypoint;
 use crate::settings_view::mcp_servers_page::MCPServersSettingsPage;
 use crate::TelemetryEvent;
 use crate::{
-    ai::execution_profiles::profiles::ClientProfileId,
     appearance::Appearance,
     editor::{
         EditorView, Event as EditorEvent, PropagateAndNoOpNavigationKeys, SingleLineEditorOptions,
@@ -82,7 +81,6 @@ mod code_page;
 mod delete_environment_confirmation_dialog;
 mod directory_color_add_picker;
 pub(crate) mod environments_page;
-mod execution_profile_view;
 mod features;
 mod features_page;
 pub mod keybindings;
@@ -171,7 +169,6 @@ pub enum SettingsViewEvent {
     },
     OpenAIFactCollection,
     OpenMCPServerCollection,
-    OpenExecutionProfileEditor(ClientProfileId),
     OpenLspLogs {
         log_path: PathBuf,
     },

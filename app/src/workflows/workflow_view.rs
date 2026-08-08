@@ -13,7 +13,6 @@ use syntax_highlightable::SyntaxHighlightable;
 use url::Url;
 
 use crate::{
-    ai::{blocklist::secret_redaction::find_secrets_in_text, AIRequestUsageModel},
     appearance::Appearance,
     auth::{auth_state::AuthState, AuthStateProvider, UserUid},
     cloud_object::{
@@ -30,7 +29,6 @@ use crate::{
         items::WarpDriveItemId,
         sharing::{ContentEditability, ShareableObject, SharingAccessLevel},
         workflows::{
-            ai_assist::GeneratedCommandMetadataError,
             arguments::ArgumentsState,
             enum_creation_dialog::{EnumCreationDialog, EnumCreationDialogEvent, WorkflowEnumData},
             workflow_arg_selector::{WorkflowArgSelector, WorkflowArgSelectorEvent},
@@ -55,7 +53,6 @@ use crate::{
             UpdateManagerEvent,
         },
         ids::{ClientId, ServerId, SyncId},
-        server_api::{ai::AIClient, ServerApiProvider},
         telemetry::{
             CloudObjectTelemetryMetadata, SharingDialogSource, TelemetryCloudObjectType,
             TelemetryEvent,
@@ -63,7 +60,6 @@ use crate::{
     },
     settings::{
         app_installation_detection::{UserAppInstallDetectionSettings, UserAppInstallStatus},
-        AISettings,
     },
     terminal::safe_mode_settings::get_secret_obfuscation_mode,
     ui_components::{
@@ -226,7 +222,6 @@ pub enum WorkflowAction {
     ForceClose,
     Save,
     Cancel,
-    AiAssist,
     Duplicate,
     CopyLink(String),
     OpenLinkOnDesktop(Url),
@@ -2539,136 +2534,6 @@ impl WorkflowView {
         ctx.emit(WorkflowViewEvent::ViewInWarpDrive(id));
     }
 
-    fn issue_request(&mut self, ctx: &mut ViewContext<Self>) {
-        let ai_client = self.ai_client.clone();
-        let command = self.content_editor.as_ref(ctx).buffer_text(ctx);
-        let raw_request = command.trim().to_string();
-
-        ctx.spawn(
-            async move { ai_client.generate_metadata_for_command(raw_request).await },
-            move |pane, response, ctx| {
-                match response {
-                    Ok(metadata) => {
-                        pane.ai_metadata_assist_state = AiAssistState::Generated;
-                        pane.enable_editors(ctx);
-
-                        let arguments = metadata
-                            .arguments
-                            .into_iter()
-                            .map(|parameter| Argument {
-                                name: parameter.name,
-                                description: Some(parameter.description),
-                                default_value: Some(parameter.default_value),
-                                arg_type: Default::default(),
-                            })
-                            .collect_vec();
-
-                        let workflow = Workflow::Command {
-                            name: metadata.title,
-                            description: Some(metadata.description),
-                            command: metadata.command,
-                            arguments,
-                            tags: vec![],
-                            source_url: None,
-                            author: None,
-                            author_url: None,
-                            shells: vec![],
-                            environment_variables: None,
-                        };
-
-                        send_telemetry_from_ctx!(
-                            TelemetryEvent::AutoGenerateMetadataSuccess,
-                            ctx
-                        );
-
-                        pane.populate_missing_field_with_suggestion(workflow, ctx);
-                        ctx.notify();
-                    }
-                    Err(err) => {
-                        let message = err.user_facing_message();
-                        if let GeneratedCommandMetadataError::RateLimited = err {
-                            let current_user_id = pane.auth_state.user_id().unwrap_or_default();
-                            if let Some(team) = UserWorkspaces::as_ref(ctx).current_team() {
-                                let current_user_email =
-                                    pane.auth_state.user_email().unwrap_or_default();
-                                let has_admin_permissions = team.has_admin_permissions(&current_user_email);
-                                if team.billing_metadata.can_upgrade_to_higher_tier_plan() {
-                                    if has_admin_permissions {
-                                        pane.display_upgrade_error(Some(team.uid), current_user_id, ctx);
-                                    } else {
-                                        pane.display_error_toast(
-                                            "Looks like you're out of AI credits. Contact a team admin to upgrade for more credits.".to_string(),
-                                            ctx,
-                                        );
-                                    }
-                                } else {
-                                    pane.display_error_toast(
-                                        message.clone(),
-                                        ctx,
-                                    );
-                                }
-                            } else {
-                                pane.display_upgrade_error(None, current_user_id, ctx);
-                            }
-                        } else {
-                            pane.display_error_toast(
-                                message.clone(),
-                                ctx,
-                            );
-                        }
-
-                        send_telemetry_from_ctx!(
-                            TelemetryEvent::AutoGenerateMetadataError {
-                                error_payload: serde_json::json!(err)
-                            },
-                            ctx
-                        );
-
-                        pane.ai_metadata_assist_state = AiAssistState::PreRequest;
-                        pane.enable_editors(ctx);
-                        ctx.notify();
-                    }
-                }
-                AIRequestUsageModel::handle(ctx).update(ctx, |request_usage_model, ctx| {
-                    request_usage_model.refresh_request_usage_async(ctx);
-                });
-            }
-        );
-
-        self.ai_metadata_assist_state = AiAssistState::RequestInFlight;
-        self.disable_editors(ctx);
-        ctx.notify();
-    }
-
-    fn display_upgrade_error(
-        &mut self,
-        team_uid: Option<ServerId>,
-        user_id: UserUid,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        let upgrade_link = team_uid
-            .map(UserWorkspaces::upgrade_link_for_team)
-            .unwrap_or_else(|| UserWorkspaces::upgrade_link(user_id));
-
-        let window_id = ctx.window_id();
-        let toast_link = if self.auth_state.is_anonymous_or_logged_out() {
-            ToastLink::new("Upgrade for more credits.".into())
-                .with_onclick_action(WorkspaceAction::AttemptLoginGatedAIUpgrade)
-        } else {
-            ToastLink::new("Upgrade for more credits.".into()).with_href(upgrade_link)
-        };
-
-        crate::workspace::ToastStack::handle(ctx).update(ctx, |stack, ctx| {
-            stack.add_ephemeral_toast(
-                DismissibleToast::error("Looks like you're out of AI credits.".into())
-                    .with_link(toast_link),
-                window_id,
-                ctx,
-            );
-            ctx.notify();
-        });
-    }
-
     // Populate only the missing field in the workflow editor with the generated suggestion from AI.
     fn populate_missing_field_with_suggestion(
         &mut self,
@@ -3079,7 +2944,6 @@ impl TypedActionView for WorkflowView {
             }
             WorkflowAction::RunWorkflow => self.copy_to_command_line(ctx),
             WorkflowAction::CopyContent => self.copy_content(ctx),
-            WorkflowAction::AiAssist => self.issue_request(ctx),
             WorkflowAction::Duplicate => self.duplicate_object(ctx),
             WorkflowAction::CopyLink(link) => {
                 send_telemetry_from_ctx!(

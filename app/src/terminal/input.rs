@@ -45,28 +45,6 @@ use crate::ASSETS;
 use crate::code::editor_management::CodeSource;
 
 use crate::{
-    ai::{
-        agent::{AIAgentContext, EntrypointType},
-        blocklist::{
-            prompt::prompt_alert::{PromptAlertEvent, PromptAlertView},
-            render_ai_agent_mode_icon, render_ai_follow_up_icon,
-            telemetry_banner::should_collect_ai_ugc_telemetry,
-            BlocklistAIContextEvent, BlocklistAIContextModel, BlocklistAIController,
-            BlocklistAIControllerEvent, BlocklistAIHistoryEvent, BlocklistAIHistoryModel,
-            BlocklistAIInputEvent, BlocklistAIInputModel, InputConfig, InputType,
-            BLOCK_CONTEXT_ATTACHMENT_REGEX, DIFF_HUNK_ATTACHMENT_REGEX,
-            DRIVE_OBJECT_ATTACHMENT_REGEX,
-        },
-        llms::{LLMPreferences, LLMPreferencesEvent},
-        predict::{
-            next_command_model::{
-                is_command_valid, is_next_command_enabled, NextCommandModel, NextCommandModelEvent,
-                NextCommandSuggestionState, ZeroStateSuggestionInfo,
-            },
-        },
-        AIRequestUsageModel,
-    },
-    ai_assistant::execution_context::WarpAiExecutionContext,
     appearance::{Appearance, AppearanceEvent},
     channel::{Channel, ChannelState},
     cloud_object::{
@@ -74,7 +52,6 @@ use crate::{
         CloudObject, Space,
     },
     cmd_or_ctrl_shift,
-    code_review::diff_state::DiffMode,
     completer::SessionContext,
     context_chips::{
         display::{PromptDisplay, PromptDisplayEvent},
@@ -150,7 +127,7 @@ use crate::{
         WorkflowSelectionSource, WorkflowSource, WorkflowType,
     },
     workspace::{
-        sync_inputs::SyncedInputState, CommandSearchOptions, ForkFromExchange,
+        sync_inputs::SyncedInputState, CommandSearchOptions,
         ForkedConversationDestination, InitContent, RestoreConversationLayout, ToastStack,
         WorkspaceAction,
     },
@@ -158,7 +135,6 @@ use crate::{
     AgentModeEntrypoint, ServerApiProvider,
 };
 
-use ai::skills::SkillReference;
 use base64::Engine as _;
 #[cfg(feature = "local_fs")]
 use diesel::SqliteConnection;
@@ -264,7 +240,6 @@ use super::{
         UniversalDeveloperInputButtonBar, UniversalDeveloperInputButtonBarEvent,
     },
     view::{
-        ambient_agent::AmbientAgentViewModel,
         inline_banner::{
             PromptSuggestionBannerState, ZeroStatePromptSuggestionTriggeredFrom,
             ZeroStatePromptSuggestionType,
@@ -274,9 +249,6 @@ use super::{
     },
     warpify::SubshellSource,
     History, HistoryEntry, SizeInfo, TerminalModel, UpArrowHistoryConfig,
-};
-use crate::ai::blocklist::agent_view::{
-    AgentInputFooter, AgentInputFooterEvent, AgentViewController,
 };
 use async_channel::Sender;
 use futures::stream::AbortHandle;

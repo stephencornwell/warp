@@ -57,7 +57,6 @@ use crate::terminal::input::plans::{InlinePlanMenuEvent, InlinePlanMenuView};
 use crate::terminal::input::profiles::{InlineProfileSelectorEvent, InlineProfileSelectorView};
 use crate::terminal::input::prompts::{InlinePromptsMenuEvent, InlinePromptsMenuView};
 use crate::terminal::input::repos::{InlineReposMenuEvent, InlineReposMenuView};
-use crate::terminal::input::rewind::{RewindMenuEvent, RewindMenuView};
 use crate::terminal::input::skills::{InlineSkillSelectorEvent, InlineSkillSelectorView};
 use crate::terminal::input::slash_command_model::{SlashCommandEntryState, SlashCommandModel};
 use crate::terminal::input::slash_commands::{
@@ -701,7 +700,6 @@ pub enum InputSuggestionsMode {
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum UserQueryMenuAction {
     ForkFrom,
-    Rewind,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -1625,7 +1623,6 @@ pub struct Input {
     user_query_menu_view: ViewHandle<UserQueryMenuView>,
 
     /// Inline menu for selecting a rewind point in a conversation.
-    rewind_menu_view: ViewHandle<RewindMenuView>,
 
     /// Inline history menu for up-arrow with conversations and commands.
     inline_history_menu_view: ViewHandle<InlineHistoryMenuView>,
@@ -3115,20 +3112,6 @@ impl Input {
             me.handle_plan_menu_event(event, ctx);
         });
 
-        let rewind_menu_view = ctx.add_view(|ctx| {
-            RewindMenuView::new(
-                AIConversationId::default(),
-                suggestions_mode_model.clone(),
-                agent_view_controller.clone(),
-                &inline_terminal_menu_positioner,
-                &buffer_model,
-                ctx,
-            )
-        });
-        ctx.subscribe_to_view(&rewind_menu_view, |me, _, event, ctx| {
-            me.handle_rewind_menu_event(event, ctx);
-        });
-
         let inline_slash_commands_view = ctx.add_view(|ctx| {
             InlineSlashCommandView::new(
                 &slash_command_model,
@@ -3307,7 +3290,6 @@ impl Input {
             inline_skill_selector_view,
             skill_selector_should_invoke: false,
             user_query_menu_view,
-            rewind_menu_view,
             inline_history_menu_view,
             cloud_mode_v2_history_menu_view,
             inline_terminal_menu_positioner,

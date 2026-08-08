@@ -4128,15 +4128,6 @@ impl Input {
                     }
                 });
             }
-            inline_history::InlineHistoryMenuEvent::SelectAIPrompt { query_text } => {
-                self.editor.update(ctx, |editor, ctx| {
-                    editor.set_buffer_text_ignoring_undo(query_text, ctx);
-                });
-
-                self.ai_input_model.update(ctx, |ai_input_model, ctx| {
-                    ai_input_model.set_input_type(InputType::AI, ctx);
-                });
-            }
             inline_history::InlineHistoryMenuEvent::SelectConversation => {
                 self.editor.update(ctx, |editor, ctx| {
                     editor.set_buffer_text_ignoring_undo("", ctx);

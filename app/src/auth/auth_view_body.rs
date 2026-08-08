@@ -7,7 +7,7 @@ use crate::{
     network::NetworkStatus,
     report_error, send_telemetry_from_ctx, send_telemetry_sync_from_ctx,
     server::telemetry::{AnonymousUserSignupEntrypoint, LoginEventSource, TelemetryEvent},
-    settings::{AISettings, PrivacySettings},
+    settings::PrivacySettings,
     themes::theme::Fill as ThemeFill,
     util::color::{darken, lighten},
 };
@@ -1048,10 +1048,6 @@ impl View for AuthViewBody {
         if let Some(overlay) = &self.active_overlay {
             match overlay {
                 AuthViewOverlay::PrivacySettings => {
-                    // The `is_any_ai_enabled` helper also accounts for login /
-                    // remote-session gating, so the cloud-conversation toggle
-                    // hides whenever AI isn't effectively available.
-                    let is_ai_enabled = AISettings::as_ref(app).is_any_ai_enabled(app);
                     stack.add_child(
                         Dismiss::new(render_overlay(
                             render_privacy_settings_overlay_body(
@@ -1059,7 +1055,7 @@ impl View for AuthViewBody {
                                 app,
                                 &self.privacy_settings_handles,
                                 &self.privacy_settings_actions(),
-                                is_ai_enabled,
+                                false,
                             ),
                             appearance,
                         ))

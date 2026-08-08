@@ -17,17 +17,12 @@ pub mod user_uid;
 #[cfg(target_family = "wasm")]
 pub mod web_handoff;
 
-use crate::ai::agent_conversations_model::AgentConversationsModel;
-use crate::ai::blocklist::BlocklistAIHistoryModel;
-use crate::ai::execution_profiles::profiles::AIExecutionProfilesModel;
-use crate::ai_assistant::requests::REQUEST_LIMIT_INFO_CACHE_KEY;
 use crate::code::editor_management::{CodeEditorStatus, CodeEditorSummary};
 use crate::env_vars::manager::EnvVarCollectionManager;
 use crate::notebooks::manager::NotebookManager;
 use crate::terminal::general_settings::GeneralSettings;
 use crate::workflows::manager::WorkflowManager;
 use ::settings::{Setting, SettingsManager, ToggleableSetting};
-use ai::index::full_source_code_embedding::manager::CodebaseIndexManager;
 pub use auth_manager::AuthManager;
 pub use auth_state::AuthStateProvider;
 use itertools::Itertools;

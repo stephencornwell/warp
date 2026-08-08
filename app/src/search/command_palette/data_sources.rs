@@ -230,9 +230,6 @@ impl DataSourceStore {
                 // For now, return None as projects aren't expected in the regular command palette.
                 None
             }
-            ItemSummary::Conversation { .. }
-            | ItemSummary::NewConversation
-            | ItemSummary::ForkConversation => None,
             ItemSummary::NoOp => {
                 // No-op action (used for non-interactable separator items that don't do anything on click).
                 None

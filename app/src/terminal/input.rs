@@ -1,18 +1,10 @@
-mod agent;
 pub mod buffer_model;
 mod classic;
-mod cloud_mode_v2_history_menu;
 mod common;
 pub mod decorations;
-pub mod inline_history;
-pub mod inline_menu;
 pub mod message_bar;
-pub mod profiles;
 pub mod prompts;
 pub mod repos;
-pub mod rewind;
-pub mod slash_command_model;
-pub mod slash_commands;
 mod suggestions_mode_menu;
 pub mod suggestions_mode_model;
 mod terminal;

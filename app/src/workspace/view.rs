@@ -7483,70 +7483,6 @@ impl Workspace {
         }
     }
 
-    fn update_right_panel_open_state(
-        &mut self,
-        #[cfg_attr(target_family = "wasm", allow(unused_variables))]
-        panel_update_params: RightPanelUpdateParams,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        let should_open = panel_update_params.target_open_state;
-        let should_close = !panel_update_params.target_open_state;
-
-        let new_is_maximized = panel_update_params.pane_group.update(ctx, |pane_group, _| {
-            pane_group.right_panel_open = should_open;
-            pane_group.is_right_panel_maximized
-        });
-
-        self.right_panel_view.update(ctx, |view, ctx| {
-            view.set_maximized(new_is_maximized, ctx);
-            if should_close {
-                view.close_code_review(ctx);
-            }
-        });
-
-        if should_open {
-            #[cfg(feature = "local_fs")]
-            {
-                let window_id = ctx.window_id();
-                let resizable_data = ResizableData::handle(ctx);
-                if let Some(handle) = resizable_data
-                    .as_ref(ctx)
-                    .get_handle(window_id, ModalType::RightPanelWidth)
-                {
-                    if let Ok(mut state) = handle.lock() {
-                        // Get the current width from ResizableData - this reflects the most recent tab's width
-                        let current_width = state.size();
-
-                        // Only recompute default if the current width is at the default value
-                        // This preserves the width from the most recent tab
-                        if current_width == DEFAULT_RIGHT_PANEL_WIDTH {
-                            let has_horizontal_split = panel_update_params
-                                .pane_group
-                                .read(ctx, |pane_group, _| pane_group.has_horizontal_split());
-                            let (_left_width, right_width) =
-                                compute_default_panel_widths(ctx, window_id, has_horizontal_split);
-                            state.set_size(right_width);
-                        }
-                        // If current_width is not the default, it means we have a width from a previous tab,
-                        // so we don't need to do anything - the width is already preserved
-                    }
-                }
-                send_telemetry_from_ctx!(
-                    CodeReviewTelemetryEvent::PaneOpened {
-                        entrypoint: panel_update_params.entrypoint.unwrap_or_default(),
-                        is_code_mode_v2: true,
-                        cli_agent: panel_update_params.cli_agent.map(Into::into),
-                    },
-                    ctx
-                );
-            }
-        } else {
-            self.focus_active_tab(ctx);
-        }
-
-        ctx.notify();
-    }
-
     #[cfg(feature = "local_fs")]
     fn open_right_panel(
         &mut self,
@@ -7591,23 +7527,6 @@ impl Workspace {
         _cli_agent: Option<crate::terminal::CLIAgent>,
         _ctx: &mut ViewContext<Self>,
     ) {
-    }
-
-    pub fn close_right_panel(
-        &mut self,
-        pane_group_handle: &ViewHandle<PaneGroup>,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        self.update_right_panel_open_state(
-            RightPanelUpdateParams {
-                pane_group: pane_group_handle,
-                target_open_state: false,
-                entrypoint: None,
-                cli_agent: None,
-                review_pane_context: None,
-            },
-            ctx,
-        );
     }
 
     fn user_menu_items(&self, app: &AppContext) -> Vec<MenuItem<WorkspaceAction>> {

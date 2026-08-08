@@ -378,15 +378,6 @@ define_settings_group!(SessionSettings, settings: [
         toml_path: "agents.warp_agent.input.agent_toolbar_chip_selection_setting",
         description: "Controls the layout of context chips in the Agent Mode toolbar.",
     },
-    cli_agent_footer_chip_selection: CLIAgentToolbarChipSelectionSetting {
-        type: CLIAgentToolbarChipSelection,
-        default: CLIAgentToolbarChipSelection::default(),
-        supported_platforms: SupportedPlatforms::ALL,
-        sync_to_cloud: SyncToCloud::Globally(RespectUserSyncSetting::Yes),
-        private: false,
-        toml_path: "agents.third_party.cli_agent_toolbar_chip_selection_setting",
-        description: "Controls the layout of context chips in the CLI Agent toolbar.",
-    },
     notification_toast_duration_secs: NotificationToastDurationSecs {
         type: u64,
         default: 8,

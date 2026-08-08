@@ -6161,7 +6161,6 @@ impl Input {
             // until the user executes a command.
             if !command.is_empty() {
                 if let Some(ZeroStateSuggestionInfo {
-                    request,
                     response,
                     is_from_ai,
                     history_based_autosuggestion_state,
@@ -6197,10 +6196,6 @@ impl Input {
                                 .then_some(command.to_string()),
                             history_based_autosuggestion_state: should_collect_ugc
                                 .then_some(history_based_autosuggestion_state.clone()),
-                            generate_ai_input_suggestions_request: should_collect_ugc
-                                .then_some(*request),
-                            generate_ai_input_suggestions_response: should_collect_ugc
-                                .then(|| response.clone())
                         },
                         ctx
                     );

@@ -36,8 +36,6 @@ use crate::ai::blocklist::AIBlockResponseRating;
 use crate::ai::blocklist::CommandExecutionPermissionAllowedReason;
 use crate::ai::blocklist::InputType;
 use crate::ai::mcp::TemplateVariable;
-use crate::ai::predict::generate_ai_input_suggestions::GenerateAIInputSuggestionsRequest;
-use crate::ai::predict::generate_ai_input_suggestions::GenerateAIInputSuggestionsResponseV2;
 use crate::ai::predict::next_command_model::HistoryBasedAutosuggestionState;
 use crate::auth::auth_manager::LoginGatedFeature;
 use crate::channel::Channel;
@@ -1979,8 +1977,6 @@ pub enum TelemetryEvent {
         // The below fields are only collected if telemetry is enabled.
         actual_next_command_run: Option<String>,
         history_based_autosuggestion_state: Option<HistoryBasedAutosuggestionState>,
-        generate_ai_input_suggestions_request: Option<GenerateAIInputSuggestionsRequest>,
-        generate_ai_input_suggestions_response: Option<GenerateAIInputSuggestionsResponseV2>,
     },
 
     /// Keeps track of number of times the user is presented with a Prompt Suggestions banner.
@@ -3498,8 +3494,6 @@ impl TelemetryEvent {
                 total_history_count,
                 actual_next_command_run,
                 history_based_autosuggestion_state,
-                generate_ai_input_suggestions_request,
-                generate_ai_input_suggestions_response,
             } => {
                 let (history_command_prediction, history_command_prediction_likelihood) =
                     if let Some(state) = history_based_autosuggestion_state {
@@ -3520,8 +3514,6 @@ impl TelemetryEvent {
                     "history_prediction_likelihood": history_prediction_likelihood,
                     "total_history_count": total_history_count,
                     "actual_next_command_run": actual_next_command_run,
-                    "generate_ai_input_suggestions_request": generate_ai_input_suggestions_request,
-                    "generate_ai_input_suggestions_response": generate_ai_input_suggestions_response,
                     "history_command_prediction": history_command_prediction,
                     "history_command_prediction_likelihood": history_command_prediction_likelihood,
                 }))
@@ -4523,15 +4515,11 @@ impl TelemetryEvent {
             TelemetryEvent::AgentModePrediction {
                 actual_next_command_run,
                 history_based_autosuggestion_state,
-                generate_ai_input_suggestions_request,
-                generate_ai_input_suggestions_response,
                 ..
             } => {
                 // These fields can contain UGC, so if any are set, assume this event contains UGC.
                 actual_next_command_run.is_some()
                     || history_based_autosuggestion_state.is_some()
-                    || generate_ai_input_suggestions_request.is_some()
-                    || generate_ai_input_suggestions_response.is_some()
             }
             TelemetryEvent::AgentModeChangedInputType { input, .. } => input.is_some(),
             TelemetryEvent::UnitTestSuggestionAccepted { query, .. } => query.is_some(),

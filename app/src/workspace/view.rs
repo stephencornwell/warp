@@ -848,8 +848,6 @@ pub struct TransferredTab {
     pub color: Option<AnsiColorIdentifier>,
     pub custom_title: Option<String>,
     pub left_panel_open: bool,
-    pub right_panel_open: bool,
-    pub is_right_panel_maximized: bool,
 }
 
 pub struct Workspace {
@@ -3410,8 +3408,6 @@ impl Workspace {
                 tab_color,
                 custom_title,
                 left_panel_open,
-                right_panel_open,
-                is_right_panel_maximized,
                 for_drag_preview,
                 ..
             } => {
@@ -3427,12 +3423,6 @@ impl Workspace {
                 }
                 if self.left_panel_visibility_across_tabs_enabled(ctx) {
                     self.left_panel_open = left_panel_open;
-                }
-                if right_panel_open {
-                    self.right_panel_view.update(ctx, |rp, ctx| {
-                        rp.set_maximized(is_right_panel_maximized, ctx);
-                    });
-                    self.setup_code_review_panel(None, ctx);
                 }
                 self.pending_pane_group_transfer = true;
             }
@@ -4462,16 +4452,11 @@ impl Workspace {
         let color = tab.color();
         let custom_title = pane_group.read(ctx, |pg, ctx| pg.custom_title(ctx));
         let left_panel_open = pane_group.read(ctx, |pg, _| pg.left_panel_open);
-        let right_panel_open = pane_group.read(ctx, |pg, _| pg.right_panel_open);
-        let is_right_panel_maximized = pane_group.read(ctx, |pg, _| pg.is_right_panel_maximized);
-
         Some(TransferredTab {
             pane_group,
             color,
             custom_title,
             left_panel_open,
-            right_panel_open,
-            is_right_panel_maximized,
         })
     }
 

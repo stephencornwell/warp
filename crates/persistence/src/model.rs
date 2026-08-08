@@ -1197,12 +1197,6 @@ pub struct NewMCPServerInstallation {
     pub last_modified_at: NaiveDateTime,
 }
 
-#[cfg(test)]
-mod tests {
-    #[test]
-    #[test]
-}
-
 #[derive(Insertable)]
 #[diesel(table_name = panels)]
 pub struct NewPanel {

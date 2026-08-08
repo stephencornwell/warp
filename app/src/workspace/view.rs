@@ -689,6 +689,12 @@ enum FocusRegion {
     Other,
 }
 
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+pub enum PanelPosition {
+    Left,
+    Right,
+}
+
 pub struct TabPaneGroupIdentifiers {
     pub tab_idx: usize,
     pub pane_group_id: EntityId,

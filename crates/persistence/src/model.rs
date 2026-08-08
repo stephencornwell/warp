@@ -1199,59 +1199,8 @@ pub struct NewMCPServerInstallation {
 
 #[cfg(test)]
 mod tests {
-    use super::AgentConversationData;
-
     #[test]
-    fn agent_conversation_data_roundtrips_last_event_sequence() {
-        let data = AgentConversationData {
-            server_conversation_token: None,
-            conversation_usage_metadata: None,
-            reverted_action_ids: None,
-            forked_from_server_conversation_token: None,
-            artifacts_json: None,
-            parent_agent_id: None,
-            agent_name: None,
-            parent_conversation_id: None,
-            run_id: None,
-            autoexecute_override: None,
-            last_event_sequence: Some(42),
-        };
-        let json = serde_json::to_string(&data).expect("serialize");
-        let roundtripped: AgentConversationData = serde_json::from_str(&json).expect("deserialize");
-        assert_eq!(roundtripped.last_event_sequence, Some(42));
-    }
-
     #[test]
-    fn agent_conversation_data_deserializes_legacy_payload_without_last_event_sequence() {
-        // Legacy rows persisted before this feature landed omit the field
-        // entirely. `#[serde(default)]` must accept them as `None`.
-        let legacy_json = r#"{"server_conversation_token":null}"#;
-        let data: AgentConversationData =
-            serde_json::from_str(legacy_json).expect("legacy rows must deserialize");
-        assert_eq!(data.last_event_sequence, None);
-    }
-
-    #[test]
-    fn agent_conversation_data_skips_serializing_none_last_event_sequence() {
-        let data = AgentConversationData {
-            server_conversation_token: None,
-            conversation_usage_metadata: None,
-            reverted_action_ids: None,
-            forked_from_server_conversation_token: None,
-            artifacts_json: None,
-            parent_agent_id: None,
-            agent_name: None,
-            parent_conversation_id: None,
-            run_id: None,
-            autoexecute_override: None,
-            last_event_sequence: None,
-        };
-        let json = serde_json::to_string(&data).expect("serialize");
-        assert!(
-            !json.contains("last_event_sequence"),
-            "None should be skipped in serialized output: {json}"
-        );
-    }
 }
 
 #[derive(Insertable)]

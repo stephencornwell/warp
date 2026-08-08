@@ -27,6 +27,7 @@ pub(crate) struct IconWithStatusSizing {
 }
 
 /// What to render inside the circle.
+#[allow(dead_code)]
 pub(crate) enum IconWithStatusVariant {
     /// A generic icon with a given color on an overlay background.
     Neutral {

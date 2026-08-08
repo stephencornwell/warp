@@ -226,11 +226,7 @@ const VISUAL_IMAGE_PATHS: &[&str] = &[
     "async/png/onboarding/agent_intention/theme/theme_adeberry_horizontal.png",
 ];
 
-fn resolve_visual_path(
-    intention: OnboardingIntention,
-    theme_name: &str,
-    use_vertical_tabs: bool,
-) -> &'static str {
+fn resolve_visual_path(intention: OnboardingIntention, theme_name: &str) -> &'static str {
     let intention_dir = match intention {
         OnboardingIntention::AgentDrivenDevelopment => "agent_intention",
         OnboardingIntention::Terminal => "terminal_intention",
@@ -242,14 +238,9 @@ fn resolve_visual_path(
         "Adeberry" => "adeberry",
         _ => "dark",
     };
-    let orientation = if use_vertical_tabs {
-        "vertical"
-    } else {
-        "horizontal"
-    };
     VISUAL_IMAGE_PATHS
         .iter()
-        .find(|p| p.contains(intention_dir) && p.contains(name_key) && p.contains(orientation))
+        .find(|p| p.contains(intention_dir) && p.contains(name_key) && p.contains("horizontal"))
         .unwrap_or(&VISUAL_IMAGE_PATHS[0])
 }
 
@@ -263,7 +254,6 @@ impl LoginSlideView {
     pub fn new(
         ai_enabled: bool,
         theme_name: &str,
-        use_vertical_tabs: bool,
         intention: OnboardingIntention,
         source: LoginSlideSource,
         ctx: &mut ViewContext<Self>,
@@ -312,7 +302,7 @@ impl LoginSlideView {
         Self {
             ai_enabled,
             intention,
-            theme_visual_path: resolve_visual_path(intention, theme_name, use_vertical_tabs),
+            theme_visual_path: resolve_visual_path(intention, theme_name),
             step: match source {
                 LoginSlideSource::OnboardingFlow => LoginStep::SelectAuthPathway,
                 LoginSlideSource::LoginExistingUserFromWelcome => LoginStep::BrowserOpen,

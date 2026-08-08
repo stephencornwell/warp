@@ -196,6 +196,7 @@ impl NotificationItems {
         any_changed
     }
 
+    #[allow(dead_code)]
     pub(crate) fn has_unread_for_terminal_view(&self, terminal_view_id: EntityId) -> bool {
         self.items
             .iter()

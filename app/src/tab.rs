@@ -54,13 +54,6 @@ use warpui::{AppContext, SingletonEntity, ViewHandle};
 pub const TAB_BAR_BORDER_HEIGHT: f32 = 1.0;
 const TAB_INDICATOR_HEIGHT: f32 = 14.0;
 
-/// True when the user has opted into vertical tabs and the feature flag is on.
-/// Exposed so binding-description overrides in `workspace/mod.rs` and context-
-/// menu builders here can share a single predicate.
-pub fn uses_vertical_tabs(ctx: &AppContext) -> bool {
-    FeatureFlag::VerticalTabs.is_enabled() && *TabSettings::as_ref(ctx).use_vertical_tabs
-}
-
 const WARP_2_TAB_COLOR_OPACITY: Opacity = 25;
 const WARP_2_HOVERED_TAB_COLOR_OPACITY: Opacity = 50;
 const TAB_CLOSE_BUTTON_OPACITY: Opacity = 60;
@@ -193,7 +186,7 @@ impl TabData {
         for section_items in [
             self.session_sharing_menu_items(index, ctx),
             self.modify_tab_menu_items(index, tabs_len, pane_name_target, ctx),
-            self.close_tab_menu_items(index, tabs_len, ctx),
+            self.close_tab_menu_items(index, tabs_len),
             Self::save_config_menu_items(index),
             self.color_option_menu_items(index, terminal_colors),
         ] {
@@ -294,8 +287,6 @@ impl TabData {
         ctx: &AppContext,
     ) -> Vec<MenuItem<WorkspaceAction>> {
         let mut menu_items = vec![];
-        let uses_vertical_tabs = uses_vertical_tabs(ctx);
-
         // TODO add option to show the keybinding once we figure out a nice API to retrieve
         // the actual keybinding (based on the user's preferences etc.)
         menu_items.append(&mut vec![MenuItemFields::new("Rename tab")
@@ -319,24 +310,16 @@ impl TabData {
         let not_last_tab = index != tabs_len - 1;
         if not_last_tab {
             menu_items.push(
-                MenuItemFields::new(if uses_vertical_tabs {
-                    "Move Tab Down"
-                } else {
-                    "Move Tab Right"
-                })
-                .with_on_select_action(WorkspaceAction::MoveTabRight(index))
-                .into_item(),
+                MenuItemFields::new("Move Tab Right")
+                    .with_on_select_action(WorkspaceAction::MoveTabRight(index))
+                    .into_item(),
             );
         }
         if index != 0 {
             menu_items.push(
-                MenuItemFields::new(if uses_vertical_tabs {
-                    "Move Tab Up"
-                } else {
-                    "Move Tab Left"
-                })
-                .with_on_select_action(WorkspaceAction::MoveTabLeft(index))
-                .into_item(),
+                MenuItemFields::new("Move Tab Left")
+                    .with_on_select_action(WorkspaceAction::MoveTabLeft(index))
+                    .into_item(),
             );
         }
         menu_items
@@ -355,10 +338,7 @@ impl TabData {
             return vec![];
         };
         let configuration = pane.pane_configuration();
-        let has_custom_name = configuration
-            .as_ref(ctx)
-            .custom_vertical_tabs_title()
-            .is_some();
+        let has_custom_name = !configuration.as_ref(ctx).title().is_empty();
 
         let mut menu_items = vec![MenuItemFields::new(target.rename_label)
             .with_on_select_action(WorkspaceAction::RenamePane(target.locator))
@@ -377,11 +357,8 @@ impl TabData {
         &self,
         index: usize,
         tabs_len: usize,
-        ctx: &AppContext,
     ) -> Vec<MenuItem<WorkspaceAction>> {
         let mut menu_items = vec![];
-        let uses_vertical_tabs = uses_vertical_tabs(ctx);
-
         if ContextFlag::CloseWindow.is_enabled() || tabs_len != 1 {
             menu_items.push(
                 MenuItemFields::new("Close tab")
@@ -399,13 +376,9 @@ impl TabData {
         let not_last_tab = index != tabs_len - 1;
         if not_last_tab {
             menu_items.push(
-                MenuItemFields::new(if uses_vertical_tabs {
-                    "Close Tabs Below"
-                } else {
-                    "Close Tabs to the Right"
-                })
-                .with_on_select_action(WorkspaceAction::CloseTabsRight(index))
-                .into_item(),
+                MenuItemFields::new("Close Tabs to the Right")
+                    .with_on_select_action(WorkspaceAction::CloseTabsRight(index))
+                    .into_item(),
             );
         }
         menu_items

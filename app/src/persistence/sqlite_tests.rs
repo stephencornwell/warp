@@ -157,7 +157,7 @@ fn test_terminal_window_snapshot(vertical_tabs_panel_open: bool) -> WindowSnapsh
 }
 
 #[test]
-fn test_sqlite_round_trips_vertical_tabs_panel_open() {
+fn test_sqlite_loads_legacy_vertical_tabs_panel_open_and_discards_it() {
     let tempdir = tempfile::tempdir().expect("tempdir should be created");
     let database_path = tempdir.path().join("warp.sqlite");
     let mut conn = setup_database(&database_path).expect("database should initialize");
@@ -185,12 +185,12 @@ fn test_sqlite_round_trips_vertical_tabs_panel_open() {
             .iter()
             .map(|window| window.vertical_tabs_panel_open)
             .collect::<Vec<_>>(),
-        vec![false, true]
+        vec![false, false]
     );
 }
 
 #[test]
-fn test_sqlite_round_trips_custom_vertical_tabs_title() {
+fn test_sqlite_loads_legacy_custom_vertical_tabs_title_and_discards_it() {
     let tempdir = tempfile::tempdir().expect("tempdir should be created");
     let database_path = tempdir.path().join("warp.sqlite");
     let mut conn = setup_database(&database_path).expect("database should initialize");
@@ -255,10 +255,7 @@ fn test_sqlite_round_trips_custom_vertical_tabs_title() {
     else {
         panic!("Expected terminal pane leaf");
     };
-    assert_eq!(
-        custom_vertical_tabs_title.as_deref(),
-        Some("Production API")
-    );
+    assert_eq!(custom_vertical_tabs_title, &None);
 }
 
 #[test]

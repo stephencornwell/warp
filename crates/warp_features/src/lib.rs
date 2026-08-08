@@ -750,9 +750,6 @@ pub enum FeatureFlag {
     /// and Project Explorer & Global Search features.
     OpenWarpNewSettingsModes,
 
-    /// Enables vertical tab layout as an alternative to the horizontal tab bar.
-    VerticalTabs,
-
     /// Enables attaching code review comments, diff hunk, and attach as context
     /// from code review + code editor for House Of Agents work
     HoaCodeReview,
@@ -830,10 +827,6 @@ pub enum FeatureFlag {
 
     /// Redux of the setup/initial user query UI for cloud mode.
     CloudModeSetupV2,
-
-    /// Enables summary mode in vertical tabs, showing condensed tab summaries
-    /// instead of individual pane rows.
-    VerticalTabsSummaryMode,
 
     CloudModeInputV2,
 
@@ -917,7 +910,6 @@ pub const DOGFOOD_FLAGS: &[FeatureFlag] = &[
     FeatureFlag::OrchestrationV2,
     FeatureFlag::GeminiNotifications,
     FeatureFlag::LocalDockerSandbox,
-    FeatureFlag::VerticalTabsSummaryMode,
     FeatureFlag::CloudModeSetupV2,
     FeatureFlag::ConfigurableContextWindow,
     #[cfg(not(windows))]

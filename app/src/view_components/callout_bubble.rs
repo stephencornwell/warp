@@ -15,6 +15,7 @@ use crate::ui_components::icons::Icon;
 #[derive(Debug, Clone, Copy)]
 pub enum CalloutArrowDirection {
     Up,
+    #[allow(dead_code)]
     Left,
 }
 
@@ -24,6 +25,7 @@ pub enum CalloutArrowPosition {
     /// Offset from the start of the bubble edge the arrow sits on.
     /// For Up arrows: offset from the left edge.
     /// For Left arrows: offset from the top edge.
+    #[allow(dead_code)]
     Start(f32),
     /// Offset from the end of the bubble edge the arrow sits on.
     /// For Up arrows: offset from the right edge.

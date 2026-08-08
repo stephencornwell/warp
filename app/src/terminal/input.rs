@@ -2874,9 +2874,7 @@ impl Input {
         // Re-render the input's placeholder/hint text when any history event that could
         // change `selected_conversation_status_for_hint` fires — the selected conversation
         // swapping, its status changing, its title being set/unset, it becoming non-empty,
-        // or its being cleared. Mirrors the set used by
-        // `agent_conversation_event_affects_vertical_tabs` in `workspace/view.rs` that keeps
-        // vertical tab progress indicators in sync.
+        // or its being cleared.
         ctx.subscribe_to_model(
             &BlocklistAIHistoryModel::handle(ctx),
             move |me, _, event, ctx| {

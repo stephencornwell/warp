@@ -39,10 +39,6 @@ use warpui::platform::Cursor;
 use warpui::{EntityId, WeakViewHandle, WindowId};
 
 use super::global_actions::{ForkFromExchange, ForkedConversationDestination};
-use super::tab_settings::{
-    VerticalTabsCompactSubtitle, VerticalTabsDisplayGranularity, VerticalTabsPrimaryInfo,
-    VerticalTabsTabItemMode, VerticalTabsViewMode,
-};
 use super::view::{OnboardingTutorial, WorkspaceBanner};
 
 /// This enum determines how the search query is initialized when opening command search.
@@ -78,21 +74,6 @@ pub enum RestoreConversationLayout {
 #[derive(Debug, Clone, Copy)]
 pub enum TabContextMenuAnchor {
     Pointer(Vector2F),
-    VerticalTabsKebab,
-}
-
-#[derive(Debug, Clone, Copy)]
-pub enum VerticalTabsPaneContextMenuTarget {
-    ClickedPane(PaneViewLocator),
-    ActivePane(PaneViewLocator),
-}
-
-impl VerticalTabsPaneContextMenuTarget {
-    pub fn locator(self) -> PaneViewLocator {
-        match self {
-            Self::ClickedPane(locator) | Self::ActivePane(locator) => locator,
-        }
-    }
 }
 
 #[derive(Debug, Clone)]
@@ -122,11 +103,6 @@ pub enum WorkspaceAction {
     ToggleTabRightClickMenu {
         tab_index: usize,
         anchor: TabContextMenuAnchor,
-    },
-    ToggleVerticalTabsPaneContextMenu {
-        tab_index: usize,
-        target: VerticalTabsPaneContextMenuTarget,
-        position: Vector2F,
     },
     TabHoverWidthStart {
         width: f32,
@@ -160,7 +136,6 @@ pub enum WorkspaceAction {
     ToggleTabConfigsMenu,
     ToggleNewSessionMenu {
         position: Vector2F,
-        is_vertical_tabs: bool,
     },
     SelectNewSessionMenuItem(NewSessionMenuItem),
     AutoupdateFailureLink,
@@ -270,17 +245,6 @@ pub enum WorkspaceAction {
     /// Opens the code review panel (right panel) without toggling. If already open,
     /// switches to the target pane's repo. Used by vertical tabs diff stats chip.
     OpenCodeReviewPanel(PaneViewLocator),
-    /// Toggles the vertical tabs panel. This happens as an explicit action from the user.
-    ToggleVerticalTabsPanel,
-    ToggleVerticalTabsSettingsPopup,
-    SetVerticalTabsDisplayGranularity(VerticalTabsDisplayGranularity),
-    SetVerticalTabsTabItemMode(VerticalTabsTabItemMode),
-    SetVerticalTabsViewMode(VerticalTabsViewMode),
-    SetVerticalTabsPrimaryInfo(VerticalTabsPrimaryInfo),
-    SetVerticalTabsCompactSubtitle(VerticalTabsCompactSubtitle),
-    ToggleVerticalTabsShowPrLink,
-    ToggleVerticalTabsShowDiffStats,
-    ToggleVerticalTabsShowDetailsOnHover,
     /// Closes the focused panel. This happens as an explicit action from the user.
     ClosePanel,
     CopyTextToClipboard(String),
@@ -757,8 +721,7 @@ impl WorkspaceAction {
             | ForkAIConversation { .. }
             | SummarizeAIConversation { .. }
             | OpenRepository { .. }
-            | SelectTabConfig(_)
-            | ToggleVerticalTabsPanel => true, // actions that actually change a state of the state of user's
+            | SelectTabConfig(_) => true, // actions that actually change a state of the state of user's
             // workspace would most likely require a save, so that if the app gets
             // restarted, the user can continue working
             AutoupdateFailureLink
@@ -793,7 +756,6 @@ impl WorkspaceAction {
             | ToggleSyntaxHighlighting
             | OpenLaunchConfigSaveModal
             | ToggleTabRightClickMenu { .. }
-            | ToggleVerticalTabsPaneContextMenu { .. }
             | OpenNewSessionMenu { .. }
             | ToggleTabConfigsMenu
             | ToggleNewSessionMenu { .. }
@@ -837,15 +799,6 @@ impl WorkspaceAction {
             | ClosePanel
             | ToggleRightPanel
             | OpenCodeReviewPanel(..)
-            | ToggleVerticalTabsSettingsPopup
-            | SetVerticalTabsDisplayGranularity(_)
-            | SetVerticalTabsTabItemMode(_)
-            | SetVerticalTabsViewMode(_)
-            | SetVerticalTabsPrimaryInfo(_)
-            | SetVerticalTabsCompactSubtitle(_)
-            | ToggleVerticalTabsShowPrLink
-            | ToggleVerticalTabsShowDiffStats
-            | ToggleVerticalTabsShowDetailsOnHover
             | ToggleWelcomeTips
             | CopyTextToClipboard(_)
             | CopyAccessTokenToClipboard

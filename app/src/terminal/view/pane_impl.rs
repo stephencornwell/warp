@@ -33,7 +33,6 @@ use crate::terminal::TerminalView;
 use crate::ui_components::blended_colors;
 use crate::ui_components::buttons::icon_button_with_color;
 use crate::ui_components::icons;
-use crate::workspace::tab_settings::TabSettings;
 use settings::Setting as _;
 use warp_core::context_flag::ContextFlag;
 use warp_core::ui::Icon as WarpIcon;
@@ -1094,14 +1093,7 @@ impl TerminalView {
             .session(self.view_id)
             .filter(|session| session.listener.is_some())?;
 
-        if *TabSettings::as_ref(ctx).use_latest_user_prompt_as_conversation_title_in_tab_names {
-            session
-                .session_context
-                .latest_user_prompt()
-                .or_else(|| session.session_context.title_like_text())
-        } else {
-            session.session_context.title_like_text()
-        }
+        session.session_context.title_like_text()
     }
 }
 

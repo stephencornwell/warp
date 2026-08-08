@@ -25,7 +25,6 @@ use crate::settings::cloud_preferences_syncer::{
     CloudPreferencesSyncer, CloudPreferencesSyncerEvent,
 };
 use crate::settings::AISettings;
-use crate::workspace::tab_settings::TabSettings;
 use onboarding::{
     AgentOnboardingEvent, AgentOnboardingView, OnboardingIntention, SelectedSettings,
 };
@@ -712,7 +711,6 @@ pub fn create_transferred_window(
                     tab_color: info.transferred_tab.color,
                     custom_title: info.transferred_tab.custom_title.clone(),
                     left_panel_open: info.transferred_tab.left_panel_open,
-                    vertical_tabs_panel_open: info.transferred_tab.vertical_tabs_panel_open,
                     right_panel_open: info.transferred_tab.right_panel_open,
                     is_right_panel_maximized: info.transferred_tab.is_right_panel_maximized,
                     for_drag_preview: for_drag,
@@ -1601,8 +1599,6 @@ pub enum NewWorkspaceSource {
         custom_title: Option<String>,
         /// Whether the left panel was open in the source tab
         left_panel_open: bool,
-        /// Captured from the source window so detached tabs inherit the panel state.
-        vertical_tabs_panel_open: bool,
         /// Whether the right panel was open in the source tab
         right_panel_open: bool,
         /// Whether the right panel was maximized in the source tab
@@ -2268,32 +2264,17 @@ impl RootView {
                         .theme()
                         .name()
                         .unwrap_or_else(|| "Dark".to_string());
-                    let (use_vertical_tabs, intention) = match selected_settings {
-                        SelectedSettings::AgentDrivenDevelopment {
-                            ui_customization, ..
-                        } => (
-                            ui_customization
-                                .as_ref()
-                                .map(|c| c.use_vertical_tabs)
-                                .unwrap_or(true),
-                            OnboardingIntention::AgentDrivenDevelopment,
-                        ),
-                        SelectedSettings::Terminal {
-                            ui_customization, ..
-                        } => (
-                            ui_customization
-                                .as_ref()
-                                .map(|c| c.use_vertical_tabs)
-                                .unwrap_or(false),
-                            OnboardingIntention::Terminal,
-                        ),
+                    let intention = match selected_settings {
+                        SelectedSettings::AgentDrivenDevelopment { .. } => {
+                            OnboardingIntention::AgentDrivenDevelopment
+                        }
+                        SelectedSettings::Terminal { .. } => OnboardingIntention::Terminal,
                     };
 
                     let login_slide_view = ctx.add_typed_action_view(|ctx| {
                         LoginSlideView::new(
                             ai_enabled,
                             &theme_name,
-                            use_vertical_tabs,
                             intention,
                             LoginSlideSource::OnboardingFlow,
                             ctx,
@@ -2401,19 +2382,12 @@ impl RootView {
                     .theme()
                     .name()
                     .unwrap_or_else(|| "Dark".to_string());
-                // Match the theme slide's image: read the onboarding view's in-progress
-                // customization rather than the globally-applied TabSettings, which still
-                // holds the user's pre-onboarding (or default) value until the flow
-                // completes.
-                let use_vertical_tabs = onboarding_view.as_ref(ctx).use_vertical_tabs(ctx);
-
                 // This event variant encodes that it was emitted from the
                 // terminal-intention theme slide, so match its image here.
                 let login_slide_view = ctx.add_typed_action_view(|ctx| {
                     LoginSlideView::new(
                         ai_enabled,
                         &theme_name,
-                        use_vertical_tabs,
                         OnboardingIntention::Terminal,
                         LoginSlideSource::PrivacySettingsFromTerminalIntentionTheme,
                         ctx,
@@ -2449,7 +2423,6 @@ impl RootView {
                     .theme()
                     .name()
                     .unwrap_or_else(|| "Dark".to_string());
-                let use_vertical_tabs = *TabSettings::as_ref(ctx).use_vertical_tabs;
 
                 // Open the sign-in URL in the browser for existing users.
                 AuthManager::handle(ctx).update(ctx, |auth_manager, ctx| {
@@ -2461,7 +2434,6 @@ impl RootView {
                     LoginSlideView::new(
                         ai_enabled,
                         &theme_name,
-                        use_vertical_tabs,
                         // Existing-user login from the welcome slide happens before the user
                         // picks an intention; default the visual to the agent intention panel.
                         OnboardingIntention::AgentDrivenDevelopment,
@@ -3310,13 +3282,10 @@ impl RootView {
             if matches!(intention, OnboardingIntention::AgentDrivenDevelopment) {
                 workspace.update(ctx, |view, ctx| {
                     view.set_pending_onboarding_intention(intention);
-                    view.open_vertical_tabs_panel_if_enabled(ctx);
                     view.show_session_config_modal(ctx);
                 });
             } else {
-                workspace.update(ctx, |view, ctx| {
-                    view.open_vertical_tabs_panel_if_enabled(ctx);
-                });
+                workspace.update(ctx, |_, _| {});
             }
         } else if *AISettings::as_ref(ctx).is_any_ai_enabled {
             workspace.update(ctx, |view, ctx| {

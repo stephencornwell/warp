@@ -12,8 +12,6 @@ use warpui::fonts::{Properties, Weight};
 use warpui::geometry::vector::Vector2F;
 use warpui::keymap::{FixedBinding, Keystroke};
 use warpui::platform::file_picker::{FilePickerConfiguration, FilePickerError};
-use warpui::platform::Cursor;
-use warpui::ui_components::components::UiComponent;
 use warpui::{
     AppContext, Element, Entity, EventContext, SingletonEntity, TypedActionView, View, ViewContext,
     ViewHandle,
@@ -31,12 +29,9 @@ use crate::view_components::action_button::{
     ActionButton, ActionButtonTheme, ButtonSize, KeystrokeSource,
 };
 use crate::view_components::callout_bubble::{
-    callout_body_color, callout_checkbox, callout_label_color, callout_title_color,
-    render_callout_bubble, CalloutArrowDirection, CalloutArrowPosition, CalloutBubbleConfig,
+    callout_body_color, callout_title_color, render_callout_bubble, CalloutArrowDirection,
+    CalloutArrowPosition, CalloutBubbleConfig,
 };
-use crate::workspace::tab_settings::TabSettings;
-
-use settings::Setting;
 
 use super::tab_config_step;
 use super::welcome_banner;
@@ -96,11 +91,10 @@ impl ActionButtonTheme for HoaWelcomeModalCloseButtonTheme {
     }
 }
 
-/// The 4 sequential steps in the HOA onboarding flow.
+/// The sequential steps in the HOA onboarding flow.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum HoaOnboardingStep {
     WelcomeBanner,
-    VerticalTabsCallout,
     AgentInboxCallout,
     TabConfig,
 }
@@ -109,7 +103,6 @@ impl HoaOnboardingStep {
     fn index(&self) -> usize {
         match self {
             HoaOnboardingStep::WelcomeBanner => 0,
-            HoaOnboardingStep::VerticalTabsCallout => 0,
             HoaOnboardingStep::AgentInboxCallout => 1,
             HoaOnboardingStep::TabConfig => 2,
         }
@@ -134,9 +127,7 @@ pub fn init(app: &mut warpui::AppContext) {
 pub enum HoaOnboardingAction {
     EnterPressed,
     AdvanceFromWelcome,
-    AdvanceFromVerticalTabs,
     AdvanceFromInbox,
-    ToggleHorizontalTabs,
     SelectSessionType(usize),
     OpenDirectoryPicker,
     DirectorySelected(Result<String, FilePickerError>),
@@ -150,31 +141,18 @@ pub enum HoaOnboardingFlowEvent {
     Completed(Option<SessionConfigSelection>),
     Dismissed,
     StepChanged,
-    /// Emitted just before toggling vertical/horizontal tabs so the workspace
-    /// can pin the callout position before the layout shifts.
-    TabLayoutToggled,
 }
 
 pub struct HoaOnboardingFlow {
     step: HoaOnboardingStep,
-    /// When `true`, the user dismissed the welcome banner without clicking
-    /// "See what's new". We show only the vertical-tabs callout with a
-    /// "Dismiss" button and no progress dots.
-    truncated_flow: bool,
-
     // Step 1 state
     close_button: ViewHandle<ActionButton>,
     cta_button: ViewHandle<ActionButton>,
 
     // Step 2 state
-    horizontal_tabs_checkbox_mouse_state: MouseStateHandle,
-    next_vtabs_button: ViewHandle<ActionButton>,
-    dismiss_vtabs_button: ViewHandle<ActionButton>,
-
-    // Step 3 state
     next_inbox_button: ViewHandle<ActionButton>,
 
-    // Step 4 state
+    // Step 3 state
     finish_button: ViewHandle<ActionButton>,
     session_types: Vec<SessionType>,
     selected_session_type_index: usize,
@@ -217,20 +195,6 @@ impl HoaOnboardingFlow {
 
         let enter = Keystroke::parse("enter").unwrap_or_default();
 
-        let next_vtabs_button = ctx.add_view(|ctx| {
-            ActionButton::new("Next", HoaPrimaryButtonTheme)
-                .with_keybinding(KeystrokeSource::Fixed(enter.clone()), ctx)
-                .on_click(|ctx| {
-                    ctx.dispatch_typed_action(HoaOnboardingAction::AdvanceFromVerticalTabs)
-                })
-        });
-
-        let dismiss_vtabs_button = ctx.add_view(|ctx| {
-            ActionButton::new("Dismiss", HoaPrimaryButtonTheme)
-                .with_keybinding(KeystrokeSource::Fixed(enter.clone()), ctx)
-                .on_click(|ctx| ctx.dispatch_typed_action(HoaOnboardingAction::Dismiss))
-        });
-
         let next_inbox_button = ctx.add_view(|ctx| {
             ActionButton::new("Next", HoaPrimaryButtonTheme)
                 .with_keybinding(KeystrokeSource::Fixed(enter.clone()), ctx)
@@ -245,12 +209,8 @@ impl HoaOnboardingFlow {
 
         Self {
             step: HoaOnboardingStep::WelcomeBanner,
-            truncated_flow: false,
             close_button,
             cta_button,
-            horizontal_tabs_checkbox_mouse_state: MouseStateHandle::default(),
-            next_vtabs_button,
-            dismiss_vtabs_button,
             next_inbox_button,
             finish_button,
             session_types,
@@ -277,15 +237,8 @@ impl HoaOnboardingFlow {
     }
 
     fn advance(&mut self, ctx: &mut ViewContext<Self>) {
-        // In truncated mode, there are no steps after the vertical-tabs callout.
-        if self.truncated_flow && self.step == HoaOnboardingStep::VerticalTabsCallout {
-            ctx.emit(HoaOnboardingFlowEvent::Dismissed);
-            return;
-        }
-
         self.step = match self.step {
-            HoaOnboardingStep::WelcomeBanner => HoaOnboardingStep::VerticalTabsCallout,
-            HoaOnboardingStep::VerticalTabsCallout => HoaOnboardingStep::AgentInboxCallout,
+            HoaOnboardingStep::WelcomeBanner => HoaOnboardingStep::AgentInboxCallout,
             HoaOnboardingStep::AgentInboxCallout => HoaOnboardingStep::TabConfig,
             HoaOnboardingStep::TabConfig => {
                 self.finish(ctx);
@@ -310,16 +263,7 @@ impl HoaOnboardingFlow {
     }
 
     fn dismiss(&mut self, ctx: &mut ViewContext<Self>) {
-        if self.step == HoaOnboardingStep::WelcomeBanner {
-            // User dismissed the welcome banner without clicking "See what's new".
-            // Show only the vertical-tabs callout in truncated mode.
-            self.truncated_flow = true;
-            self.step = HoaOnboardingStep::VerticalTabsCallout;
-            ctx.emit(HoaOnboardingFlowEvent::StepChanged);
-            ctx.notify();
-        } else {
-            ctx.emit(HoaOnboardingFlowEvent::Dismissed);
-        }
+        ctx.emit(HoaOnboardingFlowEvent::Dismissed);
     }
 
     // ── Rendering helpers ──
@@ -359,101 +303,14 @@ impl HoaOnboardingFlow {
             .with_cross_axis_alignment(CrossAxisAlignment::Center)
             .with_main_axis_size(MainAxisSize::Max);
 
-        if self.truncated_flow {
-            // No progress dots – right-align the dismiss button.
-            row = row.with_main_axis_alignment(MainAxisAlignment::End);
-        } else {
-            row = row.with_main_axis_alignment(MainAxisAlignment::SpaceBetween);
-            row.add_child(self.render_progress_dots(appearance));
-        }
+        row = row.with_main_axis_alignment(MainAxisAlignment::SpaceBetween);
+        row.add_child(self.render_progress_dots(appearance));
         row.add_child(ChildView::new(button).finish());
 
         Container::new(row.finish())
             .with_horizontal_padding(16.)
             .with_vertical_padding(16.)
             .finish()
-    }
-
-    fn render_callout_content(
-        &self,
-        title: &'static str,
-        description: &'static str,
-        extra_child: Option<Box<dyn Element>>,
-        button: &ViewHandle<ActionButton>,
-        appearance: &Appearance,
-    ) -> Box<dyn Element> {
-        let title = Text::new(title, appearance.ui_font_family(), 16.)
-            .with_color(callout_title_color(appearance))
-            .with_style(Properties::default().weight(Weight::Bold))
-            .finish();
-
-        let description = Text::new(description, appearance.ui_font_family(), 14.)
-            .with_color(callout_body_color(appearance))
-            .finish();
-
-        let mut body_content = Flex::column()
-            .with_cross_axis_alignment(CrossAxisAlignment::Start)
-            .with_child(title)
-            .with_child(Container::new(description).with_margin_top(8.).finish());
-
-        if let Some(extra_child) = extra_child {
-            body_content.add_child(Container::new(extra_child).with_margin_top(8.).finish());
-        }
-
-        let body = Container::new(body_content.finish())
-            .with_horizontal_padding(16.)
-            .with_padding_top(16.)
-            .with_padding_bottom(12.)
-            .finish();
-        let footer = self.render_callout_footer(button, appearance);
-
-        Flex::column().with_child(body).with_child(footer).finish()
-    }
-
-    fn render_vertical_tabs_callout(
-        &self,
-        appearance: &Appearance,
-        app: &AppContext,
-    ) -> Box<dyn Element> {
-        let use_vertical = *TabSettings::as_ref(app).use_vertical_tabs;
-        let checkbox_mouse = self.horizontal_tabs_checkbox_mouse_state.clone();
-        let checkbox_el = callout_checkbox(checkbox_mouse, Some(10.5), appearance)
-            .check(!use_vertical)
-            .build()
-            .with_cursor(Cursor::PointingHand)
-            .on_click(|ctx, _, _| {
-                ctx.dispatch_typed_action(HoaOnboardingAction::ToggleHorizontalTabs);
-            })
-            .finish();
-
-        let checkbox_label = Text::new_inline(
-            "Switch back to horizontal tabs".to_string(),
-            appearance.ui_font_family(),
-            12.,
-        )
-        .with_color(callout_label_color(appearance))
-        .finish();
-
-        let checkbox_row = Flex::row()
-            .with_cross_axis_alignment(CrossAxisAlignment::Center)
-            .with_spacing(8.)
-            .with_child(checkbox_el)
-            .with_child(checkbox_label)
-            .finish();
-
-        let button = if self.truncated_flow {
-            &self.dismiss_vtabs_button
-        } else {
-            &self.next_vtabs_button
-        };
-
-        self.render_callout_content(
-            "Introducing vertical tabs - the new default",
-            "Vertical tabs show all open agent and terminal panes, grouped by tab. Customize what information you want to see to support your workflow.",
-            Some(checkbox_row),
-            button,
-            appearance,
-        )
     }
 
     fn render_inbox_callout(&self, appearance: &Appearance) -> Box<dyn Element> {
@@ -590,27 +447,6 @@ impl View for HoaOnboardingFlow {
                     .with_background_color(ColorU::new(18, 18, 18, 128))
                     .finish()
             }
-            HoaOnboardingStep::VerticalTabsCallout => {
-                let content = self.render_vertical_tabs_callout(appearance, app);
-                let use_vertical = *TabSettings::as_ref(app).use_vertical_tabs;
-                let (arrow_direction, arrow_position) = if use_vertical {
-                    (
-                        CalloutArrowDirection::Left,
-                        CalloutArrowPosition::Start(16.),
-                    )
-                } else {
-                    (CalloutArrowDirection::Up, CalloutArrowPosition::Start(24.))
-                };
-                render_callout_bubble(
-                    content,
-                    &CalloutBubbleConfig {
-                        width: CALLOUT_WIDTH,
-                        arrow_direction,
-                        arrow_position,
-                    },
-                    appearance,
-                )
-            }
             HoaOnboardingStep::AgentInboxCallout => {
                 let content = self.render_inbox_callout(appearance);
                 render_callout_bubble(
@@ -625,21 +461,12 @@ impl View for HoaOnboardingFlow {
             }
             HoaOnboardingStep::TabConfig => {
                 let tab_content = self.render_tab_config_step(appearance);
-                let use_vertical = *TabSettings::as_ref(app).use_vertical_tabs;
-                let (arrow_direction, arrow_position) = if use_vertical {
-                    (
-                        CalloutArrowDirection::Left,
-                        CalloutArrowPosition::Start(16.),
-                    )
-                } else {
-                    (CalloutArrowDirection::Up, CalloutArrowPosition::Center)
-                };
                 render_callout_bubble(
                     tab_content,
                     &CalloutBubbleConfig {
                         width: CALLOUT_WIDTH,
-                        arrow_direction,
-                        arrow_position,
+                        arrow_direction: CalloutArrowDirection::Up,
+                        arrow_position: CalloutArrowPosition::Center,
                     },
                     appearance,
                 )
@@ -656,19 +483,8 @@ impl TypedActionView for HoaOnboardingFlow {
             HoaOnboardingAction::EnterPressed => {
                 self.advance(ctx);
             }
-            HoaOnboardingAction::AdvanceFromWelcome
-            | HoaOnboardingAction::AdvanceFromVerticalTabs
-            | HoaOnboardingAction::AdvanceFromInbox => {
+            HoaOnboardingAction::AdvanceFromWelcome | HoaOnboardingAction::AdvanceFromInbox => {
                 self.advance(ctx);
-            }
-            HoaOnboardingAction::ToggleHorizontalTabs => {
-                // Emit before toggling so workspace can pin the callout position.
-                ctx.emit(HoaOnboardingFlowEvent::TabLayoutToggled);
-                let current = *TabSettings::as_ref(ctx).use_vertical_tabs;
-                TabSettings::handle(ctx).update(ctx, |settings, ctx| {
-                    let _ = settings.use_vertical_tabs.set_value(!current, ctx);
-                });
-                ctx.notify();
             }
             HoaOnboardingAction::SelectSessionType(index) => {
                 self.selected_session_type_index = *index;

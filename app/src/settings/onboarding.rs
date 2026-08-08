@@ -72,9 +72,6 @@ fn apply_ui_customization_settings(
     }
     TabSettings::handle(app).update(app, |settings, ctx| {
         report_if_error!(settings
-            .use_vertical_tabs
-            .set_value(ui.use_vertical_tabs, ctx));
-        report_if_error!(settings
             .show_code_review_button
             .set_value(ui.show_code_review_button, ctx));
     });

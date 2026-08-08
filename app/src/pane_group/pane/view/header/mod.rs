@@ -18,7 +18,7 @@ use crate::{
     tab::tab_position_id,
     terminal::view::TerminalAction,
     view_components::{FeaturePopup, NewFeaturePopupEvent, NewFeaturePopupLabel},
-    workspace::{TabBarLocation, VerticalTabsPaneDropTargetData},
+    workspace::TabBarLocation,
 };
 
 use crate::workspace::TabBarDropTargetData;
@@ -1018,9 +1018,6 @@ pub fn render_pane_header_draggable<P: BackingView>(
             // (to promote to a new tab or move to an existing tab).
             if drop_target_data.as_any().is::<PaneDropTargetData>()
                 || drop_target_data.as_any().is::<TabBarDropTargetData>()
-                || drop_target_data
-                    .as_any()
-                    .is::<VerticalTabsPaneDropTargetData>()
             {
                 AcceptedByDropTarget::Yes
             } else {
@@ -1058,19 +1055,6 @@ pub fn render_pane_header_draggable<P: BackingView>(
                     drag_position,
                     precomputed_tab_hover_index: None,
                 })
-            } else if let Some(data) = data.and_then(|data| {
-                data.as_any()
-                    .downcast_ref::<VerticalTabsPaneDropTargetData>()
-            }) {
-                ctx.dispatch_typed_action(PaneHeaderAction::<
-                    P::PaneHeaderOverflowMenuAction,
-                    P::CustomAction,
-                >::PaneHeaderDragged {
-                    origin: ActionOrigin::Pane,
-                    drag_location: PaneDragDropLocation::TabBar(data.tab_bar_location),
-                    drag_position,
-                    precomputed_tab_hover_index: Some(data.tab_hover_index),
-                })
             } else {
                 ctx.dispatch_typed_action(PaneHeaderAction::<
                     P::PaneHeaderOverflowMenuAction,
@@ -1087,17 +1071,6 @@ pub fn render_pane_header_draggable<P: BackingView>(
             if let Some(data) =
                 data.and_then(|data| data.as_any().downcast_ref::<TabBarDropTargetData>())
             {
-                ctx.dispatch_typed_action(PaneHeaderAction::<
-                    P::PaneHeaderOverflowMenuAction,
-                    P::CustomAction,
-                >::PaneHeaderDropped {
-                    origin: ActionOrigin::Pane,
-                    drop_location: PaneDragDropLocation::TabBar(data.tab_bar_location),
-                })
-            } else if let Some(data) = data.and_then(|data| {
-                data.as_any()
-                    .downcast_ref::<VerticalTabsPaneDropTargetData>()
-            }) {
                 ctx.dispatch_typed_action(PaneHeaderAction::<
                     P::PaneHeaderOverflowMenuAction,
                     P::CustomAction,

@@ -29,12 +29,10 @@ use crate::code;
 use crate::features::FeatureFlag;
 use crate::modal;
 use crate::notebooks;
-use crate::pane_group::TabBarHoverIndex;
 use crate::server::telemetry::AgentModeEntrypoint;
 use crate::server::telemetry::PaletteSource;
 use crate::settings::AISettings;
 use crate::settings_view::{self, flags, SettingsSection};
-use crate::tab::uses_vertical_tabs;
 use crate::tab_configs;
 use warpui::SingletonEntity;
 
@@ -53,7 +51,7 @@ use warpui::AppContext;
 
 pub use action::{
     CommandSearchOptions, InitContent, RestoreConversationLayout, TabContextMenuAnchor,
-    VerticalTabsPaneContextMenuTarget, WorkspaceAction,
+    WorkspaceAction,
 };
 pub use active_session::ActiveSession;
 pub use global_actions::{
@@ -91,8 +89,7 @@ use crate::workspace::view::{
     NEW_TERMINAL_TAB_BINDING_NAME, OPEN_GLOBAL_SEARCH_BINDING_NAME,
     TOGGLE_CONVERSATION_LIST_VIEW_BINDING_NAME, TOGGLE_NOTIFICATION_MAILBOX_BINDING_NAME,
     TOGGLE_PROJECT_EXPLORER_BINDING_NAME, TOGGLE_RIGHT_PANEL_BINDING_NAME,
-    TOGGLE_TAB_CONFIGS_MENU_BINDING_NAME, TOGGLE_VERTICAL_TABS_PANEL_BINDING_NAME,
-    TOGGLE_WARP_DRIVE_BINDING_NAME,
+    TOGGLE_TAB_CONFIGS_MENU_BINDING_NAME, TOGGLE_WARP_DRIVE_BINDING_NAME,
 };
 pub use one_time_modal_model::OneTimeModalModel;
 pub use registry::WorkspaceRegistry;
@@ -726,16 +723,6 @@ pub fn init(app: &mut AppContext) {
         .with_mac_key_binding("cmd-shift-+")
         .with_linux_or_windows_key_binding("ctrl-shift-+"),
         EditableBinding::new(
-            TOGGLE_VERTICAL_TABS_PANEL_BINDING_NAME,
-            BindingDescription::new("Toggle vertical tabs panel")
-                .with_custom_description(bindings::MAC_MENUS_CONTEXT, "Toggle Vertical Tabs Panel"),
-            WorkspaceAction::ToggleVerticalTabsPanel,
-        )
-        .with_context_predicate(id!("Workspace") & id!(flags::USE_VERTICAL_TABS_FLAG))
-        .with_group(bindings::BindingGroup::Navigation.as_str())
-        .with_enabled(|| FeatureFlag::VerticalTabs.is_enabled())
-        .with_key_binding(cmd_or_ctrl_shift("b")),
-        EditableBinding::new(
             LEFT_PANEL_AGENT_CONVERSATIONS_BINDING_NAME,
             BindingDescription::new("Left Panel: Agent conversations"),
             WorkspaceAction::ToggleConversationListView,
@@ -829,8 +816,7 @@ pub fn init(app: &mut AppContext) {
         .with_custom_action(CustomAction::CommandPalette),
         EditableBinding::new(
             "workspace:move_tab_left",
-            BindingDescription::new("Move tab left")
-                .with_dynamic_override(|ctx| uses_vertical_tabs(ctx).then(|| "move tab up".into())),
+            BindingDescription::new("Move tab left"),
             WorkspaceAction::MoveActiveTabLeft,
         )
         .with_group(bindings::BindingGroup::Navigation.as_str())
@@ -843,9 +829,7 @@ pub fn init(app: &mut AppContext) {
         .with_custom_action(CustomAction::MoveTabLeft),
         EditableBinding::new(
             "workspace:move_tab_right",
-            BindingDescription::new("Move tab right").with_dynamic_override(|ctx| {
-                uses_vertical_tabs(ctx).then(|| "move tab down".into())
-            }),
+            BindingDescription::new("Move tab right"),
             WorkspaceAction::MoveActiveTabRight,
         )
         .with_group(bindings::BindingGroup::Navigation.as_str())
@@ -952,9 +936,7 @@ pub fn init(app: &mut AppContext) {
         .with_context_predicate(id!("Workspace")),
         EditableBinding::new(
             "workspace:close_tabs_right_active_tab",
-            BindingDescription::new("Close tabs to the right").with_dynamic_override(|ctx| {
-                uses_vertical_tabs(ctx).then(|| "close tabs below".into())
-            }),
+            BindingDescription::new("Close tabs to the right"),
             WorkspaceAction::CloseTabsRightActiveTab,
         )
         .with_group(bindings::BindingGroup::Close.as_str())
@@ -1533,12 +1515,6 @@ pub struct TabBarDropTargetData {
     pub tab_bar_location: TabBarLocation,
 }
 
-#[derive(PartialEq, Copy, Clone, Debug)]
-pub struct VerticalTabsPaneDropTargetData {
-    pub tab_bar_location: TabBarLocation,
-    pub tab_hover_index: TabBarHoverIndex,
-}
-
 #[derive(PartialEq, Copy, Clone, Debug, Serialize, Deserialize)]
 pub enum TabBarLocation {
     TabIndex(usize),
@@ -1546,12 +1522,6 @@ pub enum TabBarLocation {
 }
 
 impl DropTargetData for TabBarDropTargetData {
-    fn as_any(&self) -> &dyn std::any::Any {
-        self
-    }
-}
-
-impl DropTargetData for VerticalTabsPaneDropTargetData {
     fn as_any(&self) -> &dyn std::any::Any {
         self
     }

@@ -407,6 +407,7 @@ impl PaneId {
         self.0.pane_type
     }
 
+    #[allow(dead_code)]
     pub(crate) fn creation_order_id(&self) -> EntityId {
         self.0.pane_view_id
     }

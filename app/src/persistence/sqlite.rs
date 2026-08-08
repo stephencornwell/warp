@@ -862,7 +862,7 @@ fn save_app_state(conn: &mut SqliteConnection, app_state: &AppState) -> Result<(
                 voltron_width: window.voltron_width,
                 warp_drive_index_width: window.warp_drive_index_width,
                 left_panel_open: Some(window.left_panel_open),
-                vertical_tabs_panel_open: Some(window.vertical_tabs_panel_open),
+                vertical_tabs_panel_open: Some(false),
                 fullscreen_state: window.fullscreen_state as i32,
                 agent_management_filters: window
                     .agent_management_filters
@@ -1072,7 +1072,7 @@ fn save_pane_state(
         pane_node_id: id,
         kind: kind.into(),
         is_focused: snapshot.is_focused,
-        custom_vertical_tabs_title: snapshot.custom_vertical_tabs_title.clone(),
+        custom_vertical_tabs_title: None,
     };
 
     diesel::insert_into(schema::pane_leaves::dsl::pane_leaves)
@@ -2604,7 +2604,7 @@ fn read_node(conn: &mut SqliteConnection, node: model::PaneNode) -> Result<PaneN
 
             Ok(PaneNodeSnapshot::Leaf(LeafSnapshot {
                 is_focused: pane.is_focused,
-                custom_vertical_tabs_title: pane.custom_vertical_tabs_title,
+                custom_vertical_tabs_title: None,
                 contents,
             }))
         }
@@ -2790,7 +2790,7 @@ fn read_sqlite_data(
                 voltron_width: window.voltron_width,
                 warp_drive_index_width: window.warp_drive_index_width,
                 left_panel_open: window_left_panel_open,
-                vertical_tabs_panel_open: window.vertical_tabs_panel_open.unwrap_or(false),
+                vertical_tabs_panel_open: false,
                 fullscreen_state: fullscreen_state_val,
                 left_panel_width,
                 right_panel_width,

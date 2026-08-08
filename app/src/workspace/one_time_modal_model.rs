@@ -228,10 +228,7 @@ impl OneTimeModalModel {
         }
 
         // All required dependent feature flags must be enabled.
-        if !FeatureFlag::VerticalTabs.is_enabled()
-            || !FeatureFlag::HOANotifications.is_enabled()
-            || !FeatureFlag::TabConfigs.is_enabled()
-        {
+        if !FeatureFlag::HOANotifications.is_enabled() || !FeatureFlag::TabConfigs.is_enabled() {
             return false;
         }
 

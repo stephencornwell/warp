@@ -2841,10 +2841,6 @@ pub fn enabled_features() -> HashSet<FeatureFlag> {
         FeatureFlag::OpenWarpNewSettingsModes,
         #[cfg(feature = "hoa_code_review")]
         FeatureFlag::HoaCodeReview,
-        #[cfg(feature = "vertical_tabs")]
-        FeatureFlag::VerticalTabs,
-        #[cfg(feature = "vertical_tabs_summary_mode")]
-        FeatureFlag::VerticalTabsSummaryMode,
         #[cfg(feature = "tab_configs")]
         FeatureFlag::TabConfigs,
         #[cfg(feature = "agent_harness")]

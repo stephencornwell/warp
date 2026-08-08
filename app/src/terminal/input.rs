@@ -4082,22 +4082,6 @@ impl Input {
                 });
                 self.input_enter(ctx);
             }
-            inline_history::InlineHistoryMenuEvent::AcceptAIPrompt { query_text } => {
-                if self
-                    .suggestions_mode_model
-                    .as_ref(ctx)
-                    .is_inline_history_menu()
-                {
-                    self.suggestions_mode_model.update(ctx, |model, ctx| {
-                        model.set_mode(InputSuggestionsMode::Closed, ctx);
-                    });
-                    ctx.notify();
-                }
-                self.editor.update(ctx, |editor, ctx| {
-                    editor.set_buffer_text(query_text, ctx);
-                });
-                self.input_enter(ctx);
-            }
             inline_history::InlineHistoryMenuEvent::SelectCommand {
                 command,
                 linked_workflow_data,

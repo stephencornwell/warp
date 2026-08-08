@@ -654,10 +654,6 @@ impl SettingsPageMeta for BillingAndUsagePageView {
                 .update(ctx, |manager, ctx| manager.refresh_workspace_metadata(ctx)),
         );
 
-        AIRequestUsageModel::handle(ctx).update(ctx, |ai_request_usage_model, ctx| {
-            ai_request_usage_model.refresh_request_usage_async(ctx)
-        });
-
         self.refresh_addon_credits_settings(ctx);
     }
 

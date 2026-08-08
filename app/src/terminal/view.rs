@@ -41,20 +41,6 @@ use warpui::clipboard_utils::get_image_filepaths_from_paths;
 
 use std::ops::Deref as _;
 
-use crate::ai::blocklist::agent_view::fork_from_last_known_good_state_exchange_id;
-use crate::ai::blocklist::agent_view::{
-    agent_view_bg_fill, AgentViewController, AgentViewControllerEvent, AgentViewDisplayMode,
-    AgentViewEntryBlockParams, AgentViewEntryOrigin, AgentViewHeaderDisabledTheme,
-    AgentViewHeaderTheme, AgentViewZeroStateBlock, AgentViewZeroStateEvent, EphemeralMessageModel,
-    ExitAgentViewError, ExitConfirmationTrigger, InlineAgentViewHeader, OrchestrationPillBar,
-    ENTER_OR_EXIT_CONFIRMATION_WINDOW,
-};
-use crate::ai::conversation_utils;
-use crate::ai::predict::prompt_suggestions::{
-    has_pending_code_or_unit_test_prompt_suggestion,
-    is_accept_prompt_suggestion_bound_to_cmd_enter,
-    is_accept_prompt_suggestion_bound_to_ctrl_enter,
-};
 use crate::search::slash_command_menu::static_commands::commands;
 use crate::terminal::view::passive_suggestions::PromptSuggestionResolution;
 pub use crate::terminal::view::rich_content::{
@@ -64,23 +50,6 @@ pub use crate::terminal::view::rich_content::{
 use crate::terminal::view::zero_state_block::TerminalViewZeroStateBlock;
 use crate::view_components::action_button::{ActionButton, ButtonSize, KeystrokeSource};
 
-#[cfg(feature = "local_fs")]
-use crate::ai::agent::{CurrentHead, DiffBase};
-use crate::ai::agent_conversations_model::{AgentConversationsModel, AgentConversationsModelEvent};
-use crate::ai::ambient_agents::{
-    conversation_output_status_from_conversation, AmbientAgentTaskId, AmbientConversationStatus,
-};
-use crate::ai::blocklist::block::cli::{CLISubagentView, CLISubagentViewEvent};
-use crate::ai::blocklist::block::cli_controller::{
-    CLISubagentController, CLISubagentEvent, UserTakeOverReason,
-};
-use crate::ai::blocklist::block::status_bar::BlocklistAIStatusBarEvent;
-use crate::ai::blocklist::usage::conversation_usage_view::{
-    ConversationUsageInfo, ConversationUsageView, DisplayMode, TimingInfo,
-};
-use crate::ai::blocklist::{block_context_from_terminal_model, SlashCommandRequest};
-use crate::ai::document::ai_document_model::{AIDocumentId, AIDocumentModel, AIDocumentVersion};
-use crate::ai::loading::shimmering_warp_loading_text;
 #[cfg(feature = "local_fs")]
 use crate::code_review::context::{
     convert_file_diffs_to_diffset_hunks, create_attachment_reference_and_key,
@@ -93,31 +62,6 @@ use crate::terminal::model::blocks::RemovableBlocklistItem;
 use crate::util::file::external_editor::{settings::EditorLayout, EditorSettings};
 use crate::util::truncation::truncate_from_end;
 
-use crate::ai::agent::api::ServerConversationToken;
-use crate::ai::agent::redaction::redact_secrets;
-use crate::ai::agent::todos::popup::{AgentTodosPopupEvent, AgentTodosPopupView};
-use crate::ai::agent::{
-    AIAgentPtyWriteMode, AgentReviewCommentBatch, CancellationReason, PassiveSuggestionTrigger,
-    ServerOutputId, ShellCommandCompletedTrigger,
-};
-use crate::ai::blocklist::block::{AIBlockAction, FinishReason};
-use crate::ai::blocklist::codebase_index_speedbump_banner::{
-    CodebaseIndexSpeedbumpBannerAction, CodebaseIndexSpeedbumpBannerState, VisibilityState,
-};
-use crate::ai::blocklist::model::AIBlockOutputStatus;
-#[cfg(feature = "local_fs")]
-use crate::ai::persisted_workspace::PersistedWorkspace;
-use crate::code_review::comments::{
-    convert_insert_review_comments, AttachedReviewComment, PendingImportedReviewComment,
-};
-#[cfg(feature = "local_fs")]
-use crate::code_review::diff_state::DiffStateModel;
-use crate::code_review::diff_state::{DiffMode, GitDeltaPreference};
-#[cfg(feature = "local_fs")]
-use crate::code_review::git_status_update::{
-    GitRepoStatusModel, GitStatusMetadata, GitStatusUpdateModel,
-};
-use crate::code_review::telemetry_event::CodeReviewPaneEntrypoint;
 use crate::projects::ProjectManagementModel;
 use crate::remote_server::manager::{
     RemoteServerInitPhase, RemoteServerManager, RemoteServerManagerEvent,

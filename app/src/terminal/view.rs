@@ -28,7 +28,6 @@ mod tab_metadata;
 #[cfg(any(test, feature = "integration_tests"))]
 mod testing;
 mod tooltips;
-mod zero_state_block;
 
 use warpui::clipboard_utils::get_image_filepaths_from_paths;
 
@@ -39,7 +38,6 @@ pub use crate::terminal::view::rich_content::{
     AIBlockMetadata, AgentViewEntryMetadata, RichContent, RichContentInsertionPosition,
     RichContentMetadata,
 };
-use crate::terminal::view::zero_state_block::TerminalViewZeroStateBlock;
 use crate::view_components::action_button::{ActionButton, ButtonSize, KeystrokeSource};
 
 #[cfg(feature = "local_fs")]

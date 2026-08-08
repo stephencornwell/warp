@@ -73,7 +73,6 @@ use warpui::{
 };
 use warpui::{SingletonEntity, ViewContext};
 
-use crate::ai::blocklist::SerializedBlockListItem;
 use crate::ai_assistant::AskAIType;
 use crate::app_state::{
     self, BranchSnapshot, EnvVarCollectionPaneSnapshot, LeafContents,

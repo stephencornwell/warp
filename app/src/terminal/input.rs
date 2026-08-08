@@ -4066,26 +4066,6 @@ impl Input {
         ctx: &mut ViewContext<Self>,
     ) {
         match event {
-            inline_history::InlineHistoryMenuEvent::NavigateToConversation { conversation_id } => {
-                if self
-                    .suggestions_mode_model
-                    .as_ref(ctx)
-                    .is_inline_history_menu()
-                {
-                    self.suggestions_mode_model.update(ctx, |model, ctx| {
-                        model.set_mode(InputSuggestionsMode::Closed, ctx);
-                    });
-                    ctx.notify();
-                }
-                self.clear_buffer_and_reset_undo_stack(ctx);
-                self.agent_view_controller.update(ctx, |controller, ctx| {
-                    let _ = controller.try_enter_agent_view(
-                        Some(*conversation_id),
-                        AgentViewEntryOrigin::InlineHistoryMenu,
-                        ctx,
-                    );
-                });
-            }
             inline_history::InlineHistoryMenuEvent::AcceptCommand { command, .. } => {
                 if self
                     .suggestions_mode_model

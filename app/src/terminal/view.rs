@@ -12868,18 +12868,6 @@ impl TerminalView {
         }
     }
 
-    fn apply_natural_language_detection_setting(
-        &mut self,
-        enable: bool,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        AISettings::handle(ctx).update(ctx, |settings, ctx| {
-            report_if_error!(settings
-                .nld_in_terminal_enabled_internal
-                .set_value(enable, ctx));
-        });
-    }
-
     // Read the current terminal input text from the onboarding tutorial callout
     // and apply it to the terminal input box. Lock the input mode based on query type.
     // Redundantly issues resize changes to increase the chances that the alt-screen program

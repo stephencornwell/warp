@@ -47,7 +47,7 @@ use crate::{
     channel::ChannelState,
     report_if_error, send_telemetry_from_ctx,
     server::telemetry::TelemetryEvent,
-    settings::{AISettings, PrivacySettings},
+    settings::PrivacySettings,
     terminal::safe_mode_settings::{SafeModeEnabled, SafeModeSettings},
     ui_components::icons::Icon,
     util::links::PRIVACY_POLICY_URL,
@@ -1687,13 +1687,6 @@ impl SettingsWidget for CloudConversationStorageWidget {
 
     fn should_render(&self, app: &AppContext) -> bool {
         if !FeatureFlag::CloudConversations.is_enabled() {
-            return false;
-        }
-
-        // Hide the toggle entirely when AI is disabled: the setting has no
-        // effect without AI (no agent conversations are produced), so showing
-        // it is confusing.
-        if !AISettings::as_ref(app).is_any_ai_enabled(app) {
             return false;
         }
 

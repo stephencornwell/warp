@@ -1264,13 +1264,6 @@ fn handle_ai_history_event(
         AIQueryHistoryOutputStatus, PersistedAIInput, PersistedAIInputType,
     };
 
-    if event
-        .terminal_view_id()
-        .is_some_and(|id| id != terminal_view_id)
-    {
-        return;
-    }
-
     match event {
         BlocklistAIHistoryEvent::AppendedExchange {
             exchange_id,

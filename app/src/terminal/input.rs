@@ -4421,44 +4421,6 @@ impl Input {
         ctx.notify();
     }
 
-    fn open_rewind_menu(&mut self, ctx: &mut ViewContext<Self>) {
-        // Don't reopen if already open.
-        if self.suggestions_mode_model.as_ref(ctx).is_rewind_menu() {
-            return;
-        }
-
-        let Some(conversation_id) = self
-            .ai_context_model
-            .as_ref(ctx)
-            .selected_conversation_id(ctx)
-        else {
-            return;
-        };
-
-        // Close any other menus first
-        if self.suggestions_mode_model.as_ref(ctx).is_visible() {
-            self.suggestions_mode_model.update(ctx, |model, ctx| {
-                model.set_mode(InputSuggestionsMode::Closed, ctx);
-            });
-        }
-
-        // Clear the input buffer
-        self.clear_buffer_and_reset_undo_stack(ctx);
-
-        // Open the rewind menu
-        self.suggestions_mode_model.update(ctx, |model, ctx| {
-            model.set_mode(
-                InputSuggestionsMode::UserQueryMenu {
-                    action: UserQueryMenuAction::Rewind,
-                    conversation_id,
-                },
-                ctx,
-            );
-        });
-
-        ctx.notify();
-    }
-
     fn handle_rewind_menu_event(&mut self, event: &RewindMenuEvent, ctx: &mut ViewContext<Self>) {
         if !self.suggestions_mode_model.as_ref(ctx).is_rewind_menu() {
             log::error!("handle_rewind_menu_event called when mode is not RewindMenu");

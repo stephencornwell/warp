@@ -14,7 +14,6 @@ use url::Url;
 
 use crate::{
     appearance::Appearance,
-    auth::{auth_state::AuthState, AuthStateProvider, UserUid},
     cloud_object::{
         breadcrumbs::ContainingObject,
         model::{
@@ -61,7 +60,6 @@ use crate::{
     settings::{
         app_installation_detection::{UserAppInstallDetectionSettings, UserAppInstallStatus},
     },
-    terminal::safe_mode_settings::get_secret_obfuscation_mode,
     ui_components::{
         breadcrumb::{render_breadcrumbs, BreadcrumbState},
         buttons::{accent_icon_button, icon_button},
@@ -69,13 +67,13 @@ use crate::{
         icons::Icon,
     },
     util::bindings::CustomAction,
-    view_components::{DismissibleToast, ToastLink, ToastType},
+    view_components::{DismissibleToast, ToastType},
     workflows::{
         workflow::{Argument, Workflow},
         CloudWorkflow,
     },
-    workspace::{ToastStack, WorkspaceAction},
-    FeatureFlag, UserWorkspaces,
+    workspace::ToastStack,
+    FeatureFlag,
 };
 
 use warp_core::{context_flag::ContextFlag, settings::Setting, ui::theme::AnsiColorIdentifier};
@@ -1648,66 +1646,6 @@ impl WorkflowView {
         }
     }
 
-    fn workflow_contains_secrets(&self, app: &AppContext) -> bool {
-        let secret_redaction = get_secret_obfuscation_mode(app);
-        if secret_redaction.should_redact_secret() {
-            let name_secrets = find_secrets_in_text(&self.name_editor.as_ref(app).buffer_text(app));
-            if !name_secrets.is_empty() {
-                return true;
-            }
-
-            let content_secrets =
-                find_secrets_in_text(&self.content_editor.as_ref(app).buffer_text(app));
-            if !content_secrets.is_empty() {
-                return true;
-            }
-
-            let description_secrets =
-                find_secrets_in_text(&self.description_editor.as_ref(app).buffer_text(app));
-            if !description_secrets.is_empty() {
-                return true;
-            }
-
-            for arg in self.arguments_rows.iter() {
-                if !find_secrets_in_text(&arg.name).is_empty() {
-                    return true;
-                }
-                if !find_secrets_in_text(&arg.description_editor.as_ref(app).buffer_text(app))
-                    .is_empty()
-                {
-                    return true;
-                }
-                if !find_secrets_in_text(&arg.default_value_editor.as_ref(app).buffer_text(app))
-                    .is_empty()
-                {
-                    return true;
-                }
-                if !find_secrets_in_text(&arg.argument_editor.as_ref(app).buffer_text(app))
-                    .is_empty()
-                {
-                    return true;
-                }
-                if !find_secrets_in_text(
-                    &arg.arg_type_editor
-                        .as_ref(app)
-                        .text_editor
-                        .as_ref(app)
-                        .buffer_text(app),
-                )
-                .is_empty()
-                {
-                    return true;
-                }
-            }
-            for value in self.alias_bar.as_ref(app).get_all_argument_values() {
-                if !find_secrets_in_text(&value).is_empty() {
-                    return true;
-                }
-            }
-        }
-        false
-    }
-
     fn copy_content(&mut self, ctx: &mut ViewContext<Self>) {
         // If we are in view mode copy the command or query from the view_only editor
         // otherwise copy it from the content editor
@@ -1736,13 +1674,6 @@ impl WorkflowView {
 
     fn is_editable(&self) -> bool {
         self.workflow_view_mode.is_editable()
-    }
-
-    fn is_ai_assist_button_disabled(&self, app: &AppContext) -> bool {
-        // Autofill button should be disabled when there is no content or when there are secrets in the workflow.
-        self.content_editor.as_ref(app).is_empty(app)
-            || self.show_enum_creation_dialog
-            || self.workflow_contains_secrets(app)
     }
 
     fn clear_content_formatting(&mut self, num_chars_content: usize, ctx: &mut ViewContext<Self>) {

@@ -944,71 +944,9 @@ pub struct ModelTokenUsage {
     pub byok_token_usage_by_category: HashMap<TokenUsageCategory, u32>,
 }
 
-impl ModelTokenUsage {
-    #[allow(deprecated)]
-    fn to_proto_usage(
-        &self,
-        total_tokens: u32,
-        usage_by_category: &HashMap<TokenUsageCategory, u32>,
-    ) -> Option<(String, stream_finished::ModelTokenUsage)> {
-        if total_tokens == 0 {
-            return None;
-        }
-        Some((
-            self.model_id.clone(),
-            stream_finished::ModelTokenUsage {
-                model_id: self.model_id.clone(),
-                total_tokens,
-                token_usage_by_category: usage_by_category
-                    .iter()
-                    .map(|(cat, tokens)| (cat.clone(), *tokens))
-                    .collect(),
-            },
-        ))
-    }
-
-    pub fn to_proto_warp_usage(&self) -> Option<(String, stream_finished::ModelTokenUsage)> {
-        self.to_proto_usage(self.warp_tokens, &self.warp_token_usage_by_category)
-    }
-
-    pub fn to_proto_byok_usage(&self) -> Option<(String, stream_finished::ModelTokenUsage)> {
-        self.to_proto_usage(self.byok_tokens, &self.byok_token_usage_by_category)
-    }
-
-    #[allow(deprecated)]
-    pub fn to_proto_combined(&self) -> stream_finished::ModelTokenUsage {
-        stream_finished::ModelTokenUsage {
-            model_id: self.model_id.clone(),
-            total_tokens: self.warp_tokens + self.byok_tokens,
-            token_usage_by_category: self
-                .warp_token_usage_by_category
-                .iter()
-                .chain(self.byok_token_usage_by_category.iter())
-                .fold(HashMap::new(), |mut acc, (cat, tokens)| {
-                    *acc.entry(cat.clone()).or_insert(0) += tokens;
-                    acc
-                }),
-        }
-    }
-}
-
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct ToolCallStats {
     pub count: i32,
-}
-
-impl From<&ToolCallStats> for stream_finished::ToolCallStats {
-    fn from(stats: &ToolCallStats) -> Self {
-        Self { count: stats.count }
-    }
-}
-
-impl From<&stream_finished::ToolCallStats> for ToolCallStats {
-    fn from(tool_call_stats: &stream_finished::ToolCallStats) -> Self {
-        Self {
-            count: tool_call_stats.count,
-        }
-    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
@@ -1017,52 +955,12 @@ pub struct RunCommandStats {
     pub commands_executed: i32,
 }
 
-impl From<&RunCommandStats> for stream_finished::RunCommandStats {
-    fn from(stats: &RunCommandStats) -> Self {
-        Self {
-            count: stats.count,
-            command_executed: stats.commands_executed,
-        }
-    }
-}
-
-impl From<&stream_finished::RunCommandStats> for RunCommandStats {
-    fn from(stats: &stream_finished::RunCommandStats) -> Self {
-        Self {
-            count: stats.count,
-            commands_executed: stats.command_executed,
-        }
-    }
-}
-
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct ApplyFileDiffStats {
     pub count: i32,
     pub lines_added: i32,
     pub lines_removed: i32,
     pub files_changed: i32,
-}
-
-impl From<&ApplyFileDiffStats> for stream_finished::ApplyFileDiffStats {
-    fn from(stats: &ApplyFileDiffStats) -> Self {
-        Self {
-            count: stats.count,
-            lines_added: stats.lines_added,
-            lines_removed: stats.lines_removed,
-            files_changed: stats.files_changed,
-        }
-    }
-}
-
-impl From<&stream_finished::ApplyFileDiffStats> for ApplyFileDiffStats {
-    fn from(file_diff_stats: &stream_finished::ApplyFileDiffStats) -> Self {
-        Self {
-            count: file_diff_stats.count,
-            lines_added: file_diff_stats.lines_added,
-            lines_removed: file_diff_stats.lines_removed,
-            files_changed: file_diff_stats.files_changed,
-        }
-    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
@@ -1097,64 +995,6 @@ impl ToolUsageMetadata {
             + self.apply_file_diff_stats.count
             + self.read_shell_command_output_stats.count
             + self.use_computer_stats.count
-    }
-}
-
-impl From<&ToolUsageMetadata> for stream_finished::ToolUsageMetadata {
-    fn from(metadata: &ToolUsageMetadata) -> Self {
-        Self {
-            run_command_stats: Some((&metadata.run_command_stats).into()),
-            read_files_stats: Some((&metadata.read_files_stats).into()),
-            search_codebase_stats: Some((&metadata.search_codebase_stats).into()),
-            grep_stats: Some((&metadata.grep_stats).into()),
-            file_glob_stats: Some((&metadata.file_glob_stats).into()),
-            apply_file_diff_stats: Some((&metadata.apply_file_diff_stats).into()),
-            write_to_long_running_shell_command_stats: Some(
-                (&metadata.write_to_long_running_shell_command_stats).into(),
-            ),
-            read_mcp_resource_stats: Some((&metadata.read_mcp_resource_stats).into()),
-            call_mcp_tool_stats: Some((&metadata.call_mcp_tool_stats).into()),
-            suggest_plan_stats: Some((&metadata.suggest_plan_stats).into()),
-            suggest_create_plan_stats: Some((&metadata.suggest_create_plan_stats).into()),
-            read_shell_command_output_stats: Some(
-                (&metadata.read_shell_command_output_stats).into(),
-            ),
-            use_computer_stats: Some((&metadata.use_computer_stats).into()),
-        }
-    }
-}
-
-impl From<&stream_finished::ToolUsageMetadata> for ToolUsageMetadata {
-    fn from(tool_usage_metadata: &stream_finished::ToolUsageMetadata) -> Self {
-        let convert = |opt: &Option<_>| opt.as_ref().map(Into::into).unwrap_or_default();
-
-        Self {
-            run_command_stats: tool_usage_metadata
-                .run_command_stats
-                .as_ref()
-                .map(Into::into)
-                .unwrap_or_default(),
-            read_files_stats: convert(&tool_usage_metadata.read_files_stats),
-            search_codebase_stats: convert(&tool_usage_metadata.search_codebase_stats),
-            grep_stats: convert(&tool_usage_metadata.grep_stats),
-            file_glob_stats: convert(&tool_usage_metadata.file_glob_stats),
-            apply_file_diff_stats: tool_usage_metadata
-                .apply_file_diff_stats
-                .as_ref()
-                .map(Into::into)
-                .unwrap_or_default(),
-            write_to_long_running_shell_command_stats: convert(
-                &tool_usage_metadata.write_to_long_running_shell_command_stats,
-            ),
-            read_mcp_resource_stats: convert(&tool_usage_metadata.read_mcp_resource_stats),
-            call_mcp_tool_stats: convert(&tool_usage_metadata.call_mcp_tool_stats),
-            suggest_plan_stats: convert(&tool_usage_metadata.suggest_plan_stats),
-            suggest_create_plan_stats: convert(&tool_usage_metadata.suggest_create_plan_stats),
-            read_shell_command_output_stats: convert(
-                &tool_usage_metadata.read_shell_command_output_stats,
-            ),
-            use_computer_stats: convert(&tool_usage_metadata.use_computer_stats),
-        }
     }
 }
 

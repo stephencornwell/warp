@@ -73,7 +73,6 @@ use crate::workspaces::user_workspaces::UserWorkspacesEvent;
 
 pub use self::link_detection::GridHighlightedLink;
 pub use self::link_detection::{RichContentLink, RichContentLinkTooltipInfo};
-use crate::ai::llms::{LLMId, LLMModelHost, LLMPreferences};
 use crate::settings::CodeSettings;
 pub use action::TerminalAction;
 use ai::api_keys::{ApiKeyManager, AwsCredentialsState};

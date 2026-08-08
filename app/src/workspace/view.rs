@@ -7,7 +7,6 @@ pub(crate) mod launch_modal;
 pub(crate) mod left_panel;
 pub(crate) mod onboarding;
 pub(crate) mod openwarp_launch_modal;
-pub(crate) mod right_panel;
 mod startup_directory;
 #[cfg(test)]
 #[path = "view_test.rs"]
@@ -88,7 +87,6 @@ use crate::workspace::view::global_search::view::GlobalSearchEntryFocus;
 use crate::workspace::view::left_panel::{
     LeftPanelAction, LeftPanelEvent, LeftPanelView, ToolPanelView,
 };
-use crate::workspace::view::right_panel::{RightPanelEvent, RightPanelView};
 
 use crate::ui_components::window_focus_dimming::WindowFocusDimming;
 #[cfg(feature = "local_fs")]

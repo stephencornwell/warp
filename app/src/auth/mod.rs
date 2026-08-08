@@ -291,13 +291,6 @@ fn remove_cloud_persisted_settings(app: &mut AppContext) {
         );
     }
 
-    if let Err(e) = app
-        .private_user_preferences()
-        .remove_value(REQUEST_LIMIT_INFO_CACHE_KEY)
-    {
-        log::error!("Failed to remove Request Limit Defaults Key from user defaults: {e:?}");
-    }
-
     // Reset the Privacy Settings in the login screen to default values.
     PrivacySettings::handle(app).update(app, |privacy_settings, _| {
         privacy_settings.refresh_to_default();

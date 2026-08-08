@@ -401,8 +401,7 @@ use crate::terminal::model::{
     blocks::BlockListPoint,
 };
 use crate::terminal::view::inline_banner::{
-    render_agent_mode_setup_banner, AgentModeSetupSpeedbumpBannerAction,
-    AgentModeSetupSpeedbumpBannerState, AliasExpansionBannerState,
+    AliasExpansionBannerState,
     NotificationsDiscoveryBannerState, NotificationsErrorBannerState, PromptSuggestionBannerState,
     VimModeBannerState,
 };
@@ -478,14 +477,11 @@ use bookmarks::render_floating_block_snapshot;
 use command_corrections::rules::generic::history::History as CommandCorrectionsHistoryRule;
 use init::{INPUT_BOX_VISIBLE_KEY, TOGGLE_BLOCK_FILTER_KEYBINDING};
 use inline_banner::{
-    render_alias_expansion_banner, render_aws_bedrock_login_banner,
-    render_aws_cli_not_installed_banner, render_inline_notifications_discovery_banner,
+    render_alias_expansion_banner, render_inline_notifications_discovery_banner,
     render_inline_notifications_error_banner, render_inline_shared_session_ended_banner,
     render_inline_shared_session_started_banner, render_inline_ssh_wrapper_banner,
     render_open_in_warp_banner, render_shell_process_terminated_banner, render_vim_mode_banner,
-    AliasExpansionBanner, AliasExpansionBannerAction, AnonymousUserAISignUpBannerState,
-    AnonymousUserLoginBannerAction, AwsBedrockLoginBannerAction, AwsBedrockLoginBannerState,
-    AwsCliNotInstalledBannerAction, AwsCliNotInstalledBannerState, ByoLlmAuthBannerSessionState,
+    AliasExpansionBanner, AliasExpansionBannerAction,
     OpenInWarpBannerState, SSHBannerAction, SSHBannerState, VimModeBannerAction,
 };
 use warp_core::command::ExitCode;
@@ -1000,15 +996,6 @@ struct InlineBannersState {
 
     vim_banner_state: Option<VimModeBannerState>,
 
-    codebase_index_speedbump_banner: Option<CodebaseIndexSpeedbumpBannerState>,
-
-    agent_setup_speedbump_banner: Option<AgentModeSetupSpeedbumpBannerState>,
-
-    anonymous_user_ai_sign_up_banner: Option<AnonymousUserAISignUpBannerState>,
-
-    aws_bedrock_login_banner: Option<AwsBedrockLoginBannerState>,
-
-    aws_cli_not_installed_banner: Option<AwsCliNotInstalledBannerState>,
 }
 
 impl InlineBannersState {

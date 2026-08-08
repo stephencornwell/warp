@@ -32,7 +32,6 @@ use warpui::{
 use settings::Setting;
 
 use crate::{
-    ai::AIRequestUsageModel,
     auth::{
         auth_manager::LoginGatedFeature, auth_state::AuthState, auth_view_modal::AuthViewVariant,
         AuthManager, AuthStateProvider, UserUid,
@@ -42,7 +41,6 @@ use crate::{
     pricing::{PricingInfoModel, PricingInfoModelEvent},
     send_telemetry_from_ctx,
     server::{ids::ServerId, telemetry::TelemetryEvent},
-    settings::ai::AISettings,
     settings_view::settings_page::TOGGLE_BUTTON_RIGHT_PADDING,
     ui_components::{
         blended_colors,

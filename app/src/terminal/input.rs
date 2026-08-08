@@ -1990,44 +1990,6 @@ impl Input {
                 ctx.notify();
             }
         });
-        ctx.subscribe_to_model(&agent_view_controller, |me, _, event, ctx| {
-            use crate::ai::blocklist::agent_view::AgentViewControllerEvent;
-            if let AgentViewControllerEvent::EnteredAgentView { origin, .. } = event {
-                me.close_suggestion_modes_for_new_conversation(ctx);
-                // Entering Agent View can remove multiline same-line prompt decorator content in a
-                // single render pass. Reset shrink-delay so we don't hold onto stale input height
-                // for one frame (which shows up as extra bottom padding/jitter).
-                me.editor.update(ctx, |editor, ctx| {
-                    editor.reset_height_shrink_delay(ctx);
-                });
-
-                if *origin == AgentViewEntryOrigin::CloudAgent {
-                    // By default, shared session viewers cannot edit the input - override that for composing ambient agent queries.
-                    me.editor.update(ctx, |editor, ctx| {
-                        editor.set_interaction_state(InteractionState::Editable, ctx);
-                    });
-                    me.set_zero_state_hint_text(ctx);
-                }
-            }
-            ctx.notify();
-        });
-
-        if let Some(ambient_agent_view_model) = ambient_agent_view_model.as_ref() {
-            ctx.subscribe_to_model(ambient_agent_view_model, |me, handle, _, ctx| {
-                let is_ambient = handle.as_ref(ctx).is_ambient_agent();
-                me.editor.update(ctx, |editor, ctx| {
-                    if let Some(ai_context_menu) = editor.ai_context_menu() {
-                        ai_context_menu.update(ctx, |menu, ctx| {
-                            menu.set_is_in_ambient_agent(is_ambient, ctx);
-                        });
-                    }
-                });
-                if handle.as_ref(ctx).should_show_status_footer() {
-                    ctx.notify();
-                }
-            });
-        }
-
         let prompt_selection_state_handle = SelectionHandle::default();
 
         let view_id = ctx.view_id();
@@ -2035,87 +1997,6 @@ impl Input {
         let input_render_state_model_handle: ModelHandle<InputRenderStateModel> =
             ctx.add_model(|_| InputRenderStateModel::new(false, size_info));
 
-        let universal_developer_input_button_bar = ctx.add_typed_action_view(|ctx| {
-            UniversalDeveloperInputButtonBar::new(
-                menu_positioning_provider.clone(),
-                terminal_view_id,
-                ai_input_model.clone(),
-                cli_subagent_controller.clone(),
-                ambient_agent_view_model.clone(),
-                model.clone(),
-                ctx,
-            )
-        });
-        ctx.subscribe_to_view(
-            &universal_developer_input_button_bar,
-            |me, _, event, ctx| {
-                me.handle_universal_developer_input_button_bar_event(event, ctx);
-            },
-        );
-        let agent_input_footer = ctx.add_typed_action_view(|ctx| {
-            AgentInputFooter::new(
-                menu_positioning_provider.clone(),
-                terminal_view_id,
-                ai_input_model.clone(),
-                model.clone(),
-                ambient_agent_view_model.clone(),
-                current_prompt.clone(),
-                footer_display_chip_config.clone(),
-                ctx,
-            )
-        });
-
-        let ambient_agent_view_state =
-            ambient_agent_view_model
-                .as_ref()
-                .map(|view_model| AmbientAgentViewState {
-                    view_model: view_model.clone(),
-                    harness_selector: {
-                        let harness_selector = ctx.add_typed_action_view(|ctx| {
-                            HarnessSelector::new(
-                                menu_positioning_provider.clone(),
-                                view_model.clone(),
-                                ctx,
-                            )
-                        });
-                        if FeatureFlag::CloudModeInputV2.is_enabled() {
-                            harness_selector.update(ctx, |selector, ctx| {
-                                selector.set_button_theme(NakedHeaderButtonTheme, ctx);
-                            });
-                        }
-                        // Mirror the V2 model selector / host selector refocus path: when the
-                        // harness selector menu closes (item picked or dismissed via Esc /
-                        // click-outside), restore focus to the input editor so typing resumes
-                        // immediately. This powers the "input is focused after the harness
-                        // selector closes" UX for the `/harness` slash command.
-                        ctx.subscribe_to_view(&harness_selector, |me, _, event, ctx| {
-                            let HarnessSelectorEvent::MenuVisibilityChanged { open } = event;
-                            if !*open {
-                                me.focus_input_box(ctx);
-                            }
-                        });
-                        harness_selector
-                    },
-                    host_selector: if FeatureFlag::CloudModeInputV2.is_enabled() {
-                        let view = ctx.add_typed_action_view(|ctx| {
-                            HostSelector::new(menu_positioning_provider.clone(), ctx)
-                        });
-                        // Mirror the V2 model selector's `ModelSelectorClosed` -> refocus path:
-                        // when the host selector menu closes (item picked or dismissed via Esc /
-                        // click-outside), restore focus to the input editor so typing resumes
-                        // immediately. This is what powers the "input is focused after the host
-                        // selector closes" UX for the `/harness` slash command.
-                        ctx.subscribe_to_view(&view, |me, _, event, ctx| {
-                            let HostSelectorEvent::MenuVisibilityChanged { open } = event;
-                            if !*open {
-                                me.focus_input_box(ctx);
-                            }
-                        });
-                        Some(view)
-                    } else {
-                        None
-                    },
-                });
         ctx.subscribe_to_model(&CLIAgentSessionsModel::handle(ctx), |me, _, event, ctx| {
             let CLIAgentSessionsModelEvent::InputSessionChanged {
                 terminal_view_id,

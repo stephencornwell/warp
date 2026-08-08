@@ -971,7 +971,6 @@ pub struct Workspace {
     left_panel_open: bool,
     left_panel_view: ViewHandle<LeftPanelView>,
     left_panel_views: Vec<ToolPanelView>,
-    right_panel_view: ViewHandle<RightPanelView>,
     working_directories_model: ModelHandle<pane_group::WorkingDirectoriesModel>,
     agent_management_view: ViewHandle<AgentManagementView>,
     notification_mailbox_view: Option<ViewHandle<NotificationMailboxView>>,
@@ -2587,13 +2586,6 @@ impl Workspace {
             me.handle_left_panel_event(event, ctx);
         });
 
-        let right_panel_view = ctx.add_typed_action_view(|ctx| {
-            RightPanelView::new(working_directories_model.clone(), ctx)
-        });
-        ctx.subscribe_to_view(&right_panel_view, |me, _, event, ctx| {
-            me.handle_right_panel_event(event.clone(), ctx);
-        });
-
         // Get persisted filters from window snapshot if restoring.
         let agent_management_filters = match workspace_setting {
             NewWorkspaceSource::Restored {
@@ -2989,7 +2981,6 @@ impl Workspace {
             left_panel_open: false,
             left_panel_view,
             left_panel_views,
-            right_panel_view,
             working_directories_model,
             shown_staging_banner_count: 0,
 
@@ -5531,53 +5522,6 @@ impl Workspace {
                 );
             }
         }
-    }
-
-    fn handle_right_panel_event(&mut self, event: RightPanelEvent, ctx: &mut ViewContext<Self>) {
-        #[cfg(feature = "local_fs")]
-        match event {
-            RightPanelEvent::ToggleMaximize => {
-                self.toggle_right_panel_maximized(ctx);
-            }
-            RightPanelEvent::OpenFileWithTarget {
-                path,
-                target,
-                line_col,
-            } => {
-                // Exit maximized mode so the opened file is visible.
-                if self
-                    .active_tab_pane_group()
-                    .as_ref(ctx)
-                    .is_right_panel_maximized
-                {
-                    self.toggle_right_panel_maximized(ctx);
-                }
-
-                self.open_file_with_target(
-                    path.clone(),
-                    target,
-                    line_col,
-                    CodeSource::Link {
-                        path,
-                        range_start: None,
-                        range_end: None,
-                    },
-                    ctx,
-                );
-            }
-            RightPanelEvent::OpenFileInNewTab {
-                path,
-                line_and_column,
-            } => {
-                self.add_tab_for_code_file(path, line_and_column, ctx);
-            }
-            #[cfg(not(target_family = "wasm"))]
-            RightPanelEvent::OpenLspLogs { log_path } => {
-                self.open_lsp_logs(&log_path, ctx);
-            }
-        }
-        #[cfg(not(feature = "local_fs"))]
-        let _ = (event, ctx);
     }
 
     /// Show the referral reward modal page, informing the user they have earned a theme reward

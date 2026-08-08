@@ -2366,7 +2366,7 @@ fn parse_conversation_ids(ids_json: &Option<String>) -> Vec<AIConversationId> {
         })
 }
 
-fn read_root_node(conn: &mut SqliteConnection, tab_id_val: i32) -> Result<PaneNodeSnapshot> {
+fn read_root_node(conn: &mut SqliteConnection, tab_id_val: i32) -> Result<Option<PaneNodeSnapshot>> {
     use schema::pane_nodes::dsl::*;
 
     let pane_node: model::PaneNode = schema::pane_nodes::dsl::pane_nodes
@@ -2377,7 +2377,7 @@ fn read_root_node(conn: &mut SqliteConnection, tab_id_val: i32) -> Result<PaneNo
 }
 
 /// Reads a saved node back into a snapshot.
-fn read_node(conn: &mut SqliteConnection, node: model::PaneNode) -> Result<PaneNodeSnapshot> {
+fn read_node(conn: &mut SqliteConnection, node: model::PaneNode) -> Result<Option<PaneNodeSnapshot>> {
     match node.is_leaf {
         true => {
             let pane = schema::pane_leaves::dsl::pane_leaves
@@ -2602,11 +2602,11 @@ fn read_node(conn: &mut SqliteConnection, node: model::PaneNode) -> Result<PaneN
                 other => bail!("Unrecognized pane kind: {other}"),
             };
 
-            Ok(PaneNodeSnapshot::Leaf(LeafSnapshot {
+            Ok(Some(PaneNodeSnapshot::Leaf(LeafSnapshot {
                 is_focused: pane.is_focused,
                 custom_vertical_tabs_title: pane.custom_vertical_tabs_title,
                 contents,
-            }))
+            })))
         }
         false => {
             let pane_branch = schema::pane_branches::dsl::pane_branches
@@ -2620,20 +2620,24 @@ fn read_node(conn: &mut SqliteConnection, node: model::PaneNode) -> Result<PaneN
 
             let mut children = Vec::new();
             for child_node in child_nodes {
-                children.push((
-                    PaneFlex(child_node.flex.unwrap_or(1.)),
-                    read_node(conn, child_node)?,
-                ));
+                let flex = PaneFlex(child_node.flex.unwrap_or(1.));
+                if let Some(child) = read_node(conn, child_node)? {
+                    children.push((flex, child));
+                }
+            }
+
+            if children.is_empty() {
+                return Ok(None);
             }
 
             let direction = match pane_branch.horizontal {
                 true => SplitDirection::Horizontal,
                 false => SplitDirection::Vertical,
             };
-            Ok(PaneNodeSnapshot::Branch(BranchSnapshot {
+            Ok(Some(PaneNodeSnapshot::Branch(BranchSnapshot {
                 direction,
                 children,
-            }))
+            })))
         }
     }
 }
@@ -2681,7 +2685,7 @@ fn read_sqlite_data(
             let saved_tabs: Vec<_> = tabs_for_window
                 .into_iter()
                 .filter_map(|tab| {
-                    let root = read_root_node(conn, tab.id).ok()?;
+                    let root = read_root_node(conn, tab.id).ok()??;
                     let panel = db_panels.get(&tab.id);
 
                     let left_panel = panel

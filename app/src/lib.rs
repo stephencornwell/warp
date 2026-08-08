@@ -15,7 +15,6 @@ mod changelog_model;
 mod chip_configurator;
 mod cloud_object;
 mod code;
-mod code_review;
 mod coding_entrypoints;
 mod coding_panel_enablement_state;
 mod command_palette;
@@ -131,7 +130,6 @@ use auth::auth_state::AuthStateProvider;
 use auth::{auth_manager::AuthManager, auth_state::AuthState};
 use code::editor_management::CodeManager;
 use code::opened_files::OpenedFilesModel;
-use code_review::GlobalCodeReviewModel;
 use quit_warning::UnsavedStateSummary;
 use server::network_log_pane_manager::NetworkLogPaneManager;
 use server::network_logging::NetworkLogModel;
@@ -1428,11 +1426,6 @@ fn initialize_app(
         });
     }
 
-    {
-        use code_review::git_status_update::GitStatusUpdateModel;
-        ctx.add_singleton_model(|_| GitStatusUpdateModel::new());
-    }
-
     ctx.add_singleton_model(|ctx| {
         ProjectManagementModel::new(persisted_projects, persistence_writer.sender(), ctx)
     });
@@ -1489,9 +1482,6 @@ fn initialize_app(
     env_vars::view::env_var_collection::init(ctx);
     terminal::view::init_environment::mode_selector::init(ctx);
     coding_entrypoints::project_buttons::init(ctx);
-    if FeatureFlag::CodeReviewSaveChanges.is_enabled() {
-        code_review::init(ctx);
-    }
 
     let display_count = ctx.windows().display_count();
     ctx.add_singleton_model(|_| DisplayCount(display_count));

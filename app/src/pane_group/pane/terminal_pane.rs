@@ -86,35 +86,6 @@ pub struct TerminalPane {
     view: ViewHandle<TerminalPaneView>,
 }
 
-fn resolve_runtime_skills(
-    skill_references: &[ai::skills::SkillReference],
-    ctx: &AppContext,
-) -> Result<Vec<String>, Vec<String>> {
-    let skill_manager = SkillManager::as_ref(ctx);
-    let mut runtime_skills = Vec::with_capacity(skill_references.len());
-    let mut unresolved_references = Vec::new();
-
-    for reference in skill_references {
-        let Some(skill) = skill_manager.skill_by_reference(reference) else {
-            unresolved_references.push(reference.to_string());
-            continue;
-        };
-        runtime_skills.push(serialize_proto_to_base64(&multi_agent_api::Skill::from(
-            skill.clone(),
-        )));
-    }
-
-    if unresolved_references.is_empty() {
-        Ok(runtime_skills)
-    } else {
-        Err(unresolved_references)
-    }
-}
-
-fn serialize_proto_to_base64<M: prost::Message>(message: &M) -> String {
-    BASE64_STANDARD.encode(message.encode_to_vec())
-}
-
 fn register_legacy_local_lifecycle_subscription(
     parent_conversation_id: AIConversationId,
     child_conversation_id: AIConversationId,

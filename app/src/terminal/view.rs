@@ -11,12 +11,10 @@ pub use init_project::{
     InitActionResult, InitProjectModel, InitProjectModelEvent, InitStepBlock, InitStepKind,
     ProjectScopedRulesResult,
 };
-pub(crate) mod docker_sandbox;
 mod link_detection;
 mod open_in_warp;
 mod pane_impl;
 pub mod rich_content;
-mod shared_session;
 mod shell_terminated_banner;
 pub mod ssh_file_upload;
 pub(crate) mod ssh_remote_server_choice_view;

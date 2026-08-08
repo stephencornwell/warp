@@ -53,7 +53,7 @@ use crate::ai::{
 };
 use crate::app_state::{
     LeafContents, LeafSnapshot, LeftPanelDisplayedTab, LeftPanelSnapshot, NotebookPaneSnapshot,
-    PaneNodeSnapshot, PaneUuid, RightPanelSnapshot, SettingsPaneSnapshot, TabSnapshot,
+    PaneNodeSnapshot, PaneUuid, SettingsPaneSnapshot, TabSnapshot,
     TerminalPaneSnapshot, WindowSnapshot, WorkflowPaneSnapshot,
 };
 use crate::code_review::diff_state::DiffStateModel;
@@ -3341,13 +3341,6 @@ impl Workspace {
                             self.restore_left_panel_for_tab(&pane_group, left_panel_snapshot, ctx);
                         }
 
-                        if let Some(right_panel_snapshot) = &saved_tab.right_panel {
-                            self.restore_right_panel_for_tab(
-                                &pane_group,
-                                right_panel_snapshot,
-                                ctx,
-                            );
-                        }
                     });
 
                 if self.tab_count() == 0 {
@@ -3514,32 +3507,6 @@ impl Workspace {
             };
             lp.restore_active_view_from_snapshot(active_view, ctx);
             lp.set_active_pane_group(pane_group.clone(), &self.working_directories_model, ctx);
-        });
-
-        ctx.notify();
-    }
-
-    fn restore_right_panel_for_tab(
-        &mut self,
-        pane_group: &ViewHandle<PaneGroup>,
-        right_panel_snapshot: &RightPanelSnapshot,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        pane_group.update(ctx, |pg, _| {
-            pg.right_panel_open = true;
-            pg.is_right_panel_maximized = right_panel_snapshot.is_maximized;
-        });
-
-        let resizable = ResizableData::handle(ctx);
-        if let Some(modal_sizes) = resizable.as_ref(ctx).get_all_handles(self.window_id) {
-            if let Ok(mut handle) = modal_sizes.right_panel_width.lock() {
-                handle.set_size(right_panel_snapshot.width as f32);
-            }
-        }
-
-        self.right_panel_view.update(ctx, |rp, ctx| {
-            rp.set_active_pane_group(pane_group.clone(), &self.working_directories_model, ctx);
-            rp.set_maximized(right_panel_snapshot.is_maximized, ctx);
         });
 
         ctx.notify();

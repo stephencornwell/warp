@@ -21,7 +21,6 @@ mod toast_stack;
 pub mod util;
 pub mod view;
 
-use crate::ai::blocklist::NEW_AGENT_PANE_LABEL;
 use crate::ai::skills::SkillManager;
 use crate::ai::AIRequestUsageModel;
 use crate::channel::Channel;
@@ -29,7 +28,6 @@ use crate::code;
 use crate::features::FeatureFlag;
 use crate::modal;
 use crate::notebooks;
-use crate::server::telemetry::AgentModeEntrypoint;
 use crate::server::telemetry::PaletteSource;
 use crate::settings::AISettings;
 use crate::settings_view::{self, flags, SettingsSection};
@@ -85,7 +83,7 @@ pub fn is_feedback_skill_available(ctx: &AppContext) -> bool {
 use crate::workspace::view::{
     LEFT_PANEL_AGENT_CONVERSATIONS_BINDING_NAME, LEFT_PANEL_GLOBAL_SEARCH_BINDING_NAME,
     LEFT_PANEL_PROJECT_EXPLORER_BINDING_NAME, LEFT_PANEL_WARP_DRIVE_BINDING_NAME,
-    NEW_AGENT_TAB_BINDING_NAME, NEW_AMBIENT_AGENT_TAB_BINDING_NAME, NEW_TAB_BINDING_NAME,
+    NEW_TAB_BINDING_NAME,
     NEW_TERMINAL_TAB_BINDING_NAME, OPEN_GLOBAL_SEARCH_BINDING_NAME,
     TOGGLE_CONVERSATION_LIST_VIEW_BINDING_NAME, TOGGLE_NOTIFICATION_MAILBOX_BINDING_NAME,
     TOGGLE_PROJECT_EXPLORER_BINDING_NAME, TOGGLE_RIGHT_PANEL_BINDING_NAME,
@@ -684,28 +682,6 @@ pub fn init(app: &mut AppContext) {
         .with_custom_action(CustomAction::NewTerminalTab)
         .with_enabled(|| ContextFlag::CreateNewSession.is_enabled()),
         EditableBinding::new(
-            NEW_AGENT_TAB_BINDING_NAME,
-            BindingDescription::new("New Agent Tab"),
-            WorkspaceAction::AddAgentTab,
-        )
-        .with_group(bindings::BindingGroup::WarpAi.as_str())
-        .with_custom_action(CustomAction::NewAgentTab)
-        .with_context_predicate(
-            id!("Workspace") & id!(flags::IS_ANY_AI_ENABLED) & !id!("Workspace_PaneDragging"),
-        ),
-        EditableBinding::new(
-            NEW_AMBIENT_AGENT_TAB_BINDING_NAME,
-            BindingDescription::new("New Cloud Agent Tab"),
-            WorkspaceAction::AddAmbientAgentTab,
-        )
-        .with_group(bindings::BindingGroup::WarpAi.as_str())
-        .with_context_predicate(
-            id!("Workspace") & id!(flags::IS_ANY_AI_ENABLED) & !id!("Workspace_PaneDragging"),
-        )
-        .with_enabled(|| {
-            FeatureFlag::AgentView.is_enabled() && FeatureFlag::CloudMode.is_enabled()
-        }),
-        EditableBinding::new(
             "workspace:toggle_left_panel",
             BindingDescription::new("Open Left Panel"),
             WorkspaceAction::ToggleLeftPanel,
@@ -1113,34 +1089,6 @@ pub fn init(app: &mut AppContext) {
         ]);
     }
 
-    // We use the same binding name for the AI Assistant and block list AI to preserve custom
-    // keybindings between them.
-    app.register_editable_bindings([
-        EditableBinding::new(
-            "workspace:toggle_ai_assistant",
-            *NEW_AGENT_PANE_LABEL,
-            WorkspaceAction::NewPaneInAgentMode {
-                entrypoint: AgentModeEntrypoint::NewPaneBinding,
-                zero_state_prompt_suggestion_type: None,
-            },
-        )
-        .with_enabled(|| FeatureFlag::AgentMode.is_enabled())
-        .with_context_predicate(id!("Workspace") & id!(flags::IS_ANY_AI_ENABLED))
-        .with_group(bindings::BindingGroup::WarpAi.as_str())
-        .with_custom_action(CustomAction::NewAgentModePane),
-        EditableBinding::new(
-            "workspace:toggle_ai_assistant",
-            "Toggle Warp AI",
-            WorkspaceAction::ToggleAIAssistant,
-        )
-        .with_enabled(|| !FeatureFlag::AgentMode.is_enabled())
-        .with_context_predicate(id!("Workspace") & id!(flags::IS_ANY_AI_ENABLED))
-        .with_group(bindings::BindingGroup::WarpAi.as_str())
-        // We use the same custom action as AM so that we don't have
-        // two mac menu items for AM vs Warp AI since they are mutually exclusive.
-        .with_custom_action(CustomAction::NewAgentModePane),
-    ]);
-
     app.register_editable_bindings([
         EditableBinding::new(
             "workspace:create_team_env_vars",
@@ -1255,30 +1203,7 @@ pub fn init(app: &mut AppContext) {
         .with_context_predicate(id!("Workspace"))
         .with_custom_action(CustomAction::OpenRepository)
         .with_group(bindings::BindingGroup::Folders.as_str()),
-        EditableBinding::new(
-            "workspace:open_ai_fact_collection",
-            BindingDescription::new("Open AI Rules")
-                .with_custom_description(bindings::MAC_MENUS_CONTEXT, "Open AI Rules"),
-            WorkspaceAction::OpenAIFactCollection,
-        )
-        .with_enabled(|| FeatureFlag::AIRules.is_enabled())
-        .with_custom_action(CustomAction::OpenAIFactCollection)
-        .with_context_predicate(id!("Workspace") & id!(flags::IS_ANY_AI_ENABLED))
-        .with_group(bindings::BindingGroup::WarpAi.as_str()),
     ]);
-
-    app.register_editable_bindings([EditableBinding::new(
-        "workspace:open_mcp_servers",
-        BindingDescription::new("Open MCP Servers")
-            .with_custom_description(bindings::MAC_MENUS_CONTEXT, "Open MCP Servers"),
-        WorkspaceAction::OpenMCPServerCollection,
-    )
-    .with_enabled(|| {
-        FeatureFlag::McpServer.is_enabled() && ContextFlag::ShowMCPServers.is_enabled()
-    })
-    .with_custom_action(CustomAction::OpenMCPServerCollection)
-    .with_context_predicate(id!("Workspace") & id!(flags::IS_ANY_AI_ENABLED))
-    .with_group(bindings::BindingGroup::WarpAi.as_str())]);
 
     app.register_editable_bindings([EditableBinding::new(
         "workspace:jump_to_latest_toast",

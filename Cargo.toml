@@ -8,6 +8,7 @@ exclude = [
   "crates/graphql",
   "crates/warp_graphql_schema",
   "crates/warp_server_client",
+  "crates/managed_secrets",
 ]
 
 # Include all members except serve-wasm (since it's a helper helper for serving

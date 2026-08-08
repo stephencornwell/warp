@@ -160,12 +160,6 @@ pub struct LoginSlideView {
     /// not have been written yet at this point, since onboarding settings are
     /// applied after login.
     ai_enabled: bool,
-    /// Onboarding intention selected by the user, used to render Drive-focused
-    /// copy on the Terminal+Drive path. On the login slide, `intention ==
-    /// OnboardingIntention::Terminal` is equivalent to "Terminal+Drive":
-    /// `RootView` only routes Terminal-intent users here when Warp Drive is
-    /// enabled.
-    intention: OnboardingIntention,
     theme_visual_path: &'static str,
     step: LoginStep,
     active_overlay: Option<LoginSlideOverlay>,
@@ -213,22 +207,9 @@ const VISUAL_IMAGE_PATHS: &[&str] = &[
     "async/png/onboarding/terminal_intention/theme/theme_light_horizontal.png",
     "async/png/onboarding/terminal_intention/theme/theme_adeberry_vertical.png",
     "async/png/onboarding/terminal_intention/theme/theme_adeberry_horizontal.png",
-    // Agent intention
-    "async/png/onboarding/agent_intention/theme/theme_phenomenon_vertical.png",
-    "async/png/onboarding/agent_intention/theme/theme_phenomenon_horizontal.png",
-    "async/png/onboarding/agent_intention/theme/theme_dark_vertical.png",
-    "async/png/onboarding/agent_intention/theme/theme_dark_horizontal.png",
-    "async/png/onboarding/agent_intention/theme/theme_light_vertical.png",
-    "async/png/onboarding/agent_intention/theme/theme_light_horizontal.png",
-    "async/png/onboarding/agent_intention/theme/theme_adeberry_vertical.png",
-    "async/png/onboarding/agent_intention/theme/theme_adeberry_horizontal.png",
 ];
 
-fn resolve_visual_path(intention: OnboardingIntention, theme_name: &str) -> &'static str {
-    let intention_dir = match intention {
-        OnboardingIntention::AgentDrivenDevelopment => "agent_intention",
-        OnboardingIntention::Terminal => "terminal_intention",
-    };
+fn resolve_visual_path(theme_name: &str) -> &'static str {
     let name_key = match theme_name {
         "Phenomenon" => "phenomenon",
         "Dark" => "dark",
@@ -238,7 +219,7 @@ fn resolve_visual_path(intention: OnboardingIntention, theme_name: &str) -> &'st
     };
     VISUAL_IMAGE_PATHS
         .iter()
-        .find(|p| p.contains(intention_dir) && p.contains(name_key) && p.contains("horizontal"))
+        .find(|p| p.contains(name_key) && p.contains("horizontal"))
         .unwrap_or(&VISUAL_IMAGE_PATHS[0])
 }
 
@@ -252,7 +233,6 @@ impl LoginSlideView {
     pub fn new(
         ai_enabled: bool,
         theme_name: &str,
-        intention: OnboardingIntention,
         source: LoginSlideSource,
         ctx: &mut ViewContext<Self>,
     ) -> Self {
@@ -299,8 +279,7 @@ impl LoginSlideView {
 
         Self {
             ai_enabled,
-            intention,
-            theme_visual_path: resolve_visual_path(intention, theme_name),
+            theme_visual_path: resolve_visual_path(theme_name),
             step: match source {
                 LoginSlideSource::OnboardingFlow => LoginStep::SelectAuthPathway,
                 LoginSlideSource::LoginExistingUserFromWelcome => LoginStep::BrowserOpen,

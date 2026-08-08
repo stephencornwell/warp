@@ -539,12 +539,6 @@ pub enum WorkspaceAction {
     ViewAgentRunsForEnvironment {
         environment_id: String,
     },
-    /// Show the rewind confirmation dialog before rewinding an AI conversation
-    ShowRewindConfirmationDialog {
-        ai_block_view_id: EntityId,
-        exchange_id: AIAgentExchangeId,
-        conversation_id: AIConversationId,
-    },
     /// Execute the actual rewind after confirmation
     ExecuteRewindAIConversation {
         ai_block_view_id: EntityId,
@@ -873,7 +867,6 @@ impl WorkspaceAction {
             | ToggleAIDocumentPane { .. }
             | HideAIDocumentPanes
             | OpenAIDocumentPane { .. }
-            | ShowRewindConfirmationDialog { .. }
             | ExecuteRewindAIConversation { .. }
             | ExecuteDeleteConversation { .. }
             | OpenAmbientAgentSession { .. }

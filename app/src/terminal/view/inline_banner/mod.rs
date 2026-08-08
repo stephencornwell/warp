@@ -1,15 +1,10 @@
 //! This module contains logic to render inline banners for various use cases in the Blocklist. An
 //! inline banner is distinct from a typical app banner in that inline banner are rendered within
 //! the Blocklist (between blocks) while app banners are pinned to the top of the window.
-mod agent_mode_setup;
 mod alias_expansion;
-mod anonymous_user_ai_sign_up;
-mod aws_bedrock_login;
-mod aws_cli_not_installed;
 mod notifications_discovery;
 mod notifications_error;
 mod open_in_warp;
-mod passive_code_diff;
 pub(crate) mod prompt_suggestions;
 mod session_state;
 mod shared_sessions;
@@ -18,15 +13,10 @@ mod ssh;
 mod vim_mode;
 
 pub use self::prompt_suggestions::*;
-pub use agent_mode_setup::*;
 pub use alias_expansion::*;
-pub use anonymous_user_ai_sign_up::*;
-pub use aws_bedrock_login::*;
-pub use aws_cli_not_installed::*;
 pub use notifications_discovery::*;
 pub use notifications_error::*;
 pub use open_in_warp::*;
-pub use passive_code_diff::*;
 pub use session_state::*;
 pub use shared_sessions::*;
 pub use shell_process_terminated::*;

@@ -935,11 +935,6 @@ pub enum InlineBannerType {
     ShellProcessTerminated,
     OpenInWarp,
     VimMode,
-    CodebaseIndexSpeedbump,
-    AgentModeSetup,
-    AnonymousUserAISignUp,
-    AwsBedrockLogin,
-    AwsCliNotInstalled,
 }
 
 impl InlineBannerType {
@@ -947,15 +942,8 @@ impl InlineBannerType {
     /// Exhaustive match ensures new banner types must define their visibility.
     pub fn is_visible_in_agent_view(&self) -> bool {
         match self {
-            // Agent-related banners: visible in agent view
             Self::PromptSuggestions
-            | Self::CodebaseIndexSpeedbump
-            | Self::AgentModeSetup
-            | Self::AnonymousUserAISignUp
-            | Self::AwsBedrockLogin
-            | Self::AwsCliNotInstalled => true,
-            // Terminal-context banners: hidden in agent view
-            Self::NotificationsDiscovery
+            | Self::NotificationsDiscovery
             | Self::NotificationsError
             | Self::Ssh
             | Self::AliasExpansion

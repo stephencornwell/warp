@@ -17371,8 +17371,6 @@ impl Workspace {
         };
 
         let pane_group = self.active_tab_pane_group().as_ref(app);
-        let is_right_open = pane_group.right_panel_open;
-        let is_right_maximized = is_right_open && pane_group.is_right_panel_maximized;
 
         let mut main_content = Flex::row();
 
@@ -17388,13 +17386,11 @@ impl Workspace {
                 app,
             );
         }
-        if !is_right_maximized {
-            if prev_panel_added {
-                main_content.add_child(Self::render_panel_separator(app));
-            }
-            main_content = main_content.with_child(Shrinkable::new(1.0, terminal_content).finish());
-            prev_panel_added = true;
+        if prev_panel_added {
+            main_content.add_child(Self::render_panel_separator(app));
         }
+        main_content = main_content.with_child(Shrinkable::new(1.0, terminal_content).finish());
+        prev_panel_added = true;
         for item in config.right_items() {
             Self::add_panel_with_separator(
                 &mut main_content,
@@ -18046,15 +18042,7 @@ impl Workspace {
                 }
                 Some(ChildView::new(&self.left_panel_view).finish())
             }
-            HeaderToolbarItemKind::CodeReview => {
-                if !pane_group.right_panel_open {
-                    return None;
-                }
-                if pane_group.is_right_panel_maximized {
-                    return None;
-                }
-                Some(ChildView::new(&self.right_panel_view).finish())
-            }
+            HeaderToolbarItemKind::CodeReview => None,
             HeaderToolbarItemKind::AgentManagement
             | HeaderToolbarItemKind::NotificationsMailbox => None,
         }
@@ -18067,13 +18055,8 @@ impl Workspace {
         _config: &HeaderToolbarChipSelection,
         app: &AppContext,
     ) -> Option<Box<dyn Element>> {
-        if !pane_group.right_panel_open || !pane_group.is_right_panel_maximized {
-            return None;
-        }
-        if !HeaderToolbarItemKind::CodeReview.is_available(app) {
-            return None;
-        }
-        Some(Shrinkable::new(1.0, ChildView::new(&self.right_panel_view).finish()).finish())
+        let _ = (pane_group, app);
+        None
     }
 
     /// Offset positioning for agent toasts.

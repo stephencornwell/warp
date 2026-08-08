@@ -178,10 +178,6 @@ const BUTTON_FONT_SIZE: f32 = 14.;
 const BUTTON_BORDER_RADIUS: f32 = 4.;
 const BUTTON_HEIGHT: f32 = 32.;
 
-const AI_ASSIST_BUTTON_SIZE: f32 = 92.;
-const AI_ASSIST_BUTTON_TEXT: &str = "Autofill";
-const AI_ASSIST_LOADING_TEXT: &str = "Loading";
-
 const ALIAS_HELP_TEXT: &str = "Aliases allow you to create short strings to execute workflows. Each alias can have different argument values and environment variables, and aliases are personal to you.";
 
 const RUN_ON_DESKTOP_BUTTON_TEXT: &str = "Run in Warp";
@@ -192,12 +188,6 @@ const KEEP_EDITING_TEXT: &str = "Keep editing";
 const DISCARD_CHANGES_TEXT: &str = "Discard changes";
 const DIALOG_WIDTH: f32 = 460.;
 const MODAL_HORIZONTAL_MARGIN: f32 = 28.;
-
-pub(super) enum AiAssistState {
-    PreRequest,
-    RequestInFlight,
-    Generated,
-}
 
 /// A grouping of various error states the modal can be in. Any of these being
 /// `true` prevents the save button from being clickable.
@@ -287,8 +277,6 @@ struct UiStateHandles {
     restore_from_trash_button: MouseStateHandle,
     keep_editing_state: MouseStateHandle,
     discard_changes_state: MouseStateHandle,
-    ai_assist_state: MouseStateHandle,
-    ai_assist_tool_tip: MouseStateHandle,
     edit_mode_button_mouse_state: MouseStateHandle,
     copy_content_button_mouse_state: MouseStateHandle,
     execute_command_mouse_state: MouseStateHandle,
@@ -322,10 +310,7 @@ pub struct WorkflowView {
     /// to append a number to the default argument name (argument_1, argument_2,
     /// etc.).
     default_argument_id: usize,
-    pub(super) ai_metadata_assist_state: AiAssistState,
     revision_ts: Option<Revision>,
-    pub(super) auth_state: Arc<AuthState>,
-    pub(super) ai_client: Arc<dyn AIClient>,
     owner: Option<Owner>,
     initial_folder_id: Option<SyncId>,
 
@@ -420,8 +405,6 @@ impl WorkflowView {
             me.handle_content_editor_event(event, ctx);
         });
 
-        let ai_client = ServerApiProvider::as_ref(ctx).get_ai_client();
-
         let enum_creation_dialog = ctx.add_typed_action_view(EnumCreationDialog::new);
         ctx.subscribe_to_view(&enum_creation_dialog, |me, _, event, ctx| {
             me.handle_enum_creation_dialog_event(event, ctx);
@@ -466,13 +449,10 @@ impl WorkflowView {
             ui_state_handles: Default::default(),
             show_unsaved_changes: None,
             default_argument_id: 0,
-            ai_metadata_assist_state: AiAssistState::PreRequest,
             owner: None,
             initial_folder_id: None,
             revision_ts: None,
             command_display_data: WorkflowCommandDisplayData::new_empty(),
-            auth_state: AuthStateProvider::as_ref(ctx).get().clone(),
-            ai_client,
             pending_argument_editor_row: None,
             show_enum_creation_dialog: false,
             enum_creation_dialog,
@@ -2428,58 +2408,6 @@ impl WorkflowView {
             .finish();
 
         let mut button_row = Flex::row();
-
-        let label_and_icon = match self.ai_metadata_assist_state {
-            AiAssistState::PreRequest => Some((AI_ASSIST_BUTTON_TEXT, Icon::AiAssistant)),
-            AiAssistState::RequestInFlight => Some((AI_ASSIST_LOADING_TEXT, Icon::Refresh)),
-            AiAssistState::Generated => None,
-        };
-
-        if let Some((label, icon)) = label_and_icon {
-            // AI-generated workflow metadata is only supported for Command workflows currently.
-            if AISettings::as_ref(app).is_any_ai_enabled(app)
-                && self.is_editable()
-                && !self.is_for_agent_mode
-            {
-                let mut button = self
-                    .build_footer_button(
-                        ButtonVariant::Secondary,
-                        label.to_string(),
-                        Some((icon, TextAndIconAlignment::TextFirst)),
-                        self.ui_state_handles.ai_assist_state.clone(),
-                        appearance,
-                    )
-                    .with_style(UiComponentStyles {
-                        width: Some(AI_ASSIST_BUTTON_SIZE),
-                        ..Default::default()
-                    });
-
-                if self.is_ai_assist_button_disabled(app) {
-                    button = button.disabled();
-                }
-
-                let rendered_button = button
-                    .build()
-                    .with_cursor(Cursor::PointingHand)
-                    .on_click(move |ctx, _, _| ctx.dispatch_typed_action(WorkflowAction::AiAssist))
-                    .finish();
-
-                let button_with_tool_tip = appearance.ui_builder().tool_tip_on_element(
-                    "Generate a title, descriptions, or parameters with Warp AI".to_string(),
-                    self.ui_state_handles.ai_assist_tool_tip.clone(),
-                    rendered_button,
-                    ParentAnchor::TopMiddle,
-                    ChildAnchor::BottomMiddle,
-                    vec2f(0., 5.),
-                );
-
-                button_row.add_child(
-                    Container::new(button_with_tool_tip)
-                        .with_margin_right(8.)
-                        .finish(),
-                )
-            }
-        }
 
         if self.is_editable() {
             // If we are in a context where we can't run workflows and are in the edit mode, then

@@ -674,7 +674,7 @@ pub enum InputSuggestionsMode {
     /// Prompts menu mode for /prompts command.
     PromptsMenu,
 
-    /// User query menu mode for selecting a query point (e.g., fork-from, rewind).
+    /// User query menu mode for selecting a query point.
     UserQueryMenu {
         action: UserQueryMenuAction,
         conversation_id: AIConversationId,
@@ -758,10 +758,6 @@ impl InputSuggestionsMode {
                 action: UserQueryMenuAction::ForkFrom,
                 ..
             } => Some("Search queries"),
-            InputSuggestionsMode::UserQueryMenu {
-                action: UserQueryMenuAction::Rewind,
-                ..
-            } => Some("Search queries to rewind to"),
             InputSuggestionsMode::ConversationMenu => Some("Search conversations"),
             InputSuggestionsMode::SkillMenu => Some("Search skills"),
             InputSuggestionsMode::ModelSelector => Some("Search models"),
@@ -1622,7 +1618,6 @@ pub struct Input {
     /// Inline menu for selecting a query point when forking a conversation.
     user_query_menu_view: ViewHandle<UserQueryMenuView>,
 
-    /// Inline menu for selecting a rewind point in a conversation.
 
     /// Inline history menu for up-arrow with conversations and commands.
     inline_history_menu_view: ViewHandle<InlineHistoryMenuView>,
@@ -7584,15 +7579,6 @@ impl Input {
                 });
                 true
             }
-            InputSuggestionsMode::UserQueryMenu {
-                action: UserQueryMenuAction::Rewind,
-                ..
-            } => {
-                self.rewind_menu_view.update(ctx, |view, ctx| {
-                    view.select_up(ctx);
-                });
-                true
-            }
             InputSuggestionsMode::ModelSelector => {
                 self.inline_model_selector_view.update(ctx, |view, ctx| {
                     view.select_up(ctx);
@@ -7944,15 +7930,6 @@ impl Input {
                 ..
             } => {
                 self.user_query_menu_view.update(ctx, |view, ctx| {
-                    view.select_down(ctx);
-                });
-                true
-            }
-            InputSuggestionsMode::UserQueryMenu {
-                action: UserQueryMenuAction::Rewind,
-                ..
-            } => {
-                self.rewind_menu_view.update(ctx, |view, ctx| {
                     view.select_down(ctx);
                 });
                 true

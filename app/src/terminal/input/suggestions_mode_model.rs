@@ -182,7 +182,6 @@ impl InputSuggestionsModeModel {
         }
     }
 
-    /// Returns the conversation_id if the current mode is RewindMenu.
     pub fn is_inline_history_menu(&self) -> bool {
         matches!(self.mode, InputSuggestionsMode::InlineHistoryMenu { .. })
     }

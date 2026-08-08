@@ -1408,15 +1408,6 @@ pub struct Input {
     has_pending_command: bool,
     last_word_insertion: LastWordInsertion,
 
-    ai_controller: ModelHandle<BlocklistAIController>,
-    ai_context_model: ModelHandle<BlocklistAIContextModel>,
-    ai_input_model: ModelHandle<BlocklistAIInputModel>,
-    ai_action_model: ModelHandle<BlocklistAIActionModel>,
-    /// The input is responsible for managing the lifetime
-    /// of this mouse state handle.
-    #[allow(dead_code)]
-    ai_follow_up_icon_mouse_state: MouseStateHandle,
-
     /// To ensure we only have one run of completions-as-you-type at any given time,
     /// we keep an abort handle of the current run. If we have reason to start a new run
     /// (e.g. new input), we simply abort the existing run. The same applies to the
@@ -1463,19 +1454,6 @@ pub struct Input {
     /// Today, we only expect to use this for shared session viewers.
     deferred_remote_operations: DeferredRemoteOperations,
 
-    prompt_suggestions_banner_state: Option<PromptSuggestionBannerState>,
-    /// Shared flag checked by the editor's keymap context modifier to determine whether
-    /// to suppress the editor's ctrl-enter newline insertion when a prompt suggestion
-    /// banner is pending.
-    has_prompt_suggestion_banner: Arc<AtomicBool>,
-    /// Whether the most recent intelligent autosuggestion was accepted or not.
-    /// Cleared once a command is run.
-    was_intelligent_autosuggestion_accepted: bool,
-    /// We store info about the last intelligent autosuggestion because we need it for
-    /// data collection when the command completes, but state is cleared when the command is executed.
-    last_intelligent_autosuggestion_result: Option<IntelligentAutosuggestionResult>,
-    next_command_model: ModelHandle<NextCommandModel>,
-
     /// The last block that the user ran. This is used for generating autosuggestions.
     #[cfg_attr(not(feature = "local_fs"), allow(dead_code))]
     last_user_block_completed: Option<UserBlockCompleted>,
@@ -1486,53 +1464,10 @@ pub struct Input {
     conn: Option<Arc<Mutex<SqliteConnection>>>,
 
     /// Cached hint text to ensure it remains stable during shell initialization hooks
-    cached_agent_mode_hint_text: Option<&'static str>,
-
-
-    attachment_chips: Vec<AttachmentChip>,
-
-    is_processing_attached_images: bool,
-
-    universal_developer_input_button_bar: ViewHandle<UniversalDeveloperInputButtonBar>,
-
     terminal_input_message_bar: ViewHandle<TerminalInputMessageBar>,
-
-    agent_input_footer: ViewHandle<AgentInputFooter>,
-    prompt_suggestions_view: ViewHandle<PromptSuggestionsView>,
-
-    inline_slash_commands_view: ViewHandle<InlineSlashCommandView>,
-    cloud_mode_v2_slash_commands_view: Option<ViewHandle<CloudModeV2SlashCommandView>>,
-    slash_command_data_source: ModelHandle<SlashCommandDataSource>,
-
-    /// Inline conversation menu for selecting AI conversations.
-    inline_conversation_menu_view: ViewHandle<InlineConversationMenuView>,
-
-    /// Inline plan menu for selecting among multiple plans.
-    inline_plan_menu_view: ViewHandle<InlinePlanMenuView>,
 
     /// Inline repos switcher menu.
     inline_repos_menu_view: ViewHandle<InlineReposMenuView>,
-
-    /// Inline model selector for choosing the Agent base model.
-    inline_model_selector_view: ViewHandle<InlineModelSelectorView>,
-    /// Inline profile selector for choosing the active execution profile.
-    inline_profile_selector_view: ViewHandle<InlineProfileSelectorView>,
-
-    /// Inline skill selector for /open-skill command.
-    inline_skill_selector_view: ViewHandle<InlineSkillSelectorView>,
-
-    /// Whether the skill selector should invoke (true) or open (false) the skill.
-    skill_selector_should_invoke: bool,
-
-    /// Inline prompts menu for /prompts command.
-    inline_prompts_menu_view: ViewHandle<InlinePromptsMenuView>,
-
-    /// Inline menu for selecting a query point when forking a conversation.
-    user_query_menu_view: ViewHandle<UserQueryMenuView>,
-
-
-    /// Model for managing terminal input state.
-    slash_command_model: Option<ModelHandle<SlashCommandModel>>,
 
     /// Cached flag indicating whether the editor buffer is empty, used to track changes between
     /// empty and non-empty states.
@@ -1543,13 +1478,6 @@ pub struct Input {
 
     /// Weak handle to this input view for drop target data
     weak_view_handle: WeakViewHandle<Input>,
-
-    buy_credits_banner: ViewHandle<BuyCreditsBanner>,
-    agent_status_view: ViewHandle<BlocklistAIStatusBar>,
-    agent_view_controller: ModelHandle<AgentViewController>,
-    agent_shortcut_view_model: ModelHandle<AgentShortcutViewModel>,
-    ambient_agent_view_state: Option<AmbientAgentViewState>,
-    ephemeral_message_model: ModelHandle<EphemeralMessageModel>,
 
     /// When a command is executed from a prompt chip (e.g. `cd` from the directory dropdown),
     /// we snapshot the current input contents here so we can restore them after the command

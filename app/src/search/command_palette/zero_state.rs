@@ -118,10 +118,6 @@ impl ZeroState {
             valid_filters.push(QueryFilter::LaunchConfigurations);
         }
 
-        if AISettings::as_ref(app).is_any_ai_enabled(app) {
-            valid_filters.push(QueryFilter::Conversations);
-        }
-
         valid_filters.into_iter()
     }
 }

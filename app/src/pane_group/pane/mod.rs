@@ -223,6 +223,11 @@ impl PaneId {
         Self::new_from_ctx(IPaneType::Code, ctx)
     }
 
+    /// Creates a [`PaneId`] from a [`ViewContext<PaneView<CodeDiffView>>`]
+    pub fn from_code_diff_pane_ctx(ctx: &ViewContext<PaneView<CodeDiffView>>) -> Self {
+        Self::new_from_ctx(IPaneType::CodeDiff, ctx)
+    }
+
     /// Creates a [`PaneId`] from a [`ViewContext<PaneView<SettingsView>>`]
     pub fn from_settings_pane_ctx(ctx: &ViewContext<PaneView<SettingsView>>) -> Self {
         Self::new_from_ctx(IPaneType::Settings, ctx)
@@ -263,6 +268,13 @@ impl PaneId {
     /// Creates a [`PaneId`] from a [`PaneView<TextView>`] entity ID.
     pub fn from_code_pane_view(code_pane_view: &ViewHandle<PaneView<CodeView>>) -> Self {
         Self::new(IPaneType::Code, code_pane_view)
+    }
+
+    /// Creates a [`PaneId`] from a [`PaneView<CodeDiffView>`] entity ID.
+    pub fn from_code_diff_pane_view(
+        code_diff_pane_view: &ViewHandle<PaneView<CodeDiffView>>,
+    ) -> Self {
+        Self::new(IPaneType::CodeDiff, code_diff_pane_view)
     }
 
     /// Creates a [`PaneId`] from a [`PaneView<EnvVarCollection>`] entity ID.
@@ -397,6 +409,9 @@ impl PaneId {
             }
             IPaneType::Code => {
                 ChildView::<PaneView<CodeView>>::with_id(self.0.pane_view_id).finish()
+            }
+            IPaneType::CodeDiff => {
+                ChildView::<PaneView<CodeDiffView>>::with_id(self.0.pane_view_id).finish()
             }
             IPaneType::EnvVarCollection => {
                 ChildView::<PaneView<EnvVarCollectionView>>::with_id(self.0.pane_view_id).finish()

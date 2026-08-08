@@ -18916,48 +18916,6 @@ impl TypedActionView for Workspace {
                     }
                 }
             }
-            #[cfg(feature = "local_fs")]
-            OpenCodeReviewPanel(locator) => {
-                let pane_group_handle = self
-                    .tabs
-                    .iter()
-                    .find(|tab| tab.pane_group.id() == locator.pane_group_id)
-                    .map(|tab| tab.pane_group.clone());
-                if let Some(pane_group_handle) = pane_group_handle {
-                    let read_result = pane_group_handle.read(ctx, |pane_group, ctx| {
-                        pane_group
-                            .terminal_view_from_pane_id(locator.pane_id, ctx)
-                            .map(|terminal_view| {
-                                let repo_path =
-                                    terminal_view.as_ref(ctx).current_repo_path().cloned();
-                                (repo_path, terminal_view.downgrade())
-                            })
-                    });
-                    if let Some((repo_path, terminal_view)) = read_result {
-                        let diff_state_model = repo_path.as_ref().and_then(|rp| {
-                            self.working_directories_model.update(ctx, |model, ctx| {
-                                model.get_or_create_diff_state_model(rp.clone(), ctx)
-                            })
-                        });
-                        if let Some(diff_state_model) = diff_state_model {
-                            let context = CodeReviewPaneContext {
-                                repo_path,
-                                diff_state_model,
-                                terminal_view,
-                            };
-                            self.open_right_panel(
-                                &context,
-                                &pane_group_handle,
-                                CodeReviewPaneEntrypoint::GitDiffChip,
-                                None,
-                                ctx,
-                            );
-                        }
-                    }
-                }
-            }
-            #[cfg(not(feature = "local_fs"))]
-            OpenCodeReviewPanel(_) => {}
             ToggleNotificationMailbox { select_first } => {
                 if FeatureFlag::HOANotifications.is_enabled()
                     && *AISettings::as_ref(ctx).show_agent_notifications
@@ -19024,8 +18982,6 @@ impl TypedActionView for Workspace {
             ClosePanel => {
                 if self.left_panel_view.is_self_or_child_focused(ctx) {
                     self.close_left_panel(ctx);
-                } else if self.right_panel_view.is_self_or_child_focused(ctx) {
-                    let pane_group_handle = self.active_tab_pane_group().clone();
                 }
             }
             OpenInExplorer { path } => {

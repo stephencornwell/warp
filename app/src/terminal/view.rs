@@ -5,12 +5,7 @@ pub mod init;
 pub mod inline_banner;
 // TODO(advait): if we align on prompt suggestions banner in Input, move code out of inline_banner mod.
 pub(crate) mod init_environment;
-mod init_project;
 use crate::global_resource_handles::GlobalResourceHandlesProvider;
-pub use init_project::{
-    InitActionResult, InitProjectModel, InitProjectModelEvent, InitStepBlock, InitStepKind,
-    ProjectScopedRulesResult,
-};
 mod link_detection;
 mod open_in_warp;
 mod pane_impl;

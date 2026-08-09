@@ -1,5 +1,4 @@
 use warp_core::safe_error;
-use crate::send_telemetry_from_ctx;
 mod element;
 mod figma_utils;
 mod model;
@@ -5046,13 +5045,7 @@ impl EditorView {
 
         let is_udi_enabled = InputSettings::as_ref(ctx).is_universal_developer_input_enabled(ctx);
 
-        send_telemetry_from_ctx!(
-            TelemetryEvent::AttachedImagesToAgentModeQuery {
-                num_images: pending_images.len(),
-                is_udi_enabled,
-            },
-            ctx
-        );
+        ();
 
         self.process_attached_images_future_handle = Some(ctx.spawn(
             async move {

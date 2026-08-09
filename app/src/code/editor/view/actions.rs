@@ -1,5 +1,4 @@
 #![cfg_attr(target_family = "wasm", allow(dead_code, unused_imports))]
-use crate::send_telemetry_from_ctx;
 // Adding this file level gate as some of the code around editability is not used in WASM yet.
 
 use crate::code::editor::{
@@ -1046,7 +1045,7 @@ impl TypedActionView for CodeEditorView {
             }
             RevertDiffHunk { line_range } => {
                 if FeatureFlag::RevertDiffHunk.is_enabled() {
-                    send_telemetry_from_ctx!(CodeReviewTelemetryEvent::RevertHunkClicked, ctx);
+                    ();
 
                     // Convert line range to diff hunk index and revert it
                     let hunk_index = self

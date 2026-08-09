@@ -1,4 +1,3 @@
-use crate::send_telemetry_from_ctx;
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::ops::Range;
@@ -924,7 +923,7 @@ impl GlobalSearchView {
     fn handle_find_model_event(&mut self, event: &GlobalSearchEvent, ctx: &mut ViewContext<Self>) {
         match event {
             GlobalSearchEvent::Started { search_id } => {
-                send_telemetry_from_ctx!(TelemetryEvent::GlobalSearchQueryStarted, ctx);
+                ();
 
                 self.current_search_id = Some(*search_id);
 

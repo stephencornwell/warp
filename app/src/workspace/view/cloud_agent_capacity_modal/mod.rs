@@ -1,4 +1,3 @@
-use crate::send_telemetry_from_ctx;
 use crate::auth::AuthStateProvider;
 use crate::pricing::PricingInfoModel;
 use crate::ui_components::blended_colors;
@@ -423,15 +422,12 @@ impl TypedActionView for CloudAgentCapacityModal {
     fn handle_action(&mut self, action: &Self::Action, ctx: &mut ViewContext<Self>) {
         match action {
             CloudAgentCapacityModalAction::Close => {
-                send_telemetry_from_ctx!(TelemetryEvent::CloudAgentCapacityModalDismissed, ctx);
+                ();
                 ctx.emit(CloudAgentCapacityModalEvent::Close);
             }
             CloudAgentCapacityModalAction::Upgrade => {
                 if let Some(upgrade_url) = self.cta_url(ctx) {
-                    send_telemetry_from_ctx!(
-                        TelemetryEvent::CloudAgentCapacityModalUpgradeClicked,
-                        ctx
-                    );
+                    ();
                     ctx.open_url(&upgrade_url);
                     ctx.emit(CloudAgentCapacityModalEvent::Close);
                 }

@@ -1,5 +1,4 @@
 #![cfg_attr(target_family = "wasm", allow(dead_code, unused_imports))]
-use crate::send_telemetry_from_ctx;
 // Adding this file level gate as some of the code around editability is not used in WASM yet.
 
 use crate::code::editor::line_iterator::LineIterator;
@@ -3817,7 +3816,7 @@ impl CoreEditorModel for CodeEditorModel {
 impl CodeEditorModel {
     pub fn open_comment_line(&mut self, line: &EditorLineLocation, ctx: &mut ModelContext<Self>) {
         // Telemetry: comment editor opened for a new inline review comment.
-        send_telemetry_from_ctx!(CodeReviewTelemetryEvent::CommentEditorOpened, ctx);
+        ();
 
         self.comments.update(ctx, |comments, ctx| {
             comments.pending_comment = PendingComment::Open { line: line.clone() };
@@ -3834,7 +3833,7 @@ impl CodeEditorModel {
         ctx: &mut ModelContext<Self>,
     ) {
         // Telemetry: comment editor opened for editing an existing inline review comment.
-        send_telemetry_from_ctx!(CodeReviewTelemetryEvent::CommentEditorOpened, ctx);
+        ();
 
         self.comments.update(ctx, |comments, ctx| {
             comments.pending_comment = PendingComment::Open { line: line.clone() };

@@ -1,4 +1,3 @@
-use crate::send_telemetry_from_ctx;
 use std::sync::Arc;
 
 use enclose::enclose;
@@ -140,16 +139,7 @@ impl BuyCreditsBanner {
                 // Things we always do:
                 // - emit telemetry
                 // - hide banner
-                send_telemetry_from_ctx!(
-                    TelemetryEvent::OutOfCreditsBannerClosed {
-                        action: OutOfCreditsBannerAction::CreditsPurchased,
-                        selected_credits,
-                        auto_reload_checkbox_enabled: self.auto_reload_enabled,
-                        banner_toggle_flag_enabled,
-                        post_purchase_modal_flag_enabled,
-                    },
-                    ctx
-                );
+                ();
 
                 self.should_display_banner = false;
                 AIRequestUsageModel::handle(ctx).update(ctx, |ai_request_usage_model, ctx| {
@@ -848,18 +838,7 @@ impl warpui::TypedActionView for BuyCreditsBanner {
                 ctx.notify();
             }
             Action::Close => {
-                send_telemetry_from_ctx!(
-                    TelemetryEvent::OutOfCreditsBannerClosed {
-                        action: OutOfCreditsBannerAction::Dismissed,
-                        selected_credits: None,
-                        auto_reload_checkbox_enabled: self.auto_reload_enabled,
-                        banner_toggle_flag_enabled: FeatureFlag::BuildPlanAutoReloadBannerToggle
-                            .is_enabled(),
-                        post_purchase_modal_flag_enabled:
-                            FeatureFlag::BuildPlanAutoReloadPostPurchaseModal.is_enabled(),
-                    },
-                    ctx
-                );
+                ();
 
                 self.should_display_banner = false;
                 AIRequestUsageModel::handle(ctx).update(ctx, |model, ctx| {

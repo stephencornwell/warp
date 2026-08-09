@@ -1,4 +1,3 @@
-use crate::send_telemetry_from_ctx;
 use crate::terminal::model::session::Sessions;
 
 use crate::terminal::event::{
@@ -194,13 +193,7 @@ impl ModelEventDispatcher {
                             .as_millis()
                             // Clip large durations to u64::MAX
                             .min(u64::MAX as u128) as u64;
-                        send_telemetry_from_ctx!(
-                            TelemetryEvent::SshTmuxWarpificationSuccess {
-                                duration_ms,
-                                tmux_installation: control_mode.tmux_installation,
-                            },
-                            ctx
-                        );
+                        ();
                     }
                 }
                 ModelEvent::Handler(AnsiHandlerEvent::TmuxControlModeReady { primary_pane })

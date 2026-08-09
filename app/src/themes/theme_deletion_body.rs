@@ -1,4 +1,3 @@
-use crate::send_telemetry_from_ctx;
 use crate::appearance::Appearance;
 use crate::settings::{active_theme_kind, ThemeSettings};
 use crate::themes::theme::{ThemeKind, WarpTheme};
@@ -98,7 +97,7 @@ impl ThemeDeletionBody {
                             ctx.emit(ThemeDeletionBodyEvent::DeleteCurrentTheme)
                         }
                         errored = false;
-                        send_telemetry_from_ctx!(TelemetryEvent::DeleteCustomTheme, ctx);
+                        ();
                         self.close(ctx);
                         ctx.notify();
                     }

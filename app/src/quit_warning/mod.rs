@@ -1,5 +1,4 @@
 use crate::report_if_error;
-use crate::send_telemetry_from_app_ctx;
 use itertools::Itertools;
 use settings::ToggleableSetting as _;
 use std::fmt::Write;
@@ -440,14 +439,7 @@ impl<'a> QuitWarningDialog<'a> {
     /// Show the quit warning dialog. This returns `true` if the dialog was shown, and `false` if
     /// the current platform doesn't support showing a modal.
     pub fn show(self, ctx: &mut AppContext) -> bool {
-        send_telemetry_from_app_ctx!(
-            TelemetryEvent::QuitModalShown {
-                running_processes: self.state.total_long_running_commands as u32,
-                shared_sessions: self.state.shared_sessions as u32,
-                modal_for: self.state.scope.close_target()
-            },
-            ctx
-        );
+        ();
 
         let session_summary = self.state.running_sessions();
         let dialog = self.build();
@@ -498,5 +490,5 @@ fn on_disable_warning_modal(ctx: &mut AppContext) {
             .show_warning_before_quitting
             .toggle_and_save_value(ctx));
     });
-    send_telemetry_from_app_ctx!(TelemetryEvent::QuitModalDisabled, ctx);
+    ();
 }

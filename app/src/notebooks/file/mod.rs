@@ -1,4 +1,3 @@
-use crate::send_telemetry_from_ctx;
 use std::{
     mem,
     path::{Path, PathBuf},
@@ -393,10 +392,7 @@ impl FileNotebookView {
                         FileModelEvent::FileLoaded { content, .. } => {
                             let cleaned = post_process_notebook(content);
                             me.set_content(&cleaned, ctx);
-                            send_telemetry_from_ctx!(
-                                TelemetryEvent::OpenNotebook(me.open_telemetry_metadata(ctx)),
-                                ctx
-                            );
+                            ();
 
                             // Record the canonical path instead of the input path when available.
                             if let Some(canonical_path) = file_model.as_ref(ctx).file_path(file_id)
@@ -482,18 +478,7 @@ impl FileNotebookView {
 
     /// Send a [`NotebookTelemetryAction`] telemetry event.
     fn send_telemetry_action(&self, action: NotebookTelemetryAction, ctx: &mut ViewContext<Self>) {
-        send_telemetry_from_ctx!(
-            TelemetryEvent::NotebookAction(NotebookActionEvent {
-                action,
-                metadata: NotebookTelemetryMetadata::new(
-                    None,
-                    None,
-                    NotebookLocation::LocalFile,
-                    None
-                )
-            }),
-            ctx
-        );
+        ();
     }
 
     /// Reload the file that was most recently opened (or attempted to open).

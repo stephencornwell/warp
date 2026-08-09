@@ -1,4 +1,3 @@
-use crate::send_telemetry_from_ctx;
 use std::ops::Deref;
 
 use serde::{Serialize, Serializer};
@@ -359,13 +358,7 @@ impl super::TerminalView {
         ctx.focus(&self.input);
         ctx.notify();
 
-        send_telemetry_from_ctx!(
-            TelemetryEvent::OpenLink {
-                link: link.clone(),
-                open_with: LinkOpenMethod::ToolTip
-            },
-            ctx
-        );
+        ();
         match link {
             #[cfg(feature = "local_fs")]
             GridHighlightedLink::File(link) => {

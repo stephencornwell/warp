@@ -1,4 +1,3 @@
-use crate::send_telemetry_from_ctx;
 use alias_bar::{AliasBar, AliasBarEvent};
 use argument_editor::{ArgumentEditorRow, DEFAULT_ARGUMENT_PREFIX};
 use itertools::Itertools;
@@ -2876,21 +2875,13 @@ impl TypedActionView for WorkflowView {
             WorkflowAction::CopyContent => self.copy_content(ctx),
             WorkflowAction::Duplicate => self.duplicate_object(ctx),
             WorkflowAction::CopyLink(link) => {
-                send_telemetry_from_ctx!(
-                    TelemetryEvent::ObjectLinkCopied { link: link.clone() },
-                    ctx
-                );
+                ();
                 ctx.clipboard()
                     .write(ClipboardContent::plain_text(link.to_owned()));
             }
             #[cfg(target_family = "wasm")]
             WorkflowAction::OpenLinkOnDesktop(url) => {
-                send_telemetry_from_ctx!(
-                    TelemetryEvent::WebCloudObjectOpenedOnDesktop {
-                        object_metadata: self.telemetry_metadata(ctx)
-                    },
-                    ctx
-                );
+                ();
                 open_url_on_desktop(url);
             }
             #[cfg(not(target_family = "wasm"))]

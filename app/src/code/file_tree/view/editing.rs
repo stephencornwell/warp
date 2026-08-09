@@ -1,6 +1,5 @@
 //! Module for utlities related to editing items in the file tree.
 
-use crate::send_telemetry_from_ctx;
 #[cfg(test)]
 #[path = "editing_tests.rs"]
 mod tests;
@@ -179,7 +178,7 @@ impl FileTreeView {
                             return;
                         }
 
-                        send_telemetry_from_ctx!(TelemetryEvent::FileTreeItemCreated, ctx);
+                        ();
 
                         FileTreeEntryState::File(metadata.clone())
                     } else {

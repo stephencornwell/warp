@@ -1,4 +1,3 @@
-use crate::send_telemetry_from_ctx;
 use editing::sort_entries_for_file_tree;
 use itertools::Itertools;
 use pathfinder_geometry::rect::RectF;
@@ -2190,13 +2189,7 @@ impl FileTreeView {
             )
         };
 
-        send_telemetry_from_ctx!(
-            TelemetryEvent::CodePanelsFileOpened {
-                entrypoint: CodePanelsFileOpenEntrypoint::ProjectExplorer,
-                target: target.clone(),
-            },
-            ctx
-        );
+        ();
 
         ctx.emit(FileTreeEvent::OpenFile {
             path: path.to_path_buf(),
@@ -2422,10 +2415,7 @@ impl FileTreeView {
         };
 
         let is_directory = matches!(item, FileTreeItem::DirectoryHeader { .. });
-        send_telemetry_from_ctx!(
-            TelemetryEvent::FileTreeItemAttachedAsContext { is_directory },
-            ctx
-        );
+        ();
 
         ctx.emit(FileTreeEvent::AttachAsContext {
             path: relative_path,

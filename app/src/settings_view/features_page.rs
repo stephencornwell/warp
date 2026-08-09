@@ -1,5 +1,4 @@
 use crate::report_if_error;
-use crate::send_telemetry_from_ctx;
 use crate::default_terminal::DefaultTerminal;
 use crate::gpu_state::{GPUState, GPUStateEvent};
 use crate::terminal::input::OPEN_COMPLETIONS_KEYBINDING_NAME;
@@ -1908,7 +1907,7 @@ impl TypedActionView for FeaturesPageView {
             }
         }
 
-        send_telemetry_from_ctx!(action.telemetry_event(ctx), ctx);
+        ();
     }
 }
 

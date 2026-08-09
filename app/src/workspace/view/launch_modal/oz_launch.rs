@@ -1,4 +1,3 @@
-use crate::send_telemetry_from_ctx;
 use super::{CTAButton, CheckboxConfig, LaunchModalEvent, Slide};
 use crate::terminal::view::OnboardingIntention;
 use crate::ui_components::icons::Icon;
@@ -141,12 +140,7 @@ impl Slide for OzLaunchSlide {
                 CTAButton::next_slide(next, format!("Next: {}", next.short_label()))
             }
             OzLaunchSlide::LaunchCredits => CTAButton::custom("Try it out", |ctx| {
-                send_telemetry_from_ctx!(
-                    CloudAgentTelemetryEvent::EnteredCloudMode {
-                        entry_point: CloudModeEntryPoint::OzLaunchModal,
-                    },
-                    ctx
-                );
+                ();
                 ctx.emit(LaunchModalEvent::Close);
                 ctx.dispatch_typed_action(&WorkspaceAction::AddAmbientAgentTab);
             }),

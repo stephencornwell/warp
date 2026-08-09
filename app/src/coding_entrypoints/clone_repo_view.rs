@@ -1,4 +1,3 @@
-use crate::send_telemetry_from_ctx;
 use crate::coding_entrypoints::glowing_editor::{GlowingEditor, GlowingEditorEvent};
 use warpui::{
     elements::{ChildView, Flex, ParentElement as _},
@@ -34,12 +33,7 @@ impl CloneRepoView {
     fn handle_editor_event(&mut self, event: &GlowingEditorEvent, ctx: &mut ViewContext<Self>) {
         match event {
             GlowingEditorEvent::Submit(prompt) => {
-                send_telemetry_from_ctx!(
-                    TelemetryEvent::CloneRepoPromptSubmitted {
-                        is_ftux: self.is_ftux
-                    },
-                    ctx
-                );
+                ();
                 ctx.emit(CloneRepoEvent::SubmitPrompt(prompt.clone()))
             }
             GlowingEditorEvent::Cancel => {

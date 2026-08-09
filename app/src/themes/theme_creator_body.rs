@@ -1,4 +1,3 @@
-use crate::send_telemetry_from_ctx;
 use crate::appearance::{Appearance, AppearanceManager};
 use crate::editor::{EditorView, Event as EditorEvent};
 use crate::themes::theme::{InMemoryThemeOptions, ThemeKind};
@@ -196,7 +195,7 @@ impl ThemeCreatorBody {
                         image_extension,
                     )),
                     |path| {
-                        send_telemetry_from_ctx!(TelemetryEvent::CreateCustomTheme, ctx);
+                        ();
                         ctx.emit(ThemeCreatorBodyEvent::SetCustomTheme {
                             theme: ThemeKind::Custom(CustomTheme::new(theme_name, path)),
                         });

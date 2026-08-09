@@ -1,4 +1,3 @@
-use crate::send_telemetry_from_ctx;
 use crate::app_state::{get_app_state, AppState};
 use crate::appearance::Appearance;
 use crate::editor::{
@@ -251,7 +250,7 @@ impl LaunchConfigSaveModal {
                     target,
                     line_col: None,
                 });
-                send_telemetry_from_ctx!(TelemetryEvent::OpenLaunchConfigFile, ctx);
+                ();
             }
         }
     }
@@ -475,23 +474,13 @@ impl LaunchConfigSaveModal {
 
     pub fn saved_successfully(&mut self, file_name: String, ctx: &mut ViewContext<Self>) {
         self.set_save_state(SaveState::Success, Some(file_name));
-        send_telemetry_from_ctx!(
-            TelemetryEvent::SaveLaunchConfig {
-                state: SaveState::Success,
-            },
-            ctx
-        );
+        ();
         ctx.notify();
     }
 
     pub fn failed_save(&mut self, failure_type: FailureType, ctx: &mut ViewContext<Self>) {
         self.set_save_state(SaveState::Failure(failure_type), None);
-        send_telemetry_from_ctx!(
-            TelemetryEvent::SaveLaunchConfig {
-                state: SaveState::Failure(failure_type)
-            },
-            ctx
-        );
+        ();
         ctx.notify();
     }
 

@@ -564,9 +564,6 @@ impl Response {
 impl<'c> oauth2::AsyncHttpClient<'c> for Client {
     type Error = oauth2::HttpClientError<reqwest::Error>;
 
-    #[cfg(target_arch = "wasm32")]
-    type Future = Pin<Box<dyn Future<Output = Result<oauth2::HttpResponse, Self::Error>> + 'c>>;
-    #[cfg(not(target_arch = "wasm32"))]
     type Future =
         Pin<Box<dyn Future<Output = Result<oauth2::HttpResponse, Self::Error>> + Send + Sync + 'c>>;
 
@@ -586,10 +583,7 @@ impl<'c> oauth2::AsyncHttpClient<'c> for Client {
 
             let mut builder = ::http::Response::builder().status(response.status());
 
-            #[cfg(not(target_arch = "wasm32"))]
-            {
-                builder = builder.version(response.0.version());
-            }
+            builder = builder.version(response.0.version());
 
             for (name, value) in response.0.headers().iter() {
                 builder = builder.header(name, value);

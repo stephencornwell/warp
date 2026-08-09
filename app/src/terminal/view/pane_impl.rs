@@ -31,7 +31,6 @@ use warpui::elements::{
 use warpui::prelude::{vec2f, ChildView, Container, Hoverable};
 use warpui::text_layout::ClipConfig;
 use warpui::ui_components::components::UiComponent;
-#[cfg(not(target_arch = "wasm32"))]
 use warpui::ui_components::components::UiComponentStyles;
 use warpui::WeakModelHandle;
 use warpui::{
@@ -345,9 +344,6 @@ impl TerminalView {
         .finish()
     }
 
-    /// Render the info button for toggling the cloud mode details panel.
-    /// Only available on non-WASM platforms (WASM uses a per-window button instead).
-    #[cfg(not(target_arch = "wasm32"))]
     fn render_cloud_mode_details_toggle_button(&self, app: &AppContext) -> Box<dyn Element> {
         let appearance = Appearance::as_ref(app);
         let theme = appearance.theme();

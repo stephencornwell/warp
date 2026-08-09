@@ -31,7 +31,6 @@ pub enum LspControlActionType {
 
 #[derive(Debug, EnumDiscriminants)]
 #[strum_discriminants(derive(EnumIter))]
-#[cfg_attr(target_arch = "wasm32", allow(dead_code))]
 pub enum LspTelemetryEvent {
     /// User enabled an LSP server for a workspace.
     ServerEnabled {

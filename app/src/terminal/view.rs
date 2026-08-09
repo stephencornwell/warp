@@ -7514,7 +7514,7 @@ impl TerminalView {
         if self.highlighted_link.is_some() {
             // Middle click should open a highlighted link if there is one.
             if let Some(position) = position {
-                self.maybe_open_link(LinkOpenMethod::MiddleClick, position, ctx);
+                self.maybe_open_link(position, ctx);
             }
         } else {
             // Otherwise, assume that the user wants to middle-click paste.

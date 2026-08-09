@@ -38,7 +38,7 @@ use super::model::{
     NewApp, NewCommand, NewFolder, NewNotebook, NewServerExperiment, NewTab, NewTeam, NewWindow,
     NewWorkspace, NewWorkspaceMetadata, NewWorkspaceTeam, ObjectMetadata, ObjectPermissions,
     Project, Tab, Window, WorkspaceMetadata as WorkspaceMetadataModel, AI_DOCUMENT_PANE_KIND,
-    AI_FACT_PANE_KIND, CODE_PANE_KIND, ENV_VAR_COLLECTION_PANE_KIND,
+    AI_FACT_PANE_KIND, CODE_PANE_KIND,
     EXECUTION_PROFILE_EDITOR_PANE_KIND, MCP_SERVER_PANE_KIND, NOTEBOOK_PANE_KIND,
     SETTINGS_PANE_KIND, TERMINAL_PANE_KIND, WELCOME_PANE_KIND, WORKFLOW_PANE_KIND,
 };
@@ -47,7 +47,7 @@ use super::{
     BlockCompleted, FinishedCommandMetadata, ModelEvent, PersistedData, StartedCommandMetadata,
     WriterHandles,
 };
-use crate::app_state::{EnvVarCollectionPaneSnapshot, LeftPanelSnapshot, SettingsPaneSnapshot, WorkflowPaneSnapshot};
+use crate::app_state::{LeftPanelSnapshot, SettingsPaneSnapshot, WorkflowPaneSnapshot};
 use crate::persistence::model::{
     ProjectRules, CODE_REVIEW_PANE_KIND, GET_STARTED_PANE_KIND,
 };
@@ -592,8 +592,6 @@ fn save_app_state(conn: &mut SqliteConnection, app_state: &AppState) -> Result<(
         diesel::delete(schema::terminal_panes::dsl::terminal_panes).execute(conn)?;
         diesel::delete(schema::notebook_panes::dsl::notebook_panes).execute(conn)?;
         diesel::delete(schema::code_panes::dsl::code_panes).execute(conn)?;
-        diesel::delete(schema::env_var_collection_panes::dsl::env_var_collection_panes)
-            .execute(conn)?;
         diesel::delete(schema::workflow_panes::dsl::workflow_panes).execute(conn)?;
         diesel::delete(schema::settings_panes::dsl::settings_panes).execute(conn)?;
         diesel::delete(schema::ai_memory_panes::dsl::ai_memory_panes).execute(conn)?;
@@ -820,7 +818,6 @@ fn save_pane_state(
     let kind = match &snapshot.contents {
         LeafContents::Terminal(_) => TERMINAL_PANE_KIND,
         LeafContents::Notebook(_) => NOTEBOOK_PANE_KIND,
-        LeafContents::EnvVarCollection(_) => ENV_VAR_COLLECTION_PANE_KIND,
         LeafContents::Code(_) => CODE_PANE_KIND,
         LeafContents::Workflow(_) => WORKFLOW_PANE_KIND,
         LeafContents::Settings(_) => SETTINGS_PANE_KIND,
@@ -909,23 +906,6 @@ fn save_pane_state(
                 .execute(conn)?;
         }
         LeafContents::Code(_) => {}
-        LeafContents::EnvVarCollection(env_var_collection_snapshot) => {
-            let env_var_collection_id = match env_var_collection_snapshot {
-                EnvVarCollectionPaneSnapshot::CloudEnvVarCollection {
-                    env_var_collection_id,
-                } => env_var_collection_id
-                    .map(|id| id.sqlite_uid_hash(ObjectIdType::GenericStringObject)),
-            };
-
-            let env_var_collection = model::NewEnvVarCollectionPane {
-                id,
-                env_var_collection_id,
-            };
-
-            diesel::insert_into(schema::env_var_collection_panes::dsl::env_var_collection_panes)
-                .values(env_var_collection)
-                .execute(conn)?;
-        }
         LeafContents::Workflow(workflow_pane_snapshot) => {
             let workflow_id = match workflow_pane_snapshot {
                 WorkflowPaneSnapshot::CloudWorkflow {
@@ -1851,28 +1831,6 @@ fn read_node(conn: &mut SqliteConnection, node: model::PaneNode) -> Result<Optio
                     })
                 }
                 CODE_PANE_KIND => return Ok(None),
-                ENV_VAR_COLLECTION_PANE_KIND => {
-                    let env_var_collection_pane =
-                        schema::env_var_collection_panes::dsl::env_var_collection_panes
-                            .find(node.id)
-                            .select(model::EnvVarCollectionPane::as_select())
-                            .first(conn)?;
-
-                    let env_var_collection_id = env_var_collection_pane
-                        .env_var_collection_id
-                        .and_then(|id| {
-                            ClientId::from_hash(&id).map(SyncId::ClientId).or_else(|| {
-                                GenericStringObjectId::from_hash(&id)
-                                    .map(|id| SyncId::ServerId(id.into()))
-                            })
-                        });
-
-                    LeafContents::EnvVarCollection(
-                        EnvVarCollectionPaneSnapshot::CloudEnvVarCollection {
-                            env_var_collection_id,
-                        },
-                    )
-                }
                 SETTINGS_PANE_KIND => {
                     let settings_pane = schema::settings_panes::dsl::settings_panes
                         .find(node.id)

@@ -538,11 +538,7 @@ impl TypedActionView for TabConfigParamsModal {
                 ctx.emit(TabConfigParamsModalEvent::Close);
             }
             TabConfigParamsModalAction::Submit => self.try_submit(ctx),
-            TabConfigParamsModalAction::ToggleDropdown => {
-                if self.dropdown_count() <= 1 {
-                    self.toggle_single_dropdown(ctx);
-                }
-            }
+            TabConfigParamsModalAction::ToggleDropdown => self.toggle_single_dropdown(ctx),
         }
     }
 }

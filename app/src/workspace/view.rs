@@ -4107,31 +4107,6 @@ impl Workspace {
         }
     }
 
-    /// Opens a native folder picker and, when the user selects a folder, upserts it
-    /// into `PersistedWorkspace` and notifies the modal's repo picker at `param_index`.
-    fn open_repo_picker_for_tab_config_modal(
-        &mut self,
-        param_index: usize,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        let modal_view = self.tab_config_params_modal.view.clone();
-        ctx.open_file_picker(
-            move |result, ctx| {
-                let Ok(paths) = result else { return };
-                let Some(path) = paths.into_iter().next() else {
-                    return;
-                };
-                let path_buf: PathBuf = path.clone().into();
-                modal_view.update(ctx, |modal, ctx| {
-                    modal.body().update(ctx, |body, ctx| {
-                        body.on_new_repo_selected(path_buf, param_index, ctx);
-                    });
-                });
-            },
-            warpui::platform::FilePickerConfiguration::new().folders_only(),
-        );
-    }
-
     fn close_tab_config_params_modal(&mut self, ctx: &mut ViewContext<Self>) {
         self.current_workspace_state.is_tab_config_params_modal_open = false;
         self.tab_config_params_modal.close();

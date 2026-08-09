@@ -2672,9 +2672,6 @@ impl TerminalView {
     /// Returns true if conditions are met to auto-open the code review panel:
     /// - Inside a git repository
     /// - Window is wide enough to support the code review panel
-    fn can_auto_open_code_review_panel(&self, _ctx: &ViewContext<Self>) -> bool {
-        self.current_repo_path.is_some() && self.can_auto_open_panel()
-    }
 
 
 
@@ -5630,13 +5627,6 @@ impl TerminalView {
     /// This does not indicate that the session has bootstrapped, but only
     /// that we're aware of the beginning of a session that we will attempt
     /// to bootstrap.
-    fn handle_session_initialized(&self, ctx: &mut ViewContext<Self>) {
-        // Make sure we re-render the input so we're displaying an appropriate
-        // prompt.
-        self.input.update(ctx, |_, ctx| {
-            ctx.notify();
-        });
-    }
 
     /// Handles a session in this terminal pane completing the bootstrapping
     /// process.
@@ -6261,9 +6251,6 @@ impl TerminalView {
     pub fn is_login_shell_bootstrapped(&self) -> bool {
         self.is_login_shell_bootstrapped
     }
-    pub fn has_pending_command_or_awaiting_completion(&self, ctx: &AppContext) -> bool {
-        self.awaiting_pending_command_completion || self.input.as_ref(ctx).has_pending_command()
-    }
 
     /// Marks this terminal to enter agent view once pending setup commands
     /// finish. Called from `pane_tree_from_template_recursive` when the tab
@@ -6301,58 +6288,6 @@ impl TerminalView {
     ///
     /// Will send telemetry if the current session is not bootstrapped and will show a banner to
     /// the user if this is the first bootstrap in the session.
-    fn on_bootstrap_failed_timer_complete(&mut self, _: (), ctx: &mut ViewContext<Self>) {
-        let (is_ssh, shell, is_subshell, was_triggered_by_rc_file, is_wsl, is_msys2) = {
-            let model = self.model.lock();
-
-            // If we did actually bootstrap, or if the session is no longer usable
-            // (e.g.: the shell process terminated), don't show a banner.
-            if model.is_read_only() || model.is_active_block_bootstrapped() {
-                return;
-            }
-
-            let is_ssh = model.has_pending_ssh_session();
-            let shell = model
-                .pending_shell_type()
-                .map_or("unknown", |shell| shell.name());
-            let pending_subshell_info = model.pending_subshell_session();
-            let is_subshell = pending_subshell_info.is_some();
-            let was_triggered_by_rc_file = pending_subshell_info
-                .map(|info| info.was_triggered_by_rc_file_snippet)
-                .unwrap_or(false);
-            let is_wsl = model.is_pending_wsl();
-            let is_msys2 = model.is_pending_msys2();
-
-            (
-                is_ssh,
-                shell,
-                is_subshell,
-                was_triggered_by_rc_file,
-                is_wsl,
-                is_msys2,
-            )
-        };
-
-        log::warn!("Bootstrapping failed for shell {shell:?} on ssh {is_ssh}");
-
-        // Unhide the long-running block that was hidden at the start of
-        // subshell bootstrap so the user can see the session output again.
-        self.update_long_running_ssh_block_with_lock(|block| {
-            block.unhide();
-        });
-
-        let bootstrap_block_contents = {
-            let model = self.model.lock();
-            model.block_list().bootstrap_block_contents()
-        };
-        if !self.is_login_shell_bootstrapped {
-            log::warn!("Showing bootstrap slow toast");
-            self.is_slow_bootstrap_banner_open = true;
-            ctx.notify();
-        }
-
-        ctx.emit(Event::SlowBootstrap);
-    }
 
     pub fn size_info(&self) -> &SizeInfo {
         &self.size_info
@@ -8062,18 +7997,6 @@ impl TerminalView {
     // but without re-syncing Agent Mode context. The field `self.selected_blocks` should only be
     // mutated as part of a `change_block_selections` or `change_block_selections_to_match_ai_context`
     // invocation.
-    fn change_block_selections_to_match_ai_context<F>(
-        &mut self,
-        change_selection: F,
-        ctx: &mut ViewContext<Self>,
-    ) where
-        F: FnOnce(&mut SelectedBlocks),
-    {
-        change_selection(&mut self.selected_blocks);
-        self.update_find_selection(ctx);
-
-        ctx.emit(Event::SelectedBlocksChanged);
-    }
 
     pub fn integration_test_change_block_selection_to_single(
         &mut self,

@@ -62,7 +62,6 @@ mod tab;
 #[cfg(test)]
 mod test_util;
 mod throttle;
-mod tips;
 mod tracing;
 mod ui_components;
 mod undo_close;
@@ -1159,7 +1158,6 @@ fn initialize_app(
     input::init(ctx);
     editor::init(ctx);
     menu::init(ctx);
-    tips::tip_view::init(ctx);
     launch_configs::init(ctx);
     themes::theme_chooser::init(ctx);
     themes::theme_creator_modal::init(ctx);

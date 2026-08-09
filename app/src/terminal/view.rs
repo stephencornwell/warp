@@ -61,7 +61,7 @@ use crate::context_chips::ContextChipKind;
 use crate::pane_group::focus_state::PaneFocusHandle;
 use crate::persistence::{self, FinishedCommandMetadata};
 use crate::safe_warn;
-use crate::server::ids::{ObjectUid, SyncId};
+use crate::sync_ids::{ObjectUid, SyncId};
 #[cfg(feature = "local_fs")]
 use crate::settings::import::model::ImportedConfigModel;
 use crate::settings::import::view::{SettingsImportEvent, SettingsImportView};

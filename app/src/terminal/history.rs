@@ -14,7 +14,7 @@ use super::{
     shell::ShellType,
 };
 use crate::{
-    server::ids::{ClientId, HashableId as _, SyncId},
+    sync_ids::{ClientId, HashableId as _, SyncId},
     terminal::model::session::{Session, SessionId},
     util::dedupe_from_last,
 };

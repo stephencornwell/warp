@@ -29,7 +29,7 @@ use std::sync::Arc;
 
 use crate::palette::PaletteMode;
 use crate::search::command_palette::data_sources::DataSourceStore;
-use crate::server::ids::SyncId;
+use crate::sync_ids::SyncId;
 use crate::session_management::SessionSource;
 use crate::workspace::WorkspaceAction;
 use warpui::elements::{

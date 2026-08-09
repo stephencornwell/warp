@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::{server::ids::ServerId, workflows::WorkflowId};
+use crate::{sync_ids::ServerId, workflows::WorkflowId};
 
 use super::editor::BlockInsertionSource;
 

@@ -111,7 +111,7 @@ impl CommandExecutor for TmuxCommandExecutor {
         environment_variables: Option<HashMap<String, String>>,
         _execute_command_options: ExecuteCommandOptions,
     ) -> Result<CommandOutput> {
-        let command_id = DateTime::now().timestamp_micros().to_string();
+        let command_id = chrono::Utc::now().timestamp_micros().to_string();
 
         let future = async {
             let output_channel_rx = self.execute_command_internal(

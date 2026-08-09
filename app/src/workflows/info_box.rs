@@ -23,7 +23,7 @@ use string_offset::CharOffset;
 use crate::util::color::coloru_with_opacity;
 use crate::workflows::WorkflowType;
 use crate::{
-    ai::blocklist::ai_brand_color, server::ids::SyncId, settings::InputModeSettings,
+    ai::blocklist::ai_brand_color, sync_ids::SyncId, settings::InputModeSettings,
     terminal::block_list_viewport::InputMode, ui_components::icons,
     view_components::FilterableDropdownOrientation, workspace::WorkspaceAction,
 };

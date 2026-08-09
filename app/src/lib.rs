@@ -55,11 +55,11 @@ mod resource_limits;
 mod reward_view;
 mod safe_triangle;
 mod search_bar;
-mod server;
 mod session_management;
 mod shell_indicator;
 mod suggestions;
 mod system;
+mod sync_ids;
 mod tab;
 #[cfg(test)]
 mod test_util;

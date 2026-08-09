@@ -6,7 +6,7 @@ use warpui::{
 
 use crate::{
     appearance::Appearance,
-    server::ids::SyncId,
+    sync_ids::SyncId,
     ui_components::dialog::{dialog_styles, Dialog},
     view_components::action_button::{ActionButton, DangerPrimaryTheme, NakedTheme},
 };

@@ -8,7 +8,7 @@ use crate::{
     ai::facts::{view::AIFactPage, CloudAIFactModel},
     cloud_object::model::{generic_string_model::GenericStringObjectId, persistence::CloudModel},
     integration_testing::view_getters::workspace_view,
-    server::ids::SyncId,
+    sync_ids::SyncId,
 };
 
 /// Assert that a specific AI fact exists with the given content

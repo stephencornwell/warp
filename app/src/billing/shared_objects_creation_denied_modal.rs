@@ -1,7 +1,7 @@
 use crate::drive::cloud_object_styling::warp_drive_icon_color;
 use crate::drive::DriveObjectType;
 use crate::modal::{Modal, ModalEvent};
-use crate::server::ids::ServerId;
+use crate::sync_ids::ServerId;
 use crate::themes::theme::Fill;
 use crate::ui_components::icons::Icon;
 use crate::workspaces::user_workspaces::UserWorkspaces;

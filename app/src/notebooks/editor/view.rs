@@ -65,7 +65,7 @@ use crate::{
         link::{LinkTarget, NotebookLinks, ResolveError},
         telemetry::{ActionEntrypoint, BlockInfo, EmbeddedObjectInfo, SelectionMode},
     },
-    server::ids::SyncId,
+    sync_ids::SyncId,
     settings::{AppEditorSettings, FontSettings, SelectionSettings},
     terminal::{grid_renderer::URL_COLOR, links::directly_open_link_keybinding_string},
     ui_components::icons::ICON_DIMENSIONS,

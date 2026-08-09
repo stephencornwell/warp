@@ -1,4 +1,4 @@
-use crate::{channel::ChannelState, server::ids::ServerId};
+use crate::{channel::ChannelState, sync_ids::ServerId};
 use warpui::AppContext;
 
 /// Shared admin panel actions and utilities for settings views

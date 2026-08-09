@@ -2,7 +2,7 @@ use warpui::{async_assert, integration::AssertionCallback};
 
 use crate::{
     cloud_object::{model::persistence::CloudModel, CloudModelType, GenericCloudObject, Revision},
-    server::ids::{HashableId, ServerId, SyncId, ToServerId},
+    sync_ids::{HashableId, ServerId, SyncId, ToServerId},
 };
 
 /// Asserts metadata exists for the object with the given key and that the revision in that

@@ -12,7 +12,7 @@ use crate::{
     code::editor_management::CodeSource,
     notebooks::{CloudNotebook, CloudNotebookModel},
     persistence::{model::ObjectPermissions, BlockCompleted, ModelEvent},
-    server::ids::ClientId,
+    sync_ids::ClientId,
     tab::SelectedTabColor,
     terminal::model::block::SerializedBlock,
     terminal::ShellLaunchData,
@@ -407,7 +407,7 @@ fn test_deserialize_corrupted_guests() {
         cloud_permissions,
         Some(CloudObjectPermissions {
             owner: Owner::Team {
-                team_uid: crate::server::ids::ServerId::from_string_lossy("team_uid12345678912345"),
+                team_uid: crate::sync_ids::ServerId::from_string_lossy("team_uid12345678912345"),
             },
             permissions_last_updated_ts: Some(permissions_ts),
             anyone_with_link: None,

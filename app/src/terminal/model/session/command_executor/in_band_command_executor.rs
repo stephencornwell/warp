@@ -396,7 +396,7 @@ impl CommandExecutor for InBandCommandExecutor {
         _environment_variables: Option<HashMap<String, String>>,
         _execute_command_options: ExecuteCommandOptions,
     ) -> Result<CommandOutput> {
-        let command_id = DateTime::now().timestamp_micros().to_string();
+        let command_id = chrono::Utc::now().timestamp_micros().to_string();
 
         // If the future is aborted (via a call to `AbortHandle#abort`) we need to make sure to
         // remove the command from the in-band generator pending command queue to ensure that

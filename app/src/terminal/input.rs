@@ -66,7 +66,7 @@ use crate::{
         mark_feature_used_and_write_to_user_defaults, Tip, TipAction, TipHint, TipsCompleted,
     },
     search::QueryFilter,
-    server::ids::SyncId,
+    sync_ids::SyncId,
     session_management::SessionNavigationPromptElements,
     settings::{
         AliasExpansionSettings, AppEditorSettings, AppEditorSettingsChangedEvent,

@@ -15,7 +15,7 @@ use crate::{
         CloudObject as _,
     },
     drive::CloudObjectTypeAndId,
-    server::ids::SyncId,
+    sync_ids::SyncId,
 };
 
 define_settings_group!(WorkflowAliases, settings: [

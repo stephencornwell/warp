@@ -7,7 +7,7 @@ use warpui::platform::FullscreenState;
 use warpui::AppContext;
 
 use crate::root_view::quake_mode_window_id;
-use crate::server::ids::SyncId;
+use crate::sync_ids::SyncId;
 use crate::settings_view::SettingsSection;
 use crate::tab::SelectedTabColor;
 use crate::terminal::ShellLaunchData;

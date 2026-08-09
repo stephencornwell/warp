@@ -15,7 +15,7 @@ use crate::notebooks::editor::notebook_command::NotebookCommand;
 use crate::notebooks::editor::view::{RichTextEditorConfig, RichTextEditorView};
 use crate::notebooks::link::{NotebookLinks, SessionSource};
 use crate::search::files::model::FileSearchModel;
-use crate::server::ids::{ServerId, SyncId};
+use crate::sync_ids::{ServerId, SyncId};
 use crate::server::server_api::team::MockTeamClient;
 use crate::server::server_api::workspace::MockWorkspaceClient;
 use crate::settings::FontSettings;

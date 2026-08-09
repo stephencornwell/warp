@@ -249,7 +249,7 @@ macro_rules! server_id_traits {
 
         impl From<String> for $t {
             fn from(value: String) -> Self {
-                Self($crate::server::ids::ServerId::from_string_lossy(value))
+                Self($crate::sync_ids::ServerId::from_string_lossy(value))
             }
         }
         impl From<$t> for String {
@@ -262,7 +262,7 @@ macro_rules! server_id_traits {
                 write!(f, "{}", self.0)
             }
         }
-        impl $crate::server::ids::HashableId for $t {
+        impl $crate::sync_ids::HashableId for $t {
             fn to_hash(&self) -> String {
                 format!("{}-{}", $prefix, self)
             }
@@ -272,18 +272,18 @@ macro_rules! server_id_traits {
                     .map(|value| value.to_owned().into())
             }
         }
-        impl From<$t> for $crate::server::ids::ServerId {
+        impl From<$t> for $crate::sync_ids::ServerId {
             fn from(value: $t) -> Self {
                 value.0
             }
         }
-        impl From<$crate::server::ids::ServerId> for $t {
-            fn from(value: $crate::server::ids::ServerId) -> Self {
+        impl From<$crate::sync_ids::ServerId> for $t {
+            fn from(value: $crate::sync_ids::ServerId) -> Self {
                 Self(value)
             }
         }
-        impl $crate::server::ids::ToServerId for $t {
-            fn to_server_id(&self) -> $crate::server::ids::ServerId {
+        impl $crate::sync_ids::ToServerId for $t {
+            fn to_server_id(&self) -> $crate::sync_ids::ServerId {
                 self.0
             }
         }

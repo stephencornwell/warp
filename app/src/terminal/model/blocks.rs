@@ -316,7 +316,6 @@ pub struct BlockList {
     /// relevant wherever we're traversing the blocklist's sumtree (i.e. in clamp_to_grid_points)
     is_inverted: bool,
 
-    agent_view_state: AgentViewState,
 
     /// The view ID of a rich content item that should always remain at the bottom
     /// of the blocklist. After any other insertion, this item is automatically
@@ -615,7 +614,6 @@ impl BlockList {
             is_ai_ugc_telemetry_enabled,
             scroll_position_before_filter: None,
             is_inverted,
-            agent_view_state: AgentViewState::Inactive,
             pinned_to_bottom: None,
             is_executing_oz_environment_startup_commands: false,
         }
@@ -1057,44 +1055,6 @@ impl BlockList {
         if self.pinned_to_bottom == Some(view_id) {
             self.pinned_to_bottom = None;
         }
-    }
-
-    pub fn update_agent_view_conversation_id_for_rich_content(
-        &mut self,
-        rich_content_view_id: EntityId,
-        agent_view_conversation_id: Option<AIConversationId>,
-    ) {
-        let Some(&index) = self
-            .removable_blocklist_item_positions
-            .get(&RemovableBlocklistItem::RichContent(rich_content_view_id))
-        else {
-            return;
-        };
-
-        let agent_view_state = &self.agent_view_state;
-        self.block_heights = {
-            let mut cursor = self.block_heights.cursor::<TotalIndex, ()>();
-            let mut new_tree = cursor.slice(&index, SeekBias::Right);
-
-            if let Some(BlockHeightItem::RichContent(item)) = cursor.item() {
-                let should_hide = RichContentItem {
-                    agent_view_conversation_id,
-                    ..*item
-                }
-                .should_hide_for_agent_view_state(agent_view_state);
-                new_tree.push(BlockHeightItem::RichContent(RichContentItem {
-                    agent_view_conversation_id,
-                    should_hide,
-                    ..*item
-                }));
-                cursor.next();
-            }
-
-            new_tree.push_tree(cursor.suffix());
-            new_tree
-        };
-
-        self.event_proxy.send_wakeup_event();
     }
 
     /// Marks the rich content item with the given view ID as needing its height

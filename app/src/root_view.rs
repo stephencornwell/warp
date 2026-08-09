@@ -1,5 +1,4 @@
 use crate::appearance::Appearance;
-use crate::autoupdate::{AutoupdateState, AutoupdateStateEvent};
 use crate::interval_timer::IntervalTimer;
 use crate::launch_configs::launch_config;
 
@@ -24,7 +23,6 @@ use crate::workspace::WorkspaceAction;
 use crate::workspaces::team_tester::TeamTesterStatus;
 use crate::{
     app_state::{AppState, PaneUuid, WindowSnapshot},
-    autoupdate::{RequestType, UpdateReady},
     changelog_model::ChangelogRequestType,
     pane_group::{NewTerminalOptions, PanesLayout},
     UpdateQuakeModeEventArg,
@@ -1604,17 +1602,6 @@ impl RootView {
             _ => {}
         }
 
-        let autoupdate_handle = AutoupdateState::handle(ctx);
-        ctx.subscribe_to_model(&autoupdate_handle, |root_view, _handle, evt, ctx| {
-            if let AutoupdateStateEvent::CheckComplete {
-                result,
-                request_type: RequestType::Poll,
-            } = evt
-            {
-                root_view.polling_update_check_complete(result, ctx)
-            }
-        });
-
         root_view
     }
 
@@ -1623,47 +1610,6 @@ impl RootView {
         match &self.auth_onboarding_state {
             AuthOnboardingState::Terminal(workspace) => Some(workspace),
             _ => None,
-        }
-    }
-
-    fn polling_update_check_complete(
-        &mut self,
-        result: &Result<UpdateReady>,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        if let Ok(UpdateReady::Yes {
-            ref new_version, ..
-        }) = result
-        {
-            log::info!("Update ready for channel version {new_version:?}");
-            if new_version.update_by.is_some() {
-                log::info!("Update ready, there is an update-by time, checking for server time.");
-                let server_api = self.server_api.clone();
-                let _ = ctx.spawn(
-                    async move { server_api.server_time().await },
-                    Self::server_time_updated,
-                );
-            }
-        }
-    }
-
-    fn server_time_updated(
-        &mut self,
-        server_time: Result<ServerTime>,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        if let Ok(server_time) = server_time {
-            let server_time = Arc::new(server_time);
-            self.server_time = Some(server_time.clone());
-
-            if let AuthOnboardingState::Terminal(workspace) = &self.auth_onboarding_state {
-                workspace.update(ctx, |workspace, ctx| {
-                    workspace.set_server_time(server_time);
-                    ctx.notify();
-                })
-            }
-        } else {
-            log::error!("Error fetching server time {:?}", server_time.err());
         }
     }
 

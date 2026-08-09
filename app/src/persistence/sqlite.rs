@@ -1,3 +1,4 @@
+use warp_core::report_if_error;
 use std::collections::HashSet;
 use std::ffi::OsString;
 use std::path::Path;

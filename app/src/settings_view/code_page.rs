@@ -1,4 +1,5 @@
 #[cfg(feature = "local_fs")]
+use warp_core::report_if_error;
 use super::features::external_editor::ExternalEditorView;
 use super::{
     flags,

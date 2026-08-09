@@ -1,3 +1,4 @@
+use warp_core::report_if_error;
 use super::directory_color_add_picker::{DirectoryColorAddPicker, DirectoryColorAddPickerEvent};
 use super::settings_page::{
     AdditionalInfo, Category, LocalOnlyIconState, MatchData, PageType, SettingsWidget,

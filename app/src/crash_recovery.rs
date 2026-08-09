@@ -1,3 +1,4 @@
+use warp_core::report_if_error;
 use std::cell::RefCell;
 use std::collections::HashMap;
 

@@ -114,6 +114,7 @@ pub mod settings_view;
 pub mod tab_configs;
 pub mod terminal;
 pub mod themes;
+use warp_core::report_if_error;
 use crate::uri::web_intent_parser::maybe_rewrite_web_url_to_intent;
 use code::editor_management::CodeManager;
 use code::opened_files::OpenedFilesModel;

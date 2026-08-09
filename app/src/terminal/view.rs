@@ -12545,18 +12545,12 @@ impl TypedActionView for TerminalView {
             ToggleBlockFilterOnSelectedOrLastBlock(source) => {
                 self.toggle_block_filter_on_selected_or_last_block(*source, ctx);
             }
-            CopySharedSessionLink { source } => self.copy_shared_session_link(*source, ctx),
             ToggleSnackbarInActivePane => self.toggle_snackbar_in_active_pane(ctx),
             MakeAllParticipantsReaders { reason } => {
                 self.make_all_shared_session_participants_readers(*reason, ctx)
             }
-            OpenSharedSessionViewerRoleMenu => self.open_shared_session_viewer_role_menu(ctx),
-            RequestSharedSessionRole(role) => self.request_shared_session_role(*role, ctx),
             MiddleClickOnGrid { position } => self.middle_click_on_grid(position, ctx),
             MiddleClickOnInput => self.middle_click_on_input(ctx),
-            OpenSharedSessionOnDesktop { source } => {
-                self.open_shared_session_on_desktop(*source, ctx)
-            }
             SelectAIAttachedBlock(block_index) => {
                 self.scroll_to_and_maybe_select_block(*block_index, ctx)
             }
@@ -12668,22 +12662,6 @@ impl TypedActionView for TerminalView {
                 ctx.notify();
             }
             #[cfg(feature = "voice_input")]
-            ToggleCLIAgentVoiceInput(source) => {
-                // For CLI agents, route through the footer's self-contained
-                // voice flow (records + writes transcription to PTY). For
-                // the regular editor, fall back to the editor-based flow.
-                let has_cli_agent = self.use_agent_footer.as_ref(ctx).has_cli_agent(ctx);
-                if has_cli_agent {
-                    let footer = self.input.as_ref(ctx).agent_input_footer().clone();
-                    footer.update(ctx, |footer, ctx| {
-                        footer.toggle_cli_voice_input(source, ctx);
-                    });
-                } else {
-                    self.input.update(ctx, |input, ctx| {
-                        input.toggle_voice_input(source, ctx);
-                    });
-                }
-            }
             HyperlinkClick(hyperlink) => {
                 ctx.notify();
                 ctx.open_url(&hyperlink.url);
@@ -12725,7 +12703,6 @@ impl TypedActionView for TerminalView {
             } => self.set_marked_text_on_terminal(marked_text, selected_range, ctx),
             ClearMarkedText => self.clear_marked_text_on_terminal(ctx),
             ShowInitializationBlock => self.show_initialization_block(),
-            ShowWarpifySettings => ctx.emit(Event::OpenSettings(SettingsSection::Warpify)),
             InitProject => self.init_project(false, ctx),
             AddProjectAtCurrentDirectory => {
                 // Get the current working directory and add it as a project
@@ -12882,34 +12859,6 @@ impl TypedActionView for TerminalView {
                     recorder.toggle_recording(ctx);
                 });
             }
-            OpenCLIAgentRichInput => {
-                if self.has_active_cli_agent_input_session(ctx) {
-                    self.close_cli_agent_rich_input_and_disable_auto_toggle(ctx);
-                } else {
-                    self.open_cli_agent_rich_input(CLIAgentInputEntrypoint::CtrlG, ctx);
-                }
-            }
-        }
-    }
-}
-
-impl View for TerminalView {
-    fn ui_name() -> &'static str {
-        "Terminal"
-    }
-
-    fn render(&self, app: &AppContext) -> Box<dyn Element> {
-        // Grab this here, before we take the terminal model lock.
-        let menu_positioning = self.input.as_ref(app).menu_positioning(app);
-
-        let appearance = Appearance::as_ref(app);
-        let semantic_selection = SemanticSelection::as_ref(app);
-        let model = self.model.lock();
-        let ambient_agent_task_id_for_details_panel =
-            self.ambient_agent_task_id_for_details_panel_from_model(&model, app);
-        let input_mode = if FeatureFlag::AgentView.is_enabled()
-            && self.agent_view_controller.as_ref(app).is_fullscreen()
-        {
             // When in agent view, layout is always pin to bottom.
             InputMode::PinnedToBottom
         } else {

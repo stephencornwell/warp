@@ -45,7 +45,6 @@ pub use self::link_detection::GridHighlightedLink;
 pub use self::link_detection::{RichContentLink, RichContentLinkTooltipInfo};
 use crate::settings::CodeSettings;
 pub use action::TerminalAction;
-use ai::index::full_source_code_embedding::manager::{BuildSource, CodebaseIndexManager};
 pub use block_banner::{WithinBlockBanner, BLOCK_BANNER_HEIGHT};
 pub use init::{
     init, CANCEL_COMMAND_KEYBINDING, TOGGLE_AUTOEXECUTE_MODE_KEYBINDING,
@@ -62,42 +61,6 @@ use warpui::elements::{shimmering_text::ShimmeringTextStateHandle, Border, Child
 use warpui::fonts::Properties;
 use warpui::{ViewHandle, WeakModelHandle};
 
-use crate::ai::agent::conversation::{AIConversation, AIConversationId, ConversationStatus};
-
-#[cfg(any(test, feature = "integration_tests"))]
-use crate::ai::agent::UserQueryMode;
-use crate::ai::agent::{
-    AIAgentActionType, AIAgentOutputStatus, AIAgentTextSection, EntrypointType,
-    FinishedAIAgentOutput, RenderableAIError, StaticQueryType,
-};
-use crate::ai::blocklist::agent_view::agent_input_footer::toolbar_item::AgentToolbarItemKind;
-use crate::ai::blocklist::suggested_agent_mode_workflow_modal::SuggestedAgentModeWorkflowAndId;
-use crate::ai::blocklist::suggested_rule_modal::SuggestedRuleAndId;
-use crate::ai::blocklist::{model::AIBlockModelImpl, ClientIdentifiers};
-use crate::ai::{
-    agent::{
-        AIAgentActionId, AIAgentCitation, AIAgentContext, AIAgentExchangeId, AIAgentInput,
-        FileLocations, PassiveCodeDiffEntry, PassiveSuggestionResultType,
-    },
-    blocklist::{
-        ai_brand_color, get_ai_block_overflow_menu_element_position_id,
-        get_attached_blocks_chip_element_position_id,
-        inline_action::code_diff_view::{CodeDiffView, FileDiff},
-        summarization_cancel_dialog::SummarizationCancelDialog,
-        telemetry_banner::{should_collect_ai_ugc_telemetry, TelemetryBanner},
-        AIBlock, AIBlockEvent, BlocklistAIActionEvent, BlocklistAIActionModel,
-        BlocklistAIContextEvent, BlocklistAIContextModel, BlocklistAIController,
-        BlocklistAIControllerEvent, BlocklistAIHistoryEvent, BlocklistAIHistoryModel,
-        BlocklistAIInputEvent, BlocklistAIInputModel, InputConfig, InputType,
-        LegacyPassiveSuggestionsEvent, LegacyPassiveSuggestionsModel, MaaPassiveSuggestionsEvent,
-        MaaPassiveSuggestionsModel, PassiveSuggestionsModels, PendingQueryState,
-        RequestFileEditsFormatKind, ShellCommandExecutor, ShellCommandExecutorEvent,
-        StartAgentExecutor, StartAgentExecutorEvent, StartAgentRequest,
-        ATTACH_AS_AGENT_MODE_CONTEXT_TEXT, PRE_REWIND_PREFIX,
-    },
-    execution_profiles::profiles::{AIExecutionProfilesModel, ClientProfileId},
-    get_relevant_files::controller::GetRelevantFilesController,
-};
 use crate::autoupdate::{self, get_update_state, AutoupdateStage};
 #[cfg(feature = "local_fs")]
 use crate::code::editor_management::CodeSource;
@@ -116,7 +79,7 @@ use crate::server::ids::{ObjectUid, SyncId};
 use crate::settings::import::model::ImportedConfigModel;
 use crate::settings::import::view::{SettingsImportEvent, SettingsImportView};
 use crate::settings::{
-    AISettings, AISettingsChangedEvent, AliasExpansionSettings, AppEditorSettings,
+    AliasExpansionSettings, AppEditorSettings,
     BlockVisibilitySettings, BlockVisibilitySettingsChangedEvent, DebugSettings,
     DebugSettingsChangedEvent, EmacsBindingsSettings, FontSettings, FontSettingsChangedEvent,
     InputModeSettings, InputModeSettingsChangedEvent, InputSettings, PaneSettings,
@@ -180,7 +143,7 @@ use crate::util::openable_file_type::{is_markdown_file, resolve_file_target, Fil
 use crate::view_components::{DismissibleToast, ToastFlavor};
 use crate::workspace::sync_inputs::SyncedInputState;
 use crate::workspace::{CommandSearchOptions, OneTimeModalModel, ToastStack, WorkspaceAction};
-use crate::workspace::{ForkAIConversationParams, ForkFromExchange, ForkedConversationDestination};
+use crate::workspace::ForkedConversationDestination;
 use crate::ActiveSession as WindowActiveSession;
 use crate::report_if_error;
 

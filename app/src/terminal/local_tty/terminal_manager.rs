@@ -228,7 +228,6 @@ impl TerminalManager {
 
         // This is purely for measuring throughput on WarpDev.
         if FeatureFlag::RecordPtyThroughput.is_enabled() {
-            Self::record_pty_throughput(inactive_pty_reads_rx.clone(), model.clone(), ctx);
         }
 
         // Initialize the PtyController.
@@ -262,8 +261,6 @@ impl TerminalManager {
                 colors,
                 model_event_sender.clone(),
                 prompt_type.clone(),
-                None,
-                None,
                 Some(inactive_pty_reads_rx.clone()),
                 false,
                 ctx,
@@ -523,22 +520,6 @@ impl TerminalManager {
         });
     }
 
-    /// Records the PTY throughput by emitting a metric whenever the throughput
-    /// is non-zero over some time interval.
-    fn record_pty_throughput(
-        pty_reads_rx: InactiveReceiver<Arc<Vec<u8>>>,
-        model: Arc<FairMutex<TerminalModel>>,
-        ctx: &mut AppContext,
-    ) {
-        if FeatureFlag::RecordPtyThroughput.is_enabled() {
-            recorder::record_pty_throughput(
-                pty_reads_rx.activate(),
-                model,
-                ctx.background_executor().to_owned(),
-            );
-        }
-    }
-
     fn enqueue_init_script(&self, shell_starter: &ShellStarter) -> Result<(), SendError<Message>> {
         let shell_type = shell_starter.shell_type();
         if shell_type == crate::terminal::shell::ShellType::Zsh
@@ -648,12 +629,7 @@ impl TerminalManager {
                         Some(model.lock().block_list().active_block_index());
 
                     let password_notification_setting_on = show_password_notifications(ctx);
-                    let pane_handling_ssh_upload =
-                        view_weak_handle_2.upgrade(ctx).is_some_and(|view| {
-                            view.update(ctx, |terminal_view, _ctx| terminal_view.is_ssh_uploader())
-                        });
-                    let should_poll_for_password_prompt = password_notification_setting_on
-                        || (pane_handling_ssh_upload && FeatureFlag::SshDragAndDrop.is_enabled());
+                    let should_poll_for_password_prompt = password_notification_setting_on;
 
                     if should_poll_for_password_prompt {
                         poller.update(ctx, |model, ctx| {
@@ -668,14 +644,7 @@ impl TerminalManager {
                         model.stop_polling();
                     });
 
-                    if let Some(view) = view_weak_handle_2.upgrade(ctx) {
-                        view.update(ctx, |terminal_view, ctx| {
-                            if terminal_view.is_ssh_uploader() {
-                                let exit_code = block.exit_code;
-                                terminal_view.propagate_upload_finished_event(exit_code, ctx);
-                            }
-                        })
-                    }
+                    let _ = block;
                 }
                 _ => {}
             }
@@ -706,11 +675,6 @@ impl TerminalManager {
                     && termios.local_flags.contains(LocalFlags::ICANON);
 
                 if might_be_password_prompt {
-                    if FeatureFlag::SshDragAndDrop.is_enabled() {
-                        view.update(ctx, |view, ctx| {
-                            view.propagate_password_request(ctx);
-                        });
-                    }
 
                     // Only send the notification if the user is navigated away from the window
                     // when the password prompt appears. If the password prompt appears and they
@@ -748,7 +712,14 @@ impl TerminalManager {
     }
 
     pub fn pid(&self) -> Option<u32> {
-        self.pid
+        #[cfg(feature = "integration_tests")]
+        {
+            self.pid
+        }
+        #[cfg(not(feature = "integration_tests"))]
+        {
+            None
+        }
     }
 
 }

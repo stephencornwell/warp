@@ -357,37 +357,7 @@ impl PrivacySettings {
     /// Initializes state from the [`SyncedUserSettings`] fetched from the server, if any.
     /// If there are no settings from the server, updates the server settings with local settings.
     /// TODO: Make this a server-side db transaction.
-    fn initialize_from_fetched_settings_or_update_settings(
-        &mut self,
-        fetched_settings: Result<Option<SyncedUserSettings>>,
-        ctx: &mut ModelContext<PrivacySettings>,
-    ) {
-        match fetched_settings {
-            Ok(Some(fetched_settings)) => {
-                // Until the login experience stops hiding the telemetry settings,
-                // we assume that locally enabled telemetry is unintentional.
-                // As such, where settings differ, we respect whichever setting that is disabled.
-                self.overwrite_local_settings_if_cloud_disabled(fetched_settings, ctx);
-                // If any local setting is disabled, we have to update the server.
-                if !self.is_telemetry_enabled
-                    || !self.is_crash_reporting_enabled
-                    || !self.is_cloud_conversation_storage_enabled
-                {
-                    self.update_server_with_local_settings(ctx);
-                }
-            }
-            Ok(None) => {
-                // This indicates the user had not logged in before.
-                log::info!("User has no synced privacy settings.");
-                self.update_server_with_local_settings(ctx);
-            }
-            Err(err) => {
-                report_error!(err.context("Failed to fetch user settings."));
-            }
-        }
 
-        self.maybe_sync_with_warp_drive_prefs(ctx);
-    }
 
 
 

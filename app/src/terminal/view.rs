@@ -2470,11 +2470,6 @@ impl TerminalView {
             pty_recorder: ctx
                 .add_model(|ctx| PtyRecorder::new(inactive_pty_reads_rx, window_id, ctx)),
         };
-        terminal_view.register_subscriptions_for_use_agent_footer(ctx);
-
-        terminal_view.any_session_contains_restored_remote_blocks =
-            terminal_view.contains_restored_remote_blocks();
-
         ();
 
         terminal_view
@@ -2733,67 +2728,10 @@ impl TerminalView {
         if model.is_read_only() {
             return false;
         }
-        if self.has_active_cli_agent_input_session(app) {
-            return true;
-        }
-        if model.is_alt_screen_active()
-            && !model.block_list().active_block().is_agent_in_control()
-            && !model.block_list().active_block().is_agent_tagged_in()
-        {
+        if model.is_alt_screen_active() {
             return false;
         }
-
-        if model.shared_session_status().is_view_pending() && !self.is_ambient_agent_session(app) {
-            return false;
-        }
-
-        if self.has_active_init_project(app) && self.is_last_block_init_step(app) {
-            return false;
-        }
-
-        if self.active_env_var_collection_block(app).is_some() {
-            return false;
-        }
-
-        // Hide the input box while the SSH remote-server choice block is shown.
-        // User must choose to install or skip before any shell input is possible.
-        if self.active_ssh_remote_server_choice_block().is_some() {
-            return false;
-        }
-
-
-        let active_ai_block = self.active_ai_block(app);
-        if active_ai_block.is_some_and(|ai_block| {
-            let ai_block = ai_block.as_ref(app);
-            ai_block.is_blocked_on_user_confirmation(app)
-                || ai_block.has_expanded_running_commands(app)
-        }) {
-            return false;
-        }
-
-        let active_command_block = model.block_list().active_block();
-        let is_active_and_long_running = active_command_block.is_active_and_long_running();
-        let is_oz_env_startup_command = active_command_block.is_oz_environment_startup_command();
-        let is_running_in_band_command =
-            model.block_list().is_writing_or_executing_in_band_command();
-
-        let has_active_long_running_agent_interaction =
-            active_command_block.is_agent_monitoring() || active_command_block.is_agent_tagged_in();
-
-        if (active_ai_block.is_none() || has_active_long_running_agent_interaction)
-            && is_active_and_long_running
-            && (!FeatureFlag::CloudModeSetupV2.is_enabled() || !is_oz_env_startup_command)
-            && !is_running_in_band_command
-            && model.block_list().is_bootstrapped()
-        {
-            // Show the input if:
-            // * The agent is control of the active, long running block, so long as the agent is not blocked.
-            // * OR the user has 'tagged in' the agent.
-            return (active_command_block.is_agent_in_control()
-                && !active_command_block.is_agent_blocked())
-                || active_command_block.is_agent_tagged_in();
-        }
-
+        let _ = app;
         true
     }
 
@@ -2846,8 +2784,7 @@ impl TerminalView {
         };
         // We don't want to copy blocks in AI input mode because those are
         // context blocks.
-        let has_copiable_block_selection = !self.selected_blocks.is_empty()
-            && !self.ai_input_model.as_ref(ctx).is_ai_input_enabled();
+        let has_copiable_block_selection = !self.selected_blocks.is_empty();
 
         self.ctrl_c_internal(
             has_copiable_block_selection,
@@ -3358,7 +3295,7 @@ impl TerminalView {
             content_element_size,
             self.input_size_at_last_frame(app).unwrap_or_default(),
             AutoscrollBehavior::Always,
-            self.inline_menu_positioner.clone(),
+            MenuPositioning::BelowInputBox,
         )
     }
 
@@ -3496,10 +3433,6 @@ impl TerminalView {
             model.block_list_mut().update_active_block_height();
         }
         self.maybe_emit_terminal_view_state_changed_for_long_running_block(ctx);
-        self.use_agent_footer.update(ctx, |footer, ctx| {
-            footer.notify_and_notify_children(ctx);
-        });
-
         // Need to re-render both the alt screen and the blocklist on keypresses.
         ctx.notify();
     }
@@ -4178,10 +4111,6 @@ impl TerminalView {
 
                 // If this block ran a possible subshell command, and it exited before the 1s timer
                 // completed, abort showing the banner.
-                if let Some(abort_handle) = self.warpify_state.take_subshell_banner_abort_handle() {
-                    abort_handle.abort();
-                }
-
                 // In-band commands finishing should never trigger a focus change as it could steal
                 // focus from the TerminalView.
                 if !matches!(block_completed_event.block_type, BlockType::InBandCommand) {
@@ -4213,11 +4142,6 @@ impl TerminalView {
                 }
 
                 // Clear any stale warpify mode so it doesn't leak into the next command's footer rendering.
-                self.use_agent_footer.update(ctx, |footer, ctx| {
-                    footer.clear_warpify_mode(ctx);
-                });
-                self.hide_use_agent_footer_in_blocklist(ctx);
-
                 let next_block_index = block_completed_event.block_index + BlockIndex::from(1);
 
                 // Don't populate mouse states for In-Band blocks. In-band blocks are hidden to the
@@ -5305,9 +5229,6 @@ impl TerminalView {
         self.input.update(ctx, |view, ctx| {
             view.set_size_info(size_update.new_size, ctx);
             view.notify_and_notify_children(ctx);
-        });
-        self.inline_menu_positioner.update(ctx, |positioner, ctx| {
-            positioner.set_size_info(size_update.new_size, ctx);
         });
         *self.size_info = size_update.new_size;
         self.update_scroll_position_locking(ScrollPositionUpdate::AfterResize, ctx);

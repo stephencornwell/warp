@@ -3031,7 +3031,9 @@ impl Input {
                 .update(ctx, |input_suggestions, ctx| {
                     input_suggestions.select_prev(ctx);
                 });
-        else { self.fuzzy_history_search(ctx); }
+        } else {
+            self.fuzzy_history_search(ctx);
+        }
     }
 
     fn fuzzy_history_search(&mut self, ctx: &mut ViewContext<Self>) {

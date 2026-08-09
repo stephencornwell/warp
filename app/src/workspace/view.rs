@@ -8010,12 +8010,6 @@ impl Workspace {
                 }
                 self.render_left_toggle_button(appearance, ctx)
             }
-            HeaderToolbarItemKind::AgentManagement => {
-                self.render_agent_management_view_button(appearance, ctx)
-            }
-            HeaderToolbarItemKind::NotificationsMailbox => {
-                self.render_notifications_mailbox_button(appearance, ctx)
-            }
         };
         Some(
             Container::new(
@@ -8988,12 +8982,6 @@ impl Workspace {
         panels_view.finish()
     }
 
-    fn is_mailbox_on_left(config: &HeaderToolbarChipSelection) -> bool {
-        config
-            .left_items()
-            .contains(&HeaderToolbarItemKind::NotificationsMailbox)
-    }
-
     /// Renders a configurable panel for the given toolbar item, if it is open.
     /// Returns `None` if the panel should not be rendered (item not available,
     /// panel not open, or item is not a panel type).
@@ -9015,9 +9003,6 @@ impl Workspace {
                 }
                 Some(ChildView::new(&self.left_panel_view).finish())
             }
-            HeaderToolbarItemKind::CodeReview => None,
-            HeaderToolbarItemKind::AgentManagement
-            | HeaderToolbarItemKind::NotificationsMailbox => None,
         }
     }
 

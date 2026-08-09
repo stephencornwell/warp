@@ -74,22 +74,12 @@ impl Input {
                 .finish(),
         );
 
-        if should_show_terminal_input_message_bar(&model, app) {
-            column.add_child(
-                Clipped::new(ChildView::new(&self.terminal_input_message_bar).finish()).finish(),
-            );
-        } else if !(matches!(input_mode, InputMode::PinnedToTop)
-            && self
-                .suggestions_mode_model
-                .as_ref(app)
-                .is_inline_menu_open())
-        {
-            column.add_child(
-                Container::new(Flex::row().finish())
-                    .with_margin_bottom(8.)
-                    .finish(),
-            );
-        }
+        let _ = should_show_terminal_input_message_bar;
+        column.add_child(
+            Container::new(Flex::row().finish())
+                .with_margin_bottom(8.)
+                .finish(),
+        );
 
         if matches!(input_mode, InputMode::PinnedToTop) {
             if let Some(banner) = self.render_input_banner(appearance, app, input_mode, false) {
@@ -110,10 +100,6 @@ impl Input {
         ));
 
         let is_focused = self.focus_handle.as_ref().is_none_or(|h| h.is_focused(app));
-        if self.is_voltron_open && is_focused {
-            add_voltron_overlay(&mut stack, &self.voltron_view, menu_positioning);
-        }
-
         if is_focused {
             add_input_suggestions_overlays(self, &mut stack, appearance, menu_positioning, app);
         }
@@ -157,131 +143,7 @@ impl Input {
             hoverable_input
         };
 
-        let mut column = Flex::column();
-        let is_slash_commands = self.suggestions_mode_model.as_ref(app).is_slash_commands();
-        let is_conversation_menu = self
-            .suggestions_mode_model
-            .as_ref(app)
-            .is_conversation_menu();
-        let is_prompts_menu = self.suggestions_mode_model.as_ref(app).is_prompts_menu();
-        let is_skill_menu = self.suggestions_mode_model.as_ref(app).is_skill_menu();
-        let is_inline_history_menu = self
-            .suggestions_mode_model
-            .as_ref(app)
-            .is_inline_history_menu();
-        let is_repos_menu = self.suggestions_mode_model.as_ref(app).is_repos_menu();
-        let hide_menu = self
-            .inline_terminal_menu_positioner
-            .as_ref(app)
-            .should_hide_inline_menu_for_pane_size(app);
-        match input_mode {
-            InputMode::PinnedToBottom => {
-                column.add_children(
-                    [
-                        if hide_menu {
-                            None
-                        } else if is_slash_commands {
-                            Some(ChildView::new(&self.inline_slash_commands_view).finish())
-                        } else if is_prompts_menu {
-                            Some(ChildView::new(&self.inline_prompts_menu_view).finish())
-                        } else if is_conversation_menu {
-                            Some(ChildView::new(&self.inline_conversation_menu_view).finish())
-                        } else if FeatureFlag::ListSkills.is_enabled() && is_skill_menu {
-                            Some(ChildView::new(&self.inline_skill_selector_view).finish())
-                        } else if is_inline_history_menu {
-                            Some(ChildView::new(&self.inline_history_menu_view).finish())
-                        } else if is_repos_menu {
-                            Some(ChildView::new(&self.inline_repos_menu_view).finish())
-                        } else {
-                            None
-                        },
-                        Some(ChildView::new(&self.agent_status_view).finish()),
-                        Some(input),
-                    ]
-                    .into_iter()
-                    .flatten(),
-                );
-            }
-            InputMode::PinnedToTop => {
-                column.add_children(
-                    [
-                        Some(input),
-                        Some(ChildView::new(&self.agent_status_view).finish()),
-                        if hide_menu {
-                            None
-                        } else if is_slash_commands {
-                            Some(ChildView::new(&self.inline_slash_commands_view).finish())
-                        } else if is_prompts_menu {
-                            Some(ChildView::new(&self.inline_prompts_menu_view).finish())
-                        } else if is_conversation_menu {
-                            Some(ChildView::new(&self.inline_conversation_menu_view).finish())
-                        } else if FeatureFlag::ListSkills.is_enabled() && is_skill_menu {
-                            Some(ChildView::new(&self.inline_skill_selector_view).finish())
-                        } else if is_inline_history_menu {
-                            Some(ChildView::new(&self.inline_history_menu_view).finish())
-                        } else if is_repos_menu {
-                            Some(ChildView::new(&self.inline_repos_menu_view).finish())
-                        } else {
-                            None
-                        },
-                    ]
-                    .into_iter()
-                    .flatten(),
-                );
-            }
-            InputMode::Waterfall => {
-                let should_render_below = self
-                    .inline_terminal_menu_positioner
-                    .as_ref(app)
-                    .should_render_inline_menu_below_input();
-
-                if !hide_menu {
-                    if is_slash_commands && !should_render_below {
-                        column.add_child(ChildView::new(&self.inline_slash_commands_view).finish());
-                    } else if is_prompts_menu && !should_render_below {
-                        column.add_child(ChildView::new(&self.inline_prompts_menu_view).finish());
-                    } else if is_conversation_menu && !should_render_below {
-                        column.add_child(
-                            ChildView::new(&self.inline_conversation_menu_view).finish(),
-                        );
-                    } else if FeatureFlag::ListSkills.is_enabled()
-                        && is_skill_menu
-                        && !should_render_below
-                    {
-                        column.add_child(ChildView::new(&self.inline_skill_selector_view).finish());
-                    } else if is_inline_history_menu && !should_render_below {
-                        column.add_child(ChildView::new(&self.inline_history_menu_view).finish());
-                    } else if is_repos_menu && !should_render_below {
-                        column.add_child(ChildView::new(&self.inline_repos_menu_view).finish());
-                    }
-                }
-
-                column.add_children([ChildView::new(&self.agent_status_view).finish(), input]);
-
-                if !hide_menu {
-                    if is_slash_commands && should_render_below {
-                        column.add_child(ChildView::new(&self.inline_slash_commands_view).finish());
-                    } else if is_prompts_menu && should_render_below {
-                        column.add_child(ChildView::new(&self.inline_prompts_menu_view).finish());
-                    } else if is_conversation_menu && should_render_below {
-                        column.add_child(
-                            ChildView::new(&self.inline_conversation_menu_view).finish(),
-                        );
-                    } else if FeatureFlag::ListSkills.is_enabled()
-                        && is_skill_menu
-                        && should_render_below
-                    {
-                        column.add_child(ChildView::new(&self.inline_skill_selector_view).finish());
-                    } else if is_inline_history_menu && should_render_below {
-                        column.add_child(ChildView::new(&self.inline_history_menu_view).finish());
-                    } else if is_repos_menu && should_render_below {
-                        column.add_child(ChildView::new(&self.inline_repos_menu_view).finish());
-                    }
-                }
-            }
-        }
-
-        SavePosition::new(column.finish(), &self.save_position_id()).finish()
+        SavePosition::new(input, &self.save_position_id()).finish()
     }
 }
 

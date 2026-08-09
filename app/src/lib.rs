@@ -213,37 +213,32 @@ use warp_logging::LogDestination;
 
 #[macro_export]
 macro_rules! send_telemetry_from_ctx {
-    ($($tokens:tt)*) => {};
+    ($($tokens:tt)*) => { () };
 }
 
 #[macro_export]
 macro_rules! send_telemetry_from_app_ctx {
-    ($($tokens:tt)*) => {};
+    ($($tokens:tt)*) => { () };
 }
 
 #[macro_export]
 macro_rules! send_telemetry_sync_from_ctx {
-    ($($tokens:tt)*) => {};
+    ($($tokens:tt)*) => { () };
 }
 
 #[macro_export]
 macro_rules! send_telemetry_sync_from_app_ctx {
-    ($($tokens:tt)*) => {};
+    ($($tokens:tt)*) => { () };
 }
 
 #[macro_export]
 macro_rules! send_telemetry_on_executor {
-    ($($tokens:tt)*) => {};
-}
-
-#[macro_export]
-macro_rules! report_if_error {
-    ($($tokens:tt)*) => {};
+    ($($tokens:tt)*) => { () };
 }
 
 #[macro_export]
 macro_rules! safe_error {
-    ($($tokens:tt)*) => {};
+    ($($tokens:tt)*) => { () };
 }
 
 // Re-export the safe logging macros at the crate root level for backwards compatibility

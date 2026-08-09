@@ -176,6 +176,11 @@ pub fn parse_sqlite_id_to_uid(value: HashedSqliteId) -> Result<ObjectUid, ()> {
 #[macro_export]
 macro_rules! server_id_traits {
     ($t:ty, $prefix:literal) => {
+        #[cfg(any(test, feature = "test-util"))]
+        impl From<i64> for $t {
+            fn from(value: i64) -> Self { Self(value.into()) }
+        }
+
         impl From<String> for $t {
             fn from(value: String) -> Self {
                 Self($crate::server::ids::ServerId::from_string_lossy(value))
@@ -195,6 +200,9 @@ macro_rules! server_id_traits {
         }
         impl From<$t> for $crate::server::ids::ServerId {
             fn from(value: $t) -> Self { value.0 }
+        }
+        impl From<$crate::server::ids::ServerId> for $t {
+            fn from(value: $crate::server::ids::ServerId) -> Self { Self(value) }
         }
         impl $crate::server::ids::ToServerId for $t {
             fn to_server_id(&self) -> $crate::server::ids::ServerId { self.0 }

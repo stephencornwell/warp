@@ -325,7 +325,6 @@ impl LspManagerModel {
         }
         None
     }
-
 }
 
 impl Entity for LspManagerModel {

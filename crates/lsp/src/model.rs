@@ -428,7 +428,6 @@ impl LspServerModel {
         }
     }
 
-
     /// Different from stop -- on terminate, we won't update the server state and emit events based on server response.
     fn terminate(&mut self) {
         match &self.server_state {
@@ -456,7 +455,6 @@ impl LspServerModel {
             }
         }
     }
-
 
     pub fn document_is_open(&self, path: &PathBuf) -> Result<bool> {
         let service = self.service()?;

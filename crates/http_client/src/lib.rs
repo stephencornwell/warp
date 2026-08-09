@@ -1,7 +1,7 @@
+use std::fmt;
 use std::future::Future;
 use std::pin::Pin;
 use std::time::Duration;
-use std::fmt;
 
 #[cfg(not(target_family = "wasm"))]
 use async_compat::{Compat, CompatExt};

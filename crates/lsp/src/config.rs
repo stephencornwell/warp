@@ -228,7 +228,6 @@ pub(crate) fn path_to_lsp_uri(path: &Path) -> Result<Uri> {
 
         uri_str.parse::<Uri>().map_err(anyhow::Error::from)
     }
-
 }
 
 pub(crate) fn lsp_uri_to_path(uri: &Uri) -> Result<PathBuf> {

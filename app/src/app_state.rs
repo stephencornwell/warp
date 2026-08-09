@@ -187,7 +187,6 @@ pub enum WorkflowPaneSnapshot {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-#[derive(Clone, Debug, PartialEq)]
 pub enum SettingsPaneSnapshot {
     Local {
         current_page: SettingsSection,

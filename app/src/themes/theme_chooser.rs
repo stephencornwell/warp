@@ -27,7 +27,7 @@ use crate::themes::theme::{RespectSystemTheme, ThemeKind, WarpTheme};
 use crate::util::traffic_lights::traffic_light_data;
 use crate::workspace::PANEL_HEADER_HEIGHT;
 use crate::{
-    appearance::Appearance,
+    appearance::{Appearance, AppearanceManager},
     editor::{
         Event as EditorEvent, PropagateAndNoOpNavigationKeys, SingleLineEditorOptions, TextOptions,
     },
@@ -38,6 +38,7 @@ use crate::{
     util::traffic_lights::{TrafficLightData, TrafficLightSide},
     window_settings::WindowSettings,
 };
+use crate::ui_components::window_focus_dimming::WindowFocusDimming;
 use crate::{editor::EditorView, resource_center::TipsCompleted};
 use crate::{
     themes::theme::WarpThemeConfig,

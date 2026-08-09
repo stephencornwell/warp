@@ -24,12 +24,7 @@ use warpui::{
 };
 
 use crate::{
-    ai_assistant::GenerateCommandsFromNaturalLanguageError,
     appearance::Appearance,
-    auth::{
-        auth_manager::AuthManager, auth_state::AuthState, auth_view_modal::AuthViewVariant,
-        AuthStateProvider, UserUid,
-    },
     completer::SessionContext,
     search::{
         command_search::searcher::{CommandSearchItemAction, CommandSearchMixer},
@@ -218,40 +213,6 @@ impl CommandSearchView {
             // Add data sources in lowest->highest priority order.  If results from two
             // data sources produce the same ranking score, the data source added first
             // will show up higher in the list (i.e.: further away from the input).
-            if WarpDriveSettings::is_warp_drive_enabled(ctx) {
-                mixer.add_sync_source(
-                    WorkflowsDataSource::new(session_context.as_ref(), ctx),
-                    HashSet::from([QueryFilter::Workflows]),
-                );
-
-                let mut workflows_filters = HashSet::from([QueryFilter::Workflows]);
-                if AISettings::as_ref(ctx).is_any_ai_enabled(ctx) {
-                    workflows_filters.insert(QueryFilter::AgentModeWorkflows);
-                }
-
-                mixer.add_async_source(
-                    cloud_workflows_data_source(),
-                    workflows_filters,
-                    AddAsyncSourceOptions {
-                        debounce_interval: Some(Duration::from_millis(50)),
-                        run_in_zero_state: true,
-                        run_when_unfiltered: true,
-                    },
-                    ctx,
-                );
-
-                mixer.add_async_source(
-                    notebooks_data_source(),
-                    HashSet::from([QueryFilter::Notebooks]),
-                    AddAsyncSourceOptions {
-                        debounce_interval: Some(Duration::from_millis(50)),
-                        run_in_zero_state: true,
-                        run_when_unfiltered: true,
-                    },
-                    ctx,
-                );
-
-            }
 
             if History::as_ref(ctx).is_queryable(&session_id) {
                 let source = History::handle(ctx).read(ctx, |history_model, app| {

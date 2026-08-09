@@ -2606,16 +2606,6 @@ fn read_sqlite_data(
     })
 }
 
-fn id_from_metadata<K: HashableId + ToServerId>(metadata: &ObjectMetadata) -> Option<SyncId> {
-    match (&metadata.server_id, &metadata.client_id) {
-        (Some(server_id), _) => {
-            K::from_hash(server_id).map(|id| SyncId::ServerId(id.to_server_id()))
-        }
-        (None, Some(client_id)) => ClientId::from_hash(client_id).map(SyncId::ClientId),
-        _ => None,
-    }
-}
-
 fn to_cloud_object_metadata(metadata: &ObjectMetadata) -> CloudObjectMetadata {
     CloudObjectMetadata {
         current_editor_uid: metadata.current_editor.clone(),

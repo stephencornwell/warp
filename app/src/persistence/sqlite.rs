@@ -897,24 +897,7 @@ fn save_pane_state(
                 .values(ai_fact)
                 .execute(conn)?;
         }
-        LeafContents::CodeReview(code_review_pane_snapshot) => {
-            let CodeReviewPaneSnapshot::Local {
-                terminal_uuid,
-                repo_path,
-            } = code_review_pane_snapshot;
-            let code_review = model::NewCodeReviewPane {
-                id,
-                terminal_uuid: terminal_uuid.clone(),
-                repo_path: repo_path.to_string_lossy().into_owned(),
-            };
-
-            diesel::insert_into(schema::code_review_panes::dsl::code_review_panes)
-                .values(code_review)
-                .execute(conn)?;
-        }
-        LeafContents::ExecutionProfileEditor => {
-            // TODO: Implement execution profile editor pane saving.
-        }
+        LeafContents::CodeReview(_) => {}
         LeafContents::GetStarted => {
             // Stateless
         }

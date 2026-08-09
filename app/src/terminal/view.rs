@@ -10624,6 +10624,7 @@ impl TerminalView {
         None
     }
 
+    #[cfg(any())]
     pub fn insert_drive_sharing_onboarding_block(
         &mut self,
         object_id: CloudObjectTypeAndId,
@@ -10698,6 +10699,7 @@ impl TerminalView {
         ps1_grid_info
     }
 
+    #[cfg(any())]
     fn add_agentic_suggestions_block(&mut self, ctx: &mut ViewContext<Self>) {
         self.reset_onboarding_blocks(ctx);
         self.block_onboarding_active = true;
@@ -10754,6 +10756,7 @@ impl TerminalView {
     }
 
     #[cfg_attr(not(feature = "local_fs"), allow(dead_code))]
+    #[cfg(any())]
     fn add_settings_import_block(&mut self, ctx: &mut ViewContext<Self>) {
         self.block_onboarding_active = true;
         let current_block_view_handle = ctx.add_typed_action_view(SettingsImportView::new);
@@ -10798,6 +10801,7 @@ impl TerminalView {
     }
 
     #[cfg_attr(not(feature = "local_fs"), allow(dead_code))]
+    #[cfg(any())]
     fn add_prompt_block(&mut self, ctx: &mut ViewContext<Self>) {
         let ps1_grid_info = self.get_ps1_grid_info();
         let current_block_view_handle =
@@ -10824,6 +10828,7 @@ impl TerminalView {
         }
     }
 
+    #[cfg(any())]
     #[cfg(any())]
     fn handle_onboarding_agentic_suggestions_block_event(
         &mut self,
@@ -10855,6 +10860,7 @@ impl TerminalView {
         }
     }
 
+    #[cfg(any())]
     pub fn interrupt_onboarding_blocks(&mut self, ctx: &mut ViewContext<Self>) {
         if let Some(onboarding_prompt_block_handle) = &self.onboarding_prompt_block {
             onboarding_prompt_block_handle.update(ctx, |onboarding_prompt_block, block_ctx| {
@@ -10880,6 +10886,7 @@ impl TerminalView {
     }
 
     /// Opens a folder that the user may or may not have opened in the past
+    #[cfg(any())]
     pub fn open_repo_folder(
         &mut self,
         path: String,
@@ -10899,18 +10906,21 @@ impl TerminalView {
         self.toggle_left_panel_file_tree(true, ctx);
     }
 
+    #[cfg(any())]
     pub fn create_new_project(&mut self, prompt: String, ctx: &mut ViewContext<Self>) {
         self.input.update(ctx, |input, ctx| {
             input.initiate_create_new_project(prompt, ctx);
         });
     }
 
+    #[cfg(any())]
     pub fn agent_clone_repository(&mut self, url: String, ctx: &mut ViewContext<Self>) {
         self.input.update(ctx, |input, ctx| {
             input.initiate_clone_repository(url, ctx);
         });
     }
 
+    #[cfg(any())]
     pub fn maybe_set_pending_repo_init_path(&mut self, path: PathBuf) {
         self.on_next_block_completed(move |me, ctx| {
             if me
@@ -10925,6 +10935,7 @@ impl TerminalView {
 
     // Initialize project for a path and suppress the agent mode setup banner for that path. This also auto-opens
     // the code-review pane after the initialization step completes.
+    #[cfg(any())]
     fn init_project_and_suppress_banners(&mut self, path: PathBuf, ctx: &mut ViewContext<Self>) {
         log::info!("Indexing and running /init for new repo at {path:?}");
 
@@ -10947,6 +10958,7 @@ impl TerminalView {
     }
 
     // Show or hide codebase index speedbump depending when a settings change happens.
+    #[cfg(any())]
     fn check_codebase_index_speedbump_on_settings_changed(&mut self, ctx: &mut ViewContext<Self>) {
         if let Some(working_directory) = self.pwd_if_local(ctx) {
             let path_buf = PathBuf::from(&working_directory);
@@ -10954,6 +10966,7 @@ impl TerminalView {
         }
     }
 
+    #[cfg(any())]
     fn summarize_conversation(&mut self, ctx: &mut ViewContext<Self>) {
         self.ai_controller.update(ctx, |controller, ctx| {
             controller
@@ -10961,6 +10974,7 @@ impl TerminalView {
         });
     }
 
+    #[cfg(any())]
     fn init_project(
         &mut self,
         open_code_review_pane_after_rule_generation: bool,
@@ -11122,6 +11136,7 @@ impl TerminalView {
     }
 
     /// Insert an InitStepBlock for the given step kind
+    #[cfg(any())]
     fn insert_init_step_block(
         &mut self,
         kind: InitStepKind,
@@ -11145,6 +11160,7 @@ impl TerminalView {
     }
 
     /// Try to focus the most recent init step block that's awaiting user input
+    #[cfg(any())]
     fn try_focus_active_init_step(&mut self, ctx: &mut ViewContext<Self>) {
         for rc in self.rich_content_views.iter().rev() {
             if let Some(block_handle) = rc.init_step_block_handle() {
@@ -11155,6 +11171,7 @@ impl TerminalView {
     }
 
     /// Check if completed command was `warp environment create` and emit event if successful
+    #[cfg(any())]
     fn maybe_handle_environment_create_command(
         &mut self,
         block_completed: &UserBlockCompleted,
@@ -11176,6 +11193,7 @@ impl TerminalView {
         }
     }
 
+    #[cfg(any())]
     #[cfg(any())]
     fn enter_environment_setup_selector(&mut self, args: Vec<String>, ctx: &mut ViewContext<Self>) {
         // If arguments are provided (repo paths/URLs), skip the mode selector and go directly
@@ -11207,6 +11225,7 @@ impl TerminalView {
         ctx.focus(&self.environment_setup_mode_selector);
     }
 
+    #[cfg(any())]
     #[cfg(any())]
     fn setup_cloud_environment(&mut self, args: Vec<String>, ctx: &mut ViewContext<Self>) {
         if FeatureFlag::AgentView.is_enabled()
@@ -11260,6 +11279,7 @@ impl TerminalView {
     }
 
     #[cfg(any())]
+    #[cfg(any())]
     fn handle_environment_setup_mode_selector_event(
         &mut self,
         event: &EnvironmentSetupModeSelectorEvent,
@@ -11293,6 +11313,7 @@ impl TerminalView {
         }
     }
 
+    #[cfg(any())]
     #[cfg(any())]
     fn setup_cloud_environment_and_start(
         &mut self,
@@ -11328,6 +11349,7 @@ impl TerminalView {
         self.start_cloud_environment_setup(repos, use_current_dir, ctx);
     }
 
+    #[cfg(any())]
     #[cfg(any())]
     fn start_cloud_environment_setup(
         &mut self,
@@ -11368,6 +11390,7 @@ impl TerminalView {
     }
 
     #[cfg(feature = "local_fs")]
+    #[cfg(any())]
     fn update_agent_mode_setup_speedbump_banner(
         &mut self,
         directory: PathBuf,
@@ -11394,6 +11417,7 @@ impl TerminalView {
     }
 
     #[cfg(feature = "local_fs")]
+    #[cfg(any())]
     fn should_show_agent_mode_setup_for_directory(
         &self,
         directory: &Path,
@@ -11436,6 +11460,7 @@ impl TerminalView {
         false
     }
 
+    #[cfg(any())]
     fn mark_agent_init_callout_as_shown_for_directory(
         &self,
         directory: &Path,

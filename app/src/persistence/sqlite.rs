@@ -1328,10 +1328,6 @@ fn read_sqlite_data(
         .map(PersistedCommand::from)
         .collect();
 
-    let user_profiles = Vec::new();
-    let object_actions = Vec::new();
-    let server_experiments = Vec::new();
-
     let app_state = AppState {
         windows: saved_windows,
         active_window_index,

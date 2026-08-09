@@ -51,7 +51,7 @@ use super::image_map::StoredImageMetadata;
 use super::kitty::{KittyAction, KittyResponse};
 use super::rich_content::RichContentType;
 use super::secrets::RespectObfuscatedSecrets;
-use super::{ansi::InputBufferValue, block::SerializedAIMetadata};
+use super::ansi::InputBufferValue;
 
 use super::selection::ScrollDelta;
 use super::terminal_model::RangeInModel;
@@ -2508,15 +2508,6 @@ impl BlockList {
             self.active_block_mut().start_background(None);
         } else {
             self.active_block_mut().start();
-        }
-
-        if let Some(serialized_ai_metadata) = block.ai_metadata.as_ref().and_then(|ai_metadata| {
-            serde_json::from_str::<Option<SerializedAIMetadata>>(ai_metadata)
-                .ok()
-                .flatten()
-        }) {
-            self.active_block_mut()
-                .set_interaction_mode_from_serialized_ai_metadata(serialized_ai_metadata);
         }
 
         // For whatever reason, the pattern here in restore_block() is to create a block and then

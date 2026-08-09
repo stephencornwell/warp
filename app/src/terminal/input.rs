@@ -1588,14 +1588,6 @@ impl Input {
         let input_render_state_model_handle: ModelHandle<InputRenderStateModel> =
             ctx.add_model(|_| InputRenderStateModel::new(false, size_info));
 
-        let prompt_render_helper = PromptRenderHelper::new(
-            sessions.clone(),
-            prompt_view,
-            prompt_selection_state_handle,
-            view_id,
-            input_render_state_model_handle.clone(),
-            ai_input_model.clone(),
-        );
 
         let editor = {
             // Clones used in render_decorator_elements closure below.
@@ -1642,17 +1634,6 @@ impl Input {
         let suggestions_mode_model =
             ctx.add_model(|_| InputSuggestionsModeModel::new(buffer_model.clone()));
 
-        let terminal_input_message_bar = ctx.add_view(|ctx| {
-            TerminalInputMessageBar::new(
-                model.clone(),
-                ai_input_model.clone(),
-                buffer_model.clone(),
-                ai_context_model.clone(),
-                suggestions_mode_model.clone(),
-                None,
-                ctx,
-            )
-        });
 
         current_prompt.update(ctx, |prompt_type, ctx| {
             if let PromptType::Dynamic { prompt } = prompt_type {
@@ -1746,7 +1727,6 @@ impl Input {
             completions_abort_handle: None,
             decorations_future_handle: None,
             autosuggestions_abort_handle: None,
-            prompt_render_helper,
             prompt_type: current_prompt,
             enable_autosuggestions_setting: *editor_settings_handle
                 .as_ref(ctx)
@@ -1757,7 +1737,6 @@ impl Input {
             hoverable_handle: Default::default(),
             #[cfg(feature = "local_fs")]
             conn: None,
-            terminal_input_message_bar,
             is_editor_empty_on_last_edit: is_editor_empty,
             weak_view_handle: ctx.handle(),
             input_contents_before_prompt_chip_command: None,

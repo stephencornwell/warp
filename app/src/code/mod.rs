@@ -6,7 +6,6 @@ use warp_util::file::FileSaveError;
 use warpui::elements::DropTargetData;
 use warpui::AppContext;
 
-pub mod editor;
 pub mod editor_management;
 pub mod global_buffer_model;
 pub mod lsp_logs;

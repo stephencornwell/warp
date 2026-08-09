@@ -4931,7 +4931,7 @@ impl EditorView {
 
         self.process_attached_images_future_handle = Some(ctx.spawn(
             async move {
-                let mut processed_pending_images = vec![];
+                let mut processed_pending_images: Vec<AttachedImage> = vec![];
                 let mut num_oversized_images: usize = 0;
                 let mut num_unprocessed_images: usize = 0;
 
@@ -7654,7 +7654,7 @@ impl EditorView {
             appearance,
             icons::Icon::Image,
             false,
-            self.image_context_button_mouse_handle.clone(),
+            MouseStateHandle::default(),
         )
         .with_tooltip_position(ButtonTooltipPosition::Above)
         .with_tooltip(self.render_menu_button_tooltip(tooltip_text, appearance))
@@ -8173,6 +8173,7 @@ impl TypedActionView for EditorView {
                 marked_text,
                 selected_range,
             } => self.set_marked_text(marked_text, selected_range, ctx),
+            SetAIContextMenuOpen(_) => {}
             ClearMarkedText => self.clear_marked_text(ctx),
         }
 

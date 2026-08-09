@@ -4479,84 +4479,6 @@ impl Input {
 
     /// Whether the given event should trigger a request to generate an AI-based natural language
     /// autosuggestion, due to the buffer content meaningfully changing.
-    fn is_nl_ai_autosuggestion_triggering_event(event: &EditorEvent) -> bool {
-        matches!(
-            event,
-            EditorEvent::Edited(_)
-                | EditorEvent::BufferReplaced
-                | EditorEvent::InsertLastWordPrevCommand
-                | EditorEvent::AutosuggestionAccepted { .. }
-                | EditorEvent::DeleteAllLeft
-                | EditorEvent::BackspaceOnEmptyBuffer
-                | EditorEvent::BackspaceAtBeginningOfBuffer
-                | EditorEvent::MiddleClickPaste
-        )
-    }
-
-    fn should_close_ai_context_menu(
-        &self,
-        event: &EditorEvent,
-        ctx: &mut ViewContext<Self>,
-    ) -> bool {
-        let InputSuggestionsMode::AIContextMenu {
-            at_symbol_position, ..
-        } = *self.suggestions_mode_model.as_ref(ctx).mode()
-        else {
-            return false;
-        };
-
-        if matches!(
-            event,
-            EditorEvent::DeleteAllLeft
-                | EditorEvent::CtrlC { .. }
-                | EditorEvent::BackspaceOnEmptyBuffer
-                | EditorEvent::BackspaceAtBeginningOfBuffer
-                | EditorEvent::SetAIContextMenuOpen(false)
-        ) {
-            return true;
-        }
-        if !matches!(
-            event,
-            EditorEvent::Edited(_)
-                | EditorEvent::BufferReplaced
-                | EditorEvent::InsertLastWordPrevCommand
-                | EditorEvent::AutosuggestionAccepted { .. }
-                | EditorEvent::MiddleClickPaste
-        ) {
-            return false;
-        }
-        let buffer = self.editor.as_ref(ctx).buffer_text(ctx);
-        let cursor_pos = self
-            .editor
-            .as_ref(ctx)
-            .start_byte_index_of_last_selection(ctx)
-            .as_usize();
-        // If the cursor is to the left of the "@", we should close the AI context menu.
-        if cursor_pos < at_symbol_position {
-            return true;
-        }
-        let chars_before_cursor: Vec<char> = buffer.as_str().chars().take(cursor_pos).collect();
-        let iter = chars_before_cursor.into_iter().rev();
-        let mut prev_char_was_space = false;
-        for c in iter {
-            if c.is_whitespace() && c != ' ' {
-                return true;
-            }
-            if c == '@' {
-                return prev_char_was_space;
-            }
-            if c == ' ' {
-                if prev_char_was_space {
-                    return true;
-                }
-                prev_char_was_space = true;
-            } else {
-                prev_char_was_space = false;
-            }
-        }
-        true
-    }
-
     /// Helper function to replace "@" symbol and filter text with new text
     pub(super) fn replace_at_symbol_with_text(&mut self, text: &str, ctx: &mut ViewContext<Self>) {
         let is_ai_mode = self.ai_input_model.as_ref(ctx).is_ai_input_enabled();
@@ -4622,10 +4544,6 @@ impl Input {
 
         if !matches!(event, EditorEvent::InsertLastWordPrevCommand) {
             self.update_last_word_insertion_state();
-        }
-
-        if self.should_close_ai_context_menu(event, ctx) {
-            self.close_ai_context_menu(ctx);
         }
 
         self.check_slash_menu_disabled_state(ctx);

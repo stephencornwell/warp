@@ -126,7 +126,6 @@ mod tests;
 pub use pane::network_log_pane::NetworkLogPane;
 pub use pane::settings_pane::SettingsPane;
 pub use pane::terminal_pane::TerminalPane;
-pub use pane::workflow_pane::WorkflowPane;
 pub use pane::PaneHeaderAction;
 pub use pane::PaneHeaderCustomAction;
 pub use pane::{

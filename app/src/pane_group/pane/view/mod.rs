@@ -10,15 +10,19 @@ use header::PaneHeader;
 use warpui::{
     elements::{
         Border, Container, DropTarget, DropTargetData, Flex, MainAxisSize, ParentElement,
-        SavePosition, Shrinkable },
-presenter::ChildView,
-    AppContext, Element, Entity, ModelHandle, SingletonEntity, View, ViewContext,
-    ViewHandle };
+        SavePosition, Shrinkable,
+    },
+    keymap::EditableBinding,
+    presenter::ChildView,
+    AppContext, Element, Entity, ModelHandle, SingletonEntity, TypedActionView, View, ViewContext,
+    ViewHandle,
+};
 
 use crate::appearance::Appearance;
 use crate::pane_group::{
     focus_state::{PaneFocusHandle, PaneGroupFocusEvent},
-    Direction, SplitPaneState, TabBarHoverIndex };
+    Direction, PaneState, SplitPaneState, TabBarHoverIndex,
+};
 use crate::settings::PaneSettings;
 
 pub use header::PaneHeaderAction;

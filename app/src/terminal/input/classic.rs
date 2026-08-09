@@ -1,6 +1,7 @@
 use crate::{
     appearance::Appearance,
-features::FeatureFlag,
+    context_chips::spacing,
+    features::FeatureFlag,
     settings::{AppEditorSettings, InputModeSettings},
     terminal::{
         block_list_settings::BlockListSettings,
@@ -9,17 +10,23 @@ features::FeatureFlag,
             common::{
                 add_command_xray_overlay, add_input_suggestions_overlays, add_vim_status_to_stack,
                 should_show_terminal_input_message_bar,
-                wrap_input_with_terminal_padding_and_focus_handler },
-            get_input_box_top_border_width, InputDropTargetData },
+                wrap_input_with_terminal_padding_and_focus_handler,
+            },
+            get_input_box_top_border_width, InputDropTargetData,
+        },
         settings::{SpacingMode, TerminalSettings},
-        view::TerminalAction } };
+        view::TerminalAction,
+    },
+};
 use settings::Setting;
 use warpui::{
     elements::{
-        Border, ChildAnchor, Container, DropTarget, Element, Empty, Flex,
+        Border, ChildAnchor, ChildView, Clipped, Container, DropTarget, Element, Empty, Flex,
         Hoverable, OffsetPositioning, ParentAnchor, ParentElement, ParentOffsetBounds,
-        SavePosition, Stack },
-    AppContext, SingletonEntity };
+        SavePosition, Stack,
+    },
+    AppContext, SingletonEntity,
+};
 
 use super::{should_render_prompt_on_same_line, Input};
 

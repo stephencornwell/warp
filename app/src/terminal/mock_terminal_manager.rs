@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use parking_lot::FairMutex;
 use pathfinder_geometry::vector::Vector2F;
-use warpui::{AppContext, ModelHandle, ViewHandle, WindowId};
+use warpui::{AppContext, ModelHandle, SingletonEntity, ViewHandle, WindowId};
 
 use crate::{context_chips::prompt_type::PromptType, pane_group::TerminalViewResources};
 
@@ -119,7 +119,7 @@ impl TerminalManager for MockTerminalManager {
 
 #[cfg(test)]
 mod testing {
-    use warpui::{platform::WindowStyle, App, Element};
+    use warpui::{platform::WindowStyle, App, Element, SingletonEntity};
 
     use crate::terminal::{
         shell::{ShellName, ShellType},

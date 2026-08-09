@@ -4,14 +4,15 @@ use std::rc::Rc;
 use std::sync::Arc;
 
 use parking_lot::FairMutex;
-use warp_terminal::model::escape_sequences::{ BRACKETED_PASTE_START};
+use warp_terminal::model::escape_sequences::{BRACKETED_PASTE_END, BRACKETED_PASTE_START};
 use warpui::{
-    notification::UserNotification, Presenter, WindowInvalidation };
+    notification::UserNotification, platform::WindowStyle, Presenter, WindowInvalidation,
+};
 
-use warpui::{App};
+use warpui::{App, ReadModel};
 
 use crate::pane_group::focus_state::PaneGroupFocusState;
-use crate::pane_group::{ BackingView, TerminalPaneId};
+use crate::pane_group::{pane::PaneStack, BackingView, TerminalPaneId};
 use crate::terminal::model::grid::Dimensions as _;
 use crate::{
     terminal::alt_screen::should_intercept_mouse,

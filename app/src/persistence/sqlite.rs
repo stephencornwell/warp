@@ -8,11 +8,13 @@ use std::{
     convert::TryInto,
     fs,
     path::PathBuf,
-thread };
+    sync::Arc,
+    thread,
+};
 use warp_core::report_if_error;
 
-use anyhow::{anyhow, Context, Result};
-use chrono::{ Utc};
+use anyhow::{anyhow, bail, Context, Result};
+use chrono::{DateTime, Utc};
 use diesel::{
     connection::{DefaultLoadingMode, SimpleConnection},
     result::Error,
@@ -27,26 +29,29 @@ use num_traits::FromPrimitive;
 use pathfinder_geometry::{rect::RectF, vector::Vector2F};
 use persistence::model::AMBIENT_AGENT_PANE_KIND;
 use warpui::platform::FullscreenState;
-use warpui::{AppContext};
+use warpui::{AppContext, SingletonEntity};
 
 use super::block_list::{delete_blocks, save_block};
 use super::model::{
-    self, NewActiveMCPServer,
-    NewApp, NewCommand, NewTab, NewWindow,
-Project, Tab, Window, AI_DOCUMENT_PANE_KIND,
+    self, ActiveMCPServer, CurrentUserInformation, MCPEnvironmentVariables, NewActiveMCPServer,
+    NewApp, NewCommand, NewFolder, NewNotebook, NewServerExperiment, NewTab, NewTeam, NewWindow,
+    NewWorkspace, NewWorkspaceMetadata, NewWorkspaceTeam, ObjectMetadata, ObjectPermissions,
+    Project, Tab, Window, WorkspaceMetadata as WorkspaceMetadataModel, AI_DOCUMENT_PANE_KIND,
     AI_FACT_PANE_KIND, CODE_PANE_KIND, EXECUTION_PROFILE_EDITOR_PANE_KIND, MCP_SERVER_PANE_KIND,
     NOTEBOOK_PANE_KIND, SETTINGS_PANE_KIND, TERMINAL_PANE_KIND, WELCOME_PANE_KIND,
-    WORKFLOW_PANE_KIND };
+    WORKFLOW_PANE_KIND,
+};
 use super::schema;
 use super::{
     BlockCompleted, FinishedCommandMetadata, ModelEvent, PersistedData, StartedCommandMetadata,
     WriterHandles,
 };
 use crate::app_state::{
-    AppState, BranchSnapshot, LeafContents, LeafSnapshot, PaneFlex,
-    PaneNodeSnapshot, SplitDirection, TabSnapshot, TerminalPaneSnapshot, WindowSnapshot };
-use crate::app_state::{LeftPanelSnapshot, SettingsPaneSnapshot};
-use crate::persistence::model::{ CODE_REVIEW_PANE_KIND, GET_STARTED_PANE_KIND};
+    AppState, BranchSnapshot, LeafContents, LeafSnapshot, NotebookPaneSnapshot, PaneFlex,
+    PaneNodeSnapshot, SplitDirection, TabSnapshot, TerminalPaneSnapshot, WindowSnapshot,
+};
+use crate::app_state::{LeftPanelSnapshot, SettingsPaneSnapshot, WorkflowPaneSnapshot};
+use crate::persistence::model::{ProjectRules, CODE_REVIEW_PANE_KIND, GET_STARTED_PANE_KIND};
 use crate::settings_view::SettingsSection;
 use crate::suggestions::ignored_suggestions_model::SuggestionType;
 use crate::tab::SelectedTabColor;

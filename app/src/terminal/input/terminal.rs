@@ -9,16 +9,22 @@ use super::{
 use crate::{
     appearance::Appearance,
     context_chips::spacing,
-settings::{AppEditorSettings, InputModeSettings},
+    features::FeatureFlag,
+    settings::{AppEditorSettings, InputModeSettings},
     terminal::{
         block_list_settings::BlockListSettings, block_list_viewport::InputMode,
-        settings::TerminalSettings, view::TerminalAction } };
+        settings::TerminalSettings, view::TerminalAction,
+    },
+};
 use warp_core::settings::Setting;
 use warpui::{
     elements::{
-        Border, Container, DropTarget, Element, Flex, Hoverable, ParentElement,
-        SavePosition, Stack },
-AppContext, SingletonEntity };
+        Border, Clipped, Container, DropTarget, Element, Flex, Hoverable, ParentElement,
+        SavePosition, Stack,
+    },
+    presenter::ChildView,
+    AppContext, SingletonEntity,
+};
 
 impl Input {
     /// Renders the terminal mode input when `FeatureFlag::AgentView` is enabled and there is no

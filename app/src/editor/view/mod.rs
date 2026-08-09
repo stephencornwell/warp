@@ -48,7 +48,7 @@ use crate::channel::{Channel, ChannelState};
 use crate::editor::accept_autosuggestion_keybinding_view::AcceptAutosuggestionKeybinding;
 use crate::editor::autosuggestion_ignore_view::{AutosuggestionIgnore, AutosuggestionIgnoreEvent};
 use crate::settings_view::flags;
-use crate::suggestions::ignored_suggestions_model::{ SuggestionType};
+use crate::suggestions::ignored_suggestions_model::{IgnoredSuggestionsModel, SuggestionType};
 use crate::ui_components::buttons::icon_button;
 use crate::ui_components::icons;
 use crate::view_components::DismissibleToast;
@@ -105,8 +105,9 @@ use warp_editor::editor::NavigationKey;
 use warpui::actions::StandardAction;
 use warpui::clipboard::ClipboardContent;
 use warpui::elements::{
-Container, CornerRadius, CrossAxisAlignment, Flex, Hoverable, MainAxisSize,
-    ParentElement, Shrinkable, DEFAULT_UI_LINE_HEIGHT_RATIO };
+    ChildView, Container, CornerRadius, CrossAxisAlignment, Flex, Hoverable, MainAxisSize,
+    ParentElement, Shrinkable, DEFAULT_UI_LINE_HEIGHT_RATIO,
+};
 use warpui::elements::{MouseStateHandle, Radius};
 use warpui::fonts::{FamilyId, Properties, Weight};
 use warpui::keymap::{Keystroke, PerPlatformKeystroke};

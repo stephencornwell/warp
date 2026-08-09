@@ -1,12 +1,15 @@
-use std::{path::PathBuf};
+use std::{path::PathBuf, sync::Arc};
 
 use crate::{
     app_state::{
         AppState, LeafContents, LeafSnapshot, PaneNodeSnapshot, TabSnapshot, TerminalPaneSnapshot,
-        WindowSnapshot },
+        WindowSnapshot,
+    },
     persistence::{BlockCompleted, ModelEvent},
     tab::SelectedTabColor,
-terminal::ShellLaunchData };
+    terminal::model::block::SerializedBlock,
+    terminal::ShellLaunchData,
+};
 
 use super::{
     decode_path, deduplicate_events, encode_path, read_sqlite_data, save_app_state, setup_database,

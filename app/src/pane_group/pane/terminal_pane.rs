@@ -1,7 +1,7 @@
 //! Implementation of terminal panes.
 use std::sync::mpsc::SyncSender;
 
-use base64::{engine::general_purpose::STANDARD as BASE64_STANDARD};
+use base64::{engine::general_purpose::STANDARD as BASE64_STANDARD, Engine as _};
 
 use warpui::{
     AppContext, EntityId, ModelHandle, SingletonEntity, ViewContext, ViewHandle, WindowId,
@@ -9,12 +9,13 @@ use warpui::{
 
 use crate::{
     app_state::{LeafContents, TerminalPaneSnapshot},
-    pane_group::{self, PaneGroup},
+    pane_group::{self, Direction, Event::OpenConversationHistory, PaneGroup},
     persistence::{BlockCompleted, ModelEvent},
     session_management::SessionNavigationData,
     terminal::{general_settings::GeneralSettings, view::Event, TerminalManager, TerminalView},
     view_components::ToastFlavor,
-    workspace::{sync_inputs::SyncedInputState, PaneViewLocator} };
+    workspace::{sync_inputs::SyncedInputState, PaneViewLocator},
+};
 
 use warp_core::execution_mode::AppExecutionMode;
 

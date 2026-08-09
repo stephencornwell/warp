@@ -6,10 +6,10 @@ use repo_metadata::repositories::DetectedRepositories;
 use repo_metadata::watcher::DirectoryWatcher;
 use watcher::HomeDirectoryWatcher;
 
-use crate::editor::{EditorAction};
-use crate::input_suggestions::{ Item};
+use crate::editor::{EditorAction, TextStyleOperation};
+use crate::input_suggestions::{HistoryOrder, Item};
 use crate::network::NetworkStatus;
-use crate::settings::{AliasExpansionSettings, AppEditorSettings};
+use crate::settings::{AliasExpansionSettings, AppEditorSettings, InputBoxType};
 #[cfg(windows)]
 use crate::system::SystemInfo;
 use crate::system::SystemStats;
@@ -45,7 +45,7 @@ use warp_completer::meta::Span;
 use unindent::Unindent;
 
 use warpui::platform::WindowStyle;
-use warpui::{App, UpdateView};
+use warpui::{App, ReadModel, UpdateView};
 
 use crate::terminal::general_settings::UserDefaultShellUnsupportedBannerState;
 use crate::terminal::resizable_data::ResizableData;

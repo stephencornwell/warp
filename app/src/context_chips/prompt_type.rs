@@ -5,7 +5,10 @@ use crate::{
     settings::WarpPromptSeparator,
     terminal::{
         model::session::Sessions,
-view::{ContextMenuAction, PromptPart, PromptPosition, TerminalAction} } };
+        session_settings::SessionSettings,
+        view::{ContextMenuAction, PromptPart, PromptPosition, TerminalAction},
+    },
+};
 
 use super::{
     current_prompt::CurrentPrompt, prompt_snapshot::PromptSnapshot, ChipResult, ChipValue,

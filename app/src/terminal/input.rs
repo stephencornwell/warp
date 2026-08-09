@@ -11,14 +11,15 @@ mod terminal;
 mod universal;
 
 use crate::pane_group::focus_state::PaneFocusHandle;
-use crate::search::slash_command_menu::static_commands::commands::{ COMMAND_REGISTRY};
+use crate::search::slash_command_menu::static_commands::commands::{self, COMMAND_REGISTRY};
 
 use crate::suggestions::ignored_suggestions_model::{
     IgnoredSuggestionsModel, IgnoredSuggestionsModelEvent, SuggestionType,
 };
 use crate::terminal::input::buffer_model::InputBufferModel;
 use crate::terminal::input::suggestions_mode_model::{
-InputSuggestionsModeModel };
+    InputSuggestionsModeEvent, InputSuggestionsModeModel,
+};
 use crate::terminal::model::session::active_session::ActiveSession;
 use crate::terminal::view::CodeDiffAction;
 #[cfg(feature = "local_fs")]
@@ -31,41 +32,53 @@ use crate::ASSETS;
 use crate::code::editor_management::CodeSource;
 
 use crate::{
-    appearance::{Appearance},
-    channel::{Channel},
+    appearance::{Appearance, AppearanceEvent},
+    channel::{Channel, ChannelState},
     cmd_or_ctrl_shift,
     completer::SessionContext,
     context_chips::prompt_type::PromptType,
     debounce::debounce,
     editor::{
-position_id_for_cached_point, position_id_for_cursor,
-        position_id_for_first_cursor,
+        default_cursor_colors, position_id_for_cached_point, position_id_for_cursor,
+        position_id_for_first_cursor, AttachedImage as AttachedImageRawData,
         AutosuggestionLocation, AutosuggestionType, BaselinePositionComputationMethod,
-CrdtOperation, DisplayPoint, EditOrigin, EditorAction,
-EditorOptions, EditorSnapshot, EditorView, Event as EditorEvent,
-InteractionState, PathTransformerFn, PlainTextEditorViewAction,
+        CommandXRayAnchor, CrdtOperation, CursorColors, DisplayPoint, EditOrigin, EditorAction,
+        EditorDecoratorElements, EditorOptions, EditorSnapshot, EditorView, Event as EditorEvent,
+        ImageContextOptions, InteractionState, PathTransformerFn, PlainTextEditorViewAction,
         Point as BufferPoint, PropagateAndNoOpEscapeKey, PropagateAndNoOpNavigationKeys,
-        PropagateHorizontalNavigationKeys, TextColors },
+        PropagateHorizontalNavigationKeys, ReplicaId, TextColors, TextRun,
+        MAX_IMAGES_PER_CONVERSATION,
+    },
     features::FeatureFlag,
     input_suggestions::{
         Event as InputSuggestionsEvent, HistoryInputSuggestion, InputSuggestions,
-        TabCompletionsPreselectOption },
-pane_group::PaneGroupAction,
+        TabCompletionsPreselectOption,
+    },
+    network::NetworkStatus,
+    pane_group::PaneGroupAction,
     prefix::longest_common_prefix,
     resource_center::{
-        mark_feature_used_and_write_to_user_defaults, Tip, TipHint, TipsCompleted },
+        mark_feature_used_and_write_to_user_defaults, Tip, TipAction, TipHint, TipsCompleted,
+    },
     search::QueryFilter,
     session_management::SessionNavigationPromptElements,
     settings::{
         AliasExpansionSettings, AppEditorSettings, AppEditorSettingsChangedEvent,
-        InputModeSettings, InputSettings, InputSettingsChangedEvent },
+        InputModeSettings, InputSettings, InputSettingsChangedEvent,
+        MAX_TIMES_TO_SHOW_AUTOSUGGESTION_HINT,
+    },
     settings_view::{flags, SettingsSection},
-ui_components::{ icons::Icon},
-util::bindings::{self, CustomAction},
-view_components::{DismissibleToast, ToastFlavor},
+    sync_ids::SyncId,
+    ui_components::{blended_colors, icons::Icon},
+    user_config::WarpConfig,
+    util::bindings::{self, CustomAction},
+    util::image::MAX_IMAGE_COUNT_FOR_QUERY,
+    view_components::{DismissibleToast, ToastFlavor},
     workspace::{
-        sync_inputs::SyncedInputState, CommandSearchOptions,
-ToastStack, WorkspaceAction } };
+        sync_inputs::SyncedInputState, CommandSearchOptions, ForkedConversationDestination,
+        InitContent, PaletteSource, RestoreConversationLayout, ToastStack, WorkspaceAction,
+    },
+};
 
 #[cfg(feature = "local_fs")]
 use diesel::SqliteConnection;
@@ -74,18 +87,20 @@ use itertools::Itertools;
 use lazy_static::lazy_static;
 use ordered_float::Float;
 use regex::Regex;
-use session_sharing_protocol::common::{  ServerConversationToken};
+use session_sharing_protocol::common::{AgentAttachment, ParticipantId, ServerConversationToken};
 use settings::{Setting as _, ToggleableSetting};
 use std::{
     any::Any,
     borrow::Cow,
     collections::HashMap,
-ops::Range,
+    fmt::Write,
+    ops::Range,
     path::{Path, PathBuf},
     rc::Rc,
-    time::Duration };
+    time::Duration,
+};
 use string_offset::CharOffset;
-use vim::vim::{ VimMode};
+use vim::vim::{VimHandler, VimMode};
 
 use warp_completer::{
     completer::{
@@ -98,28 +113,39 @@ use warp_completer::{
 };
 use warp_core::user_preferences::GetUserPreferences as _;
 use warp_core::{
-ui::theme::{color::internal_colors} };
+    context_flag::ContextFlag,
+    ui::theme::{color::internal_colors, AnsiColorIdentifier},
+};
 use warp_editor::editor::NavigationKey;
 use warp_util::path::ShellFamily;
 use warpui::{
     accessibility::{AccessibilityContent, ActionAccessibilityContent, WarpA11yRole},
-    clipboard::{ClipboardContent},
-elements::{
-        resizable_state_handle, AnchorPair, Clipped, ConstrainedBox, Container,
-DispatchEventResult, DropTargetData, Element,
-        EventHandler, MouseStateHandle,
-        OffsetType,
-ResizableStateHandle, SavePosition, SelectionHandle,
-        YAxisAnchor },
-keymap::{ EditableBinding, FixedBinding, Keystroke},
+    clipboard::{ClipboardContent, ImageData},
+    clipboard_utils::CLIPBOARD_IMAGE_MIME_TYPES,
+    color::ColorU,
+    elements::{
+        resizable_state_handle, Align, AnchorPair, ChildAnchor, Clipped, ConstrainedBox, Container,
+        CornerRadius, CrossAxisAlignment, DispatchEventResult, DropTargetData, Element,
+        EventHandler, Flex, MainAxisAlignment, MainAxisSize, MouseStateHandle, OffsetPositioning,
+        OffsetType, ParentAnchor, ParentElement, PositionedElementOffsetBounds, PositioningAxis,
+        Radius, ResizableStateHandle, SavePosition, SelectionHandle, Text, Wrap, XAxisAnchor,
+        YAxisAnchor,
+    },
+    end_trace,
+    keymap::{BindingDescription, EditableBinding, FixedBinding, Keystroke},
     platform::OperatingSystem,
     presenter::ChildView,
     r#async::SpawnedFutureHandle,
-ui_components::{
-components::{ UiComponent} },
+    start_trace,
+    text_layout::TextStyle,
+    ui_components::{
+        chip::Chip,
+        components::{Coords, UiComponent, UiComponentStyles},
+    },
     units::IntoPixels,
     AppContext, Entity, EntityId, FocusContext, ModelAsRef, ModelHandle, SingletonEntity,
-    TypedActionView, View, ViewContext, ViewHandle, WeakViewHandle };
+    TypedActionView, View, ViewContext, ViewHandle, WeakViewHandle,
+};
 pub use warpui::{
     elements::{ParentElement as _, Stack},
     geometry::vector::{vec2f, Vector2F},
@@ -133,27 +159,33 @@ use super::{
     event::{BlockCompletedEvent, BlockType, UserBlockCompleted},
     ligature_settings::LigatureSettings,
     model::{
-        block::{BlockId, BlockMetadata},
-        session::{Session, SessionId, Sessions} },
+        block::{BlockId, BlockMetadata, BlocklistEnvVarMetadata},
+        session::{Session, SessionId, SessionType, Sessions},
+    },
     prompt,
     prompt_render_helper::{
-        should_render_prompt_on_same_line,
-        PromptRenderHelper },
+        should_render_prompt_on_same_line, should_render_prompt_using_editor_decorator_elements,
+        PromptRenderHelper, SameLinePromptElements,
+    },
     safe_mode_settings::{
-        get_secret_obfuscation_mode, SafeModeSettings, SafeModeSettingsChangedEvent },
+        get_secret_obfuscation_mode, SafeModeSettings, SafeModeSettingsChangedEvent,
+    },
     session_settings::{SessionSettings, SessionSettingsChangedEvent},
-    settings::{SpacingMode, TerminalSettings},
-view::{
+    settings::{SpacingMode, TerminalSettings, TerminalSettingsChangedEvent},
+    shell::ShellType,
+    view::{
         ExecuteCommandEvent, SyncInputType, TerminalAction,
-        PADDING_LEFT as TERMINAL_VIEW_PADDING_LEFT },
-    History, HistoryEntry, SizeInfo, TerminalModel, UpArrowHistoryConfig };
+        PADDING_LEFT as TERMINAL_VIEW_PADDING_LEFT,
+    },
+    History, HistoryEntry, SizeInfo, TerminalModel, UpArrowHistoryConfig,
+};
 use async_channel::Sender;
 use futures::stream::AbortHandle;
 use parking_lot::FairMutex;
 #[cfg(feature = "local_fs")]
 use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
-use std::sync::atomic::{ Ordering};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use string_offset::ByteOffset;
 

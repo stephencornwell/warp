@@ -2,7 +2,8 @@ use crate::terminal::available_shells::AvailableShell;
 use crate::terminal::block_list_element::GridType;
 use crate::terminal::event::{
     BootstrappedEvent, Event, ExecutedExecutorCommandEvent, InitSshEvent, InitSubshellEvent,
-    SourcedRcFileInSubshellEvent, TerminalMode };
+    SourcedRcFileInSubshellEvent, SshLoginStatus, TerminalMode,
+};
 use crate::terminal::event_listener::ChannelEventListener;
 use crate::terminal::model::ansi;
 use crate::terminal::model::bootstrap::BootstrapStage;
@@ -64,6 +65,9 @@ use hex::FromHexError;
 use instant::Instant;
 use itertools::{Either, Itertools};
 use serde::Serialize;
+use session_sharing_protocol::common::{
+    AICommandMetadata, OrderedTerminalEventType, ParticipantId,
+};
 use std::cmp::{max, min};
 use std::collections::HashMap;
 use std::num::ParseIntError;

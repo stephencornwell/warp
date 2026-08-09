@@ -11,9 +11,10 @@ mod startup_directory;
 mod tests;
 
 use crate::app_state::{
-    LeafContents, LeafSnapshot, LeftPanelDisplayedTab, LeftPanelSnapshot,
+    LeafContents, LeafSnapshot, LeftPanelDisplayedTab, LeftPanelSnapshot, NotebookPaneSnapshot,
     PaneNodeSnapshot, PaneUuid, SettingsPaneSnapshot, TabSnapshot, TerminalPaneSnapshot,
-    WindowSnapshot };
+    WindowSnapshot, WorkflowPaneSnapshot,
+};
 use crate::coding_panel_enablement_state::CodingPanelEnablementState;
 use crate::notification::NotificationContext;
 use crate::projects::ProjectManagementModel;
@@ -37,7 +38,8 @@ use crate::util::openable_file_type::{resolve_file_target_with_editor_choice, Ed
 use crate::workspace::header_toolbar_item::HeaderToolbarItemKind;
 use crate::workspace::tab_settings::TabCloseButtonPosition;
 use crate::workspace::view::openwarp_launch_modal::{
-    OpenWarpLaunchModal };
+    OpenWarpLaunchModal, OpenWarpLaunchModalEvent,
+};
 #[cfg(all(target_os = "macos", feature = "crash_reporting"))]
 use sentry::protocol::{Attachment, AttachmentType};
 use serde_json;
@@ -49,20 +51,20 @@ use super::WorkspaceRegistry;
 #[cfg(feature = "local_fs")]
 use crate::code::editor_management::CodeSource;
 use crate::launch_configs::launch_config::WindowTemplate;
-use crate::pane_group::{ PaneGroup, PaneId};
+use crate::pane_group::{Direction as PaneGroupDirection, PaneGroup, PaneId, TerminalPaneId};
 use crate::quit_warning::UnsavedStateSummary;
 use crate::search::command_palette::view::NavigationMode;
 use crate::search::slash_command_menu::static_commands::commands;
 use crate::settings::{CodeSettings, CodeSettingsChangedEvent, CtrlTabBehavior, InputModeSettings};
 use crate::settings_view::pane_manager::SettingsPaneManager;
-use crate::settings_view::{SettingsSection, SettingsView};
+use crate::settings_view::{SettingsSection, SettingsView, SettingsViewEvent};
 #[cfg(all(target_os = "windows", feature = "local_tty"))]
 use crate::shell_indicator::ShellIndicatorType;
 use crate::terminal::available_shells::AvailableShell;
 #[cfg(target_os = "windows")]
 use crate::terminal::available_shells::AvailableShells;
 use crate::terminal::block_list_viewport::InputMode;
-use crate::ui_components::avatar::{Avatar, AvatarContent};
+use crate::ui_components::avatar::{Avatar, AvatarContent, StatusElementTypes};
 
 #[cfg(target_family = "wasm")]
 use crate::ai::agent_conversations_model::AgentConversationsModelEvent;
@@ -80,8 +82,9 @@ use crate::wasm_nux_dialog::WasmNUXDialog;
 use crate::appearance::{Appearance, AppearanceManager};
 use crate::banner::BannerState;
 use crate::menu::{
-    Event as MenuEvent, Menu, MenuItem, MenuItemFields,
-    DEFAULT_WIDTH as MENU_DEFAULT_WIDTH };
+    Event as MenuEvent, Menu, MenuItem, MenuItemFields, MenuSelectionSource,
+    DEFAULT_WIDTH as MENU_DEFAULT_WIDTH,
+};
 use crate::modal::{Modal, ModalEvent, ModalViewState};
 use crate::network::{NetworkStatus, NetworkStatusEvent};
 use crate::pane_group::{
@@ -91,19 +94,21 @@ use crate::terminal::keys_settings::KeysSettings;
 use crate::GlobalResourceHandles;
 
 use crate::resource_center::{
-    mark_feature_used_and_write_to_user_defaults,
-Tip, TipAction, TipsCompleted };
-use crate::root_view::{ NewWorkspaceSource};
+    mark_feature_used_and_write_to_user_defaults, skip_tips_and_write_to_user_defaults,
+    ResourceCenterEvent, ResourceCenterPage, ResourceCenterView, Tip, TipAction, TipsCompleted,
+};
+use crate::root_view::{quake_mode_window_id, NewWorkspaceSource, OpenLaunchConfigArg};
 use crate::search::command_search::searcher::{AcceptedHistoryItem, CommandSearchItemAction};
 use crate::search::command_search::view::{CommandSearchEvent, CommandSearchView};
-use crate::session_management::{SessionNavigationData};
+use crate::session_management::{SessionNavigationData, SessionSource};
 use crate::settings::{
-    active_theme_kind, respect_system_theme, AccessibilitySettings,
-DebugSettings,
-    FontSettings, InputSettings, MonospaceFontSize,
-ThemeSettings };
+    active_theme_kind, respect_system_theme, AccessibilitySettings, AliasExpansionSettings,
+    AppEditorSettings, BlockVisibilitySettings, ChangelogSettings, CursorBlink, DebugSettings,
+    FontSettings, GPUSettings, InputSettings, MonospaceFontSize, PaneSettings, PrivacySettings,
+    SelectionSettings, Settings, SshSettings, ThemeSettings,
+};
 use crate::settings_view::keybindings::{KeybindingChangedEvent, KeybindingChangedNotifier};
-use crate::sync_ids::{  SyncId};
+use crate::sync_ids::{ObjectUid, ServerId, SyncId};
 use crate::terminal::alt_screen_reporting::AltScreenReporting;
 use crate::terminal::general_settings::GeneralSettings;
 use crate::terminal::input::{Input, MenuPositioning};
@@ -119,7 +124,7 @@ use crate::terminal::session_settings::{
     NewSessionSource, NotificationsMode, NotificationsSettings, SessionSettingsChangedEvent,
     WorkingDirectoryMode,
 };
-use crate::terminal::settings::{ TerminalSettings};
+use crate::terminal::settings::{SpacingMode, TerminalSettings};
 use crate::terminal::shell::ShellType;
 use crate::terminal::{self, SizeInfo, TerminalView};
 #[cfg(target_os = "macos")]
@@ -129,13 +134,14 @@ use warp_core::features::FeatureFlag;
 
 use crate::search::{self, QueryFilter};
 use crate::terminal::view::{
-    SyncEvent, SyncInputType, NOTIFICATIONS_TROUBLESHOOT_URL };
+    SyncEvent, SyncInputType, TerminalAction, NOTIFICATIONS_TROUBLESHOOT_URL,
+};
 use crate::terminal::{BlockListSettings, TerminalModel};
 use crate::themes::theme::{AnsiColorIdentifier, RespectSystemTheme, ThemeKind};
 use crate::themes::theme_chooser::{ThemeChooser, ThemeChooserEvent, ThemeChooserMode};
 use crate::themes::theme_creator_modal::{ThemeCreatorModal, ThemeCreatorModalEvent};
 use crate::themes::theme_deletion_modal::{ThemeDeletionModal, ThemeDeletionModalEvent};
-use crate::tips::{ TipsView};
+use crate::tips::{TipsEvent, TipsView};
 use crate::ui_components::buttons::{combo_inner_button, icon_button_with_color};
 use crate::undo_close::UndoCloseStack;
 #[cfg(feature = "local_fs")]
@@ -146,15 +152,20 @@ use crate::user_config::{
 };
 use crate::user_config::{WarpConfig, WarpConfigUpdateEvent};
 use crate::util::bindings::{
-    keybinding_name_to_display_string, keybinding_name_to_keystroke };
+    keybinding_name_to_display_string, keybinding_name_to_keystroke, trigger_to_keystroke,
+};
 use crate::util::links;
 use crate::util::traffic_lights::{traffic_light_data, TrafficLightMouseStates, TrafficLightSide};
 use crate::util::truncation::truncate_from_end;
 #[cfg(target_family = "wasm")]
 use crate::view_components::action_button::ActionButton;
+use crate::view_components::callout_bubble::{
+    render_callout_bubble, CalloutArrowDirection, CalloutArrowPosition, CalloutBubbleConfig,
+};
 use crate::view_components::{
-AgentToastStack, DismissibleToast, DismissibleToastStack, ToastLink };
-use crate::window_settings::{WindowSettings, ZoomLevel};
+    AgentToast, AgentToastStack, DismissibleToast, DismissibleToastStack, ToastLink,
+};
+use crate::window_settings::{WindowSettings, WindowSettingsChangedEvent, ZoomLevel};
 use crate::workspace::action::{AddTabWithShellSource, CommandSearchOptions, PaletteSource};
 use crate::workspace::one_time_modal_model::OneTimeModalModel;
 use crate::workspace::sync_inputs::SyncedInputState;
@@ -182,7 +193,7 @@ use warpui::clipboard::ClipboardContent;
 #[cfg(target_family = "wasm")]
 use warpui::elements::Percentage;
 use warpui::elements::{CacheOption, DispatchEventResult, DropTarget, EventHandler, Image, Rect};
-use warpui::ui_components::button::{Button};
+use warpui::ui_components::button::{Button, ButtonVariant};
 use warpui::{elements::MouseStateHandle, fonts::Properties};
 
 use crate::editor::{
@@ -192,7 +203,8 @@ use crate::editor::{
 use crate::persistence::ModelEvent;
 
 use super::action::{
-    InitContent, TabContextMenuAnchor, WorkspaceAction };
+    InitContent, RestoreConversationLayout, TabContextMenuAnchor, WorkspaceAction,
+};
 use super::close_session_confirmation_dialog::{
     CloseSessionConfirmationDialog, CloseSessionConfirmationEvent, OpenDialogSource,
 };
@@ -204,21 +216,24 @@ use super::tab_settings::{
     WorkspaceDecorationVisibility,
 };
 use super::util::{
-    PaneViewLocator, TabMovement,
-    WorkspaceMouseStates, WorkspaceState };
+    PaneViewLocator, TabMovement, TerminalSessionFallbackBehavior, WelcomeTipsViewState,
+    WorkspaceMouseStates, WorkspaceState,
+};
 use crate::launch_configs::save_modal::{LaunchConfigModalEvent, LaunchConfigSaveModal};
 use crate::tab_configs::action_sidecar::SidecarItemKind;
 use crate::tab_configs::remove_confirmation_dialog::{
-    RemoveTabConfigConfirmationDialog };
+    RemoveTabConfigConfirmationDialog, RemoveTabConfigConfirmationEvent,
+};
 use crate::tab_configs::session_config_modal::{SessionConfigModal, SessionConfigModalEvent};
 use crate::tab_configs::{TabConfigParamsModal, TabConfigParamsModalEvent};
 
-use crate::code::editor::{ remove_color};
+use crate::code::editor::{add_color, remove_color};
 use crate::palette::PaletteMode;
 use crate::search::command_palette::view::{Event as CommandPaletteEvent, View as CommandPalette};
 use crate::tab::{
-    tab_position_id, SelectedTabColor, TabBarState, TabComponent, TabData,
-TAB_BAR_BORDER_HEIGHT };
+    tab_position_id, NewSessionMenuItem, SelectedTabColor, TabBarState, TabComponent, TabData,
+    TabTelemetryAction, TAB_BAR_BORDER_HEIGHT,
+};
 use crate::ui_components::icons;
 #[cfg(target_os = "macos")]
 use command::blocking::Command;
@@ -235,7 +250,7 @@ use std::path::PathBuf;
 use std::process;
 use std::sync::{mpsc, Mutex};
 use std::{cmp::Ordering, sync::Arc};
-use warp_core::ui::theme::{color::internal_colors, Fill};
+use warp_core::ui::theme::{color::internal_colors, phenomenon::PhenomenonStyle, Fill};
 use warp_core::ui::{color::coloru_with_opacity, Icon};
 use warp_editor::editor::NavigationKey;
 use warpui::notification::{RequestPermissionsOutcome, UserNotification};
@@ -246,19 +261,23 @@ use warpui::text_layout::ClipConfig;
 use warpui::ui_components::components::{Coords, UiComponent, UiComponentStyles};
 use warpui::{
     accessibility::{
-        AccessibilityContent, AccessibilityVerbosity, ActionAccessibilityContent, WarpA11yRole },
+        AccessibilityContent, AccessibilityVerbosity, ActionAccessibilityContent, WarpA11yRole,
+    },
     elements::{
         Align, Border, ChildAnchor, ChildView, Clipped, ConstrainedBox, Container, CornerRadius,
-        CrossAxisAlignment, Element, Empty, Expanded, Fill as ElementFill, Flex,
-        Highlight, Hoverable, MainAxisAlignment, MainAxisSize,
+        CrossAxisAlignment, Dismiss, Element, Empty, Expanded, Fill as ElementFill, Flex,
+        Highlight, Hoverable, Icon as WarpUiIcon, MainAxisAlignment, MainAxisSize,
         OffsetPositioning, ParentAnchor, ParentElement, ParentOffsetBounds,
         PositionedElementAnchor, PositionedElementOffsetBounds, Radius, SavePosition, Shrinkable,
-        Stack, Text },
+        Stack, Text,
+    },
     geometry::vector::{vec2f, Vector2F},
-    AppContext, Entity, TypedActionView, UpdateView, View, ViewContext, ViewHandle };
+    AppContext, Entity, TypedActionView, UpdateView, View, ViewContext, ViewHandle,
+};
 use warpui::{
-    EntityId, ModelHandle, SingletonEntity, UpdateModel, ViewAsRef, WeakViewHandle,
-    WindowId };
+    EntityId, FocusContext, ModelHandle, SingletonEntity, UpdateModel, ViewAsRef, WeakViewHandle,
+    WindowId,
+};
 
 use crate::terminal::view::LeftPanelTargetView;
 

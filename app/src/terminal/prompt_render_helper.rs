@@ -16,7 +16,9 @@ use warpui::ModelAsRef;
 use warpui::{
     elements::{Container, Element, EventHandler, SavePosition, SelectableArea, Text},
     fonts::{Properties, Weight},
-AppContext, EntityId, ModelHandle, SingletonEntity };
+    presenter::ChildView,
+    AppContext, EntityId, ModelHandle, SingletonEntity,
+};
 
 use super::input::InputRenderStateModel;
 use super::model::block::Block;

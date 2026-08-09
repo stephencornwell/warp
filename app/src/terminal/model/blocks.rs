@@ -39,7 +39,8 @@ use warpui::record_trace_event;
 use std::collections::{HashMap, HashSet};
 use warpui::{
     units::{IntoLines, IntoPixels, Lines},
-EntityId };
+    AppContext, EntityId, ViewHandle,
+};
 
 use super::ansi::InputBufferValue;
 use super::block::{BlockId, BlockSize, BlockState};

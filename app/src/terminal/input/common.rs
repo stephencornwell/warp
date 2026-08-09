@@ -18,10 +18,13 @@ use warpui::{
         AnchorPair, Border, ChildAnchor, ConstrainedBox, Container, CornerRadius,
         CrossAxisAlignment, DispatchEventResult, Element, EventHandler, Flex, OffsetPositioning,
         OffsetType, ParentAnchor, ParentElement, ParentOffsetBounds, PositionedElementOffsetBounds,
-        PositioningAxis, Radius, Shrinkable, Stack, Text, XAxisAnchor },
+        PositioningAxis, Radius, Shrinkable, Stack, Text, XAxisAnchor,
+    },
     fonts::Weight,
-ui_components::components::{UiComponent, UiComponentStyles},
-    AppContext, SingletonEntity };
+    presenter::ChildView,
+    ui_components::components::{UiComponent, UiComponentStyles},
+    AppContext, EntityId, SingletonEntity, ViewHandle,
+};
 
 /// Whether the terminal input message bar should be shown.
 ///

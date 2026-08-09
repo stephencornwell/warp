@@ -900,23 +900,11 @@ impl TypedActionView for CodeEditorView {
                     ctx,
                 );
             }),
-            DeleteWordLeft => self.model.update(ctx, |model, ctx| {
-                model.delete(TextDirection::Backwards, word_unit(ctx), false, ctx);
-            }),
-            DeleteWordRight => self.model.update(ctx, |model, ctx| {
-                model.delete(TextDirection::Forwards, word_unit(ctx), false, ctx);
-            }),
             CutLineLeft => self.model.update(ctx, |model, ctx| {
                 model.delete(TextDirection::Backwards, TextUnit::LineBoundary, true, ctx);
             }),
             CutLineRight => self.model.update(ctx, |model, ctx| {
                 model.delete(TextDirection::Forwards, TextUnit::LineBoundary, true, ctx);
-            }),
-            CutWordLeft => self.model.update(ctx, |model, ctx| {
-                model.delete(TextDirection::Backwards, word_unit(ctx), true, ctx);
-            }),
-            CutWordRight => self.model.update(ctx, |model, ctx| {
-                model.delete(TextDirection::Forwards, word_unit(ctx), true, ctx);
             }),
             MoveUp => self.model.update(ctx, |model, ctx| model.move_up(ctx)),
             MoveDown => self.model.update(ctx, |model, ctx| model.move_down(ctx)),

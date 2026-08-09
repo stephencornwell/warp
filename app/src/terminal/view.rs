@@ -1586,9 +1586,6 @@ enum SecretTooltip {
 }
 
 type TerminalViewCallback = Box<dyn FnOnce(&mut TerminalView, &mut ViewContext<TerminalView>)>;
-type ConversationFinishedCallback =
-    Box<dyn FnOnce(&mut TerminalView, FinishReason, &mut ViewContext<TerminalView>)>;
-
 #[derive(Debug, Clone)]
 pub struct TerminalDropTargetData {
     pub terminal_view: WeakViewHandle<TerminalView>,
@@ -1867,10 +1864,6 @@ pub struct TerminalView {
     /// A list of callbacks to run on the next [`ModelEvent::AfterBlockCompleted`] received.
     block_completed_callbacks: Vec<TerminalViewCallback>,
 
-    /// A list of callbacks to run on the next
-    /// [`BlocklistAIControllerEvent::FinishedReceivingOutput`] received, regardless of the finish reason.
-    conversation_completed_callbacks: Vec<ConversationFinishedCallback>,
-
     /// Path to the current repository, or None if not currently in a repo.
     current_repo_path: Option<PathBuf>,
 
@@ -1909,26 +1902,12 @@ pub struct TerminalView {
     /// Used to remove the block when summarization completes or is cancelled.
     pending_user_query_view_id: Option<EntityId>,
 
-    /// Callback for the queued prompt that fires when the current conversation finishes.
-    /// Stored separately from `conversation_completed_callbacks` so that queuing a prompt
-    /// (via `/queue`, `/compact-and`, etc.) does not wipe unrelated callbacks.
-    queued_prompt_callback: Option<ConversationFinishedCallback>,
-
     /// Per-session PTY recorder for writing PTY bytes to a file.
     pty_recorder: ModelHandle<PtyRecorder>,
 
     /// State handle for the shimmering text animation in the remote server loading footer.
     /// Persisted across renders so the animation doesn't restart.
     remote_server_shimmer_handle: ShimmeringTextStateHandle,
-}
-
-/// Parameters stashed when a code review pane open is requested with
-/// [`GitDeltaPreference::OnlyDirty`] but git status metadata is not yet available.
-/// Consumed once the per-repo [`GitRepoStatusModel`] delivers its first update.
-#[cfg(feature = "local_fs")]
-struct DeferredCodeReviewOpen {
-    git_delta_preference: GitDeltaPreference,
-    focus_new_pane: bool,
 }
 
 #[derive(Copy, Clone, Serialize)]
@@ -3053,7 +3032,6 @@ impl TerminalView {
             pty_spawn_failed: false,
             model_events_handle,
             block_completed_callbacks: Default::default(),
-            conversation_completed_callbacks: Default::default(),
             current_repo_path: None,
             terminal_title: Default::default(),
             ignore_next_set_title_event: false,
@@ -3063,7 +3041,6 @@ impl TerminalView {
             pending_cloud_mode_start_callback: None,
             pending_cloud_mode_start_abort_handle: None,
             pending_user_query_view_id: None,
-            queued_prompt_callback: None,
             pty_recorder: ctx
                 .add_model(|ctx| PtyRecorder::new(inactive_pty_reads_rx, window_id, ctx)),
         };

@@ -1,34 +1,10 @@
 use crate::appearance::Appearance;
-use crate::auth::auth_manager::{AuthManager, AuthManagerEvent};
-use crate::auth::auth_override_warning_modal::AuthOverrideWarningModalVariant;
-use crate::auth::auth_state::AuthState;
-use crate::auth::auth_view_modal::AuthRedirectPayload;
-use crate::auth::needs_sso_link_view::NeedsSsoLinkView;
-use crate::auth::paste_auth_token_modal::{PasteAuthTokenModalEvent, PasteAuthTokenModalView};
-use crate::auth::{AuthStateProvider, LoginFailureReason};
 use crate::autoupdate::{AutoupdateState, AutoupdateStateEvent};
-use crate::cloud_object::model::persistence::CloudModel;
-use crate::cloud_object::{GenericStringObjectFormat, JsonObjectType, ObjectType};
-use crate::drive::export::ExportManager;
-use crate::drive::items::WarpDriveItemId;
-use crate::drive::{CloudObjectTypeAndId, OpenWarpDriveObjectArgs, OpenWarpDriveObjectSettings};
-use crate::experiments::{BlockOnboarding, Experiment};
 use crate::interval_timer::IntervalTimer;
 use crate::launch_configs::launch_config;
-use crate::linear::LinearIssueWork;
-use crate::notebooks::manager::NotebookSource;
-use crate::settings::cloud_preferences_syncer::{
-    CloudPreferencesSyncer, CloudPreferencesSyncerEvent,
-};
 
 use crate::persistence::ModelEvent;
 use crate::report_if_error;
-use crate::server::cloud_objects::update_manager::UpdateManager;
-use crate::server::experiments::is_free_user_no_ai_experiment_active;
-use crate::server::ids::SyncId;
-use crate::server::server_api::auth::UserAuthenticationError;
-use crate::server::server_api::ServerApiProvider;
-use crate::server::telemetry::LaunchConfigUiLocation;
 use crate::settings::QuakeModeSettings;
 use crate::settings::ThemeSettings;
 use crate::settings_view::flags;
@@ -53,18 +29,13 @@ use crate::{
     autoupdate::{RequestType, UpdateReady},
     changelog_model::ChangelogRequestType,
     pane_group::{NewTerminalOptions, PanesLayout},
-    send_telemetry_from_ctx,
-    server::{server_api::ServerTime, telemetry::TelemetryEvent},
     UpdateQuakeModeEventArg,
 };
 use crate::{
-    auth::auth_override_warning_modal::{AuthOverrideWarningModal, AuthOverrideWarningModalEvent},
-    auth::auth_view_modal::{AuthView, AuthViewVariant},
-    server::server_api::ServerApi,
     workspace::{PaneViewLocator, Workspace},
 };
 use crate::{features::FeatureFlag, ChannelState};
-use crate::{send_telemetry_from_app_ctx, GlobalResourceHandles, GlobalResourceHandlesProvider};
+use crate::{GlobalResourceHandles, GlobalResourceHandlesProvider};
 use anyhow::Result;
 use cfg_if::cfg_if;
 use itertools::Itertools;

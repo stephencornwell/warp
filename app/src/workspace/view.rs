@@ -3560,185 +3560,22 @@ impl Workspace {
         &self,
         ctx: &mut ViewContext<Self>,
     ) -> Vec<MenuItem<WorkspaceAction>> {
-        let mut menu_items = vec![];
-
-        let is_any_ai_enabled = AISettings::as_ref(ctx).is_any_ai_enabled(ctx);
-        let ai_settings = AISettings::as_ref(ctx);
-        let effective_default = ai_settings.default_session_mode(ctx);
-        let default_tab_config_path = ai_settings.default_tab_config_path().to_string();
-        let shortcut_label = keybinding_name_to_display_string(NEW_TAB_BINDING_NAME, ctx);
-        let reopen_closed_session_shortcut_label =
-            keybinding_name_to_display_string("app:reopen_closed_session", ctx);
-
-        // 1. Agent (if AI enabled)
-        if is_any_ai_enabled {
-            let mut agent_item = MenuItemFields::new("Agent")
-                .with_on_select_action(WorkspaceAction::AddAgentTab)
-                .with_icon(icons::Icon::LayoutAlt01);
-            if effective_default == DefaultSessionMode::Agent {
-                agent_item = agent_item.with_key_shortcut_label(shortcut_label.clone());
-            }
-            menu_items.push(agent_item.into_item());
-        }
-
-        // 2. Terminal (+ individual shells on Windows)
-        {
-            // On Windows, list the default terminal and each available shell as
-            // individual top-level items (no submenu) so each gets a sidecar.
-            #[cfg(target_os = "windows")]
-            {
-                let is_terminal_default = effective_default == DefaultSessionMode::Terminal;
-                let mut terminal_item = MenuItemFields::new("Terminal")
-                    .with_on_select_action(WorkspaceAction::AddTerminalTab {
-                        hide_homepage: false,
-                    })
-                    .with_icon(icons::Icon::LayoutAlt01);
-                if is_terminal_default {
-                    terminal_item = terminal_item.with_key_shortcut_label(shortcut_label.clone());
-                }
-                menu_items.push(terminal_item.into_item());
-
-                #[cfg(feature = "local_tty")]
-                if FeatureFlag::ShellSelector.is_enabled() {
-                    AvailableShells::handle(ctx).read(ctx, |model, _| {
-                        for shell in model.get_available_shells() {
-                            let shell_name = model.display_name_for_shell(shell);
-                            let icon = shell
-                                .get_valid_shell_path_and_type()
-                                .and_then(|shell_launch_data| {
-                                    ShellIndicatorType::try_from(&shell_launch_data).ok()
-                                })
-                                .map(|shell_indicator_type| shell_indicator_type.to_icon())
-                                .unwrap_or(icons::Icon::Terminal);
-                            let item = MenuItemFields::new(shell_name)
-                                .with_on_select_action(WorkspaceAction::AddTabWithShell {
-                                    shell: shell.clone(),
-                                    source: AddTabWithShellSource::ShellSelectorMenu,
-                                })
-                                .with_icon(icon);
-                            menu_items.push(item.into_item());
-                        }
-                    });
-                }
-            }
-
-            // On other platforms, Terminal is a regular item.
-            #[cfg(not(target_os = "windows"))]
-            {
-                let mut terminal_item = MenuItemFields::new("Terminal")
-                    .with_on_select_action(WorkspaceAction::AddTerminalTab {
-                        hide_homepage: false,
-                    })
-                    .with_icon(icons::Icon::LayoutAlt01);
-                if effective_default == DefaultSessionMode::Terminal {
-                    terminal_item = terminal_item.with_key_shortcut_label(shortcut_label.clone());
-                }
-                menu_items.push(terminal_item.into_item());
-            }
-        }
-
-        // 3. Cloud Oz (if flags enabled)
-        if is_any_ai_enabled
-            && FeatureFlag::AgentView.is_enabled()
-            && FeatureFlag::CloudMode.is_enabled()
-        {
-            let mut cloud_item = MenuItemFields::new("Cloud Oz")
-                .with_on_select_action(WorkspaceAction::AddAmbientAgentTab)
-                .with_icon(icons::Icon::LayoutAlt01);
-            if effective_default == DefaultSessionMode::CloudAgent {
-                cloud_item = cloud_item.with_key_shortcut_label(shortcut_label.clone());
-            }
-            menu_items.push(cloud_item.into_item());
-        }
-
-        // 3b. Local Docker Sandbox
-        if FeatureFlag::LocalDockerSandbox.is_enabled() {
-            let mut docker_item = MenuItemFields::new("Local Docker Sandbox")
-                .with_on_select_action(WorkspaceAction::AddDockerSandboxTab)
-                .with_icon(icons::Icon::Docker);
-            if effective_default == DefaultSessionMode::DockerSandbox {
-                docker_item = docker_item.with_key_shortcut_label(shortcut_label.clone());
-            }
-            menu_items.push(docker_item.into_item());
-        }
-
-        // 4. User tab configs
-        if FeatureFlag::TabConfigs.is_enabled() {
-            let tab_configs = WarpConfig::as_ref(ctx).tab_configs().to_vec();
-
-            // Count occurrences of each config name so we can disambiguate
-            // duplicates in the menu (e.g. "My Tab Config", "My Tab Config (1)").
-            let mut name_totals: HashMap<String, usize> = HashMap::new();
-            for config in &tab_configs {
-                *name_totals.entry(config.name.clone()).or_default() += 1;
-            }
-            let mut name_seen: HashMap<String, usize> = HashMap::new();
-
-            for tab_config in tab_configs {
-                let is_worktree = tab_config.is_worktree();
-                let icon = if is_worktree {
-                    icons::Icon::Dataflow02
-                } else {
-                    icons::Icon::LayoutAlt01
-                };
-                let is_default_config = effective_default == DefaultSessionMode::TabConfig
-                    && tab_config
-                        .source_path
-                        .as_ref()
-                        .is_some_and(|p| p.to_string_lossy() == default_tab_config_path);
-
-                let display_name = if name_totals.get(&tab_config.name).copied().unwrap_or(0) > 1 {
-                    let seen = name_seen.entry(tab_config.name.clone()).or_default();
-                    *seen += 1;
-                    if *seen == 1 {
-                        tab_config.name.clone()
-                    } else {
-                        format!("{} ({})", tab_config.name, *seen - 1)
-                    }
-                } else {
-                    tab_config.name.clone()
-                };
-
-                let mut item = MenuItemFields::new(display_name)
-                    .with_on_select_action(WorkspaceAction::SelectTabConfig(tab_config))
-                    .with_icon(icon);
-                if is_default_config {
-                    item = item.with_key_shortcut_label(shortcut_label.clone());
-                }
-                menu_items.push(item.into_item());
-            }
-        }
-
-        // 5. Separator + worktree config entry + new tab config
-        if FeatureFlag::TabConfigs.is_enabled() {
-            menu_items.push(MenuItem::Separator);
-            menu_items.push(
-                MenuItemFields::new_submenu("New worktree config")
-                    .with_icon(icons::Icon::Dataflow02)
-                    .into_item(),
-            );
-
-            // 6. New tab config — V0: opens the TOML template.
-            menu_items.push(
-                MenuItemFields::new("New tab config")
-                    .with_on_select_action(WorkspaceAction::SelectNewSessionMenuItem(
-                        NewSessionMenuItem::CreateNewTabConfig,
-                    ))
-                    .with_icon(icons::Icon::Plus)
-                    .into_item(),
-            );
-        }
-
-        menu_items.push(MenuItem::Separator);
-        menu_items.push(
+        vec![
+            MenuItemFields::new("Terminal")
+                .with_on_select_action(WorkspaceAction::AddTerminalTab { hide_homepage: false })
+                .with_icon(icons::Icon::LayoutAlt01)
+                .with_key_shortcut_label(keybinding_name_to_display_string(NEW_TAB_BINDING_NAME, ctx))
+                .into_item(),
+            MenuItem::Separator,
             MenuItemFields::new("Reopen closed session")
                 .with_on_select_action(WorkspaceAction::ReopenClosedSession)
-                .with_key_shortcut_label(reopen_closed_session_shortcut_label)
+                .with_key_shortcut_label(keybinding_name_to_display_string(
+                    "app:reopen_closed_session",
+                    ctx,
+                ))
                 .with_disabled(UndoCloseStack::handle(ctx).as_ref(ctx).is_empty())
                 .into_item(),
-        );
-
-        menu_items
+        ]
     }
 
     fn open_tab_configs_menu(

@@ -608,6 +608,8 @@ fn save_app_state(conn: &mut SqliteConnection, app_state: &AppState) -> Result<(
                 left_panel_open: Some(window.left_panel_open),
                 vertical_tabs_panel_open: Some(false),
                 fullscreen_state: window.fullscreen_state as i32,
+                warp_drive_index_width: None,
+                agent_management_filters: None,
             };
             diesel::insert_into(schema::windows::dsl::windows)
                 .values(new_window)
@@ -803,6 +805,7 @@ fn save_pane_state(
         pane_node_id: id,
         kind: kind.into(),
         is_focused: snapshot.is_focused,
+        custom_vertical_tabs_title: None,
     };
 
     diesel::insert_into(schema::pane_leaves::dsl::pane_leaves)
@@ -820,6 +823,7 @@ fn save_pane_state(
                     .shell_launch_data
                     .as_ref()
                     .and_then(|shell| serde_json::to_string(shell).ok()),
+                llm_model_override: None,
                 input_config: None,
                 active_profile_id: terminal_snapshot
                     .active_profile_id
@@ -1300,15 +1304,11 @@ fn read_sqlite_data(
                 universal_search_width: window.universal_search_width,
                 warp_ai_width: window.warp_ai_width,
                 voltron_width: window.voltron_width,
-                warp_drive_index_width: window.warp_drive_index_width,
                 left_panel_open: window_left_panel_open,
                 vertical_tabs_panel_open: false,
                 fullscreen_state: fullscreen_state_val,
                 left_panel_width,
                 right_panel_width,
-                agent_management_filters: window
-                    .agent_management_filters
-                    .and_then(|s| serde_json::from_str(&s).ok()),
             }
         })
         .collect();

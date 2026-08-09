@@ -571,6 +571,8 @@ tab_close_button_on_left = []
 team_features_override = []
 team_workflows = ["team_features_override"]
 toggle_bootstrap_block = []
+# Retained for compatibility with cfg-gated code in downstream crates.
+integration_tests = []
 traces = []
 viewing_shared_sessions = []
 workflow_aliases = []

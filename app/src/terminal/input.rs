@@ -454,7 +454,7 @@ impl InputType {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-struct InputConfig {
+pub struct InputConfig {
     input_type: InputType,
 }
 

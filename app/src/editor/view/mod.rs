@@ -1789,18 +1789,6 @@ pub struct EditorView {
     show_autosuggestion_keybinding_hint: bool,
     show_autosuggestion_ignore_button: bool,
 
-    /// The state of voice input for this editor.
-    /// Must only be mutated through [`Self::set_voice_input_state`], which keeps
-    /// the editor's [`InteractionState`] in sync (locking input during voice).
-
-    /// The interaction state before voice input was activated, to restore when voice input ends.
-
-    /// Options for voice transcription.
-
-    /// The mouse handle for the voice transcription icon.
-
-    /// The new feature popup for voice transcription.
-
     /// Whether this editor should delegate handling of paste events to its parent.
     delegate_paste_handling: bool,
 
@@ -4587,11 +4575,6 @@ impl EditorView {
                 }
             }),
         );
-    }
-
-    fn voice_input_toggle_key_code(&self, ctx: &AppContext) -> Option<KeyCode> {
-        let _ = ctx;
-        None
     }
 
     pub fn attach_files(&mut self, ctx: &mut ViewContext<Self>) {

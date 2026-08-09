@@ -1320,11 +1320,6 @@ fn read_sqlite_data(
         .load::<model::ObjectPermissions>(conn)?;
 
     // Cache metadata and permissions by id so that we aren't doing an n^2 lookups for each object type.
-    let cloud_objects = Vec::new();
-
-    let workspaces = Vec::new();
-    let current_workspace_uid = None;
-
     let commands = schema::commands::dsl::commands
         // Ensure the commands come into memory sorted chronologically.
         .order(schema::commands::columns::id.desc())

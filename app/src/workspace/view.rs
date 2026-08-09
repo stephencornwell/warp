@@ -8878,12 +8878,12 @@ impl TypedActionView for Workspace {
                 query,
             } => {
                 let _ = query;
-                self.open_palette(*mode, *source, ctx)
+                self.open_palette(*mode, source.clone(), ctx)
             }
             TogglePalette {
                 mode: palette_mode,
                 source,
-            } => self.toggle_palette(*palette_mode, *source, ctx),
+            } => self.toggle_palette(*palette_mode, source.clone(), ctx),
 ShowReferralSettingsPage => {
                 self.show_settings_with_section(Some(SettingsSection::Referrals), ctx);
             }

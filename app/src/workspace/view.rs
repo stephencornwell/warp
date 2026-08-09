@@ -2497,31 +2497,6 @@ impl Workspace {
         }
     }
 
-    pub fn add_tab_for_joining_shared_session(
-        &mut self,
-        session_id: SharedSessionId,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        let new_pane_group = ctx.add_typed_action_view(|ctx| {
-            PaneGroup::new_for_shared_session_viewer(
-                session_id,
-                self.tips_completed.clone(),
-                self.user_default_shell_unsupported_banner_model_handle
-                    .clone(),
-                self.server_api.clone(),
-                self.model_event_sender.clone(),
-                ctx,
-            )
-        });
-
-        ctx.subscribe_to_view(&new_pane_group, move |me, pane_group, event, ctx| {
-            me.handle_file_tree_event(pane_group, event, ctx)
-        });
-
-        self.tabs.push(TabData::new(new_pane_group));
-        self.activate_tab_internal(self.tab_count() - 1, ctx);
-    }
-
     /// Opens a cloud conversation by server token.
     /// If the current user owns or created it, navigate to its open pane or restore it
     /// into a new tab. Otherwise, open the read-only transcript viewer.
@@ -2607,67 +2582,9 @@ impl Workspace {
     */
 
     // Returns true if the focused pane is the viewer of a shared session
-    pub fn is_shared_session_viewer_focused(&self, app: &AppContext) -> bool {
-        self.active_tab_pane_group()
-            .as_ref(app)
-            .active_session_view(app)
-            .is_some_and(|view| {
-                view.as_ref(app)
-                    .model
-                    .lock()
-                    .shared_session_status()
-                    .is_viewer()
-            })
-    }
-
     /// Returns the type of simplified WASM tab bar content to display, if any.
     /// Used to determine whether to show the simplified tab bar layout on WASM.
     #[cfg(target_family = "wasm")]
-    fn get_simplified_wasm_tab_bar_content(
-        &self,
-        ctx: &AppContext,
-    ) -> Option<SimplifiedWasmTabBarContent> {
-        let pane_group = self.active_tab_pane_group().as_ref(ctx);
-
-        // Check if focused pane is a terminal with special state
-        if let Some(terminal_view) = pane_group.focused_session_view(ctx) {
-            let model = terminal_view.as_ref(ctx).model.lock();
-
-            // Conversation transcript viewer takes priority
-            if model.is_conversation_transcript_viewer() {
-                return Some(SimplifiedWasmTabBarContent::ConversationTranscript {
-                    task_id: model.ambient_agent_task_id(),
-                });
-            }
-
-            // Check for shared session (viewer or writer)
-            if model.shared_session_status().is_sharer_or_viewer() {
-                return Some(SimplifiedWasmTabBarContent::SharedSession {
-                    task_id: model.ambient_agent_task_id(),
-                });
-            }
-        }
-
-        // Check if focused pane is a Warp Drive object
-        let focused_pane_id = pane_group.focused_pane_id(ctx);
-        if focused_pane_id.is_warp_drive_object_pane() {
-            return Some(SimplifiedWasmTabBarContent::WarpDriveObject);
-        }
-
-        None
-    }
-
-    pub fn check_for_changelog(
-        &self,
-        request_type: ChangelogRequestType,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        self.changelog_model.update(ctx, |changelog_model, ctx| {
-            changelog_model.check_for_changelog(request_type, ctx);
-            ctx.notify();
-        });
-    }
-
     /// Add and focus a new terminal pane in AI mode in a new tab.
     /// Add and focus a new terminal pane in AI mode. Add the terminal pane to the right of
     /// all other panes, as a split on the root node.

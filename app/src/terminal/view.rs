@@ -14249,24 +14249,6 @@ impl TerminalView {
         ();
     }
 
-    fn open_workflow_modal_from_ai_generated_workflow(
-        &mut self,
-        workflow: Workflow,
-        ctx: &mut ViewContext<Self>,
-    ) {
-
-        ();
-    }
-
-    pub fn open_workflow_modal_with_existing(
-        &mut self,
-        workflow_id: SyncId,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        ctx.emit(Event::OpenWorkflowModalWithCloudWorkflow(workflow_id));
-        ctx.notify();
-    }
-
     /// Helper method to build alt screen context menu items.
     /// Used both when opening the menu and when rebuilding it (e.g., on pane state changes).
     fn rebuild_alt_screen_context_menu_items(
@@ -14288,21 +14270,6 @@ impl TerminalView {
                     .with_key_shortcut_label(Some("⌘-C"))
                     .into_item(),
             );
-            if AISettings::as_ref(ctx).is_any_ai_enabled(ctx) {
-                menu_items.extend([
-                    MenuItem::Separator,
-                    MenuItemFields::new(if FeatureFlag::AgentMode.is_enabled() {
-                        *ATTACH_AS_AGENT_MODE_CONTEXT_TEXT
-                    } else {
-                        ASK_AI_ASSISTANT_TEXT
-                    })
-                    .with_on_select_action(TerminalAction::ContextMenu(ContextMenuAction::AskAI(
-                        AskAISource::SelectedTerminalText,
-                    )))
-                    .with_key_shortcut_label(Some("⌃-⇧-Space"))
-                    .into_item(),
-                ]);
-            }
         }
 
         if FeatureFlag::CreatingSharedSessions.is_enabled()

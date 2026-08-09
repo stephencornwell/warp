@@ -164,7 +164,6 @@ pub struct OpenFromRestoredArg {
 
 pub struct OpenLaunchConfigArg {
     pub launch_config: launch_config::LaunchConfig,
-    pub ui_location: LaunchConfigUiLocation,
 
     /// Tries to open the launch config into the active window, if any.
     ///
@@ -323,15 +322,6 @@ pub fn init(app: &mut AppContext) {
     app.add_action(
         "root_view:open_settings_page_in_existing_window",
         RootView::open_settings_page_in_existing_window,
-    );
-
-    app.add_global_action(
-        "root_view:open_linear_issue_work_in_new_window",
-        open_linear_issue_work_in_new_window,
-    );
-    app.add_action(
-        "root_view:open_linear_issue_work_in_existing_window",
-        RootView::open_linear_issue_work_in_existing_window,
     );
 
     app.add_action("root_view:add_file_pane", RootView::add_file_pane);
@@ -1299,14 +1289,6 @@ pub enum NewWorkspaceSource {
     },
     NotebookFromFilePath {
         file_path: Option<PathBuf>,
-    },
-    NotebookById {
-        id: SyncId,
-        settings: OpenWarpDriveObjectSettings,
-    },
-    WorkflowById {
-        id: SyncId,
-        settings: OpenWarpDriveObjectSettings,
     },
     AgentSession {
         options: Box<NewTerminalOptions>,

@@ -5567,56 +5567,6 @@ impl Input {
         prompt_elements
     }
 
-    /// This function determines if the subshell flag should be in the input editor. The flag
-    /// should show here if there are no blocks in the block list for this subshell session, which
-    /// will be the case if no non-hidden blocks have been executed yet or the block list was
-    /// cleared.
-    fn get_subshell_flag_render_state(
-        &self,
-        model: &TerminalModel,
-        spacing_is_compact: bool,
-        app: &AppContext,
-    ) -> Option<SubshellRenderState> {
-        if spacing_is_compact {
-            return None;
-        }
-        let session_id = self.active_block_session_id()?;
-        let should_render = self
-            .sessions
-            .as_ref(app)
-            .get(session_id)
-            .and_then(|session| {
-                session.subshell_info().as_ref().map(|info| {
-                    if let Some(env_var_collection_name) = &info.env_var_collection_name {
-                        Some(SubshellRenderState::Flag(SubshellSource::EnvVarCollection(
-                            env_var_collection_name.to_owned(),
-                        )))
-                    } else {
-                        info.spawning_command.split_whitespace().next().map(|exec| {
-                            SubshellRenderState::Flag(SubshellSource::Command(exec.to_owned()))
-                        })
-                    }
-                })
-            })?;
-
-        let block_list = model.block_list();
-        let block_before_active_block = block_list
-            .prev_non_hidden_block_from_index(block_list.active_block_index())
-            .and_then(|index| block_list.block_at(index));
-
-        match block_before_active_block {
-            // If there is a block before the editor, and it belongs to this same subshell session,
-            // the flag will be in the block list, and hence doesn't need to be in the editor.
-            // Only extend the flag into the editor.
-            Some(block) if block.session_id() == Some(session_id) => {
-                Some(SubshellRenderState::Flagpole)
-            }
-            // Otherwise, this editor (the active block) is the first in this subshell session, and
-            // we should show the flag here.
-            _ => should_render,
-        }
-    }
-
     pub fn set_active_block_metadata(
         &mut self,
         active_block_metadata: BlockMetadata,

@@ -778,45 +778,6 @@ pub fn init(app: &mut AppContext) {
         }),
     ]);
 
-    app.register_fixed_bindings(vec![
-        FixedBinding::new(
-            "cmdorctrl-1",
-            TerminalAction::SelectAgenticSuggestion(1),
-            id!("Terminal") & id!("OnboardingAgenticSuggestionsBlock"),
-        ),
-        FixedBinding::new(
-            "cmdorctrl-2",
-            TerminalAction::SelectAgenticSuggestion(2),
-            id!("Terminal") & id!("OnboardingAgenticSuggestionsBlock"),
-        ),
-        FixedBinding::new(
-            "cmdorctrl-3",
-            TerminalAction::SelectAgenticSuggestion(3),
-            id!("Terminal") & id!("OnboardingAgenticSuggestionsBlock"),
-        ),
-        FixedBinding::new(
-            "cmdorctrl-4",
-            TerminalAction::SelectAgenticSuggestion(4),
-            id!("Terminal") & id!("OnboardingAgenticSuggestionsBlock"),
-        ),
-    ]);
-
-    app.register_editable_bindings([EditableBinding::new(
-        "workspace:write_codebase_index",
-        BindingDescription::new("Write current codebase index snapshot"),
-        TerminalAction::WriteCodebaseIndex,
-    )
-    .with_enabled(|| FeatureFlag::CodebaseIndexPersistence.is_enabled())
-    .with_context_predicate(id!("Workspace"))]);
-
-    app.register_editable_bindings([EditableBinding::new(
-        "terminal:load_agent_mode_conversation",
-        "Load agent mode conversation (from debug link in clipboard)",
-        TerminalAction::LoadAgentModeConversation,
-    )
-    .with_enabled(ChannelState::enable_debug_features)
-    .with_context_predicate(id!("Terminal"))]);
-
     app.register_editable_bindings([EditableBinding::new(
         "terminal:toggle_session_recording",
         "Toggle PTY Recording for Session",
@@ -825,50 +786,6 @@ pub fn init(app: &mut AppContext) {
     .with_enabled(|| cfg!(feature = "local_fs") && ChannelState::enable_debug_features())
     .with_context_predicate(id!("Terminal"))]);
 
-    app.register_editable_bindings([EditableBinding::new(
-        "workspace:init_project_rules",
-        BindingDescription::new("Initiate project for warp"),
-        TerminalAction::InitProject,
-    )
-    .with_context_predicate(id!("Workspace") & id!(flags::IS_ANY_AI_ENABLED))]);
-
-    app.register_editable_bindings([EditableBinding::new(
-        "workspace:add_current_dir_as_project",
-        BindingDescription::new("Add current folder as project"),
-        TerminalAction::AddProjectAtCurrentDirectory,
-    )
-    .with_enabled(|| FeatureFlag::Projects.is_enabled())
-    .with_context_predicate(id!("Workspace") & id!(flags::IS_ANY_AI_ENABLED))]);
-
-    // Register bindings for starting a new cloud agent conversation.
-    {
-        app.register_fixed_bindings([FixedBinding::new_per_platform(
-            PerPlatformKeystroke {
-                mac: "cmd-alt-enter",
-                linux_and_windows: "ctrl-alt-enter",
-            },
-            TerminalAction::EnterCloudAgentView,
-            id!("Terminal") & id!(flags::IS_ANY_AI_ENABLED),
-        )
-        .with_enabled(|| {
-            FeatureFlag::AgentView.is_enabled()
-                && FeatureFlag::CloudMode.is_enabled()
-                && FeatureFlag::CloudModeFromLocalSession.is_enabled()
-        })
-        .with_group(bindings::BindingGroup::WarpAi.as_str())]);
-        if cfg!(target_os = "macos") {
-            // On MacOS, if the user has the 'Option as meta' setting enabled, the cmd-alt-enter
-            // binding above will not match.
-            //
-            // TODO(zachbai): Consider if, for the purposes of fixed bindings, alt/meta should work
-            // fungibly regardless of underlying setting.
-            app.register_fixed_bindings([FixedBinding::new(
-                "cmd-meta-enter",
-                TerminalAction::EnterCloudAgentView,
-                id!("Terminal") & id!(flags::IS_ANY_AI_ENABLED),
-            )]);
-        }
-    }
 }
 
 /// Registers bindings related to input modes.

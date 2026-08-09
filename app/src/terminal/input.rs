@@ -2005,10 +2005,6 @@ impl Input {
         &self.suggestions_mode_model
     }
 
-    pub fn inline_terminal_menu_positioner(&self) -> &ModelHandle<InlineMenuPositioner> {
-        &self.inline_terminal_menu_positioner
-    }
-
     pub fn completer_data(&self) -> CompleterData {
         CompleterData::new(
             self.sessions.clone(),
@@ -2127,96 +2123,6 @@ impl Input {
                 ctx.notify();
             }
             _ => {}
-        }
-    }
-
-    fn select_image(&mut self, ctx: &mut ViewContext<Self>) {
-        self.focus_input_box(ctx);
-
-        self.ensure_agent_mode_for_ai_features(true, ctx);
-
-        // Update image context options immediately after switching to AI mode
-        // to ensure attach_images has the correct state
-        self.update_image_context_options(ctx);
-
-        self.editor.update(ctx, |editor, ctx| {
-            editor.attach_files(ctx);
-        });
-    }
-    pub(super) fn insert_into_cli_agent_rich_input(
-        &mut self,
-        text: &str,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        self.focus_input_box(ctx);
-        self.editor.update(ctx, |editor, ctx| {
-            editor.user_initiated_insert(text, PlainTextEditorViewAction::Paste, ctx);
-        });
-    }
-
-    fn enable_auto_detection(&mut self, ctx: &mut ViewContext<Self>) {
-        // Don't allow input mode changes for read-only viewers in shared sessions
-        if self.model.lock().shared_session_status().is_reader() {
-            return;
-        }
-
-        // Don't allow enabling autodetection when agent is monitoring a command
-        if self
-            .model
-            .lock()
-            .block_list()
-            .active_block()
-            .is_agent_in_control_or_tagged_in()
-        {
-            return;
-        }
-
-        let ai_settings = AISettings::as_ref(ctx);
-        if FeatureFlag::AgentView.is_enabled() {
-            if self.agent_view_controller.as_ref(ctx).is_fullscreen() {
-                if !ai_settings.is_ai_autodetection_enabled(ctx) {
-                    return;
-                }
-            } else if !ai_settings.is_nld_in_terminal_enabled(ctx) {
-                return;
-            }
-        } else if !ai_settings.is_ai_autodetection_enabled(ctx) {
-            return;
-        }
-
-        self.focus_input_box(ctx);
-
-        if !self.ai_input_model.as_ref(ctx).is_input_type_locked() {
-            return;
-        }
-
-        let buffer_text = self.buffer_text(ctx);
-        if buffer_text.is_empty() {
-            // For empty buffer, immediately set to Shell mode with auto-detection enabled
-            self.ai_input_model.update(ctx, |model, ctx| {
-                let new_config = InputConfig {
-                    input_type: InputType::Shell,
-                    is_locked: false, // Set to auto-detection mode
-                };
-                model.set_input_config(new_config, buffer_text.is_empty(), ctx);
-            });
-        } else {
-            // For non-empty buffer, run the actual auto-detection algorithm
-            // First unlock the input mode to enable auto-detection
-            self.ai_input_model.update(ctx, |model, ctx| {
-                let current_config = model.input_config();
-                let new_config = InputConfig {
-                    input_type: current_config.input_type, // Keep current type temporarily
-                    is_locked: false,                      // Enable auto-detection
-                };
-                model.set_input_config(new_config, buffer_text.is_empty(), ctx);
-            });
-
-            // Then run auto-detection on the current buffer content
-            self.run_input_background_jobs(
-                InputBackgroundJobOptions::default().with_ai_input_detection(),
-                ctx,
-            );
         }
     }
 

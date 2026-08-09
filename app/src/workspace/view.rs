@@ -12267,25 +12267,6 @@ impl View for Workspace {
             }
         }
 
-        if !FeatureFlag::AgentMode.is_enabled()
-            && AISettings::as_ref(app).is_any_ai_enabled(app)
-            && self.should_show_ai_assistant_warm_welcome
-            && !self.current_workspace_state.is_changelog_modal_open
-            && !self.current_workspace_state.is_resource_center_open
-            && tab_bar_mode.has_tab_bar()
-        {
-            stack.add_positioned_child(
-                self.render_ai_assistant_warm_welcome(appearance),
-                OffsetPositioning::offset_from_save_position_element(
-                    AI_ASSISTANT_BUTTON_ID,
-                    vec2f(0., 10.),
-                    PositionedElementOffsetBounds::Unbounded,
-                    PositionedElementAnchor::BottomRight,
-                    ChildAnchor::TopRight,
-                ),
-            );
-        }
-
         let window_corner_radius = app.windows().window_corner_radius();
         let workspace = Container::new(stack.finish()).with_corner_radius(window_corner_radius);
 
@@ -12326,47 +12307,6 @@ impl View for Workspace {
             ChildView::new(&self.toast_stack).finish(),
             self.global_toast_positioning(),
         );
-
-        // Render agent toast stack (for agent-related notifications) if popup is not open
-        if FeatureFlag::HOANotifications.is_enabled()
-            && *AISettings::as_ref(app).show_agent_notifications
-        {
-            if !self.current_workspace_state.is_notification_mailbox_open {
-                if let Some(stack_view) = &self.notification_toast_stack {
-                    let mailbox_on_left = Self::is_mailbox_on_left(
-                        &TabSettings::as_ref(app).header_toolbar_chip_selection,
-                    );
-                    let (anchor, child_anchor, offset_x) = if mailbox_on_left {
-                        (
-                            PositionedElementAnchor::BottomLeft,
-                            ChildAnchor::TopLeft,
-                            WORKSPACE_PADDING,
-                        )
-                    } else {
-                        (
-                            PositionedElementAnchor::BottomRight,
-                            ChildAnchor::TopRight,
-                            -WORKSPACE_PADDING,
-                        )
-                    };
-                    stack.add_positioned_overlay_child(
-                        ChildView::new(stack_view).finish(),
-                        OffsetPositioning::offset_from_save_position_element(
-                            TAB_BAR_POSITION_ID,
-                            vec2f(offset_x, 4.),
-                            PositionedElementOffsetBounds::WindowByPosition,
-                            anchor,
-                            child_anchor,
-                        ),
-                    );
-                }
-            }
-        } else if !self.current_workspace_state.is_agent_management_popup_open {
-            stack.add_positioned_overlay_child(
-                ChildView::new(&self.agent_toast_stack).finish(),
-                self.agent_toast_positioning(),
-            );
-        }
 
         if let Some(input_position_id) = input_position_id {
             if FeatureFlag::AvatarInTabBar.is_enabled() && self.is_input_box_visible(app) {

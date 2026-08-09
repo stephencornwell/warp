@@ -1556,7 +1556,6 @@ impl PaneGroup {
                             is_active: pane_id.as_terminal_pane_id() == self.active_session_id(app),
                             is_read_only: false,
                             shell_launch_data: None,
-                            input_config: Some(InputConfig::new(app)),
                             llm_model_override: None,
                             active_profile_id: None,
                             conversation_ids_to_restore: Vec::new(),
@@ -1628,13 +1627,7 @@ impl PaneGroup {
     pub fn selected_text_from_focused_pane(&self, ctx: &AppContext) -> Option<String> {
         let focused_pane_id = self.focused_pane_id(ctx);
 
-        // Finds the active pane type outof (NotebookPane, AIDocumentPane, TerminalPane)
-        // and extracts selected text from it.
-        let text = if let Some(pane) = self.downcast_pane_by_id::<NotebookPane>(focused_pane_id) {
-            pane.notebook_view(ctx).as_ref(ctx).selected_text(ctx)
-        } else if let Some(pane) = self.downcast_pane_by_id::<AIDocumentPane>(focused_pane_id) {
-            pane.document_view(ctx).as_ref(ctx).selected_text(ctx)
-        } else if let Some(terminal_view) = self.terminal_view_from_pane_id(focused_pane_id, ctx) {
+        let text = if let Some(terminal_view) = self.terminal_view_from_pane_id(focused_pane_id, ctx) {
             // NOTE: We currently don't have a way to track recency of selection events.
             // In lieu of this, we prefer selections to the input editor over the terminal view.
             // TODO(vkodithala): Once we have a way to track recency of selection events, we should use that instead.

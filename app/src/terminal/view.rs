@@ -11613,25 +11613,6 @@ impl TerminalView {
 
         let inline_banners = self.render_inline_banners(appearance, app, model);
 
-        let mut subshell_separators = HashMap::new();
-
-        for (id, command) in self.warpify_state.get_subshell_separators() {
-            subshell_separators.insert(*id, render_subshell_separator(command.clone(), appearance));
-        }
-
-        // Currently, it is assumed that only the active block can have a block banner, which
-        // implies that there can only be one at a time. This assumption can be relaxed once we
-        // have an actual use case for that.
-        let block_banner = model
-            .block_list()
-            .active_block()
-            .block_banner()
-            .map(|banner| match banner {
-                WithinBlockBanner::WarpifyBanner(state) => {
-                    render_warpification_banner(state, appearance, app)
-                }
-            });
-
         let bookmarked_blocks: HashSet<_> = self.bookmarked_blocks.keys().copied().collect();
         let filtered_blocks: HashSet<_> = model.block_list().filtered_blocks();
 
@@ -11743,14 +11724,14 @@ impl TerminalView {
                 },
             ),
             inline_banners,
-            subshell_separators,
+            HashMap::new(),
             HashMap::from_iter(
                 self.cli_subagent_views
                     .iter()
                     .map(|(id, view)| (id.clone(), ChildView::new(view).finish())),
             ),
             selection_range,
-            block_banner,
+            None,
             self.inline_banners_state.shared_session_banner_state,
             self.input_size_at_last_frame(app).unwrap_or_default(),
             self.inline_menu_positioner.clone(),

@@ -100,6 +100,7 @@ use crate::wasm_nux_dialog::WasmNUXDialog;
 
 
 use crate::appearance::{Appearance, AppearanceManager};
+use crate::ai::blocklist::SerializedBlockListItem;
 use crate::banner::BannerState;
 use crate::channel::Channel;
 use crate::GlobalResourceHandles;
@@ -3486,7 +3487,6 @@ impl Workspace {
             );
             ctx.notify();
         });
-        self.check_for_changelog(ChangelogRequestType::UserAction, ctx);
     }
 
     fn view_privacy_policy(&mut self, ctx: &mut ViewContext<Self>) {
@@ -4211,28 +4211,6 @@ impl Workspace {
             items.push(
                 MenuItemFields::new("Sign up")
                     .with_on_select_action(WorkspaceAction::SignupAnonymousUser)
-                    .into_item(),
-            );
-        }
-
-        // Check if the user is on any paid plan to determine whether to show "Billing and Usage" or "Upgrade"
-        let is_on_paid_plan = UserWorkspaces::as_ref(app)
-            .current_workspace()
-            .map(|workspace| workspace.billing_metadata.is_user_on_paid_plan())
-            .unwrap_or(false);
-
-        if is_on_paid_plan {
-            items.push(
-                MenuItemFields::new("Billing and usage")
-                    .with_on_select_action(WorkspaceAction::ShowSettingsPage(
-                        SettingsSection::BillingAndUsage,
-                    ))
-                    .into_item(),
-            );
-        } else {
-            items.push(
-                MenuItemFields::new("Upgrade")
-                    .with_on_select_action(WorkspaceAction::ShowUpgrade)
                     .into_item(),
             );
         }

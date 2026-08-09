@@ -22,7 +22,6 @@ use warp_editor::render::model::{AutoScrollMode, LineCount, StyleUpdateAction};
 use warp_editor::selection::TextDirection;
 use warpui::units::{IntoPixels, Pixels};
 
-use crate::util::link_detection::get_word_range_at_offset;
 use crate::{
     appearance::Appearance, editor::InteractionState,
     themes::theme::AnsiColorIdentifier,
@@ -1534,27 +1533,6 @@ impl CodeEditorModel {
         ctx: &mut ModelContext<Self>,
     ) {
         self.begin_selection(offset, SelectionMode::Line, !multiselect, ctx);
-    }
-
-    /// Returns the word under or immediately after the primary cursor on the current line,
-    /// if one exists. The search does not cross line boundaries.
-    /// This is used to populate the find bar for vim's `search_word_at_cursor` (`*` and `#`)
-    pub fn word_under_cursor_for_search(&self, app: &AppContext) -> Option<String> {
-        let buffer = self.content().as_ref(app);
-        let selections = self.selections(app);
-        let selection = *selections.first();
-        let cursor_offset = selection.head;
-
-        get_word_range_at_offset(buffer, cursor_offset, None)
-            .map(|range| buffer.text_in_range(range).into_string())
-    }
-
-    pub fn word_range_at_offset(
-        &self,
-        offset: CharOffset,
-        app: &AppContext,
-    ) -> Option<Range<CharOffset>> {
-        get_word_range_at_offset(self.content().as_ref(app), offset, None)
     }
 
     pub fn run_search(

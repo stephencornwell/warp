@@ -6648,7 +6648,6 @@ impl Workspace {
                 tips_view.set_action_target(ctx.window_id(), input_id, ctx)
             });
 
-            send_telemetry_from_ctx!(TelemetryEvent::OpenWelcomeTips, ctx);
         }
         ctx.focus(&self.welcome_tips_view);
         ctx.notify();
@@ -6884,7 +6883,6 @@ impl Workspace {
 
         if !self.current_workspace_state.is_resource_center_open {
             self.open_resource_center_main_page(ctx);
-            send_telemetry_from_ctx!(TelemetryEvent::ResourceCenterOpened, ctx);
         } else {
             // Close side panel
             self.current_workspace_state.is_resource_center_open = false;
@@ -7189,7 +7187,6 @@ impl Workspace {
             self.current_workspace_state.is_ai_assistant_panel_open = false;
             // Open side panel
             self.current_workspace_state.is_resource_center_open = true;
-            send_telemetry_from_ctx!(TelemetryEvent::KeybindingsPageOpened, ctx);
         } else if current_page != ResourceCenterPage::Keybindings
             && self.current_workspace_state.is_resource_center_open
         {
@@ -7198,7 +7195,6 @@ impl Workspace {
                 .update(ctx, |resource_center_view, ctx| {
                     resource_center_view.set_current_page(ResourceCenterPage::Keybindings, ctx)
                 });
-            send_telemetry_from_ctx!(TelemetryEvent::KeybindingsPageOpened, ctx);
         } else {
             // Close side panel
             self.current_workspace_state.is_resource_center_open = false;
@@ -10531,14 +10527,12 @@ impl Workspace {
 
         if index == self.active_tab_index {
             self.set_active_tab_index(new_index, ctx);
-            send_telemetry_from_ctx!(TelemetryEvent::MoveActiveTab { direction }, ctx);
         } else {
             // Don't want to change the active tab for the user due to an adjacent
             // tab being moved left/right.
             if new_index == self.active_tab_index {
                 self.set_active_tab_index(index, ctx);
             }
-            send_telemetry_from_ctx!(TelemetryEvent::MoveTab { direction }, ctx);
         }
 
         ctx.notify();
@@ -10978,7 +10972,6 @@ impl Workspace {
 
         ctx.focus(&self.palette);
 
-        send_telemetry_from_ctx!(TelemetryEvent::PaletteSearchOpened { mode, source }, ctx);
 
         ctx.notify();
     }
@@ -14492,7 +14485,6 @@ impl Workspace {
         args: &crate::linear::LinearIssueWork,
         ctx: &mut ViewContext<Self>,
     ) {
-        send_telemetry_from_ctx!(TelemetryEvent::LinearIssueLinkOpened, ctx);
 
         self.add_new_session_tab_internal_with_default_session_mode_behavior(
             NewSessionSource::Tab,
@@ -14568,7 +14560,6 @@ impl Workspace {
             .is_cloud_agent_capacity_modal_open = true;
         ctx.focus(&self.cloud_agent_capacity_modal);
         ctx.notify();
-        send_telemetry_from_ctx!(TelemetryEvent::CloudAgentCapacityModalOpened, ctx);
     }
 
     fn ask_ai_assistant(&mut self, ask_type: &AskAIType, ctx: &mut ViewContext<Self>) {
@@ -17999,7 +17990,6 @@ impl TypedActionView for Workspace {
                 source,
             } => self.toggle_palette(*palette_mode, *source, ctx),
             ShowUpgrade => {
-                send_telemetry_from_ctx!(TelemetryEvent::UserMenuUpgradeClicked, ctx);
 
                 let auth_state = AuthStateProvider::as_ref(ctx).get();
                 let user_workspaces = UserWorkspaces::as_ref(ctx);
@@ -18400,7 +18390,6 @@ impl TypedActionView for Workspace {
             } => self.on_tab_drag(*tab_index, *tab_position, ctx),
             DropTab => {
                 self.current_workspace_state.is_tab_being_dragged = false;
-                send_telemetry_from_ctx!(TelemetryEvent::DragAndDropTab, ctx);
             }
             CopyAccessTokenToClipboard => {
                 // Blocking is ok here only because this action is only registered in dev and local
@@ -18488,7 +18477,6 @@ impl TypedActionView for Workspace {
                     view.add_ephemeral_toast(new_toast, ctx);
                 });
 
-                send_telemetry_from_ctx!(TelemetryEvent::ToggleSyncAllPanesInTab { enabled }, ctx);
 
                 self.process_updated_sync_state(ctx);
             }
@@ -18504,14 +18492,12 @@ impl TypedActionView for Workspace {
                         DismissibleToast::success("Disabled all synchronized inputs.".to_string());
                     view.add_ephemeral_toast(new_toast, ctx);
                 });
-                send_telemetry_from_ctx!(TelemetryEvent::DisableInputSync, ctx);
             }
             Reauth => {
                 AuthManager::handle(ctx).update(ctx, |auth_manager, ctx| {
                     let sign_in_url = auth_manager.sign_in_url();
                     ctx.open_url(&sign_in_url);
                 });
-                send_telemetry_from_ctx!(TelemetryEvent::InitiateReauth, ctx);
             }
             SignupAnonymousUser => {
                 self.initiate_user_signup(AnonymousUserSignupEntrypoint::SignUpButton, ctx);
@@ -19325,7 +19311,6 @@ impl TypedActionView for Workspace {
 
                 conversation_utils::delete_conversation(*conversation_id, *terminal_view_id, ctx);
 
-                send_telemetry_from_ctx!(TelemetryEvent::ConversationListItemDeleted, ctx);
                 ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                     toast_stack.add_ephemeral_toast(
                         DismissibleToast::success("Conversation deleted".to_string()),

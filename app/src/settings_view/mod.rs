@@ -73,9 +73,7 @@ mod privacy;
 mod privacy_page;
 mod settings_file_footer;
 pub(crate) mod settings_page;
-mod tab_menu;
 mod telemetry;
-mod transfer_ownership_confirmation_modal;
 
 pub use code_page::CodeSettingsPageView;
 pub use features_page::FeaturesPageAction;

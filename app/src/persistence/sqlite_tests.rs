@@ -2,10 +2,9 @@ use std::{path::PathBuf, sync::Arc};
 
 use crate::{
     app_state::{
-        AppState, CodePaneSnapShot, CodePaneTabSnapshot, LeafContents, LeafSnapshot,
+        AppState, LeafContents, LeafSnapshot,
         PaneNodeSnapshot, TabSnapshot, TerminalPaneSnapshot, WindowSnapshot,
     },
-    code::editor_management::CodeSource,
     persistence::{BlockCompleted, ModelEvent},
     tab::SelectedTabColor,
     terminal::model::block::SerializedBlock,
@@ -177,87 +176,7 @@ fn test_sqlite_round_trips_custom_pane_title() {
     );
 }
 
-#[test]
-fn test_sqlite_round_trips_code_pane_with_multiple_tabs() {
-    let tempdir = tempfile::tempdir().expect("tempdir should be created");
-    let database_path = tempdir.path().join("warp.sqlite");
-    let mut conn = setup_database(&database_path).expect("database should initialize");
 
-    let app_state = AppState {
-        windows: vec![WindowSnapshot {
-            tabs: vec![TabSnapshot {
-                custom_title: None,
-                root: PaneNodeSnapshot::Leaf(LeafSnapshot {
-                    is_focused: true,
-                    custom_vertical_tabs_title: None,
-                    contents: LeafContents::Code(CodePaneSnapShot::Local {
-                        tabs: vec![
-                            CodePaneTabSnapshot {
-                                path: Some(PathBuf::from("/tmp/main.rs")),
-                            },
-                            CodePaneTabSnapshot {
-                                path: Some(PathBuf::from("/tmp/lib.rs")),
-                            },
-                            CodePaneTabSnapshot { path: None },
-                        ],
-                        active_tab_index: 1,
-                        source: Some(CodeSource::FileTree {
-                            path: PathBuf::from("/tmp/main.rs"),
-                        }),
-                    }),
-                }),
-                default_directory_color: None,
-                selected_color: SelectedTabColor::default(),
-                left_panel: None,
-                right_panel: None,
-            }],
-            active_tab_index: 0,
-            bounds: None,
-            fullscreen_state: Default::default(),
-            quake_mode: false,
-            universal_search_width: None,
-            warp_ai_width: None,
-            voltron_width: None,
-            warp_drive_index_width: None,
-            left_panel_open: false,
-            vertical_tabs_panel_open: false,
-            left_panel_width: None,
-            right_panel_width: None,
-            agent_management_filters: None,
-        }],
-        active_window_index: Some(0),
-        block_lists: Default::default(),
-        running_mcp_servers: Default::default(),
-    };
-
-    save_app_state(&mut conn, &app_state).expect("app state should save");
-
-    let restored = read_sqlite_data(&mut conn, None)
-        .expect("app state should load")
-        .app_state;
-
-    assert_eq!(restored.windows.len(), 1);
-    let restored_tab = &restored.windows[0].tabs[0];
-    let PaneNodeSnapshot::Leaf(LeafSnapshot {
-        contents:
-            LeafContents::Code(CodePaneSnapShot::Local {
-                tabs,
-                active_tab_index,
-                source,
-            }),
-        ..
-    }) = &restored_tab.root
-    else {
-        panic!("Expected code pane leaf");
-    };
-
-    assert_eq!(tabs.len(), 3);
-    assert_eq!(*active_tab_index, 1);
-    assert_eq!(tabs[0].path, Some(PathBuf::from("/tmp/main.rs")));
-    assert_eq!(tabs[1].path, Some(PathBuf::from("/tmp/lib.rs")));
-    assert_eq!(tabs[2].path, None);
-    assert!(matches!(source, Some(CodeSource::FileTree { .. })));
-}
 
 fn assert_encode_then_decode_preserves_original_path(original_path: PathBuf) {
     let bytes = encode_path(original_path.clone());

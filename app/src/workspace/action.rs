@@ -598,6 +598,7 @@ pub enum WorkspaceAction {
     },
 }
 
+impl WorkspaceAction {
     /// Matches what actions require the app state to be saved, and which don't. We match all
     /// actions directly, rather than using _, so we're forced to make a conscious decision for each
     /// of them, rather than following some default.

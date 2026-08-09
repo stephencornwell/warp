@@ -634,7 +634,6 @@ pub struct SubshellInitializationInfo {
     /// If the subshell is from an SSH command, store the connection details.
     /// Note that these details come from parsing the ssh command, not from retrieving
     /// any actual state on the remote host.
-    pub ssh_connection_info: Option<InteractiveSshCommand>,
 }
 
 /// Since a SelectedBlockRange is a range of blocks, it is possible that

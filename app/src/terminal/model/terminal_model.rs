@@ -1274,17 +1274,6 @@ impl TerminalModel {
         )
     }
 
-    pub fn set_ordered_terminal_events_for_shared_session_tx(
-        &mut self,
-        tx: Sender<OrderedTerminalEventType>,
-    ) {
-        self.ordered_terminal_events_for_shared_session_tx = Some(tx);
-    }
-
-    pub fn clear_ordered_terminal_events_for_shared_session_tx(&mut self) {
-        self.ordered_terminal_events_for_shared_session_tx = None;
-    }
-
     fn ai_metadata_to_protocol(metadata: &AgentInteractionMetadata) -> AICommandMetadata {
         AICommandMetadata {
             tool_call_id: metadata
@@ -1294,28 +1283,6 @@ impl TerminalModel {
             // Any command with a long-running control state is considered agent-monitored.
             is_agent_monitored: metadata.long_running_control_state().is_some(),
         }
-    }
-
-    pub fn set_write_to_pty_events_for_shared_session_tx(&mut self, tx: Sender<Vec<u8>>) {
-        self.write_to_pty_events_for_shared_session_tx = Some(tx);
-    }
-
-    pub fn send_write_to_pty_events_for_shared_session(&mut self, bytes: Vec<u8>) {
-        if !FeatureFlag::SharedSessionWriteToLongRunningCommands.is_enabled()
-            || !self.shared_session_status().is_executor()
-        {
-            return;
-        }
-
-        if let Some(tx) = &self.write_to_pty_events_for_shared_session_tx {
-            if let Err(e) = tx.try_send(bytes) {
-                log::warn!("Failed to send write to pty events: {e}");
-            }
-        }
-    }
-
-    pub fn clear_write_to_pty_events_for_shared_session_tx(&mut self) {
-        self.write_to_pty_events_for_shared_session_tx = None;
     }
 
     /// Sends an Agent ResponseEvent to viewers if this session is shared.

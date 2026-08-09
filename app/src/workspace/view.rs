@@ -6070,7 +6070,6 @@ impl Workspace {
             NewSessionSource::Tab,
             Some(ctx.window_id()),
             Some(shell),
-            None,
             false,
             ctx,
         );
@@ -6082,7 +6081,6 @@ impl Workspace {
         new_session_source: NewSessionSource,
         previous_session_window_id: Option<WindowId>,
         chosen_shell: Option<AvailableShell>,
-        conversation_restoration: Option<ConversationRestorationInNewPaneType>,
         hide_homepage: bool,
         ctx: &mut ViewContext<Self>,
     ) {
@@ -6090,7 +6088,6 @@ impl Workspace {
             new_session_source,
             previous_session_window_id,
             chosen_shell,
-            conversation_restoration,
             hide_homepage,
             DefaultSessionModeBehavior::Apply,
             ctx,
@@ -6103,17 +6100,12 @@ impl Workspace {
         new_session_source: NewSessionSource,
         previous_session_window_id: Option<WindowId>,
         chosen_shell: Option<AvailableShell>,
-        conversation_restoration: Option<ConversationRestorationInNewPaneType>,
         hide_homepage: bool,
         default_session_mode_behavior: DefaultSessionModeBehavior,
         ctx: &mut ViewContext<Self>,
     ) {
         // Check if we should default to agent mode (only for new sessions, not restorations)
-        let should_enter_agent_view = matches!(
-            default_session_mode_behavior,
-            DefaultSessionModeBehavior::Apply
-        ) && conversation_restoration.is_none()
-            && AISettings::as_ref(ctx).default_session_mode(ctx) == DefaultSessionMode::Agent;
+        let should_enter_agent_view = false;
         #[cfg(feature = "local_tty")]
         let is_docker_sandbox = chosen_shell
             .as_ref()
@@ -6124,27 +6116,17 @@ impl Workspace {
             false
         };
 
-        // If restoring a conversation, use its initial working directory if it exists
-        let startup_directory_from_conversation = conversation_restoration
-            .as_ref()
-            .and_then(|restoration| restoration.initial_working_directory())
-            .map(PathBuf::from)
-            .filter(|path| path.is_dir());
-
-        let startup_directory = startup_directory_from_conversation.or_else(|| {
-            self.get_new_tab_startup_directory(
-                new_session_source,
-                previous_session_window_id,
-                chosen_shell.as_ref(),
-                ctx,
-            )
-        });
+        let startup_directory = self.get_new_tab_startup_directory(
+            new_session_source,
+            previous_session_window_id,
+            chosen_shell.as_ref(),
+            ctx,
+        );
 
         self.add_tab_with_pane_layout(
             PanesLayout::SingleTerminal(Box::new(NewTerminalOptions {
                 shell: chosen_shell,
                 initial_directory: startup_directory,
-                conversation_restoration,
                 hide_homepage,
                 ..Default::default()
             })),

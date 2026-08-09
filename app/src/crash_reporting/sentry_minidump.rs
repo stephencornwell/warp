@@ -8,7 +8,6 @@
 //! * Startup via our command-line parsing, rather than a separate hook
 //! * Use of anonymous, temporary crash dump files, to ensure they're cleaned up
 
-use crate::report_if_error;
 use std::{
     collections::HashMap,
     fs::File,

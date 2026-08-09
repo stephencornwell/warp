@@ -1,4 +1,3 @@
-use crate::report_if_error;
 use warpui::keymap::FixedBinding;
 
 use warpui::{AppContext, Element, Entity, SingletonEntity, TypedActionView, View, ViewContext};

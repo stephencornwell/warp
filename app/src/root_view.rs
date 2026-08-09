@@ -1,4 +1,3 @@
-use crate::report_if_error;
 use crate::appearance::Appearance;
 use crate::interval_timer::IntervalTimer;
 use crate::launch_configs::launch_config;

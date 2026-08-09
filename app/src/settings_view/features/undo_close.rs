@@ -1,4 +1,3 @@
-use crate::report_if_error;
 use std::{cell::RefCell, collections::HashMap, time::Duration};
 
 use settings::{Setting, ToggleableSetting};

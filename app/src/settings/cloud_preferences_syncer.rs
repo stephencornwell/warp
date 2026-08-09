@@ -1,4 +1,3 @@
-use crate::report_if_error;
 use std::{
     collections::{HashMap, HashSet},
     path::PathBuf,

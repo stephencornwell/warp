@@ -247,7 +247,7 @@ macro_rules! safe_error {
 }
 
 // Re-export the safe logging macros at the crate root level for backwards compatibility
-pub use warp_core::{safe_debug, safe_error, safe_info, safe_warn};
+pub use warp_core::{safe_debug, safe_info, safe_warn};
 
 use crate::antivirus::AntivirusInfo;
 #[cfg(feature = "local_fs")]

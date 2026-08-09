@@ -1,4 +1,3 @@
-use crate::report_if_error;
 use crate::send_telemetry_from_ctx;
 use pathfinder_color::ColorU;
 use settings::Setting as _;

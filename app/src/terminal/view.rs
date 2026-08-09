@@ -1,4 +1,3 @@
-use crate::report_if_error;
 use crate::send_telemetry_from_ctx;
 mod action;
 mod block_banner;

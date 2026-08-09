@@ -1,4 +1,3 @@
-use crate::safe_error;
 use crate::send_telemetry_from_ctx;
 mod element;
 mod figma_utils;

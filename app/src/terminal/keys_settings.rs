@@ -1,4 +1,3 @@
-use crate::report_if_error;
 use settings::{
     macros::define_settings_group, RespectUserSyncSetting, Setting, SupportedPlatforms, SyncToCloud,
 };

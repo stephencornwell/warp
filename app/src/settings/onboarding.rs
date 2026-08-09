@@ -1,4 +1,3 @@
-use crate::report_if_error;
 use crate::ai::execution_profiles::profiles::AIExecutionProfilesModel;
 use crate::ai::execution_profiles::{ActionPermission, WriteToPtyPermission};
 use crate::drive::settings::WarpDriveSettings;

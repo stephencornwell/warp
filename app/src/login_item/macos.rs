@@ -4,7 +4,6 @@
 //! at runtime, registration silently no-ops — the user-facing setting still
 //! updates, but we don't try to register against a class that isn't there.
 
-use crate::report_if_error;
 use crate::terminal::general_settings::GeneralSettings;
 use ::settings::Setting;
 use warpui::{AppContext, SingletonEntity};

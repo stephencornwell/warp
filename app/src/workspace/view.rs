@@ -1,4 +1,3 @@
-use crate::report_if_error;
 #[cfg(enable_crash_recovery)]
 mod crash_recovery;
 pub mod global_search;

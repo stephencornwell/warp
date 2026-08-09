@@ -1,4 +1,3 @@
-use crate::report_if_error;
 use std::collections::HashMap;
 
 use futures_util::FutureExt as _;

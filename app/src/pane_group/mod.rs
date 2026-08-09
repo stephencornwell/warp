@@ -639,14 +639,12 @@ pub struct PaneGroup {
     /// If there is an open share session modal, the pane ID of its terminal. Only terminal panes
     /// use the share session modal. `None` if no share session modal is open.
     terminal_with_open_share_session_modal: Option<TerminalPaneId>,
-    share_session_modal: ViewHandle<ShareSessionModal>,
 
     /// If there is a shared session role change modal open, this is the `TerminalPaneId` of the relevant session. Modal is opened whenever a shared session participant attempts to change a
     /// role. For a viewer when they request a role. For a sharer when they receive a role request,
     /// or when they attempt to grant a role.
     terminal_with_shared_session_role_change_modal_open: Option<TerminalPaneId>,
     /// Parent modal that holds views to role request/response and role grant modals.
-    shared_session_role_change_modal: ViewHandle<RoleChangeModal>,
     /// Model that tracks the currently active file.
     active_file_model: ModelHandle<ActiveFileModel>,
     /// If there is an open summarization cancel dialog, the terminal pane ID where summarization is active.
@@ -1928,16 +1926,6 @@ impl PaneGroup {
             },
         );
 
-        let share_session_modal = ctx.add_typed_action_view(ShareSessionModal::new);
-        ctx.subscribe_to_view(&share_session_modal, |me, _, event, ctx| {
-            me.handle_share_session_modal_event(event, ctx);
-        });
-
-        let shared_session_role_change_modal = ctx.add_view(RoleChangeModal::new);
-        ctx.subscribe_to_view(&shared_session_role_change_modal, |me, _, event, ctx| {
-            me.handle_shared_session_role_change_modal_event(event, ctx);
-        });
-
         ctx.subscribe_to_model(&UndoCloseStack::handle(ctx), |me, _, event, ctx| {
             let UndoCloseStackEvent::DiscardPane(pane_id) = event;
             me.discard_pane(*pane_id, ctx);
@@ -1955,10 +1943,6 @@ impl PaneGroup {
             pane_contents,
             dragged_border: None,
             user_default_shell_changed_banner,
-            terminal_with_open_share_session_modal: None,
-            share_session_modal,
-            terminal_with_shared_session_role_change_modal_open: None,
-            shared_session_role_change_modal,
             active_file_model,
             terminal_with_open_summarization_dialog: None,
             pane_with_open_environment_setup_mode_selector: None,

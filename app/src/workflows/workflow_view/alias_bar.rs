@@ -190,7 +190,6 @@ impl AliasBar {
 
             self.mark_dirty(true, ctx);
 
-            ();
         }
     }
 
@@ -209,7 +208,6 @@ impl AliasBar {
                     .map(|env_vars| env_vars.space(ctx))
                     .map(Into::into);
 
-                ();
             }
         }
     }
@@ -290,7 +288,6 @@ impl AliasBar {
         ctx.emit(AliasBarEvent::AliasesUpdated);
         ctx.notify();
 
-        ();
     }
 
     fn remove_alias(&mut self, index: usize, ctx: &mut ViewContext<Self>) {
@@ -315,7 +312,6 @@ impl AliasBar {
         ctx.emit(AliasBarEvent::AliasesUpdated);
         ctx.notify();
 
-        ();
     }
 
     fn rename_alias(&mut self, index: usize, ctx: &mut ViewContext<Self>) {

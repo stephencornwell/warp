@@ -93,9 +93,7 @@ impl ImportedConfigModel {
                         config.hotkey_mode.setting,
                         Err(HotkeyError::MultipleHotkeys)
                     )
-                }) {
-                    ();
-                }
+                }) {}
             }
         }
     }
@@ -106,7 +104,6 @@ impl ImportedConfigModel {
         (configs, _timer): (Result<Vec<Config>, ConfigError>, IntervalTimer),
         ctx: &mut ModelContext<Self>,
     ) {
-        ();
         #[cfg(target_os = "macos")]
         self.maybe_send_multiple_hotkeys_telemetry_event(&terminal_type, &configs, ctx);
         self.parsed_terminals.insert(terminal_type, configs);

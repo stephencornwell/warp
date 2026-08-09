@@ -392,7 +392,6 @@ impl FileNotebookView {
                         FileModelEvent::FileLoaded { content, .. } => {
                             let cleaned = post_process_notebook(content);
                             me.set_content(&cleaned, ctx);
-                            ();
 
                             // Record the canonical path instead of the input path when available.
                             if let Some(canonical_path) = file_model.as_ref(ctx).file_path(file_id)
@@ -478,7 +477,6 @@ impl FileNotebookView {
 
     /// Send a [`NotebookTelemetryAction`] telemetry event.
     fn send_telemetry_action(&self, action: NotebookTelemetryAction, ctx: &mut ViewContext<Self>) {
-        ();
     }
 
     /// Reload the file that was most recently opened (or attempted to open).

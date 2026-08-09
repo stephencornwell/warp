@@ -1263,7 +1263,6 @@ impl VoltronFeatureViewMeta for CategoriesView {
 
         self.load_cloud_workflows(ctx);
 
-        ();
         self.search_term = String::new();
         ctx.notify();
     }

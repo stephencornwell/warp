@@ -3482,7 +3482,6 @@ impl PaneGroup {
     ) -> Option<PaneId> {
         if self.pane_count() == 1 {
             // Only sending telemetry event the first time a user enters split pane in a session.
-            ();
         }
 
         self.tips_completed.update(ctx, |tips_completed, ctx| {

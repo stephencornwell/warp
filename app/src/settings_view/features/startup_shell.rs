@@ -246,6 +246,5 @@ impl TypedActionView for StartupShellView {
                 });
             }
         }
-        ();
     }
 }

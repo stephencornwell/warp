@@ -427,7 +427,6 @@ impl<T: Action + Clone> SearchMixer<T> {
                         }
                         let _error_payload =
                             new_results.as_ref().err().map(|e| e.telemetry_payload());
-                        ();
                         mixer.add_new_results(data_source_id, new_results, ctx);
                         source.on_query_finished(ctx);
                     },

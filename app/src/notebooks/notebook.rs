@@ -896,7 +896,6 @@ impl NotebookView {
             self.last_content_length = content.len();
             self.send_edit_telemetry = false;
 
-            ();
         }
 
         // Schedule another check. If we stop editing in the meantime, either the mode check above
@@ -1093,7 +1092,6 @@ impl NotebookView {
 
     /// Send a [`NotebookTelemetryAction`] telemetry event.
     fn send_telemetry_action(&self, action: NotebookTelemetryAction, ctx: &mut ViewContext<Self>) {
-        ();
     }
 
     /// Puts the nodebook into edit mode and focuses the editor. The caller is responsible for
@@ -1619,7 +1617,6 @@ impl NotebookView {
             editor.set_space(notebook.space(ctx), ctx);
         });
 
-        ();
 
         // Once we've received metadata from the server, check if we can eagerly edit the notebook.
         let has_metadata = UpdateManager::as_ref(ctx).initial_load_complete();
@@ -2309,7 +2306,6 @@ impl TypedActionView for NotebookView {
             NotebookAction::CopyToPersonal => self.copy_to_personal(ctx),
             NotebookAction::CopyToClipboard => self.copy_notebook_contents_to_clipboard(ctx),
             NotebookAction::CopyLink(link) => {
-                ();
                 ctx.clipboard()
                     .write(ClipboardContent::plain_text(link.to_owned()));
 
@@ -2328,7 +2324,6 @@ impl TypedActionView for NotebookView {
             } => self.move_to_team_owner(*cloud_object_type_and_id, *new_space, ctx),
             #[cfg(target_family = "wasm")]
             NotebookAction::OpenLinkOnDesktop(url) => {
-                ();
                 open_url_on_desktop(url);
             }
             #[cfg(not(target_family = "wasm"))]

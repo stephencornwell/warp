@@ -105,7 +105,5 @@ pub fn open_docker_container(url: &Url, ctx: &mut AppContext) -> Result<()> {
         },
     );
 
-    ();
-
     Ok(())
 }

@@ -97,7 +97,6 @@ impl ThemeDeletionBody {
                             ctx.emit(ThemeDeletionBodyEvent::DeleteCurrentTheme)
                         }
                         errored = false;
-                        ();
                         self.close(ctx);
                         ctx.notify();
                     }

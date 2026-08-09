@@ -2405,7 +2405,6 @@ impl TerminalView {
             pty_recorder: ctx
                 .add_model(|ctx| PtyRecorder::new(inactive_pty_reads_rx, window_id, ctx)),
         };
-        ();
 
         terminal_view
     }
@@ -3340,8 +3339,6 @@ impl TerminalView {
             };
 
             ctx.notify();
-
-            ();
         }
     }
 
@@ -3374,8 +3371,6 @@ impl TerminalView {
                 input.replace_buffer_content(most_recent_command_correction.command.as_str(), ctx);
                 ctx.notify()
             });
-
-            ();
         }
     }
 
@@ -3397,12 +3392,10 @@ impl TerminalView {
                 });
                 if should_dismiss_banner {
                     self.dismiss_alias_expansion_banner(ctx);
-                    ();
                 }
             }
             Dismiss => {
                 self.dismiss_alias_expansion_banner(ctx);
-                ();
             }
         };
     }
@@ -3468,7 +3461,6 @@ impl TerminalView {
         );
         ctx.emit_a11y_content(a11y_content);
 
-        ();
         ctx.notify();
     }
 
@@ -3507,8 +3499,6 @@ impl TerminalView {
         );
         ctx.emit_a11y_content(a11y_content);
 
-        ();
-
         ctx.notify();
     }
 
@@ -3517,8 +3507,6 @@ impl TerminalView {
             input.replace_buffer_content(correction.command.as_str(), ctx);
             ctx.notify()
         });
-
-        ();
     }
 
     /// Returns the view type for prompt suggestion telemetry based on whether agent view is active.
@@ -3547,8 +3535,6 @@ impl TerminalView {
             },
         };
 
-        ();
-
         self.model
             .lock()
             .block_list_mut()
@@ -3573,8 +3559,6 @@ impl TerminalView {
             .block_list_mut()
             .append_inline_banner(InlineBannerItem::new(banner_id, InlineBannerType::VimMode));
 
-        ();
-
         ctx.notify();
     }
 
@@ -3590,9 +3574,7 @@ impl TerminalView {
 
     fn enable_vim_keybindings(&mut self, ctx: &mut ViewContext<Self>) {
         AppEditorSettings::handle(ctx).update(ctx, |editor_settings, ctx| {
-            if editor_settings.vim_mode.set_value(true, ctx).is_ok() {
-                ();
-            }
+            if editor_settings.vim_mode.set_value(true, ctx).is_ok() {}
         });
     }
 
@@ -3604,7 +3586,6 @@ impl TerminalView {
         if action == VimModeBannerAction::Enable {
             self.enable_vim_keybindings(ctx);
         } else {
-            ();
         }
         self.remove_vim_mode_banner(ctx);
         VimBannerSettings::handle(ctx).update(ctx, |banner_settings, model_ctx| {
@@ -3680,8 +3661,6 @@ impl TerminalView {
                 let antivirus_name = AntivirusInfo::as_ref(ctx).get();
 
                 let long_os_version = crate::system::long_os_version(ctx);
-
-                ();
             };
 
             let banner = ctx.add_typed_action_view(|ctx| {
@@ -3971,7 +3950,6 @@ impl TerminalView {
                 // For now, this event is only used for telemetry. It may also
                 // be useful to request attention if the user's session starts
                 //receiving background output, or to auto-scroll it.
-                ();
             }
             ModelEvent::PreInteractiveSSHSession => {}
             ModelEvent::SSH(remote_shell) => {
@@ -3982,7 +3960,6 @@ impl TerminalView {
                         self.start_bootstrap_timer(BOOTSTRAP_FAILED_DURATION, ctx);
                     }
                 }
-                ();
             }
             ModelEvent::SSHControlMasterError => {
                 self.handle_control_master_error(ctx);
@@ -4278,7 +4255,6 @@ impl TerminalView {
                     );
                 });
                 ctx.notify();
-                ();
             }
             ModelEvent::BootstrapPrecmdDone => {
                 self.execute_pending_command((), ctx);
@@ -5719,8 +5695,6 @@ impl TerminalView {
             items,
             ctx,
         );
-
-        ();
     }
 
     fn open_block_filter_editor(
@@ -5751,9 +5725,7 @@ impl TerminalView {
                 });
         }
         self.focus_block_filter_editor(ctx);
-        if matches!(opened_from_click, OpenedFromClick::Yes) {
-            ();
-        }
+        if matches!(opened_from_click, OpenedFromClick::Yes) {}
     }
 
     fn close_block_filter_editor(&mut self, ctx: &mut ViewContext<Self>) {
@@ -5886,7 +5858,6 @@ impl TerminalView {
         ctx.focus(&self.context_menu);
         ctx.notify();
 
-        ();
         self.tips_completed.update(ctx, |tips, ctx| {
             mark_feature_used_and_write_to_user_defaults(
                 Tip::Hint(TipHint::BlockAction),
@@ -6058,7 +6029,6 @@ impl TerminalView {
                 if let Some(block_index) = maybe_block_index {
                     self.mouse_down_block_index = Some(*block_index);
 
-                    ();
                     self.tips_completed.update(ctx, |tips, ctx| {
                         mark_feature_used_and_write_to_user_defaults(
                             Tip::Hint(TipHint::BlockSelect),
@@ -6292,7 +6262,6 @@ impl TerminalView {
         let Some(link) = self.highlighted_link.as_ref() else {
             return;
         };
-        ();
 
         match link {
             #[cfg(feature = "local_fs")]
@@ -6375,7 +6344,6 @@ impl TerminalView {
             );
         }
         self.dismiss_tooltips(ctx);
-        ();
         ctx.notify();
     }
 
@@ -6387,7 +6355,6 @@ impl TerminalView {
     ) {
         let _ = (tooltip_info, show_secret);
         self.dismiss_tooltips(ctx);
-        ();
         ctx.notify();
     }
 
@@ -6404,7 +6371,6 @@ impl TerminalView {
                 ctx.clipboard().write(ClipboardContent::plain_text(text));
             }
         }
-        ();
         self.dismiss_tooltips(ctx);
         ctx.notify();
     }
@@ -6416,7 +6382,6 @@ impl TerminalView {
     ) {
         ctx.clipboard()
             .write(ClipboardContent::plain_text(tooltip_info.secret));
-        ();
         self.dismiss_tooltips(ctx);
         ctx.notify();
     }
@@ -6477,8 +6442,6 @@ impl TerminalView {
 
     pub fn toggle_snackbar_in_active_pane(&mut self, ctx: &mut ViewContext<Self>) {
         self.show_snackbar = !self.show_snackbar;
-
-        ();
 
         ctx.notify()
     }
@@ -6654,7 +6617,6 @@ impl TerminalView {
         overhanging_block: &OverhangingBlock,
         ctx: &mut ViewContext<Self>,
     ) {
-        ();
         self.update_scroll_position_locking(
             ScrollPositionUpdate::ScrollToBottomOfBlock {
                 block_index: overhanging_block.block_index(),
@@ -6735,7 +6697,6 @@ impl TerminalView {
             ctx.clipboard()
                 .write(ClipboardContent::plain_text(selected_input_text));
         }
-        ();
     }
 
     fn copy_selected_text_from_input(&mut self, ctx: &mut ViewContext<Self>) {
@@ -6749,7 +6710,6 @@ impl TerminalView {
             ctx.clipboard()
                 .write(ClipboardContent::plain_text(selected_input_text));
         }
-        ();
     }
 
     fn select_all_text_from_input(&mut self, ctx: &mut ViewContext<Self>) {
@@ -6758,7 +6718,6 @@ impl TerminalView {
                 editor.handle_action(&EditorAction::SelectAll, ctx)
             })
         });
-        ();
     }
 
     fn paste_in_input(&mut self, ctx: &mut ViewContext<Self>) {
@@ -6768,11 +6727,9 @@ impl TerminalView {
             input.system_insert(clipboard_content.plain_text.as_str(), ctx);
             ctx.focus_self();
         });
-        ();
     }
 
     fn command_search_from_input(&mut self, ctx: &mut ViewContext<Self>) {
-        ();
         ctx.emit(Event::ShowCommandSearch(Default::default()))
     }
 
@@ -6783,7 +6740,6 @@ impl TerminalView {
         });
 
         // Send the same telemetry event that we do from the features page to make data analysis easier.
-        ();
     }
 
     fn copy_prompt(
@@ -6830,7 +6786,6 @@ impl TerminalView {
         };
         ctx.clipboard().write(ClipboardContent::plain_text(to_copy));
 
-        ();
         self.tips_completed.update(ctx, |tips, ctx| {
             mark_feature_used_and_write_to_user_defaults(
                 Tip::Hint(TipHint::BlockAction),
@@ -6870,9 +6825,7 @@ impl TerminalView {
         let inverted_blocklist = self.is_inverted_blocklist(ctx);
         // Emit a telemetry event depending on whether the find bar is opened in blocklist or alt screen.
         if model.is_alt_screen_active() {
-            ();
         } else {
-            ();
         }
         self.find_bar.update(ctx, |view, ctx| {
             let semantic_selection = SemanticSelection::as_ref(ctx);
@@ -7031,8 +6984,6 @@ impl TerminalView {
             ctx,
         );
 
-        ();
-
         self.tips_completed.update(ctx, |tips, ctx| {
             mark_feature_used_and_write_to_user_defaults(
                 Tip::Hint(TipHint::BlockSelect),
@@ -7080,8 +7031,6 @@ impl TerminalView {
 
             self.scroll_to_if_not_visible(new_block_index, ctx);
             ctx.notify();
-
-            ();
 
             self.tips_completed.update(ctx, |tips, ctx| {
                 mark_feature_used_and_write_to_user_defaults(
@@ -7145,7 +7094,6 @@ impl TerminalView {
                     self.reset_selection_to_single_block(new_block_index, ctx);
                 }
                 self.scroll_to_if_not_visible(new_block_index, ctx);
-                ();
                 self.tips_completed.update(ctx, |tips, ctx| {
                     mark_feature_used_and_write_to_user_defaults(
                         Tip::Hint(TipHint::BlockSelect),
@@ -7400,7 +7348,6 @@ impl TerminalView {
 
     fn context_menu_insert_selected_text(&mut self, ctx: &mut ViewContext<Self>) {
         {
-            ();
             let semantic_selection = SemanticSelection::as_ref(ctx);
             // Note: we purposely separate this expression here, to avoid locking the TerminalModel for the duration of the `if let`
             // block, since downstream functions may need the lock (`Input::insert_internal`).
@@ -7423,7 +7370,6 @@ impl TerminalView {
     }
 
     fn input_command(&mut self, ctx: &mut ViewContext<Self>, command: String) {
-        ();
         self.input.update(ctx, |input, ctx| {
             input.replace_buffer_content((command).trim(), ctx);
             ctx.focus_self();
@@ -7501,7 +7447,6 @@ impl TerminalView {
     }
 
     fn copy_blocks(&mut self, entity: BlockEntity, ctx: &mut ViewContext<Self>) {
-        ();
         self.tips_completed.update(ctx, |tips, ctx| {
             mark_feature_used_and_write_to_user_defaults(
                 Tip::Hint(TipHint::BlockAction),
@@ -7519,7 +7464,6 @@ impl TerminalView {
 
     fn context_menu_copy_selected_text(&mut self, ctx: &mut ViewContext<Self>) {
         {
-            ();
             let semantic_selection = SemanticSelection::as_ref(ctx);
             let model = self.model.lock();
             if let Some(selected_text) =
@@ -7595,8 +7539,6 @@ impl TerminalView {
             }
         };
 
-        ();
-
         ctx.notify();
     }
 
@@ -7633,7 +7575,6 @@ impl TerminalView {
                         "Command is waiting for a password".to_string(),
                     );
                     ctx.emit(Event::SendNotification(notification_content));
-                    ();
                 }
                 NotificationsMode::Unset
                     if matches!(
@@ -7678,9 +7619,7 @@ impl TerminalView {
             InputEvent::ClearSelectedBlock => self.clear_selected_blocks(ctx),
             InputEvent::SelectRecentBlocks { count } => self.select_most_recent_blocks(*count, ctx),
             InputEvent::Copy => self.copy(ctx),
-            InputEvent::UnhandledModifierKeyOnEditor(_keystroke) => {
-                ();
-            }
+            InputEvent::UnhandledModifierKeyOnEditor(_keystroke) => {}
             InputEvent::ClearSelectionsWhenShellMode => self.clear_selections_when_shell_mode(ctx),
             InputEvent::AutosuggestionAccepted => {
                 // TODO(suraj): maybe pass down the autosuggestion type and send
@@ -7689,9 +7628,7 @@ impl TerminalView {
                     self.most_recent_command_correction.as_ref()
                 {
                     let buffer_text = self.input.as_ref(ctx).buffer_text(ctx);
-                    if buffer_text == most_recent_command_correction.command {
-                        ();
-                    }
+                    if buffer_text == most_recent_command_correction.command {}
                 }
                 // When an AI query autosuggestion is accepted, there might be attached context
                 // blocks we need to render the border for.
@@ -7834,9 +7771,7 @@ impl TerminalView {
             || previous_filter
                 .is_some_and(|previous_filter| !previous_filter.is_active_and_nonempty()))
             && block_filter_query.is_active_and_nonempty()
-        {
-            ();
-        }
+        {}
         drop(model);
 
         self.update_block_filter_for_block(
@@ -8204,7 +8139,6 @@ impl TerminalView {
         if let Some(index) = next_index {
             self.reset_selection_to_single_block(index, ctx);
             self.jump_to_previous_command(index, ctx);
-            ();
             ctx.notify();
         }
     }
@@ -8233,7 +8167,6 @@ impl TerminalView {
         if let Some(index) = next_index {
             self.reset_selection_to_single_block(index, ctx);
             self.jump_to_previous_command(index, ctx);
-            ();
             ctx.notify();
         }
     }
@@ -8349,15 +8282,12 @@ impl TerminalView {
         topmost_block_index: BlockIndex,
         ctx: &mut ViewContext<Self>,
     ) {
-        ();
         self.scroll_to_if_not_visible(topmost_block_index, ctx);
     }
 
     fn jump_to_bookmark(&mut self, index: BlockIndex, ctx: &mut ViewContext<Self>) {
         self.reset_selection_to_single_block(index, ctx);
         self.jump_to_previous_command(index, ctx);
-
-        ();
 
         ctx.notify();
     }
@@ -9693,8 +9623,6 @@ impl TerminalView {
                 });
             }
         }
-
-        ();
     }
 
     fn close_notification_error_banner(&mut self, ctx: &mut ViewContext<Self>) {
@@ -9766,10 +9694,8 @@ impl TerminalView {
                         );
                     }
 
-                    ();
                     ctx.notify();
                 });
-                ();
                 ctx.notify();
             }
             Configure => {
@@ -10438,8 +10364,6 @@ impl TypedActionView for TerminalView {
                 self.open_rich_content_link(link, ctx);
             }
             ShowInFileExplorer(path) => {
-                ();
-
                 ctx.open_file_path_in_explorer(path);
             }
             OpenFileInWarp(path) => {

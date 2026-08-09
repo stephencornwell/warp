@@ -188,7 +188,6 @@ impl PtySpawner {
                 report_error!(err);
                 is_fallback = true;
             } else {
-                ();
                 return result;
             }
         }

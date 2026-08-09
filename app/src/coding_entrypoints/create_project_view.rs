@@ -163,7 +163,6 @@ impl TypedActionView for CreateProjectView {
         match action {
             CreateProjectAction::SuggestionSelected { prompt } => {
                 // Always send metadata event with suggested prompt content (non-UGC)
-                ();
                 ctx.emit(CreateProjectEvent::SubmitPrompt(prompt.clone()));
             }
         }

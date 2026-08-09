@@ -478,8 +478,6 @@ impl LeftPanelView {
                     None,
                 );
 
-                ();
-
                 ctx.emit(LeftPanelEvent::OpenFileWithTarget {
                     path: path.clone(),
                     target,
@@ -622,9 +620,7 @@ impl LeftPanelView {
             LeftPanelAction::ProjectExplorer => {
                 active_view_state::set(self, ToolPanelView::ProjectExplorer, ctx);
                 if force_open {
-                    ();
                 } else {
-                    ();
                 }
             }
             LeftPanelAction::GlobalSearch { entry_focus } => {
@@ -639,9 +635,7 @@ impl LeftPanelView {
                     },
                     ctx,
                 );
-                if !was_active {
-                    ();
-                }
+                if !was_active {}
             }
         }
     }

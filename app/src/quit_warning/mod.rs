@@ -340,8 +340,6 @@ impl<'a> QuitWarningDialog<'a> {
     /// Show the quit warning dialog. This returns `true` if the dialog was shown, and `false` if
     /// the current platform doesn't support showing a modal.
     pub fn show(self, ctx: &mut AppContext) -> bool {
-        ();
-
         let session_summary = self.state.running_sessions();
         let dialog = self.build();
         // We don't support showing a modal on all platforms.
@@ -391,5 +389,4 @@ fn on_disable_warning_modal(ctx: &mut AppContext) {
             .show_warning_before_quitting
             .toggle_and_save_value(ctx));
     });
-    ();
 }

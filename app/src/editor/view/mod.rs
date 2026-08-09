@@ -4922,8 +4922,6 @@ impl EditorView {
 
         let _is_udi_enabled = InputSettings::as_ref(ctx).is_universal_developer_input_enabled(ctx);
 
-        ();
-
         self.process_attached_images_future_handle = Some(ctx.spawn(
             async move {
                 let processed_pending_images: Vec<AttachedImage> = vec![];

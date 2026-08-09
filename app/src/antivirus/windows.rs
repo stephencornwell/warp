@@ -50,7 +50,6 @@ impl AntivirusInfo {
             }
             Some(software) => {
                 log::info!("Detected antivirus / EDR software {software:#?}");
-                ();
             }
         }
 

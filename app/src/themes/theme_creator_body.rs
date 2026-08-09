@@ -195,7 +195,6 @@ impl ThemeCreatorBody {
                         image_extension,
                     )),
                     |path| {
-                        ();
                         ctx.emit(ThemeCreatorBodyEvent::SetCustomTheme {
                             theme: ThemeKind::Custom(CustomTheme::new(theme_name, path)),
                         });

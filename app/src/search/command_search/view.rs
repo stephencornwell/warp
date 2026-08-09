@@ -318,7 +318,6 @@ impl CommandSearchView {
 
     fn blur(&self, ctx: &mut ViewContext<Self>) {
         let _buffer_length = self.search_bar.as_ref(ctx).query(ctx).len();
-        ();
         ctx.emit(CommandSearchEvent::Blur);
     }
 
@@ -331,12 +330,10 @@ impl CommandSearchView {
         match event {
             SearchBarEvent::Close => {
                 let _buffer_length = self.search_bar.as_ref(ctx).query(ctx).len();
-                ();
                 self.close(ctx);
             }
             // ctrl-c should close the command search view
             SearchBarEvent::BufferCleared { buffer_len: _ } => {
-                ();
                 self.close(ctx);
             }
             SearchBarEvent::ResultAccepted { index, action } => {
@@ -346,9 +343,7 @@ impl CommandSearchView {
                 self.state.list_state.scroll_to(*index);
                 ctx.notify();
             }
-            SearchBarEvent::QueryFilterChanged { new_filter: _ } => {
-                ();
-            }
+            SearchBarEvent::QueryFilterChanged { new_filter: _ } => {}
             SearchBarEvent::SelectionUpdateInZeroState { .. } => {}
             SearchBarEvent::EnterInZeroState { .. } => {}
         }
@@ -414,8 +409,6 @@ impl CommandSearchView {
                 Some(renderers) => renderers.len() - result_index - 1,
                 None => result_index,
             };
-
-            ();
         }
 
         let query = self.search_bar.as_ref(ctx).query(ctx);

@@ -250,7 +250,6 @@ impl LaunchConfigSaveModal {
                     target,
                     line_col: None,
                 });
-                ();
             }
         }
     }
@@ -474,13 +473,11 @@ impl LaunchConfigSaveModal {
 
     pub fn saved_successfully(&mut self, file_name: String, ctx: &mut ViewContext<Self>) {
         self.set_save_state(SaveState::Success, Some(file_name));
-        ();
         ctx.notify();
     }
 
     pub fn failed_save(&mut self, failure_type: FailureType, ctx: &mut ViewContext<Self>) {
         self.set_save_state(SaveState::Failure(failure_type), None);
-        ();
         ctx.notify();
     }
 

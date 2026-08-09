@@ -71,7 +71,6 @@ pub fn record_pty_throughput(
                     >= PTY_THROUGHPUT_METRIC_INTERVAL
                 {
                     if *max_throughput > 0 {
-                        ();
                     }
                     *max_throughput = 0;
                     *last_emitted_event_time = Instant::now();

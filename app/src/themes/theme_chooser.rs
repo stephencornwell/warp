@@ -358,12 +358,10 @@ impl ThemeChooser {
     }
 
     pub fn record_open_theme(&mut self, _ctx: &mut ViewContext<Self>) -> bool {
-        ();
         true
     }
 
     pub fn open_theme_creator_modal(&mut self, ctx: &mut ViewContext<Self>) {
-        ();
         ctx.emit(ThemeChooserEvent::OpenThemeCreatorModal);
     }
 
@@ -416,7 +414,6 @@ impl ThemeChooser {
         ctx: &mut ViewContext<Self>,
     ) {
         self.select_theme(selected_kind.clone(), ctx);
-        ();
         let theme_settings = ThemeSettings::handle(ctx);
 
         let selected_themes = respect_system_theme(theme_settings.as_ref(ctx))

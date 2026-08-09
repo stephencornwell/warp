@@ -2875,13 +2875,11 @@ impl TypedActionView for WorkflowView {
             WorkflowAction::CopyContent => self.copy_content(ctx),
             WorkflowAction::Duplicate => self.duplicate_object(ctx),
             WorkflowAction::CopyLink(link) => {
-                ();
                 ctx.clipboard()
                     .write(ClipboardContent::plain_text(link.to_owned()));
             }
             #[cfg(target_family = "wasm")]
             WorkflowAction::OpenLinkOnDesktop(url) => {
-                ();
                 open_url_on_desktop(url);
             }
             #[cfg(not(target_family = "wasm"))]

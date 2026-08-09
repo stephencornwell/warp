@@ -367,7 +367,6 @@ impl super::TerminalView {
         ctx.focus(&self.input);
         ctx.notify();
 
-        ();
         match link {
             #[cfg(feature = "local_fs")]
             GridHighlightedLink::File(link) => {

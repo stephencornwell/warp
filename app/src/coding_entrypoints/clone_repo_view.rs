@@ -33,7 +33,6 @@ impl CloneRepoView {
     fn handle_editor_event(&mut self, event: &GlowingEditorEvent, ctx: &mut ViewContext<Self>) {
         match event {
             GlowingEditorEvent::Submit(prompt) => {
-                ();
                 ctx.emit(CloneRepoEvent::SubmitPrompt(prompt.clone()))
             }
             GlowingEditorEvent::Cancel => {

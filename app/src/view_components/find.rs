@@ -274,7 +274,6 @@ impl<T: FindModel + Entity<Event = FindEvent> + 'static> Find<T> {
             FindWithinBlockState::Disabled => FindWithinBlockState::Enabled,
             _ => return,
         };
-        ();
         ctx.emit(Event::ToggleFindInBlock {
             value: self.display_find_within_block == FindWithinBlockState::Enabled,
         });
@@ -282,7 +281,6 @@ impl<T: FindModel + Entity<Event = FindEvent> + 'static> Find<T> {
 
     fn toggle_case_sensitivity(&mut self, ctx: &mut ViewContext<Self>) {
         self.case_sensitivity_enabled = !self.case_sensitivity_enabled;
-        ();
         ctx.emit(Event::ToggleCaseSensitivity {
             is_case_sensitive: self.case_sensitivity_enabled,
         });
@@ -290,7 +288,6 @@ impl<T: FindModel + Entity<Event = FindEvent> + 'static> Find<T> {
 
     fn toggle_regex_search(&mut self, ctx: &mut ViewContext<Self>) {
         self.regex_search_enabled = !self.regex_search_enabled;
-        ();
         ctx.emit(Event::ToggleRegexSearch {
             is_regex_enabled: self.regex_search_enabled,
         });

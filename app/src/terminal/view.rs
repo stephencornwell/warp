@@ -4065,19 +4065,6 @@ impl TerminalView {
     #[cfg(feature = "local_fs")]
 
     #[cfg(feature = "local_fs")]
-    fn remove_codebase_index_speedbump_banner(&mut self, ctx: &mut ViewContext<Self>) {
-        if let Some(banner_state) = self
-            .inline_banners_state
-            .codebase_index_speedbump_banner
-            .take()
-        {
-            self.model
-                .lock()
-                .block_list_mut()
-                .remove_inline_banner(banner_state.id);
-            ctx.notify();
-        }
-    }
 
     #[cfg(feature = "local_fs")]
 
@@ -4086,60 +4073,18 @@ impl TerminalView {
 
 
 
-    fn remove_aws_bedrock_login_banner(&mut self, ctx: &mut ViewContext<Self>) {
-        if let Some(banner_state) = self.inline_banners_state.aws_bedrock_login_banner.take() {
-            self.model
-                .lock()
-                .block_list_mut()
-                .remove_inline_banner(banner_state.id);
-        }
-        ctx.notify();
-    }
 
 
     /// Runs the AWS login command configured in settings to refresh Bedrock credentials.
     /// Doing this in PTY vs just a subprocess allows the user to see any output/errors
     /// from the command directly in the terminal. Also, `aws login` commands may require
     /// user interaction (e.g. "do you want to override X profile? y/n" is common)
-    fn run_aws_login_command(&mut self, ctx: &mut ViewContext<Self>) {
-        let login_command = AISettings::as_ref(ctx)
-            .aws_bedrock_auth_refresh_command
-            .value()
-            .clone();
-
-        if login_command.is_empty() {
-            log::warn!("AWS login command is not configured");
-            return;
-        }
-
-        // Track that we're running an AWS login command so we can detect
-        // "command not found" if AWS CLI isn't installed
-        self.is_pending_aws_login = true;
-
-        // Write the command to the PTY and execute it
-        let command_bytes = login_command.into_bytes();
-        self.clear_line_editor_and_write_to_pty(command_bytes, ctx);
-        self.write_to_pty(vec![escape_sequences::C0::CR], ctx);
-    }
 
     /// Checks if the current model request could be served via AWS Bedrock and the user
     /// isn't already using it. If so, inserts a banner prompting the user to log in.
     ///
     /// The banner is shown when the user could be using AWS Bedrock to save on warp AI spend, but isn't.
 
-    fn remove_aws_cli_not_installed_banner(&mut self, ctx: &mut ViewContext<Self>) {
-        if let Some(banner_state) = self
-            .inline_banners_state
-            .aws_cli_not_installed_banner
-            .take()
-        {
-            self.model
-                .lock()
-                .block_list_mut()
-                .remove_inline_banner(banner_state.id);
-        }
-        ctx.notify();
-    }
 
 
     /// Checks if the user tried to run an AWS login command and the AWS CLI wasn't installed.
@@ -5901,18 +5846,6 @@ impl TerminalView {
     #[cfg(not(feature = "local_fs"))]
 
 
-    fn reset_onboarding_blocks(&mut self, ctx: &mut ViewContext<Self>) {
-        self.block_onboarding_active = false;
-        self.onboarding_prompt_block = None;
-        self.settings_import_onboarding_block = None;
-        self.onboarding_agentic_suggestions_block = None;
-
-        #[cfg(feature = "voice_input")]
-        voice_input::VoiceInput::handle(ctx).update(ctx, |voice_input, _| {
-            voice_input.should_suppress_new_feature_popup = false;
-        });
-        let _ = ctx;
-    }
 
     /// Returns the save position ID for the agent view zero state, if one exists.
 
@@ -5958,54 +5891,6 @@ impl TerminalView {
     // (1) resizing right after swapping terminal modes, and
     // (2) the alt-screen app registering its resize handler
     #[cfg(feature = "local_tty")]
-    fn resize_alt_screen_redundantly(&mut self, ctx: &mut ViewContext<Self>) {
-        use futures_lite::StreamExt;
-
-        // Resize twice, half a second apart.
-        ctx.spawn_stream_local(
-            async_io::Timer::interval(Duration::from_millis(500)).take(2),
-            |view, _, ctx| {
-                let model = view.model.lock();
-
-                // If the alt-screen was exited since the timer expired,
-                // there's nothing to do.
-                if !model.is_alt_screen_active() {
-                    return;
-                }
-
-                let correct_size_info = *view.size_info;
-                let active_command = model
-                    .block_list()
-                    .active_block()
-                    .top_level_command(view.sessions.as_ref(ctx));
-
-                // Drop the lock since the resize methods will take an explicit lock.
-                drop(model);
-
-                // This is a workaround for alt-screen programs that _cache_ resizes during init
-                // but don't actually redraw the contents. For example, we've seen this happen with
-                // certain emacs setups. So we fake a winsize before immediately correcting it to
-                // invalidate that cache.
-                if active_command
-                    .is_some_and(|cmd| ALT_SCREEN_APPS_WITH_RESIZE_PROBLEMS.contains(cmd.as_str()))
-                {
-                    let mut wrong_size_info = *view.size_info;
-                    wrong_size_info.pane_width_px += 1.;
-                    view.resize_internal(
-                        SizeUpdateBuilder::for_refresh(wrong_size_info).build(view, ctx),
-                        ctx,
-                    );
-                }
-
-                // Send the resize as a refresh to force a size update.
-                view.resize_internal(
-                    SizeUpdateBuilder::for_refresh(correct_size_info).build(view, ctx),
-                    ctx,
-                );
-            },
-            |_, _| {},
-        );
-    }
 
     async fn fetch_command_corrections(
         block: UserBlockCompleted,
@@ -6078,49 +5963,6 @@ impl TerminalView {
 
 
     /// If a command correction exists, generate the command correction banner.
-    fn after_command_correction_generation(
-        &mut self,
-        corrections: Vec<Correction>,
-        ctx: &mut ViewContext<TerminalView>,
-    ) {
-        if let Some(correction) = corrections.into_iter().next() {
-            let rule = correction.rule_applied;
-
-            if AISettings::as_ref(ctx).is_intelligent_autosuggestions_enabled(ctx)
-                && UserWorkspaces::as_ref(ctx).is_next_command_enabled()
-                && COMMAND_CORRECTIONS_PREFERRED_DENYLIST.contains(rule.to_str())
-            {
-                // Defer to Next Command if the rule is in the denylist.
-                return;
-            }
-
-            // Set the autosuggestion only if the input is still empty
-            self.input.update(ctx, |input, ctx| {
-                if input.buffer_text(ctx).is_empty() {
-                    input.set_autosuggestion(
-                        correction.command.as_str(),
-                        AutosuggestionType::Command {
-                            was_intelligent_autosuggestion: false,
-                        },
-                        ctx,
-                    );
-                }
-            });
-
-            let a11y_content = AccessibilityContent::new(
-                format!("Suggested corrected command: {}", correction.command),
-                "Press right arrow to insert or keep editing to ignore",
-                WarpA11yRole::HelpRole,
-            );
-            ctx.emit_a11y_content(a11y_content);
-
-            self.most_recent_command_correction = Some(correction);
-
-            ctx.notify();
-
-            ();
-        }
-    }
 
 
 
@@ -6321,38 +6163,6 @@ impl TerminalView {
     /// If we're a viewer eligible for viewer-driven sizing, report our natural
     /// terminal size to the sharer — but only when the resize was NOT caused by
     /// the sharer (which would create a loop).
-    fn maybe_report_viewer_terminal_size(
-        &mut self,
-        size_update: &SizeUpdate,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        if size_update.is_sharer_size_change() {
-            return;
-        }
-        if !self.model.lock().shared_session_status().is_active_viewer() {
-            return;
-        }
-        let eligible = self.is_viewer_driven_sizing_eligible(false, ctx);
-        if eligible {
-            let new_natural = (size_update.natural_rows(), size_update.natural_cols());
-            let last_reported = self
-                .shared_session_viewer()
-                .and_then(|v| v.last_reported_natural_size);
-            if last_reported != Some(new_natural) {
-                if let Some(viewer) = self.shared_session_viewer_mut() {
-                    viewer.last_reported_natural_size = Some(new_natural);
-                }
-                ctx.emit(Event::ReportViewerTerminalSize {
-                    window_size: SessionSharingWindowSize {
-                        num_rows: new_natural.0,
-                        num_cols: new_natural.1,
-                    },
-                });
-            }
-        } else if let Some(viewer) = self.shared_session_viewer_mut() {
-            viewer.last_reported_natural_size = None;
-        }
-    }
 
     /// This handler is called after *every* terminal view layout with the
     /// size of the entire terminal (block_list + input OR alt-grid OR shared session viewer loading) as its

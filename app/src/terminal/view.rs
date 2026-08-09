@@ -3433,6 +3433,7 @@ impl TerminalView {
         callback(self, ctx);
     }
 
+    #[cfg(any())]
     fn can_exit_agent_view_for_terminal_view(
         &self,
         ctx: &AppContext,
@@ -3447,6 +3448,7 @@ impl TerminalView {
         }
     }
 
+    #[cfg(any())]
     fn can_pop_nested_cloud_agent_view(&self, ctx: &AppContext) -> bool {
         self.is_ambient_agent_session(ctx) && self.is_nested_cloud_mode(ctx)
     }
@@ -3457,6 +3459,7 @@ impl TerminalView {
     /// conversation completed successfully, was cancelled, or encountered an error.
     /// The callback receives the `FinishReason` to allow different handling based on how the
     /// conversation ended.
+    #[cfg(any())]
     pub fn on_next_conversation_finished<F>(&mut self, callback: F)
     where
         F: FnOnce(&mut Self, FinishReason, &mut ViewContext<Self>) + 'static,
@@ -3466,6 +3469,7 @@ impl TerminalView {
     }
 
     #[cfg(feature = "local_fs")]
+    #[cfg(any())]
     fn handle_git_repo_status_event(&mut self, ctx: &mut ViewContext<Self>) {
         if let Some(deferred) = self.deferred_code_review_open.take() {
             self.toggle_code_review_pane(
@@ -3486,6 +3490,7 @@ impl TerminalView {
     /// longer needed (e.g. the git chip was removed) but the user is still in
     /// the same repository.
     #[cfg(feature = "local_fs")]
+    #[cfg(any())]
     fn clear_git_repo_status_subscription(&mut self, ctx: &mut ViewContext<Self>) {
         self.git_repo_status = None;
         self.deferred_code_review_open = None;
@@ -3502,6 +3507,7 @@ impl TerminalView {
     /// Fully clear the per-repo git status handle, including the input's repo
     /// path. Use this when navigating out of a git repository.
     #[cfg(feature = "local_fs")]
+    #[cfg(any())]
     fn clear_git_repo_status(&mut self, ctx: &mut ViewContext<Self>) {
         self.clear_git_repo_status_subscription(ctx);
         self.input.update(ctx, |input, ctx| {
@@ -3511,6 +3517,7 @@ impl TerminalView {
 
     /// Helper to read metadata from the per-repo sub-model.
     #[cfg(feature = "local_fs")]
+    #[cfg(any())]
     fn git_status_metadata<'a>(&'a self, ctx: &'a AppContext) -> Option<&'a GitStatusMetadata> {
         self.git_repo_status
             .as_ref()
@@ -3523,6 +3530,7 @@ impl TerminalView {
     /// 2. Terminal mode with the Warp prompt enabled and the git stats chip
     ///    configured.
     #[cfg(feature = "local_fs")]
+    #[cfg(any())]
     fn should_subscribe_to_git_status(&self, ctx: &AppContext) -> bool {
         // Agent view: subscribe only when the configured agent footer includes git stats.
         if self.agent_view_controller.as_ref(ctx).is_active() {
@@ -4663,6 +4671,7 @@ impl TerminalView {
         self.current_repo_path.is_some() && self.can_auto_open_panel()
     }
 
+    #[cfg(any())]
     fn toggle_or_open_code_review_pane(
         &mut self,
         delta_pref: GitDeltaPreference,
@@ -4708,6 +4717,7 @@ impl TerminalView {
         }
     }
 
+    #[cfg(any())]
     pub fn toggle_code_review_pane(
         &mut self,
         delta_pref: GitDeltaPreference,
@@ -4726,6 +4736,7 @@ impl TerminalView {
         )
     }
 
+    #[cfg(any())]
     pub fn open_code_review_pane(
         &mut self,
         delta_pref: GitDeltaPreference,
@@ -4745,6 +4756,7 @@ impl TerminalView {
     }
 
     #[cfg(feature = "local_fs")]
+    #[cfg(any())]
     fn handle_attach_diffset_context(&mut self, diff_mode: DiffMode, ctx: &mut ViewContext<Self>) {
         let Some(repo_path) = self.current_repo_path.clone() else {
             return;
@@ -4919,6 +4931,7 @@ impl TerminalView {
         }
     }
 
+    #[cfg(any())]
     fn handle_insert_code_review_comments_event(
         &mut self,
         repo_path: &Path,
@@ -4967,6 +4980,7 @@ impl TerminalView {
     /// Gets the DiffMode for the given branch name by fetching the main branch name
     /// for this session and comparing it to the given branch name.
     #[cfg_attr(not(feature = "local_fs"), allow(unused_variables))]
+    #[cfg(any())]
     fn diff_mode_for_branch(
         &self,
         base_branch: Option<&str>,
@@ -4987,6 +5001,7 @@ impl TerminalView {
         }
     }
 
+    #[cfg(any())]
     fn handle_shell_command_executor_event(
         &mut self,
         _: ModelHandle<ShellCommandExecutor>,
@@ -5169,6 +5184,7 @@ impl TerminalView {
         }
     }
 
+    #[cfg(any())]
     fn get_ai_notification_summary(
         &self,
         conversation: &AIConversation,

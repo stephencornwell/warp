@@ -1,4 +1,11 @@
 use crate::report_if_error;
+use crate::{
+    appearance::Appearance,
+    editor::{EditorView, Event as EditorEvent, SingleLineEditorOptions, TextOptions},
+    settings_view::features_page::render_group,
+    terminal::session_settings::{NewSessionSource, SessionSettings, SessionSettingsChangedEvent, WorkingDirectoryMode},
+    view_components::{dropdown::TOP_MENU_BAR_HEIGHT, Dropdown, DropdownItem},
+};
 use itertools::Itertools;
 use warpui::{
     elements::{Container, CrossAxisAlignment, Flex, ParentElement, Shrinkable},

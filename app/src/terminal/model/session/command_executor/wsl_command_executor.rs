@@ -1,13 +1,10 @@
 use super::{CommandExecutor, CommandOutput, ExecuteCommandOptions};
-use crate::env_vars::{serialize_variables_for_shell, EnvVarValue};
 use crate::safe_warn;
 use crate::terminal::shell::{Shell, ShellType};
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use command::r#async::Command;
-use itertools::Itertools as _;
 use std::any::Any;
-use std::borrow::Cow;
 use std::collections::HashMap;
 
 /// `CommandExecutor` implementation that executes the given `command` in a WSL instance via the
@@ -49,40 +46,18 @@ impl WslCommandExecutor {
             command_process.arg(dir);
         }
 
-        let mut command_with_env = Cow::Borrowed(command);
+        let command_with_env = command;
         if let Some(mut env_vars) = environment_variables {
-            if let Some(mut path_var) = env_vars.remove("PATH") {
-                // Unfortunately, bash's `compgen` is extremely slow with PATH contains a bunch of
-                // entries pointing to the Windows host. On my system, it takes around 2 minutes to
-                // complete! We special-case this to filter out all paths beginning with `/mnt`.
-                // This means we won't correctly highlight executables on the Windows host. We're
-                // assuming WSL users will mostly be calling the executables inside the WSL guest.
-                if self.shell_type == ShellType::Bash && command.contains("compgen") {
-                    path_var = path_var
-                        .split(':')
-                        .filter(|path| !path.starts_with("/mnt"))
-                        .join(":");
-                }
-
-                // Furthermore, we must pass the PATH by serializing it and adding a literal
-                // assignment to the command itself. This is b/c Windows attempts to do a
-                // conversion when propagating PATH from Windows to WSL, which cannot be disabled.
-                // This conversion fails in this case b/c we collected the value of PATH from a
-                // bootstrapped WSL session and it's _already_ converted. Conversion failures
-                // result in truncation.
-                let env_vars_str = serialize_variables_for_shell(
-                    [("PATH", &EnvVarValue::Constant(path_var))],
-                    self.shell_type,
-                );
-                command_with_env = Cow::Owned(format!(r#"{env_vars_str}; {command}"#));
-            }
-
             // The rest of the env vars can be passed more "normally", though they need to be
             // allowlisted by assigning WSLENV.
             command_process.envs(&env_vars);
             command_process.env(
                 "WSLENV",
-                env_vars.keys().map(|k| format!("{k}/u")).join(":"),
+                env_vars
+                    .keys()
+                    .map(|k| format!("{k}/u"))
+                    .collect::<Vec<_>>()
+                    .join(":"),
             );
         }
 

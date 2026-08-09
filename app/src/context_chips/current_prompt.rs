@@ -51,7 +51,6 @@ use warpui::{
 };
 use warpui::{Entity, ModelAsRef, ModelContext, ModelHandle, SingletonEntity};
 
-
 const PROMPT_DEBOUNCE_PERIOD: Duration = Duration::from_millis(50);
 const PROMPT_DEBOUNCE_PERIOD_KEY: &str = "PromptDebouncePeriod";
 type ChipFingerprint = u64;

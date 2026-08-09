@@ -2,8 +2,8 @@ use std::{path::PathBuf, sync::Arc};
 
 use crate::{
     app_state::{
-        AppState, LeafContents, LeafSnapshot,
-        PaneNodeSnapshot, TabSnapshot, TerminalPaneSnapshot, WindowSnapshot,
+        AppState, LeafContents, LeafSnapshot, PaneNodeSnapshot, TabSnapshot, TerminalPaneSnapshot,
+        WindowSnapshot,
     },
     persistence::{BlockCompleted, ModelEvent},
     tab::SelectedTabColor,
@@ -95,10 +95,6 @@ fn test_sqlite_loads_legacy_vertical_tabs_panel_open_and_discards_it() {
         vec![false, false]
     );
 }
-
-
-
-
 
 fn assert_encode_then_decode_preserves_original_path(original_path: PathBuf) {
     let bytes = encode_path(original_path.clone());

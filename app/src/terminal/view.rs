@@ -61,7 +61,6 @@ use crate::context_chips::ContextChipKind;
 use crate::pane_group::focus_state::PaneFocusHandle;
 use crate::persistence::{self, FinishedCommandMetadata};
 use crate::safe_warn;
-use crate::sync_ids::{ObjectUid, SyncId};
 #[cfg(feature = "local_fs")]
 use crate::settings::import::model::ImportedConfigModel;
 use crate::settings::import::view::{SettingsImportEvent, SettingsImportView};
@@ -76,6 +75,7 @@ use crate::settings_view::flags;
 use crate::settings_view::keybindings::KeybindingChangedNotifier;
 use crate::settings_view::SettingsSection;
 use crate::shell_indicator::ShellIndicatorType;
+use crate::sync_ids::{ObjectUid, SyncId};
 use crate::terminal::alias::{check_for_alias_async, AliasedCommand};
 use crate::terminal::alt_screen_reporting::{AltScreenReporting, AltScreenReportingChangedEvent};
 use crate::terminal::block_filter::{

@@ -80,7 +80,6 @@ pub struct AltScreenElement {
     cursor_hint_text: Option<Box<dyn Element>>,
 
     cli_subagent_view: Option<Box<dyn Element>>,
-
 }
 
 impl AltScreenElement {
@@ -522,7 +521,6 @@ impl AltScreenElement {
     fn line_height(&self) -> Pixels {
         self.grid_render_params.size_info.cell_height_px()
     }
-
 }
 
 impl Element for AltScreenElement {

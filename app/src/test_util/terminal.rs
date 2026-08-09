@@ -1,7 +1,7 @@
 use warpui::{platform::WindowStyle, App, ViewHandle, WindowId};
 
-use crate::{resource_center::TipsCompleted, terminal::TerminalView};
 use crate::terminal::model::block::SerializedBlock;
+use crate::{resource_center::TipsCompleted, terminal::TerminalView};
 
 type SerializedBlockListItem = SerializedBlock;
 

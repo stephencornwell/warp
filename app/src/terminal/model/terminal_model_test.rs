@@ -161,8 +161,8 @@ fn test_restored_blocks_on_different_host() {
             }),
             is_background: false,
             prompt_snapshot: None,
-                is_local: Some(true),
-            }
+            is_local: Some(true),
+        }
         .into(),
         SerializedBlock {
             id: BlockId::new(),
@@ -197,8 +197,8 @@ fn test_restored_blocks_on_different_host() {
             }),
             is_background: false,
             prompt_snapshot: None,
-                is_local: Some(true),
-            }
+            is_local: Some(true),
+        }
         .into(),
         SerializedBlock {
             id: BlockId::new(),
@@ -233,8 +233,8 @@ fn test_restored_blocks_on_different_host() {
             }),
             is_background: false,
             prompt_snapshot: None,
-                is_local: Some(false),
-            }
+            is_local: Some(false),
+        }
         .into(),
         SerializedBlock {
             id: BlockId::new(),
@@ -265,8 +265,8 @@ fn test_restored_blocks_on_different_host() {
             shell_host: None,
             is_background: false,
             prompt_snapshot: None,
-                is_local: Some(true),
-            }
+            is_local: Some(true),
+        }
         .into(),
     ];
     let model = TerminalModel::mock(Some(&restored_blocks), None);
@@ -832,4 +832,3 @@ fn test_rect_selection_in_alt_screen() {
         })
     );
 }
-

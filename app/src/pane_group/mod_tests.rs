@@ -5,8 +5,7 @@ use crate::{
     system::SystemStats,
     terminal::history::History,
     terminal::{
-        alt_screen_reporting::AltScreenReporting,
-        keys::TerminalKeybindings,
+        alt_screen_reporting::AltScreenReporting, keys::TerminalKeybindings,
         local_tty::spawner::PtySpawner,
     },
     test_util::settings::initialize_settings_for_tests,
@@ -562,7 +561,6 @@ fn test_terminal_pane_headers() {
                 .as_ref(ctx)
                 .is_visible_in_pane_group());
         });
-
     });
 }
 
@@ -634,5 +632,3 @@ fn test_pane_focus_does_not_have_an_infinite_event_loop() {
         });
     });
 }
-
-

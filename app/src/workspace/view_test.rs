@@ -1,6 +1,6 @@
 use super::*;
-use crate::editor::Event;
 use crate::default_terminal::DefaultTerminal;
+use crate::editor::Event;
 use crate::gpu_state::GPUState;
 use crate::network::NetworkStatus;
 use crate::pane_group::{Direction, PaneGroupAction, PaneId};
@@ -29,9 +29,9 @@ use crate::terminal::keys::TerminalKeybindings;
 #[cfg(windows)]
 use crate::util::traffic_lights::windows::RendererState;
 
-use crate::terminal::local_tty::spawner::PtySpawner;
-use crate::resource_center::Tip;
 use crate::referral_theme_status::ReferralThemeEvent;
+use crate::resource_center::Tip;
+use crate::terminal::local_tty::spawner::PtySpawner;
 use crate::test_util::settings::initialize_settings_for_tests;
 use crate::undo_close::UndoCloseSettings;
 use crate::warp_managed_paths_watcher::WarpManagedPathsWatcher;
@@ -99,14 +99,8 @@ fn mock_workspace(app: &mut App) -> ViewHandle<Workspace> {
 }
 
 #[cfg(feature = "local_fs")]
-
-
 #[cfg(feature = "local_fs")]
-
-
 #[cfg(feature = "local_fs")]
-
-
 #[cfg(feature = "local_fs")]
 
 /// Disable the warn-before-quit setting. Because we don't fully bootstrap the shell in tests, this
@@ -406,18 +400,6 @@ fn test_set_active_tab_color() {
 
 /// Sets up the workspace with three tabs. The middle tab has two panes, where one is shared.
 
-
-
-
-
-
-
-
-
-
-
-
-
 #[test]
 fn test_set_active_terminal_input_contents_and_focus_app() {
     App::test((), |mut app| async move {
@@ -504,8 +486,6 @@ fn test_terminal_model_isnt_leaked() {
         )
     });
 }
-
-
 
 fn set_left_panel_visibility_across_tabs(is_enabled: bool, ctx: &mut ViewContext<Workspace>) {
     WindowSettings::handle(ctx).update(ctx, |window_settings, ctx| {
@@ -789,18 +769,8 @@ fn test_pointer_opened_tab_configs_menu_does_not_select_top_item() {
     });
 }
 
-
-
-
-
-
-
-
 #[cfg(feature = "local_fs")]
-
-
 #[cfg(feature = "local_fs")]
-
 #[test]
 fn test_standard_tab_context_menu_shows_hover_only_tab_bar() {
     let _full_screen_zen_mode_guard = FeatureFlag::FullScreenZenMode.override_enabled(true);

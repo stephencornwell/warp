@@ -7,7 +7,6 @@ use crate::app_state::{
 use crate::themes::theme::AnsiColorIdentifier;
 use serde::{Deserialize, Deserializer, Serialize};
 
-
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub struct LaunchConfig {
     pub name: String,

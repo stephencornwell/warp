@@ -57,8 +57,8 @@ mod search_bar;
 mod session_management;
 mod shell_indicator;
 mod suggestions;
-mod system;
 mod sync_ids;
+mod system;
 mod tab;
 #[cfg(test)]
 mod test_util;
@@ -1291,7 +1291,6 @@ fn app_callbacks(is_integration_test: bool) -> warpui::platform::AppCallbacks {
         on_resigned_active: Some(Box::new(move |ctx| {
             let active_window_id = ctx.windows().active_window();
             let update_quake_mode_arg = UpdateQuakeModeEventArg { active_window_id };
-
 
             ctx.dispatch_global_action("root_view:update_quake_mode_state", &update_quake_mode_arg);
         })),

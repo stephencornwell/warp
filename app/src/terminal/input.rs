@@ -66,7 +66,6 @@ use crate::{
         mark_feature_used_and_write_to_user_defaults, Tip, TipAction, TipHint, TipsCompleted,
     },
     search::QueryFilter,
-    sync_ids::SyncId,
     session_management::SessionNavigationPromptElements,
     settings::{
         AliasExpansionSettings, AppEditorSettings, AppEditorSettingsChangedEvent,
@@ -74,6 +73,7 @@ use crate::{
         MAX_TIMES_TO_SHOW_AUTOSUGGESTION_HINT,
     },
     settings_view::{flags, SettingsSection},
+    sync_ids::SyncId,
     ui_components::{blended_colors, icons::Icon},
     user_config::WarpConfig,
     util::bindings::{self, CustomAction},

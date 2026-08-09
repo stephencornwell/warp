@@ -111,7 +111,6 @@ use crate::resource_center::{
 use crate::root_view::{quake_mode_window_id, NewWorkspaceSource, OpenLaunchConfigArg};
 use crate::search::command_search::searcher::{AcceptedHistoryItem, CommandSearchItemAction};
 use crate::search::command_search::view::{CommandSearchEvent, CommandSearchView};
-use crate::sync_ids::{ObjectUid, ServerId, SyncId};
 use crate::session_management::{SessionNavigationData, SessionSource};
 use crate::settings::{
     active_theme_kind, respect_system_theme, AccessibilitySettings, AliasExpansionSettings,
@@ -121,6 +120,7 @@ use crate::settings::{
 };
 use crate::settings_view::flags;
 use crate::settings_view::keybindings::{KeybindingChangedEvent, KeybindingChangedNotifier};
+use crate::sync_ids::{ObjectUid, ServerId, SyncId};
 use crate::terminal::alt_screen_reporting::AltScreenReporting;
 use crate::terminal::general_settings::GeneralSettings;
 use crate::terminal::input::{Input, MenuPositioning};

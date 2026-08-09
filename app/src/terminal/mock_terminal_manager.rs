@@ -22,7 +22,7 @@ impl MockTerminalManager {
     pub fn create_model(
         shell_state: ShellLaunchState,
         resources: TerminalViewResources,
-            restored_blocks: Option<&Vec<crate::terminal::model::block::SerializedBlock>>,
+        restored_blocks: Option<&Vec<crate::terminal::model::block::SerializedBlock>>,
         initial_size: Vector2F,
         window_id: WindowId,
         ctx: &mut AppContext,

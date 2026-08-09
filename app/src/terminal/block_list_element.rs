@@ -719,7 +719,6 @@ pub struct BlockListElement {
 
     /// If `Some()`, lays out and renders the element next to the cursor.
     cursor_hint_text_element: Option<Box<dyn Element>>,
-
 }
 
 #[derive(Debug)]

@@ -215,7 +215,6 @@ pub struct EditorElement {
     editor_decorator_elements: EditorDecoratorElements,
     local_selection_data: LocalDrawableSelectionData,
     remote_selections_data: HashMap<ReplicaId, RemoteDrawableSelectionData>,
-
 }
 
 impl EditorElement {
@@ -441,7 +440,6 @@ impl EditorElement {
         let _ = (key_code, state, ctx);
         false
     }
-
 
     fn mouse_moved(
         &mut self,
@@ -857,8 +855,6 @@ impl EditorElement {
                     ctx.scene.stop_layer();
                 }
             }
-
-
         }
     }
 
@@ -1709,8 +1705,6 @@ impl Element for EditorElement {
                 app,
             );
         }
-
-
 
         self.soft_wrap_state.update(frame_layouts.clone());
 

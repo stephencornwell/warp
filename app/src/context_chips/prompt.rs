@@ -9,7 +9,6 @@ use serde::{Deserialize, Serialize};
 use settings::Setting as _;
 use warpui::{Entity, GetSingletonModelHandle, ModelContext, SingletonEntity, UpdateModel};
 
-
 #[derive(
     Clone,
     Debug,

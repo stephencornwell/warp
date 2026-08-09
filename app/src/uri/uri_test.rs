@@ -103,8 +103,6 @@ fn test_remove_extension() {
     assert_eq!(remove_extension("🍞.yaml"), Some("🍞"));
 }
 
-
-
 #[test]
 fn test_warp_web_link_session() {
     assert_eq!(
@@ -119,8 +117,6 @@ fn test_warp_web_link_session() {
         Some(WarpWebLink::Session)
     );
 }
-
-
 
 #[test]
 fn test_warp_web_link_failure() {
@@ -147,8 +143,6 @@ fn test_action_create_environment_parse() {
     }
 }
 
-
-
 #[test]
 fn test_action_create_environment_parse_no_repos() {
     let url = Url::parse(&format!(
@@ -165,12 +159,6 @@ fn test_action_create_environment_parse_no_repos() {
         _ => panic!("unexpected action: {action:?}"),
     }
 }
-
-
-
-
-
-
 
 #[test]
 fn test_validate_custom_uri_linear() {

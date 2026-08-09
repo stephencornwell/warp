@@ -43,8 +43,6 @@ use crate::test_util::{add_window_with_terminal, assert_eventually};
 
 use super::*;
 
-
-
 struct TestTerminalManager {
     model: Arc<FairMutex<TerminalModel>>,
     view: ViewHandle<TerminalView>,
@@ -71,13 +69,6 @@ impl TerminalManager for TestTerminalManager {
 /// Test to verify that blocks created through normal execution
 /// have the correct local status set
 
-
-
-
-
-
-
-
 #[test]
 fn command_first_word_and_suffix_preserves_leading_whitespace() {
     assert_eq!(
@@ -94,16 +85,7 @@ fn command_first_word_and_suffix_handles_alias_without_args() {
     );
 }
 
-
-
-
-
-
-
-
-
 /// Test clearing of session flag state when terminal is cleared
-
 
 fn assert_block_has_find_match(find_model: &TerminalFindModel, block_index: BlockIndex) {
     assert!(find_model
@@ -229,7 +211,6 @@ fn test_insert() {
         assert_input_text_eq(&mut app, "hello_this_is");
         assert_selected_blocks_cardinality_eq(&mut app, BlockSelectionCardinality::None);
         assert_selected_text_eq(&mut app, None);
-
     })
 }
 
@@ -2422,10 +2403,6 @@ fn test_prompt_context_menu_items_for_no_context_chips() {
     })
 }
 
-
-
-
-
 #[test]
 fn test_link_at_range_trims_zero_width_spaces() {
     App::test((), |mut app| async move {
@@ -2482,35 +2459,3 @@ fn test_link_at_range_trims_zero_width_spaces() {
         });
     })
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

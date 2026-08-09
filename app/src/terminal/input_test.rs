@@ -52,11 +52,11 @@ use unindent::Unindent;
 use warpui::platform::WindowStyle;
 use warpui::{App, ReadModel, UpdateView};
 
-use warp_util::user_input::UserInput;
 use crate::terminal::general_settings::UserDefaultShellUnsupportedBannerState;
 use crate::terminal::resizable_data::ResizableData;
 use crate::terminal::writeable_pty::command_history::update_command_history;
 use crate::{GlobalResourceHandles, GlobalResourceHandlesProvider, ReferralThemeStatus};
+use warp_util::user_input::UserInput;
 
 pub fn initialize_app(app: &mut App) {
     initialize_settings_for_tests(app);
@@ -502,7 +502,6 @@ fn test_clear_selection_after_insert() {
         select_text(&mut app);
         user_insert(&mut app, "baz");
         assert_selections_in_blocklist(&mut app, false);
-
     });
 }
 
@@ -1971,8 +1970,6 @@ fn test_completions_while_typing_doesnt_hide_autosuggestion() {
     });
 }
 
-
-
 #[test]
 fn test_open_slash_command_triggers_completions_on_space() {
     App::test((), |mut app| async move {
@@ -2146,8 +2143,6 @@ fn test_open_slash_command_expands_tilde() {
         let _ = std::fs::remove_file(file_path);
     });
 }
-
-
 
 #[test]
 fn test_tab_completion_single_prefix_suggestion_with_fuzzy_suggestions() {
@@ -4076,10 +4071,3 @@ fn test_vim_escape_with_completions() {
         });
     });
 }
-
-
-
-
-
-
-

@@ -3796,7 +3796,6 @@ impl TerminalView {
                 self.update_scroll_position_locking(ScrollPositionUpdate::AfterClear, ctx);
                 ctx.notify();
             }
-            _ => {}
             ModelEvent::Title(title) => {
                 self.terminal_title = title.to_owned();
                 if self.ignore_next_set_title_event {

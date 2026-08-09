@@ -58,33 +58,13 @@ pub const ROOT_CLOUD_MODE_PANE_KEY: &str = "RootCloudModePane";
 fn init_overlapping_keybindings(app: &mut AppContext) {
     use warpui::keymap::macros::*;
 
-    let escape_key: &str = "escape";
-    let cmd_or_ctrl_enter: &str = "cmdorctrl-enter";
-
-    // No Active Block Context
     app.register_fixed_bindings([FixedBinding::new(
-        escape_key,
+        "escape",
         TerminalAction::MaybeDismissToolTip {
             from_keybinding: true,
         },
-        !id!(SSH_ERROR_BLOCK_VISIBLE_KEY) & id!("Terminal"),
+        id!("Terminal"),
     )]);
-
-    let block_action_context = || id!("Terminal") & !id!("IMEOpen") & id!("LongRunningCommand");
-
-    // SSH Error Block Context
-    app.register_fixed_bindings([
-        FixedBinding::new(
-            escape_key,
-            TerminalAction::NotifySshErrorBlock(SshErrorBlockAction::ContinueWithoutWarpification),
-            id!(SSH_ERROR_BLOCK_VISIBLE_KEY) & block_action_context(),
-        ),
-        FixedBinding::new(
-            cmd_or_ctrl_enter,
-            TerminalAction::NotifySshErrorBlock(SshErrorBlockAction::ContinueWithoutWarpification),
-            id!(SSH_ERROR_BLOCK_VISIBLE_KEY) & block_action_context(),
-        ),
-    ]);
 }
 
 /// Register keybindings for [`TerminalView`] actions.

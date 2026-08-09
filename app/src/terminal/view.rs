@@ -269,7 +269,6 @@ use warpui::{
 
 use warpui::{windowing, CursorInfo, EntityId, EventContext, ModelAsRef, SingletonEntity, Tracked};
 
-use crate::ai_assistant::{AskAIType, ASK_AI_ASSISTANT_TEXT};
 use crate::appearance::{Appearance, AppearanceEvent};
 use crate::banner::{
     Banner, BannerAction, BannerEvent, BannerState, BannerTextButton, BannerTextContent,
@@ -285,19 +284,6 @@ use crate::pane_group::{
 };
 use crate::resource_center::{
     mark_feature_used_and_write_to_user_defaults, Tip, TipHint, TipsCompleted,
-};
-use crate::server::telemetry::{
-    self, AgentModeAttachContextMethod, AgentModeEntrypoint, AgentModeRewindEntrypoint,
-    AnonymousUserSignupEntrypoint, InteractionSource, LinkOpenMethod, NotificationAgentVariant,
-    PaletteSource, PromptSuggestionViewType, SecretInteraction, SlowBootstrapInfo,
-    ToggleBlockFilterSource, WorkflowTelemetryMetadata,
-};
-use crate::server::{
-    server_api::ServerApi,
-    telemetry::{
-        CommandCorrectionAcceptedType, CommandCorrectionEvent, NotificationsTurnedOnSource,
-        SaveAsWorkflowModalSource, TelemetryEvent,
-    },
 };
 use crate::session_management::{CommandContext, SessionNavigationPromptElements};
 use crate::settings::{PrivacySettings, PrivacySettingsChangedEvent, PrivacySettingsSnapshot};
@@ -333,11 +319,9 @@ use crate::terminal::model::{
     blocks::BlockListPoint,
 };
 use crate::terminal::view::inline_banner::{
-    AliasExpansionBannerState,
-    NotificationsDiscoveryBannerState, NotificationsErrorBannerState, PromptSuggestionBannerState,
+    AliasExpansionBannerState, NotificationsDiscoveryBannerState, NotificationsErrorBannerState,
     VimModeBannerState,
 };
-use crate::terminal::view::ssh_file_upload::FileUploadId;
 use crate::terminal::waterfall_gap_element::WaterfallGapElement;
 use crate::terminal::ShellHost;
 use crate::terminal::{
@@ -355,14 +339,13 @@ use warp_core::semantic_selection::SemanticSelection;
 use warpui::text::SelectionType;
 
 use crate::menu::{Event as MenuEvent, Menu, MenuItem, MenuItemFields};
-use crate::server::telemetry::{BlockLatencyInfo, BootstrappingInfo};
 use crate::terminal::{block_list_element::BlockListMenuSource, prompt};
 use crate::terminal::{color, History, SizeInfo};
 use crate::terminal::{color::List, model::block::LONG_RUNNING_BOTTOM_PADDING_LINES};
 use crate::terminal::{event::AfterBlockCompletedEvent, event::BlockLatencyData, event::BlockType};
 use crate::throttle::throttle;
 use crate::util::color::darken;
-use crate::{send_telemetry_from_ctx, send_telemetry_on_executor, send_telemetry_sync_from_ctx};
+use crate::send_telemetry_from_ctx;
 
 use self::link_detection::HighlightedLinkOption;
 use super::available_shells::AvailableShell;
@@ -380,25 +363,6 @@ use super::model::secrets::RichContentSecretTooltipInfo;
 use super::model::selection::ExpandedSelectionRange;
 use super::model::session::SessionBootstrappedEvent;
 use super::settings::AltScreenPaddingMode;
-use super::ssh::error::{SshErrorBlock, SshErrorBlockEvent, SSH_ERROR_BLOCK_VISIBLE_KEY};
-use super::ssh::install_tmux::{
-    install_root_tmux_script, install_tmux_script, SshInstallTmuxBlock, SshInstallTmuxBlockEvent,
-    SshKeyEvent, TmuxInstallMethod,
-};
-use super::ssh::root_access::RootAccess;
-use super::ssh::ssh_detection::evaluate_warpify_ssh_host;
-use super::ssh::util::{
-    convert_script_to_one_line, parse_interactive_ssh_command, InteractiveSshCommand,
-    SshWarpifyCommand,
-};
-use super::ssh::warpify::{
-    begin_warpify_ssh_session_command, warpify_ssh_session_command, SshWarpifyBlock,
-    SshWarpifyBlockEvent,
-};
-use super::ssh::SSH_WARPIFY_TIMEOUT_DURATION;
-use super::warpify::success_block::{WarpifySuccessBlock, WarpifySuccessBlockEvent};
-use super::warpify::trigger_state::{SshBlockState, WarpifyState};
-use super::warpify::WarpificationSource;
 use super::{GridType, HistoryEvent};
 use crate::antivirus::AntivirusInfo;
 use crate::terminal::links::should_directly_open_link;
@@ -410,11 +374,10 @@ use command_corrections::rules::generic::history::History as CommandCorrectionsH
 use init::{INPUT_BOX_VISIBLE_KEY, TOGGLE_BLOCK_FILTER_KEYBINDING};
 use inline_banner::{
     render_alias_expansion_banner, render_inline_notifications_discovery_banner,
-    render_inline_notifications_error_banner, render_inline_shared_session_ended_banner,
-    render_inline_shared_session_started_banner, render_inline_ssh_wrapper_banner,
+    render_inline_notifications_error_banner,
     render_open_in_warp_banner, render_shell_process_terminated_banner, render_vim_mode_banner,
     AliasExpansionBanner, AliasExpansionBannerAction,
-    OpenInWarpBannerState, SSHBannerAction, SSHBannerState, VimModeBannerAction,
+    OpenInWarpBannerState, VimModeBannerAction,
 };
 use warp_core::command::ExitCode;
 

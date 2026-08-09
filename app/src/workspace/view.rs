@@ -11118,9 +11118,7 @@ impl Workspace {
     }
 
     fn manual_check_for_update(&self, ctx: &mut ViewContext<Self>) {
-        AutoupdateState::handle(ctx).update(ctx, |autoupdate_state, ctx| {
-            autoupdate_state.manually_check_for_update(ctx);
-        });
+        let _ = ctx;
     }
 
     pub fn is_theme_creator_modal_open(&self) -> bool {
@@ -13594,14 +13592,10 @@ impl Workspace {
     }
 
     fn apply_update(&mut self, ctx: &mut ViewContext<Self>) {
-        if let Ok(autoupdate::ReadyForRelaunch::Yes) = autoupdate::apply_update(self, ctx) {
-            autoupdate::initiate_relaunch_for_update(ctx);
-        }
         self.close_tab_bar_overflow_menu(ctx);
     }
 
     fn download_new_version(&mut self, ctx: &mut ViewContext<Self>) {
-        autoupdate::manually_download_new_version(ctx);
         self.close_tab_bar_overflow_menu(ctx);
     }
 

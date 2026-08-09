@@ -3316,8 +3316,7 @@ impl Element for BlockListElement {
                     }
 
                     // TODO(vorporeal): should probably use `Pixels` here
-                    let block_pixel_height =
-                        block.height(agent_view_state).as_f64() as f32 * cell_size.y();
+                    let block_pixel_height = block_grid_params.bounds.height();
 
                     let block_bottom_y = grid_origin.y() + block_pixel_height;
                     let selection_bottom_y = snackbar_header

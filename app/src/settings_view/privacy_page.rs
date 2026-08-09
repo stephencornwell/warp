@@ -519,7 +519,7 @@ impl TypedActionView for PrivacyPageView {
 
                 let privacy_settings_handle = PrivacySettings::handle(ctx);
                 ctx.update_model(&privacy_settings_handle, |privacy_settings, ctx| {
-                    let enterprise_regex_list: Vec<RegexDisplayInfo> = Vec::new();
+                    let enterprise_regex_list: Vec<CustomSecretRegex> = Vec::new();
                     let current_patterns: Vec<&str> = enterprise_regex_list
                         .iter()
                         .map(|s| s.pattern.as_str())
@@ -739,7 +739,7 @@ impl SecretRedactionWidget {
             return Empty::new().finish();
         }
 
-        let enterprise_regex_list: Vec<RegexDisplayInfo> = Vec::new();
+        let enterprise_regex_list: Vec<CustomSecretRegex> = Vec::new();
         let enterprise_count = enterprise_regex_list.len();
 
         // Count personal regexes excluding pending removals
@@ -890,7 +890,7 @@ impl SecretRedactionWidget {
         appearance: &Appearance,
         app: &AppContext,
     ) -> Box<dyn Element> {
-        let enterprise_regex_list: Vec<RegexDisplayInfo> = Vec::new();
+        let enterprise_regex_list: Vec<CustomSecretRegex> = Vec::new();
         let ui_builder = appearance.ui_builder();
         let description_text_color = description_text_color(appearance.theme()).into_solid();
 
@@ -931,7 +931,7 @@ impl SecretRedactionWidget {
     ) -> Box<dyn Element> {
         let privacy_settings = PrivacySettings::as_ref(app);
         let ui_builder = appearance.ui_builder();
-        let enterprise_regex_list: Vec<RegexDisplayInfo> = Vec::new();
+        let enterprise_regex_list: Vec<CustomSecretRegex> = Vec::new();
 
         let mut column = Flex::column();
 
@@ -966,7 +966,7 @@ impl SecretRedactionWidget {
         }
 
         // Get a list of regexes that are recommended but not currently in use
-        let enterprise_regex_list_with_titles: Vec<RegexDisplayInfo> = Vec::new();
+        let enterprise_regex_list_with_titles: Vec<CustomSecretRegex> = Vec::new();
         let current_patterns: Vec<&str> = enterprise_regex_list_with_titles
             .iter()
             .map(|r| r.pattern.as_str())
@@ -1320,7 +1320,7 @@ impl SettingsWidget for SecretRedactionWidget {
                     .finish(),
             );
 
-            let enterprise_regex_list: Vec<RegexDisplayInfo> = Vec::new();
+            let enterprise_regex_list: Vec<CustomSecretRegex> = Vec::new();
 
             if is_enterprise_enabled && !enterprise_regex_list.is_empty() {
                 column.add_child(self.render_tab_bar(

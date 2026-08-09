@@ -2114,28 +2114,7 @@ impl TypedActionView for CodeView {
                         .and_then(|t| t.path.clone())
                 });
 
-                if let Some(path) = path {
-                    let source = self.source.clone();
-                    if self.active_tab_has_unsaved_changes(ctx) {
-                        self.save_local(
-                            self.active_tab_index,
-                            Some(Box::new(move |outcome, _me, ctx| {
-                                if outcome != SaveOutcome::Canceled {
-                                    ctx.emit(CodeViewEvent::Pane(PaneEvent::ReplaceWithFilePane {
-                                        path: path.clone(),
-                                        source: Some(source.clone()),
-                                    }));
-                                }
-                            })),
-                            ctx,
-                        );
-                    } else {
-                        ctx.emit(CodeViewEvent::Pane(PaneEvent::ReplaceWithFilePane {
-                            path,
-                            source: Some(source),
-                        }));
-                    }
-                }
+                let _ = path;
             }
 
             CodeViewAction::DragOverIndex {

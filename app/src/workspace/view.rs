@@ -3219,12 +3219,7 @@ impl Workspace {
             }
             false
         } else {
-            let home_pane = super::home::create_home_pane(ctx);
-            placeholder_pane = Some(home_pane.as_pane().id());
-            self.add_tab_from_existing_pane(home_pane, 0, ctx);
-
-            // If we can't start a terminal session to run the onboarding flow, show the Warp Home
-            // placeholder along with Warp Drive.
+            self.add_welcome_tab(ctx);
             true
         };
         let initial_tab = self.active_tab_pane_group().clone();
@@ -4920,9 +4915,7 @@ impl Workspace {
 
         match target {
             FileTarget::MarkdownViewer(layout) => {
-                let session = self.get_active_session(ctx);
-
-                self.open_file_notebook(path.clone(), session, layout, ctx);
+                let _ = (path, layout);
             }
             FileTarget::EnvEditor => {
                 let editor_value: Option<String> = self
@@ -6059,8 +6052,6 @@ impl Workspace {
         );
     }
 
-    /// Open a file from the given session as a notebook pane.
-    #[cfg(feature = "local_fs")]
     fn open_file_notebook(
         &mut self,
         path: PathBuf,
@@ -11239,11 +11230,7 @@ impl Workspace {
             }
             #[cfg_attr(not(feature = "local_fs"), allow(unused_variables))]
             pane_group::Event::OpenFileInWarp { path, session } => {
-                #[cfg(feature = "local_fs")]
-                {
-                    let layout = *EditorSettings::as_ref(ctx).open_file_layout.value();
-                    self.open_file_notebook(path.clone(), Some(session.clone()), layout, ctx);
-                }
+                let _ = (path, session);
             }
             pane_group::Event::MoveToSpace {
                 cloud_object_type_and_id,

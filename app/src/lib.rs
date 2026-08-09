@@ -206,7 +206,7 @@ use crate::root_view::{
 };
 use crate::terminal::CustomSecretRegexUpdater;
 use crate::util::bindings::is_binding_cross_platform;
-use crate::workspace::{PaneViewLocator, Workspace, WorkspaceAction};
+use crate::workspace::{PaletteSource, PaneViewLocator, Workspace, WorkspaceAction};
 use warp_logging::LogDestination;
 
 #[macro_export]

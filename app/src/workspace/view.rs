@@ -200,7 +200,7 @@ use crate::view_components::{
     AgentToast, AgentToastStack, DismissibleToast, DismissibleToastStack, ToastLink,
 };
 use crate::window_settings::{WindowSettings, WindowSettingsChangedEvent, ZoomLevel};
-use crate::workspace::action::CommandSearchOptions;
+use crate::workspace::action::{AddTabWithShellSource, CommandSearchOptions, PaletteSource};
 use crate::workspace::one_time_modal_model::OneTimeModalModel;
 use crate::workspace::sync_inputs::SyncedInputState;
 use crate::workspace::toast_stack::{

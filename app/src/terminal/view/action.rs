@@ -24,6 +24,7 @@ use crate::terminal::ssh::error::SshErrorBlockAction;
 use crate::terminal::view::inline_banner::AgentModeSetupSpeedbumpBannerAction;
 use crate::terminal::view::passive_suggestions::PromptSuggestionResolution;
 use crate::terminal::view::RichContentSecretTooltipInfo;
+use crate::workspace::PaletteSource;
 use crate::workflows::workflow::Workflow;
 use crate::{
     server::ids::SyncId,

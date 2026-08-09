@@ -67,6 +67,9 @@ use crate::app_state::{
     TerminalPaneSnapshot,
 };
 use crate::appearance::Appearance;
+
+// Local terminal block snapshots remain persisted across workspace versions.
+type SerializedBlockListItem = crate::terminal::model::block::SerializedBlock;
 use crate::banner::{Banner, BannerEvent, BannerState, BannerTextContent, DismissalType};
 use crate::channel::{Channel, ChannelState};
 use crate::features::FeatureFlag;

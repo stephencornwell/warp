@@ -10,7 +10,7 @@ use crate::terminal::model::ansi::{
     CursorStyle, LineClearMode, Mode, PrecmdValue, PreexecValue, Processor, StandardCharset,
     TabulationClearMode,
 };
-use crate::terminal::model::block::{AgentViewVisibility, Block, SerializedBlock};
+use crate::terminal::model::block::{Block, SerializedBlock};
 use crate::terminal::model::bootstrap::BootstrapStage;
 use crate::terminal::model::index::{Point, VisibleRow};
 use crate::terminal::model::iterm_image::ITermImage;
@@ -828,8 +828,7 @@ impl BlockList {
         };
 
         let gap = BlockHeightItem::Gap(gap_height.into());
-        let agent_view_state = self.agent_view_state.clone();
-        let active_block_height = self.active_block_mut().height(&agent_view_state).into();
+        let active_block_height = self.active_block_mut().height().into();
 
         if self.active_block().started() {
             self.block_heights
@@ -1440,7 +1439,7 @@ impl BlockList {
             None => Lines::zero(),
         };
         let block_height = if let Some(block) = self.block_at(block_index) {
-            block.height(&self.agent_view_state).into()
+            block.height().into()
         } else {
             log::error!(
                 "Tried to update height of block at {block_index:?}, but no such block exists"
@@ -1557,7 +1556,7 @@ impl BlockList {
     {
         block_indices.into_iter().find(|index| {
             self.block_at(*index)
-                .is_some_and(|block| filter.matches(block, &self.agent_view_state))
+                .is_some_and(|block| filter.matches(block))
         })
     }
 
@@ -1721,7 +1720,6 @@ impl BlockList {
         F: Fn(&mut Block),
         G: Fn(&mut Gap),
     {
-        let agent_view_state = &self.agent_view_state;
         self.block_heights = {
             let mut new_sum_tree = SumTree::new();
 
@@ -1739,7 +1737,7 @@ impl BlockList {
                         if let Some(block) = self.blocks.get_mut(block_index) {
                             block_update_fn(block);
                             new_sum_tree.push(BlockHeightItem::Block(
-                                block.height(agent_view_state).into(),
+                                block.height().into(),
                             ));
                         } else {
                             log::error!("invalid block index in block heights");
@@ -1766,13 +1764,12 @@ impl BlockList {
                         new_sum_tree.push(BlockHeightItem::SubshellSeparator {
                             separator_id: *separator_id,
                             height_when_visible,
-                            is_hidden: agent_view_state.is_fullscreen(),
+                            is_hidden: false,
                         });
                     }
                     BlockHeightItem::RichContent(RichContentItem {
                         content_type,
                         view_id,
-                        agent_view_conversation_id,
                         last_laid_out_height,
                         ..
                     }) => {
@@ -1780,10 +1777,8 @@ impl BlockList {
                             content_type: *content_type,
                             view_id: *view_id,
                             last_laid_out_height: *last_laid_out_height,
-                            agent_view_conversation_id: *agent_view_conversation_id,
                             should_hide: false,
-                        }
-                        .should_hide_for_agent_view_state(agent_view_state);
+                        };
                         let updated_height = if let Some(updated_height) =
                             rich_content_heights.and_then(|heights| heights.get(view_id))
                         {
@@ -1799,7 +1794,6 @@ impl BlockList {
                             content_type: *content_type,
                             view_id: *view_id,
                             last_laid_out_height: updated_height,
-                            agent_view_conversation_id: *agent_view_conversation_id,
                             should_hide,
                         }));
                     }
@@ -1813,7 +1807,7 @@ impl BlockList {
                             is_historical_conversation_restoration:
                                 *is_historical_conversation_restoration,
                             // Don't show restored block separators in the agent view.
-                            is_hidden: agent_view_state.is_fullscreen(),
+                            is_hidden: false,
                         });
                     }
                     BlockHeightItem::InlineBanner {
@@ -1821,8 +1815,7 @@ impl BlockList {
                         height_when_visible: height,
                         ..
                     } => {
-                        let is_hidden = agent_view_state.is_fullscreen()
-                            && !banner.banner_type.is_visible_in_agent_view();
+                        let is_hidden = false;
                         new_sum_tree.push(BlockHeightItem::InlineBanner {
                             banner: *banner,
                             height_when_visible: *height,
@@ -2189,7 +2182,6 @@ impl BlockList {
             honor_ps1,
             self.obfuscate_secrets,
             self.is_ai_ugc_telemetry_enabled,
-            self.agent_view_state.active_conversation_id(),
         );
         if let Some(is_local) = restored_block_was_local {
             block.set_restored_block_was_local(is_local);
@@ -2214,7 +2206,7 @@ impl BlockList {
         }
 
         self.block_heights.push(BlockHeightItem::Block(
-            block.height(&self.agent_view_state).into(),
+            block.height().into(),
         ));
         self.block_id_to_block_index
             .insert(block.id().clone(), block.index());
@@ -2514,13 +2506,6 @@ impl BlockList {
         // mutate it to set each restored property that isn't set via constructor.
         //
         // Don't love this.
-        if let Some(visibility) = block.agent_view_visibility.clone() {
-            self.active_block_mut()
-                .set_agent_view_visibility(visibility.into());
-        } else {
-            self.active_block_mut().clear_conversation_id();
-        }
-
         // Set the start_ts to the saved start_ts _after_ `start`ing the block (which would have set its own start_ts).
         self.active_block_mut().override_start_ts(start_ts);
 
@@ -2627,14 +2612,13 @@ impl BlockList {
         let num_secrets_obfuscated = self
             .background_block_mut()
             .map(|block| block.num_secrets_obfuscated());
-        let agent_view_state = self.agent_view_state.clone();
         if let Some(background_block) = self.background_block_mut() {
             background_block.finish(0);
             let block_index = background_block.index();
 
             // It's common to have empty background blocks (because they only contained
             // typeahead), so we skip serializing them.
-            if !background_block.is_empty(&agent_view_state) {
+            if !background_block.is_empty() {
                 // This is similar to send_after_block_completed_event, but we can't
                 // call it because background_block mutably borrows self.
                 let block_type = background_block.into();
@@ -2684,7 +2668,7 @@ impl BlockList {
     /// Updates the sumtree with the block's new height.
     fn update_block_height_at_idx(&mut self, block_index: BlockIndex) {
         if let Some(block) = self.block_at(block_index) {
-            let new_block_height = block.height(&self.agent_view_state).into();
+            let new_block_height = block.height().into();
 
             self.block_heights = {
                 let mut cursor = self.block_heights.cursor::<BlockIndex, ()>();
@@ -2720,7 +2704,7 @@ impl BlockList {
         let block_to_filter = self
             .blocks
             .get_mut(block_index.0)
-            .filter(|block| !block.is_empty(&self.agent_view_state));
+            .filter(|block| !block.is_empty());
         if let Some(block) = block_to_filter {
             block.filter_output(filter_query);
             self.update_block_height_at_idx(block_index);
@@ -2739,7 +2723,7 @@ impl BlockList {
         let block_to_clear = self
             .blocks
             .get_mut(block_index.0)
-            .filter(|block| !block.is_empty(&self.agent_view_state));
+            .filter(|block| !block.is_empty());
         if let Some(block) = block_to_clear {
             block.clear_filter();
             self.update_block_height_at_idx(block_index);
@@ -2768,14 +2752,14 @@ impl BlockList {
     pub fn filter_for_block(&self, block_index: BlockIndex) -> Option<&BlockFilterQuery> {
         self.blocks
             .get(block_index.0)
-            .filter(|block| !block.is_empty(&self.agent_view_state))
+            .filter(|block| !block.is_empty())
             .and_then(|block| block.current_filter())
     }
 
     pub fn num_matched_lines_in_filter_for_block(&self, block_index: BlockIndex) -> Option<usize> {
         self.blocks
             .get(block_index.0)
-            .filter(|block| !block.is_empty(&self.agent_view_state))
+            .filter(|block| !block.is_empty())
             .and_then(|block| {
                 block
                     .output_grid()
@@ -3104,7 +3088,7 @@ impl ansi::Handler for BlockList {
 
                 if let Some(block) = self.blocks.last() {
                     self.block_heights = SumTree::from_item(BlockHeightItem::Block(
-                        block.height(&self.agent_view_state).into(),
+                        block.height().into(),
                     ));
                 } else {
                     self.block_heights = SumTree::new();

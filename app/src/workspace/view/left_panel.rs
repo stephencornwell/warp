@@ -214,31 +214,14 @@ impl LeftPanelView {
                 // Update GlobalSearchView root directories based on all working directories
                 let roots: Vec<PathBuf> = directories.iter().map(|d| d.path.clone()).collect();
 
-                let global_search_view =
-                    me.get_or_create_global_search_view_for_pane_group(active_pane_group.id(), ctx);
-                global_search_view.update(ctx, |view, view_ctx| {
-                    view.set_root_directories(roots, view_ctx);
-                });
+                let _ = roots;
 
                 let directories: Vec<PathBuf> =
                     directories.iter().map(|dir| dir.path.clone()).collect();
 
                 // Directories are already in display order (most recent first) from the model
                 let directories = deduplicate_by_directory_name(directories);
-                let file_tree_view =
-                    me.get_or_create_file_tree_view_for_pane_group(active_pane_group.id(), ctx);
-
-                let is_visible =
-                    active_pane_group.as_ref(ctx).left_panel_open && me.is_file_tree_active();
-                file_tree_view.update(ctx, |view, ctx| {
-                    view.set_root_directories(directories, ctx);
-                    view.set_has_terminal_session(has_terminal_session, ctx);
-                    view.set_is_active(is_visible, ctx);
-
-                    if is_visible {
-                        view.auto_expand_to_most_recent_directory(ctx);
-                    }
-                });
+                let _ = (directories, has_terminal_session, active_pane_group);
                 ctx.notify();
             }
         });
@@ -374,14 +357,8 @@ impl LeftPanelView {
         &self,
         app: &AppContext,
     ) -> Option<ViewHandle<GlobalSearchView>> {
-        let pane_group_id = self
-            .active_pane_group
-            .as_ref()
-            .and_then(|pane_group| pane_group.upgrade(app))
-            .map(|pane_group| pane_group.id())?;
-        self.working_directories_model
-            .as_ref(app)
-            .get_global_search_view(pane_group_id)
+        let _ = app;
+        None
     }
 
     pub fn active_view(&self) -> ToolPanelView {

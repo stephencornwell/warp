@@ -83,7 +83,6 @@ impl Input {
                 )
                 .finish(),
         );
-        column.add_child(ChildView::new(&self.universal_developer_input_button_bar).finish());
 
         if matches!(input_mode, InputMode::PinnedToTop) {
             if let Some(banner) =
@@ -110,10 +109,6 @@ impl Input {
             column.finish(),
             true, // use adjusted padding for UDI
         ));
-
-        if self.is_voltron_open && self.is_pane_focused(app) {
-            add_voltron_overlay(&mut stack, &self.voltron_view, menu_positioning);
-        }
 
         if self.is_pane_focused(app) {
             add_input_suggestions_overlays(self, &mut stack, appearance, menu_positioning, app);
@@ -179,9 +174,7 @@ impl Input {
 
         if input_mode.is_pinned_to_top() {
             column.add_child(input);
-            column.add_child(ChildView::new(&self.agent_status_view).finish());
         } else {
-            column.add_child(ChildView::new(&self.agent_status_view).finish());
             column.add_child(input);
         }
 

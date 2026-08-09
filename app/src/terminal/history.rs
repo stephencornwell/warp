@@ -246,8 +246,6 @@ impl HistoryEntry {
         command: String,
         active_block: &Block,
         session: &Session,
-        workflow_id: Option<SyncId>,
-        workflow_command: Option<String>,
         is_agent_executed: bool,
     ) -> Self {
         HistoryEntry {
@@ -255,8 +253,6 @@ impl HistoryEntry {
             command,
             pwd: active_block.pwd().map(|pwd| pwd.to_owned()),
             start_ts: active_block.start_ts().copied(),
-            workflow_id,
-            workflow_command,
             git_head: active_block
                 .git_branch()
                 .map(|git_branch| git_branch.to_owned()),
@@ -290,8 +286,6 @@ impl HistoryEntry {
             pwd: block.pwd.clone(),
             start_ts: block.start_ts,
             completed_ts: block.completed_ts,
-            workflow_id: None,
-            workflow_command: None,
             exit_code: Some(block.exit_code),
             git_head: block.git_head.clone(),
             shell_host: block.shell_host.clone(),
@@ -320,7 +314,6 @@ impl HistoryEntry {
             || start_ts.is_some()
             || exit_code.is_some()
             || git_head.is_some()
-    }
     }
 }
 

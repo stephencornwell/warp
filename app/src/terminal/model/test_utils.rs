@@ -222,7 +222,6 @@ impl TestBlockBuilder {
             self.honor_ps1,
             ObfuscateSecrets::No,
             false, /* is_telemetry_enabled */
-            None,
         )
     }
 }

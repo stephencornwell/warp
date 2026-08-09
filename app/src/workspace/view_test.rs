@@ -521,7 +521,6 @@ fn add_get_started_tab(workspace: &mut Workspace, ctx: &mut ViewContext<Workspac
     workspace.add_tab_with_pane_layout(
         PanesLayout::Snapshot(Box::new(PaneNodeSnapshot::Leaf(LeafSnapshot {
             is_focused: true,
-            custom_vertical_tabs_title: None,
             contents: LeafContents::GetStarted,
         }))),
         Arc::new(HashMap::<PaneUuid, Vec<SerializedBlockListItem>>::new()),
@@ -826,5 +825,4 @@ fn test_standard_tab_context_menu_shows_hover_only_tab_bar() {
         });
     });
 }
-
 

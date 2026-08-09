@@ -49,7 +49,6 @@ fn test_terminal_window_snapshot(vertical_tabs_panel_open: bool) -> WindowSnapsh
             default_directory_color: None,
             selected_color: SelectedTabColor::default(),
             left_panel: None,
-            right_panel: None,
         }],
         active_tab_index: 0,
         bounds: None,

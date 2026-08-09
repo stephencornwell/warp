@@ -115,7 +115,6 @@ impl TerminalView {
             None,
             prompt_type,
             None,
-            None, // conversation_restoration - not used for test
             None, // inactive_pty_reads_rx - not used for test
             is_cloud_mode,
             ctx,

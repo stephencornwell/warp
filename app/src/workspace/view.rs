@@ -43,7 +43,6 @@ use crate::util::openable_file_type::FileTarget;
 #[cfg(feature = "local_fs")]
 use crate::util::openable_file_type::{resolve_file_target_with_editor_choice, EditorLayout};
 
-use crate::workspace::header_toolbar_editor::{HeaderToolbarEditorEvent, HeaderToolbarEditorModal};
 use crate::workspace::header_toolbar_item::HeaderToolbarItemKind;
 use crate::workspace::tab_settings::TabCloseButtonPosition;
 use crate::workspace::view::launch_modal::LaunchModal;
@@ -687,7 +686,6 @@ pub struct Workspace {
     reauth_banner_dismissed: bool,
     settings_file_error: Option<crate::settings::SettingsFileError>,
     settings_error_banner_dismissed: bool,
-    header_toolbar_editor_modal: ViewHandle<HeaderToolbarEditorModal>,
     header_toolbar_context_menu: ViewHandle<Menu<WorkspaceAction>>,
     show_header_toolbar_context_menu: Option<Vector2F>,
     theme_creator_modal: ViewHandle<ThemeCreatorModal>,
@@ -1747,7 +1745,6 @@ impl Workspace {
             agent_toast_stack,
             update_toast_stack,
             cached_keybindings,
-            header_toolbar_editor_modal: Self::build_header_toolbar_editor_modal(ctx),
             header_toolbar_context_menu: Self::build_header_toolbar_context_menu(ctx),
             show_header_toolbar_context_menu: None,
             is_user_menu_open: false,
@@ -2944,32 +2941,6 @@ impl Workspace {
         }
     }
 
-    /// Handle the close event from the reward modal
-    /// Handle the call-to-action event from the reward modal view
-    fn build_header_toolbar_editor_modal(
-        ctx: &mut ViewContext<Self>,
-    ) -> ViewHandle<HeaderToolbarEditorModal> {
-        let modal = ctx.add_typed_action_view(HeaderToolbarEditorModal::new);
-        ctx.subscribe_to_view(&modal, |me, _, event, ctx| {
-            me.handle_header_toolbar_editor_modal_event(event, ctx);
-        });
-        modal
-    }
-
-    fn handle_header_toolbar_editor_modal_event(
-        &mut self,
-        event: &HeaderToolbarEditorEvent,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        match event {
-            HeaderToolbarEditorEvent::Close => {
-                self.current_workspace_state.is_header_toolbar_editor_open = false;
-                self.focus_active_tab(ctx);
-                ctx.notify();
-            }
-        }
-    }
-
     fn sync_panel_positions_from_config(&mut self, ctx: &mut ViewContext<Self>) {
         let _ = ctx;
     }
@@ -2995,25 +2966,12 @@ impl Workspace {
         if !FeatureFlag::ConfigurableToolbar.is_enabled() {
             return;
         }
-        let items = vec![MenuItemFields::new("Re-arrange toolbar items")
-            .with_on_select_action(WorkspaceAction::OpenHeaderToolbarEditor)
-            .into_item()];
+        let items = Vec::new();
         self.header_toolbar_context_menu
             .update(ctx, |menu, ctx| menu.set_items(items, ctx));
         self.show_header_toolbar_context_menu = Some(position);
         ctx.focus(&self.header_toolbar_context_menu);
         ctx.notify();
-    }
-
-    fn open_header_toolbar_editor(&mut self, ctx: &mut ViewContext<Self>) {
-        if !FeatureFlag::ConfigurableToolbar.is_enabled() {
-            return;
-        }
-        self.header_toolbar_editor_modal
-            .update(ctx, |modal, ctx| modal.open(ctx));
-        self.close_all_overlays(ctx);
-        self.current_workspace_state.is_header_toolbar_editor_open = true;
-        ctx.focus(&self.header_toolbar_editor_modal);
     }
 
     #[cfg(feature = "local_fs")]
@@ -8891,9 +8849,6 @@ Crash => {
                     view.add_ephemeral_toast(new_toast, ctx);
                 });
             }
-            OpenHeaderToolbarEditor => {
-                self.open_header_toolbar_editor(ctx);
-            }
             ShowHeaderToolbarContextMenu { position } => {
                 self.show_header_toolbar_context_menu(*position, ctx);
             }
@@ -9640,9 +9595,6 @@ impl View for Workspace {
         if self.current_workspace_state.is_prompt_editor_open {
         }
 
-        if self.current_workspace_state.is_header_toolbar_editor_open {
-            stack.add_child(ChildView::new(&self.header_toolbar_editor_modal).finish());
-        }
 
 
         if let Some(lightbox_view) = &self.lightbox_view {

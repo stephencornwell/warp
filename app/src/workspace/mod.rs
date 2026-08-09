@@ -4,7 +4,6 @@ mod active_session;
 mod cli_install;
 mod close_session_confirmation_dialog;
 mod global_actions;
-pub mod header_toolbar_editor;
 pub mod header_toolbar_item;
 mod lightbox_view;
 mod native_modal;
@@ -88,7 +87,6 @@ pub fn init(app: &mut AppContext) {
     tab_configs::session_config_modal::init(app);
     view::openwarp_launch_modal::init(app);
     view::global_search::view::GlobalSearchView::init(app);
-    header_toolbar_editor::init(app);
 
     settings_view::init_actions_from_parent_view(app, &id!("Workspace"), |settings_action| {
         WorkspaceAction::DispatchToSettingsTab(settings_action)

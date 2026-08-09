@@ -1334,13 +1334,7 @@ fn read_sqlite_data(
         running_mcp_servers: Vec::new(),
     };
 
-    let time_of_next_force_object_refresh = None;
-
-    let codebase_indices = Vec::new();
-    let workspace_language_servers = Vec::new();
     let projects = get_all_projects(conn)?;
-    let project_rules = Vec::new();
-    let ignored_suggestions = get_all_ignored_suggestions(conn)?;
 
     Ok(PersistedData {
         app_state,

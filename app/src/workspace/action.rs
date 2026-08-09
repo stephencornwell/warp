@@ -274,7 +274,6 @@ pub enum WorkspaceAction {
     HandleConflictingWorkflow(SyncId),
     OpenAgentToolbarEditor,
     OpenCLIAgentToolbarEditor,
-    OpenHeaderToolbarEditor,
     ShowHeaderToolbarContextMenu {
         position: Vector2F,
     },
@@ -616,7 +615,6 @@ impl WorkspaceAction {
             | HandleConflictingWorkflow(_)
             | OpenAgentToolbarEditor
             | OpenCLIAgentToolbarEditor
-            | OpenHeaderToolbarEditor
             | ShowHeaderToolbarContextMenu { .. }
             | Reauth
             | SignupAnonymousUser

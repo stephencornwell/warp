@@ -597,7 +597,7 @@ impl TabStyles {
         let active_tab_bar_color: Option<ThemeFill> =
             tab_color.map(|color| color.to_ansi_color(&theme.terminal_colors().normal).into());
         let error_color = theme.ui_error_color();
-        let sharing_color = shared_session_indicator_color(appearance);
+        let sharing_color = theme.ui_error_color();
         let background = active_tab_bar_color.map(|color| {
             ThemeFill::VerticalGradient(VerticalGradient::new(
                 theme.background().into(),
@@ -750,10 +750,6 @@ impl<'a> TabComponent<'a> {
         tab: &TabData,
         ctx: &AppContext,
     ) -> Option<String> {
-        if Self::is_agent_task_indicator(indicator) {
-            return Self::get_agent_task_tooltip_message(tab, ctx);
-        }
-
         // If we're not showing the conversation title in the tooltip,
         // use the original title from the terminal model.
         let original_title = tab
@@ -768,31 +764,6 @@ impl<'a> TabComponent<'a> {
         }
 
         None
-    }
-
-    /// Get the task description for the tooltip if this is an agent task
-    /// and the tooltip content would be different from what's displayed in the tab
-    fn get_agent_task_tooltip_message(tab: &TabData, ctx: &AppContext) -> Option<String> {
-        let terminal_view_id = tab
-            .pane_group
-            .as_ref(ctx)
-            .focused_session_view(ctx)
-            .map(|view| view.id())?;
-        let ai_history_model = BlocklistAIHistoryModel::as_ref(ctx);
-        let conversation = ai_history_model.active_conversation(terminal_view_id)?;
-
-        // Don't show tooltip for passive conversations
-        if conversation.is_entirely_passive() {
-            return None;
-        }
-
-        let conversation_title = conversation.title()?;
-        let trimmed_title = conversation_title.trim().to_owned();
-
-        // Truncate tooltip to prevent rendering issues
-        let truncated_name = truncate_from_end(&trimmed_title, MAX_TOOLTIP_LENGTH);
-
-        Some(truncated_name)
     }
 
     /// Check if the given indicator is an agent task indicator
@@ -1044,56 +1015,6 @@ impl<'a> TabComponent<'a> {
                     .to_warpui_icon(internal_colors::neutral_5(self.appearance.theme()).into())
                     .finish(),
             ),
-            Indicator::Agent {
-                conversation_status,
-            } => {
-                if let Some(status) = conversation_status {
-                    if FeatureFlag::NewTabStyling.is_enabled() {
-                        let icon_size = 22.0 - STATUS_ELEMENT_PADDING * 2.;
-                        Some(render_status_element(status, icon_size, self.appearance))
-                    } else {
-                        Some(status.render_icon(self.appearance).finish())
-                    }
-                } else {
-                    let icon_color = self.appearance.theme().nonactive_ui_text_color();
-                    Some(Icon::Oz.to_warpui_icon(icon_color).finish())
-                }
-            }
-            Indicator::AmbientAgent => {
-                // Always use the active tab font color for the ambient agent cloud icon, with a safe fallback.
-                let active_styles = self.styles.default.merge(self.styles.active);
-                let icon_color = active_styles
-                    .font_color
-                    .unwrap_or_else(|| self.appearance.theme().active_ui_text_color().into());
-
-                let ui_builder = self.ui_builder.clone();
-                let mouse_state = self.tab.indicator_hover_state.clone();
-                Some(
-                    Hoverable::new(mouse_state, move |state| {
-                        let mut stack = Stack::new()
-                            .with_child(Icon::OzCloud.to_warpui_icon(icon_color.into()).finish());
-
-                        if state.is_hovered() {
-                            let tooltip = ui_builder
-                                .tool_tip("Cloud agent run".to_string())
-                                .build()
-                                .finish();
-                            stack.add_positioned_overlay_child(
-                                tooltip,
-                                OffsetPositioning::offset_from_parent(
-                                    vec2f(0., 3.),
-                                    ParentOffsetBounds::WindowByPosition,
-                                    ParentAnchor::BottomMiddle,
-                                    ChildAnchor::TopMiddle,
-                                ),
-                            );
-                        }
-
-                        stack.finish()
-                    })
-                    .finish(),
-                )
-            }
         };
 
         icon.map(|icon| {

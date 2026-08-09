@@ -7,7 +7,6 @@ use crate::persistence::ModelEvent;
 use crate::settings::QuakeModeSettings;
 use crate::settings::ThemeSettings;
 use crate::settings_view::flags;
-use crate::settings_view::OpenTeamsSettingsModalArgs;
 use crate::settings_view::SettingsSection;
 use crate::terminal::available_shells::AvailableShell;
 use crate::terminal::general_settings::GeneralSettings;
@@ -20,10 +19,8 @@ use crate::util::traffic_lights::{traffic_light_data, TrafficLightData, TrafficL
 use crate::view_components::DismissibleToast;
 use crate::window_settings::WindowSettings;
 use crate::workspace::WorkspaceAction;
-use crate::workspaces::team_tester::TeamTesterStatus;
 use crate::{
     app_state::{AppState, PaneUuid, WindowSnapshot},
-    changelog_model::ChangelogRequestType,
     pane_group::{NewTerminalOptions, PanesLayout},
     UpdateQuakeModeEventArg,
 };

@@ -1658,57 +1658,6 @@ impl Input {
             completer_data.completion_session_context(ctx)
         };
 
-        let is_shared_session_viewer = model.lock().shared_session_status().is_viewer();
-
-        let footer_display_chip_config = DisplayChipConfig {
-            ai_input_model: ai_input_model.clone(),
-            ai_context_model: ai_context_model.clone(),
-            terminal_view_id,
-            menu_positioning_provider: menu_positioning_provider.clone(),
-            session_context: initial_session_context.clone(),
-            current_repo_path: current_repo_path.clone(),
-            model_events: model_events.clone(),
-            is_shared_session_viewer,
-            agent_view_controller: agent_view_controller.clone(),
-            ambient_agent_view_model: ambient_agent_view_model.clone(),
-        };
-
-        let prompt_view = ctx.add_typed_action_view(|ctx| {
-            PromptDisplay::new(
-                current_prompt.clone(),
-                ai_input_model.clone(),
-                ai_context_model.clone(),
-                terminal_view_id,
-                menu_positioning_provider.clone(),
-                initial_session_context.clone(),
-                current_repo_path.clone(),
-                model_events.clone(),
-                agent_view_controller.clone(),
-                is_shared_session_viewer,
-                ctx,
-            )
-        });
-        ctx.subscribe_to_view(&prompt_view, |me, _, event, ctx| {
-            me.handle_prompt_event(event, ctx);
-        });
-        ctx.subscribe_to_model(&Appearance::handle(ctx), move |me, _, event, ctx| {
-            if let AppearanceEvent::ThemeChanged = event {
-                me.handle_theme_change(ctx);
-            }
-        });
-        // Keep the rich input editor's text colors legible against alt-screen
-        // CLI agent backgrounds (e.g. OpenCode) when the terminal enters/exits
-        // the alt screen.
-        ctx.subscribe_to_model(&model_events, |me, _, event, ctx| {
-            if let crate::terminal::model_events::ModelEvent::TerminalModeSwapped(_) = event {
-                me.update_cli_agent_editor_text_colors(ctx);
-            }
-        });
-        ctx.subscribe_to_model(&TerminalSettings::handle(ctx), move |_, _, event, ctx| {
-            if let TerminalSettingsChangedEvent::Spacing { .. } = event {
-                ctx.notify();
-            }
-        });
         let prompt_selection_state_handle = SelectionHandle::default();
 
         let view_id = ctx.view_id();

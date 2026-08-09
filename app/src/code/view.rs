@@ -14,11 +14,6 @@ use crate::pane_group::pane::view::header::components::{
 use crate::pane_group::pane::view::header::render_pane_header_draggable;
 use crate::pane_group::{PaneConfigurationEvent, PaneDragDropLocation};
 use crate::quit_warning::UnsavedStateSummary;
-use crate::terminal::cli_agent::{
-    build_selection_line_range_prompt, build_selection_substring_prompt,
-};
-use crate::terminal::view::CliAgentRouting;
-use crate::workspace::util::get_context_target_terminal_view;
 use crate::workspace::TabBarDropTargetData;
 use crate::{code::EditorTabBarDropTargetData, pane_group::pane::ActionOrigin};
 use lsp::LspManagerModel;
@@ -976,30 +971,6 @@ impl CodeView {
         selected_text: String,
         ctx: &mut ViewContext<Self>,
     ) {
-        // If a CLI agent is active, send appropriate content to the PTY (or rich input if open).
-        let window_id = ctx.window_id();
-        if let Some(terminal_view) = get_context_target_terminal_view(window_id, ctx) {
-            let prompt = if start_line == end_line {
-                // Single-line: send the literal text with file/line context.
-                build_selection_substring_prompt(&file_path, start_line, &selected_text)
-            } else {
-                // Multi-line: send a line-range reference with format note.
-                build_selection_line_range_prompt(&file_path, start_line, end_line)
-            };
-            if let Some(routing) = terminal_view.update(ctx, |tv, ctx| {
-                tv.try_send_text_to_cli_agent_or_rich_input(prompt, ctx)
-            }) {
-                let destination = match routing {
-                    CliAgentRouting::RichInput => CodeContextDestination::RichInput,
-                    CliAgentRouting::Pty => CodeContextDestination::Pty,
-                };
-                ();
-                return;
-            }
-        }
-
-        // Otherwise insert the location snippet into the input buffer (original behavior).
-        ();
         ctx.dispatch_typed_action(&WorkspaceAction::InsertInInput {
             content: format!("{file_path}:{start_line}-{end_line} "),
             replace_buffer: false,

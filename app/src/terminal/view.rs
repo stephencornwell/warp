@@ -7977,6 +7977,7 @@ impl TerminalView {
                     flavor: *flavor,
                 });
             }
+            _ => {}
         }
     }
 

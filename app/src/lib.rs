@@ -26,7 +26,6 @@ mod default_terminal;
 mod download_method;
 #[cfg(windows)]
 mod dynamic_libraries;
-mod experiments;
 mod external_secrets;
 #[cfg(target_family = "wasm")]
 mod font_fallback;
@@ -200,7 +199,6 @@ use warpui::{integration::TestDriver, App, AssetProvider, Event};
 
 use self::features::FeatureFlag;
 use crate::app_state::AppState;
-use crate::experiments::ImprovedPaletteSearch;
 pub use crate::global_resource_handles::{GlobalResourceHandles, GlobalResourceHandlesProvider};
 use crate::notification::NotificationContext;
 use crate::root_view::{
@@ -931,9 +929,7 @@ fn run_internal(mut launch_mode: LaunchMode) -> Result<()> {
             pre_sentry_errors,
         );
 
-        if ImprovedPaletteSearch::improved_search_enabled(ctx) {
-            FeatureFlag::UseTantivySearch.set_enabled(true);
-        }
+        FeatureFlag::UseTantivySearch.set_enabled(true);
 
         launch(ctx, app_state, launch_mode);
     })
@@ -1127,7 +1123,6 @@ fn initialize_app(
 
     ctx.set_default_binding_validator(is_binding_cross_platform);
 
-    experiments::init(ctx);
 
     // Initialize timestamp for session id and last active event
     App::record_last_active_timestamp();

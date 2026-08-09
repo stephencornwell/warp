@@ -568,10 +568,7 @@ fn handle_model_event(event: ModelEvent, connection: &mut SqliteConnection) -> a
             server_creation_info,
         } => update_object_after_server_creation(connection, client_id, server_creation_info)
             .context("error executing object creation succeeded callback"),
-        ModelEvent::UpsertCodebaseIndexMetadata { index_metadata } => {
-            save_codebase_index_metadata(connection, *index_metadata)
-                .context("error upserting codebase index metadata")
-        }
+        ModelEvent::UpsertCodebaseIndexMetadata { .. } => Ok(()),
         ModelEvent::DeleteCodebaseIndexMetadata { repo_path } => {
             delete_codebase_index_metadata(connection, &repo_path)
                 .context("error deleting codebase index metadata")
@@ -1242,35 +1239,6 @@ fn decode_path(bytes: Vec<u8>) -> PathBuf {
             OsString::from_wide(wide_char_sequence).into()
         }
     }
-}
-
-fn save_codebase_index_metadata(
-    conn: &mut SqliteConnection,
-    index_metadata: ai::workspace::WorkspaceMetadata,
-) -> Result<()> {
-    use schema::workspace_metadata::dsl::*;
-
-    let new_metadata: NewWorkspaceMetadata = index_metadata.into();
-
-    diesel::insert_into(workspace_metadata)
-        .values(new_metadata.clone())
-        .on_conflict(repo_path)
-        .do_update()
-        .set(&new_metadata)
-        .execute(conn)?;
-
-    Ok(())
-}
-
-fn get_all_codebase_index_metadata(
-    conn: &mut SqliteConnection,
-) -> Result<Vec<ai::workspace::WorkspaceMetadata>, diesel::result::Error> {
-    use schema::workspace_metadata::dsl::*;
-
-    Ok(workspace_metadata
-        .load_iter::<WorkspaceMetadataModel, DefaultLoadingMode>(conn)?
-        .filter_map(|item| item.ok().map(ai::workspace::WorkspaceMetadata::from))
-        .collect_vec())
 }
 
 fn get_all_workspace_language_servers_by_workspace(
@@ -3005,7 +2973,7 @@ fn read_sqlite_data(
             .map(|refresh| refresh.time_of_next_refresh.and_utc())
             .min();
 
-    let codebase_indices = get_all_codebase_index_metadata(conn)?;
+    let codebase_indices = Vec::new();
     let workspace_language_servers = get_all_workspace_language_servers_by_workspace(conn)?;
     let projects = get_all_projects(conn)?;
     let project_rules = get_all_project_rules(conn)?;

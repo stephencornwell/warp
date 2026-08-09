@@ -10,7 +10,6 @@ mod filter_chip_renderer;
 pub mod item;
 pub mod macros;
 pub mod mixer;
-pub mod notebook_embedding;
 mod palette_styles;
 pub mod result_renderer;
 mod search_bar;

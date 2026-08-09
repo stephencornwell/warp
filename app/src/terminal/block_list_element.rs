@@ -75,12 +75,10 @@ use super::view::{
     InlineBannerId, RichContentMetadata, SeparatorId, TerminalEditor, TerminalViewRenderContext,
     BLOCK_BANNER_HEIGHT,
 };
-use super::warpify::render::render_subshell_flag;
 use super::TerminalModel;
 use super::{heights_approx_eq, HEIGHT_FUDGE_FACTOR_LINES};
 use crate::terminal::blockgrid_renderer::BlockGridParams;
 use crate::terminal::model::terminal_model::BlockIndex;
-use crate::terminal::warpify::SubshellSource;
 
 use crate::terminal::model::escape_sequences::{
     maybe_kitty_keyboard_escape_sequence, KeystrokeWithDetails, ToEscapeSequence,
@@ -1111,138 +1109,6 @@ impl BlockListElement {
             .finish(),
         );
 
-        if AISettings::as_ref(app).is_any_ai_enabled(app) {
-            let icon = Container::new(
-                ConstrainedBox::new(if FeatureFlag::AgentView.is_enabled() {
-                    UIIcon::Icon::Paperclip
-                        .to_warpui_icon(icon_color.into())
-                        .finish()
-                } else if FeatureFlag::AgentMode.is_enabled() {
-                    UIIcon::Icon::Stars
-                        .to_warpui_icon(icon_color.into())
-                        .finish()
-                } else {
-                    Icon::new(AI_ASSISTANT_SVG_PATH, icon_color).finish()
-                })
-                .with_height(16.)
-                .with_width(16.)
-                .finish(),
-            )
-            .with_vertical_padding(5.)
-            .with_padding_left(6.)
-            .with_padding_right(4.);
-
-            let (ai_button_action, ai_button_tooltip) = if FeatureFlag::AgentMode.is_enabled() {
-                let active_block = model.block_list().active_block();
-                let has_active_long_running_command = active_block.is_active_and_long_running();
-
-                if has_active_long_running_command && active_block.index() == block_index {
-                    (
-                        Some(TerminalAction::SetInputModeAgent),
-                        TAG_AGENT_FOR_ASSISTANCE_TEXT,
-                    )
-                } else {
-                    (
-                        Some(TerminalAction::AskAIAssistant { block_index }),
-                        *ATTACH_AS_AGENT_MODE_CONTEXT_TEXT,
-                    )
-                }
-            } else {
-                (
-                    Some(TerminalAction::AskAIAssistant { block_index }),
-                    ASK_AI_ASSISTANT_TEXT,
-                )
-            };
-
-            let tooltip = ToolbeltButtonTooltip {
-                label: ai_button_tooltip.to_owned(),
-                tool_tip_below_button: should_render_tooltip_below_button,
-            };
-
-            let element = render_hoverable_block_button(
-                icon,
-                Some(tooltip),
-                false,
-                true,
-                self.mouse_states.ai_assistant_button_mouse_state.clone(),
-                &self.warp_theme,
-                &self.ui_builder,
-                move |ctx: &mut EventContext, _, _| {
-                    if let Some(action) = ai_button_action.clone() {
-                        ctx.dispatch_typed_action(action);
-                    }
-                },
-            );
-            self.ask_ai_assistant_button = Some(element);
-        }
-
-        if FeatureFlag::BlockToolbeltSaveAsWorkflow.is_enabled()
-            && WarpDriveSettings::is_warp_drive_enabled(app)
-        {
-            let icon = Container::new(
-                ConstrainedBox::new(
-                    ui_components::icons::Icon::Save
-                        .to_warpui_icon(icon_color.into())
-                        .finish(),
-                )
-                .with_height(16.)
-                .with_width(16.)
-                .finish(),
-            )
-            .with_uniform_padding(4.);
-
-            let element = if PrivacySettings::as_ref(app).is_enterprise_secret_redaction_enabled()
-                && model
-                    .block_list()
-                    .block_at(block_index)
-                    .is_some_and(|block| block.num_secrets_obfuscated() > 0)
-            {
-                // If enterprise secret redaction is enabled and the block contains secrets,
-                // disable save as workflow button + show different tooltip messaging.
-                render_hoverable_block_button(
-                    icon,
-                    Some(ToolbeltButtonTooltip {
-                        label: SAVE_AS_WORKFLOW_SECRETS_TEXT.to_owned(),
-                        tool_tip_below_button: should_render_tooltip_below_button,
-                    }),
-                    false,
-                    false,
-                    self.mouse_states
-                        .save_as_workflow_button_mouse_state
-                        .clone(),
-                    &self.warp_theme,
-                    &self.ui_builder,
-                    move |ctx: &mut EventContext, _, _| {
-                        ctx.dispatch_typed_action(TerminalAction::OpenWorkflowModalForBlock(
-                            block_index,
-                        ));
-                    },
-                )
-            } else {
-                render_hoverable_block_button(
-                    icon,
-                    Some(ToolbeltButtonTooltip {
-                        label: SAVE_AS_WORKFLOW_TEXT.to_owned(),
-                        tool_tip_below_button: should_render_tooltip_below_button,
-                    }),
-                    false,
-                    true,
-                    self.mouse_states
-                        .save_as_workflow_button_mouse_state
-                        .clone(),
-                    &self.warp_theme,
-                    &self.ui_builder,
-                    move |ctx: &mut EventContext, _, _| {
-                        ctx.dispatch_typed_action(TerminalAction::OpenWorkflowModalForBlock(
-                            block_index,
-                        ));
-                    },
-                )
-            };
-
-            self.save_as_workflow_button = Some(element);
-        }
-
         self
     }
 
@@ -2204,10 +2070,8 @@ impl BlockListElement {
         snackbar_header: &Option<SnackbarHeader>,
         terminal_view_id: EntityId,
         draw_border_between_blocks: bool,
-        ai_render_context: &BlocklistAIRenderContext,
         cursor_hint_text: Option<&mut Box<dyn Element>>,
         image_metadata: &HashMap<u32, StoredImageMetadata>,
-        agent_view_state: &AgentViewState,
         ctx: &mut PaintContext,
         app: &AppContext,
     ) {
@@ -2220,8 +2084,6 @@ impl BlockListElement {
             &block_grid_params.grid_render_params.warp_theme,
             block_borders_enabled,
             snackbar_header,
-            ai_render_context,
-            agent_view_state,
             ctx,
             app,
         );
@@ -2454,8 +2316,6 @@ impl BlockListElement {
                                     .normal,
                             )
                             .into()
-                    } else if block.is_agent_in_control() {
-                        ai_brand_color(&block_grid_params.grid_render_params.warp_theme)
                     } else {
                         block_grid_params
                             .grid_render_params
@@ -3777,10 +3637,8 @@ impl Element for BlockListElement {
                         &snackbar_header,
                         self.terminal_view_id,
                         draw_border_above_block,
-                        self.ai_render_context.borrow().deref(),
                         self.cursor_hint_text_element.as_mut(),
                         &model.image_id_to_metadata,
-                        agent_view_state,
                         ctx,
                         app,
                     );

@@ -21,7 +21,7 @@ use warpui::{
 use warpui::ui_components::radio_buttons::RadioButtonStateHandle;
 
 use crate::{
-    report_if_error, send_telemetry_from_ctx,
+    report_if_error,
     settings::{
         import::{
             config::{Config, ParsedTerminalSetting, SettingType},

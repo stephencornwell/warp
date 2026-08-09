@@ -39,7 +39,6 @@ use crate::{
         search_bar::{SearchBar, SearchBarEvent, SearchBarState, SearchResultOrdering},
         QueryFilter,
     },
-    send_telemetry_from_ctx,
     server::{ids::ServerId, telemetry::TelemetryEvent},
     settings::AISettings,
     terminal::{

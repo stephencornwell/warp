@@ -13,7 +13,6 @@ use super::{
 use crate::{
     appearance::Appearance,
     code::lsp_telemetry::{LspControlActionType, LspEnablementSource, LspTelemetryEvent},
-    send_telemetry_from_ctx,
     settings::CodeSettings,
     terminal::general_settings::GeneralSettings,
     ui_components::{

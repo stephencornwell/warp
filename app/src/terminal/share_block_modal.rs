@@ -1,8 +1,6 @@
-use crate::send_telemetry_from_ctx;
 use crate::{
     appearance::Appearance,
     editor::{EditorView, Event as EditorEvent, SingleLineEditorOptions, TextOptions},
-    send_telemetry_from_ctx,
     server::{
         block::{Block as ServerBlock, DisplaySetting},
         server_api::block::BlockClient,

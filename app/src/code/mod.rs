@@ -6,15 +6,9 @@ use warp_util::file::FileSaveError;
 use warpui::elements::DropTargetData;
 use warpui::AppContext;
 
-#[cfg(not(target_family = "wasm"))]
-pub mod find_references_view;
-#[cfg(not(target_family = "wasm"))]
-pub mod language_server_extension;
 pub mod editor;
 pub mod editor_management;
 pub mod global_buffer_model;
-#[cfg(feature = "local_fs")]
-pub mod language_server_shutdown_manager;
 #[cfg(not(target_family = "wasm"))]
 pub mod lsp_logs;
 
@@ -92,21 +86,11 @@ pub enum SaveOutcome {
     Succeeded,
 }
 
-pub mod footer;
 mod icon;
 
 pub mod active_file;
 pub mod opened_files;
 pub use icon::icon_from_file_path;
-
-#[cfg_attr(not(target_family = "wasm"), path = "view.rs")]
-#[cfg_attr(target_family = "wasm", path = "wasm.rs")]
-
-pub fn init(app: &mut AppContext) {
-    self::view::init(app);
-    #[cfg(not(target_family = "wasm"))]
-    self::find_references_view::init(app);
-}
 
 /// The diff that results from editing a file.
 #[derive(Debug, Default, Clone)]

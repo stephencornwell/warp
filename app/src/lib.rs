@@ -113,7 +113,6 @@ pub mod tab_configs;
 pub mod terminal;
 pub mod themes;
 use crate::uri::web_intent_parser::maybe_rewrite_web_url_to_intent;
-use code::editor_management::CodeManager;
 use code::opened_files::OpenedFilesModel;
 use quit_warning::UnsavedStateSummary;
 #[cfg(feature = "local_fs")]
@@ -150,8 +149,6 @@ use warpui::platform::app::ApproveTerminateResult;
 use window_settings::WindowSettings;
 
 use crate::code::global_buffer_model::GlobalBufferModel;
-#[cfg(feature = "local_fs")]
-use crate::code::language_server_shutdown_manager::LanguageServerShutdownManager;
 use crate::context_chips::prompt::Prompt;
 use crate::default_terminal::DefaultTerminal;
 use crate::gpu_state::GPUState;
@@ -1221,8 +1218,6 @@ fn initialize_app(
     // Register initial keybindings prior to creating menus
     app_services::init(ctx);
     // // TODO: Temporarily disabling keybindings for WASM builds. Will be implemented in future WASM support.
-    #[cfg(not(target_family = "wasm"))]
-    code::editor::find::view::init(ctx);
     workspace::init(ctx);
     pane_group::init(ctx);
     terminal::init(ctx);
@@ -1238,7 +1233,6 @@ fn initialize_app(
     voltron::init(ctx);
     reward_view::init(ctx);
     crate::view_components::find::init(ctx);
-    prompt::editor_modal::init(ctx);
     undo_close::init(ctx);
     tab_configs::new_worktree_modal::init(ctx);
     tab_configs::params_modal::init(ctx);
@@ -1262,8 +1256,6 @@ fn initialize_app(
     ctx.add_singleton_model(GlobalBufferModel::new);
     #[cfg(windows)]
     ctx.add_singleton_model(util::traffic_lights::windows::RendererState::new);
-    #[cfg(feature = "local_fs")]
-    ctx.add_singleton_model(|_| LanguageServerShutdownManager::new());
 
 
     ctx.add_singleton_model(|_| AudibleBell::new());
@@ -1279,7 +1271,6 @@ fn initialize_app(
         .unwrap_or(&[]);
 
 
-    ctx.add_singleton_model(|_| CodeManager::default());
     ctx.add_singleton_model(|_| OpenedFilesModel::new());
     ctx.add_singleton_model(TerminalKeybindings::new);
     ctx.add_singleton_model(|_| ActiveSession::default());

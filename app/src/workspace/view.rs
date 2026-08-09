@@ -59,7 +59,6 @@ use super::lightbox_view::{LightboxParams, LightboxView, LightboxViewEvent};
 use super::util;
 use super::WorkspaceRegistry;
 #[cfg(feature = "local_fs")]
-use crate::code::editor_management::CodeManager;
 use crate::code::editor_management::CodeSource;
 use crate::launch_configs::launch_config::WindowTemplate;
 use crate::pane_group::{

@@ -3051,7 +3051,6 @@ impl PaneGroup {
         self.dragged_border = None;
         if self.focus_pane_and_record_in_history(id, ctx) {
             ctx.emit(Event::AppStateChanged);
-            ctx.emit(Event::PaneFocused);
         }
     }
 

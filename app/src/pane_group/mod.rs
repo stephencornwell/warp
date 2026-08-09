@@ -1412,7 +1412,11 @@ impl PaneGroup {
         ctx: &AppContext,
     ) -> Option<PaneId> {
         for pane_id in self.pane_contents.keys() {
-            if let Some(terminal_pane) = self.downcast_pane_by_id::<TerminalPane>(*pane_id) {
+            if let Some(terminal_pane) = self
+                .pane_contents
+                .get(pane_id)
+                .and_then(|pane| pane.as_any().downcast_ref::<TerminalPane>())
+            {
                 if terminal_pane.terminal_view(ctx).id() == terminal_view_id {
                     return Some(*pane_id);
                 }
@@ -2139,27 +2143,10 @@ impl PaneGroup {
     }
 
     pub fn close_pane_with_confirmation(&mut self, pane_id: PaneId, ctx: &mut ViewContext<Self>) {
-        // Child agent panes are just hidden when closed, so skip the
-        // "process running" warning—it doesn't apply.
-        if self.is_child_agent_pane(pane_id) {
-            self.close_pane(pane_id, ctx);
-            return;
-        }
-
         if let Some(terminal_manager) = self
             .terminal_session_by_id(pane_id)
             .map(|session| session.terminal_manager(ctx))
         {
-            if terminal_manager.read(ctx, |terminal_manager, _ctx| {
-                terminal_manager
-                    .model()
-                    .lock()
-                    .shared_session_status()
-                    .is_sharer()
-            }) {
-                ctx.emit(Event::CloseSharedSessionPaneRequested { pane_id });
-                return;
-            }
         }
 
         let summary = UnsavedStateSummary::for_pane(self, pane_id, ctx);
@@ -2344,21 +2331,6 @@ impl PaneGroup {
             return;
         }
 
-        // If this pane is a child agent, re-hide it instead of closing it.
-        if self.is_child_agent_pane(pane_id) {
-            if !self.panes.is_pane_hidden(&pane_id) {
-                self.panes.hide_pane_for_child_agent(pane_id);
-            }
-            self.focus_next_terminal_pane_and_activate_session(
-                pane_id,
-                PaneRemovalReason::Close,
-                ctx,
-            );
-            self.handle_pane_count_change(ctx);
-            ctx.emit(Event::TerminalViewStateChanged);
-            ctx.emit(Event::AppStateChanged);
-            return;
-        }
 
 
         if FeatureFlag::UndoClosedPanes.is_enabled() {
@@ -2575,9 +2547,7 @@ impl PaneGroup {
             PaneEvent::AppStateChanged => {
                 ctx.emit(Event::AppStateChanged);
             }
-            PaneEvent::NewPaneInAIMode { initial_query } => {
-                self.add_terminal_pane_in_agent_mode(initial_query.as_deref(), None, ctx)
-            }
+            PaneEvent::NewPaneInAIMode { .. } => {}
             PaneEvent::ClearHoveredTabIndex => ctx.emit(Event::ClearHoveredTabIndex),
             PaneEvent::RepoChanged => {
                 ctx.emit(Event::RepoChanged);

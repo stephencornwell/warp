@@ -562,11 +562,6 @@ fn handle_terminal_view_event(
             Event::OpenWorkflowModalWithCloudWorkflow(workflow_id) => {
                 ctx.emit(pane_group::Event::OpenCloudWorkflowForEdit(*workflow_id));
             }
-            Event::OpenWorkflowModalWithTemporary(workflow) => {
-                ctx.emit(pane_group::Event::OpenWorkflowModalWithTemporary(
-                    workflow.clone(),
-                ));
-            }
             Event::OpenPromptEditor => {
                 ctx.emit(pane_group::Event::OpenPromptEditor);
             }

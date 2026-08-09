@@ -1399,6 +1399,8 @@ impl SettingsView {
         match event {
             SettingsPageEvent::FocusModal => ctx.focus(&self.search_editor),
             SettingsPageEvent::Pane(_) => {}
+            SettingsPageEvent::EnvironmentSetupModeSelectorToggled { .. } => {}
+            SettingsPageEvent::AgentAssistedEnvironmentModalToggled { .. } => {}
         }
     }
 

@@ -984,15 +984,6 @@ impl BlockList {
 
                     // Read rich content selected text in the intermediate rich content blocks.
                     while current_row >= selection_start_cursor.start().height {
-                        if let Some(BlockHeightItem::RichContent(item)) =
-                            selection_start_cursor.item()
-                        {
-                            if let Some(selected_text) =
-                                read_selected_text_from_ai_block(item.view_id, app)
-                            {
-                                selected_texts.push(selected_text);
-                            }
-                        }
                         selection_start_cursor.next();
                     }
                     let Some(command_block) = self.block_at(start.within_grid_point.block_index)
@@ -1002,12 +993,6 @@ impl BlockList {
                     let start_point = start.within_grid_point.into();
                     let end_point = end.within_grid_point.into();
                     selected_texts.push(command_block.bounds_to_string(start_point, end_point));
-                }
-
-                // Read AI block selected text in the trailing AI blocks.
-                while bottom_row >= selection_start_cursor.start().height {
-                    if let Some(BlockHeightItem::RichContent(item)) = selection_start_cursor.item()
-                    selection_start_cursor.next();
                 }
 
                 Some(selected_texts.join("\n"))

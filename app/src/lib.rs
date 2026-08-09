@@ -1833,8 +1833,6 @@ pub fn enabled_features() -> HashSet<FeatureFlag> {
         FeatureFlag::AgentModePrimaryXML,
         #[cfg(feature = "agent_mode_pre_plan_xml")]
         FeatureFlag::AgentModePrePlanXML,
-        #[cfg(feature = "agent_onboarding")]
-        FeatureFlag::AgentOnboarding,
         #[cfg(feature = "agent_shared_sessions")]
         FeatureFlag::AgentSharedSessions,
         #[cfg(feature = "suggested_rules")]
@@ -1961,8 +1959,6 @@ pub fn enabled_features() -> HashSet<FeatureFlag> {
         FeatureFlag::VimCodeEditor,
         #[cfg(feature = "allow_opening_file_links_using_editor_env")]
         FeatureFlag::AllowOpeningFileLinksUsingEditorEnv,
-        #[cfg(feature = "nld_improvements")]
-        FeatureFlag::NldImprovements,
         #[cfg(feature = "revert_diff_hunk")]
         FeatureFlag::RevertDiffHunk,
         #[cfg(feature = "code_review_save_changes")]

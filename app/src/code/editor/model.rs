@@ -73,12 +73,10 @@ use warpui::text::{point::Point, TextBuffer};
 use warpui::{AppContext, Entity, ModelContext, ModelHandle, SingletonEntity};
 
 use super::super::DiffResult;
-use super::comments::{EditorCommentsModel, PendingComment, PendingCommentEvent};
 use super::diff::{
     add_inline_overlay_color, DiffModel, DiffModelEvent, DiffStatus, RenderableDiffHunk,
 };
 use super::line::EditorLineLocation;
-use crate::code_review::comments::{CommentId, CommentOrigin, LineDiffContent};
 
 /// An opaque handle to a stable line in the editor content, suitable for scroll
 /// position preservation. Contains an internal anchor that tracks through
@@ -292,7 +290,6 @@ pub struct CodeEditorModel {
     diff: ModelHandle<DiffModel>,
     selection: ModelHandle<SelectionModel>,
     syntax_tree: ModelHandle<SyntaxTreeState>,
-    comments: ModelHandle<EditorCommentsModel>,
     hidden_lines: ModelHandle<HiddenLinesModel>,
     /// The current state of diff navigation (collapsed, expanded, or focused on a specific hunk)
     diff_navigation_state: DiffNavigationState,
@@ -377,9 +374,6 @@ impl CodeEditorModel {
             .with_disable_hidden_navigation()
         });
 
-        let comments = ctx.add_model(|_| EditorCommentsModel {
-            pending_comment: PendingComment::Closed,
-        });
 
         Self {
             render_state,
@@ -388,7 +382,6 @@ impl CodeEditorModel {
             selection_model,
             selection,
             syntax_tree,
-            comments,
             hidden_lines,
             diff_navigation_state: DiffNavigationState::Collapsed,
             interaction_state: InteractionState::Editable,
@@ -549,9 +542,7 @@ impl CodeEditorModel {
         &self.selection
     }
 
-    pub fn comments(&self) -> &ModelHandle<EditorCommentsModel> {
-        &self.comments
-    }
+
 
     // Set the following line ranges to be hidden in the editor.
     pub fn set_hidden_lines(
@@ -1978,44 +1969,7 @@ impl CodeEditorModel {
         }
     }
 
-    pub fn toggle_comments(&mut self, ctx: &mut ModelContext<Self>) {
-        let Some(prefix) = self.syntax_tree.as_ref(ctx).comment_prefix() else {
-            return;
-        };
 
-        let buffer = self.content().as_ref(ctx);
-        let selection_model = self.selection_model.as_ref(ctx);
-        let lines = selection_model.selected_lines(ctx);
-        let all_selected_lines_commented = lines
-            .iter()
-            .all(|line| buffer.line_decorated_with_prefix(*line, prefix));
-
-        // When we are adding comments, typically editors add an additional whitespace between prefix
-        // and the original content of the line.
-        let prefix = if !all_selected_lines_commented {
-            format!("{prefix} ")
-        } else {
-            prefix.to_string()
-        };
-
-        let selection_model = self.selection_model.clone();
-        self.update_content(
-            |mut content, ctx| {
-                content.apply_edit(
-                    BufferEditAction::TogglePrefixForLines {
-                        lines,
-                        prefix: &prefix,
-                        remove: all_selected_lines_commented,
-                    },
-                    EditOrigin::UserInitiated,
-                    selection_model,
-                    ctx,
-                );
-            },
-            ctx,
-        );
-        self.validate(ctx)
-    }
 
     /// Whether the given range is wrapped in the supported bracket pairs of the active language.
     pub fn range_wrapped_in_bracket(&self, range: Range<CharOffset>, ctx: &AppContext) -> bool {
@@ -3529,107 +3483,7 @@ impl CodeEditorModel {
     }
 
     /// After a modification to the code, update the locations of review comments to match their new positions.
-    pub fn get_new_line_location(
-        &self,
-        location: &EditorLineLocation,
-        line_text: String,
-        ctx: &ModelContext<Self>,
-    ) -> (EditorLineLocation, LineDiffContent, bool) {
-        let mut used_fallback = false;
-        let buffer = self.content.as_ref(ctx);
-        let diff_model = self.diff.as_ref(ctx);
 
-        let max_line = buffer.max_point().row as usize;
-
-        let updated_loc = match location {
-            EditorLineLocation::Current { line_number, .. } => {
-                // For lines in the current version, find the matching comment line
-                // closest to the original line number.
-                let current_idx = line_number.as_usize();
-                let matched_line = self.match_line_to_text(
-                    line_text.as_str(),
-                    current_idx,
-                    max_line,
-                    |me, original_text, line, ctx| {
-                        let line_text = me.text_for_line(LineCount::from(line + 1), ctx);
-                        line_text.trim_end_matches('\n') == original_text
-                    },
-                    ctx,
-                );
-
-                let new_line_number = if let Some(idx) = matched_line {
-                    LineCount::from(idx)
-                } else {
-                    used_fallback = true;
-                    *line_number
-                };
-
-                let line_range = diff_model
-                    .diff_status()
-                    .added_diff_range(new_line_number)
-                    .unwrap_or_else(|| {
-                        new_line_number..LineCount::from(new_line_number.as_usize() + 1)
-                    });
-
-                EditorLineLocation::Current {
-                    line_number: new_line_number,
-                    line_range,
-                }
-            }
-            EditorLineLocation::Removed {
-                line_number, index, ..
-            } => {
-                // For removed lines, we perform the following to find the best match
-                // 1. Approximate the line number of the removed line in the base version (This is best effort since we
-                // don't track the exact line number in editor locations)
-                // 2. Find the matching line closest to (1) in the base version
-                // 3. Convert that matching line into a diff editor location
-                let current_idx = line_number.as_usize() + *index;
-
-                let max_line = diff_model.base_line_count();
-                let matched_line = self.match_line_to_text(
-                    line_text.as_str(),
-                    current_idx,
-                    max_line,
-                    |me, original_text, line, ctx| {
-                        let line_text = me.diff().as_ref(ctx).base_line(line);
-                        line_text.as_ref().map(|s| s.trim_end_matches('\n')) == Some(original_text)
-                    },
-                    ctx,
-                );
-
-                let location =
-                    matched_line.and_then(|line| diff_model.base_line_index_to_line_location(line));
-
-                // If we can't convert the location, attach to the closest existing line.
-                // TODO: We should have a better flow to handle lines we can't match.
-                location.unwrap_or_else(|| {
-                    used_fallback = true;
-                    let new_line_number = *line_number;
-                    let line_range = diff_model
-                        .diff_status()
-                        .removed_diff_range(new_line_number)
-                        .unwrap_or_else(|| {
-                            new_line_number..LineCount::from(new_line_number.as_usize() + 1)
-                        });
-
-                    EditorLineLocation::Current {
-                        line_number: new_line_number,
-                        line_range,
-                    }
-                })
-            }
-            EditorLineLocation::Collapsed { .. } => location.clone(),
-        };
-
-        // Get the new content for the updated location
-        let content = if used_fallback {
-            LineDiffContent::from_content(line_text.as_str())
-        } else {
-            self.get_diff_content_for_line(&updated_loc, ctx)
-        };
-        (updated_loc, content, used_fallback)
-    }
 }
 
 impl CoreEditorModel for CodeEditorModel {
@@ -3814,37 +3668,9 @@ impl CoreEditorModel for CodeEditorModel {
 }
 
 impl CodeEditorModel {
-    pub fn open_comment_line(&mut self, line: &EditorLineLocation, ctx: &mut ModelContext<Self>) {
-        // Telemetry: comment editor opened for a new inline review comment.
-        ();
 
-        self.comments.update(ctx, |comments, ctx| {
-            comments.pending_comment = PendingComment::Open { line: line.clone() };
-            ctx.emit(PendingCommentEvent::NewPendingComment(line.clone()));
-        });
-    }
 
-    pub fn reopen_comment_line(
-        &mut self,
-        id: &CommentId,
-        line: &EditorLineLocation,
-        comment_text: &str,
-        origin: &CommentOrigin,
-        ctx: &mut ModelContext<Self>,
-    ) {
-        // Telemetry: comment editor opened for editing an existing inline review comment.
-        ();
 
-        self.comments.update(ctx, |comments, ctx| {
-            comments.pending_comment = PendingComment::Open { line: line.clone() };
-            ctx.emit(PendingCommentEvent::ReopenPendingComment {
-                id: *id,
-                line: line.to_owned(),
-                comment_text: comment_text.to_owned(),
-                origin: origin.to_owned(),
-            });
-        });
-    }
 }
 
 impl PlainTextEditorModel for CodeEditorModel {

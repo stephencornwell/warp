@@ -852,7 +852,6 @@ impl TypedActionView for CodeEditorView {
                     }
                     _ => {
                         self.model.update(ctx, |model, ctx| {
-                            model.toggle_comments(ctx);
                         });
                     }
                 }

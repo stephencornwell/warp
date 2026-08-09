@@ -414,7 +414,6 @@ impl VimHandler for CodeEditorView {
                 self.model.update(ctx, |model, ctx| {
                     let existing_selections = model.selections(ctx).clone();
                     selection_change(model, ctx);
-                    model.toggle_comments(ctx);
 
                     if motion_type == MotionType::Linewise {
                         model.vim_move_to_first_nonwhitespace(false, ctx);
@@ -565,7 +564,6 @@ impl VimHandler for CodeEditorView {
                     model.vim_clear_selections(ctx);
                 }
                 VimOperator::ToggleComment => {
-                    model.toggle_comments(ctx);
 
                     if motion_type == MotionType::Linewise {
                         model.vim_move_to_first_nonwhitespace(false, ctx);

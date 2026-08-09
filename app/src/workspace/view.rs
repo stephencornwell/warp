@@ -3911,11 +3911,6 @@ impl Workspace {
 
     fn user_menu_items(&self, app: &AppContext) -> Vec<MenuItem<WorkspaceAction>> {
         let mut items = Vec::new();
-        if !self.auth_state.is_anonymous_or_logged_out() {
-            let name = self.auth_state.username_for_display().unwrap_or_default();
-            items.push(MenuItemFields::new(name).with_disabled(true).into_item())
-        }
-
         let appearance = Appearance::as_ref(app);
 
         items.extend([
@@ -3951,27 +3946,12 @@ impl Workspace {
             MenuItem::Separator,
         ]);
 
-        if self.auth_state.is_anonymous_or_logged_out() {
-            items.push(
-                MenuItemFields::new("Sign up")
-                    .with_on_select_action(WorkspaceAction::SignupAnonymousUser)
-                    .into_item(),
-            );
-        }
-
         items.push(
             MenuItemFields::new("Invite a friend")
                 .with_on_select_action(WorkspaceAction::ShowReferralSettingsPage)
                 .into_item(),
         );
 
-        if !self.auth_state.is_anonymous_or_logged_out() {
-            items.push(
-                MenuItemFields::new("Log out")
-                    .with_on_select_action(WorkspaceAction::LogOut)
-                    .into_item(),
-            );
-        }
         items
     }
 
@@ -4925,15 +4905,11 @@ impl Workspace {
             CtrlTabBehavior::CycleMostRecentSession => {
                 self.current_workspace_state.is_palette_open = false;
                 if !self.current_workspace_state.is_ctrl_tab_palette_open {
-                    self.open_palette_action(
+                    self.open_palette(
                         PaletteMode::Navigation,
                         PaletteSource::CtrlTab {
-                            shift_pressed_initially: matches!(
-                                direction,
-                                SessionCycleDirection::Previous
-                            ),
+                            query: String::new(),
                         },
-                        None,
                         ctx,
                     );
                 }
@@ -5161,10 +5137,9 @@ impl Workspace {
                         if let Some(workspace) = navigate_self.upgrade(ctx) {
                             workspace.update(ctx, |workspace, ctx| {
                                 // TODO(ben): Ideally, this would filter to the relevant tabs.
-                                workspace.open_palette_action(
+                                workspace.open_palette(
                                     PaletteMode::Navigation,
                                     PaletteSource::QuitModal,
-                                    Some("running"),
                                     ctx,
                                 );
                             })
@@ -8327,24 +8302,9 @@ impl Workspace {
         .finish()
     }
 
-    fn render_avatar_button(&self, appearance: &Appearance, ctx: &AppContext) -> Box<dyn Element> {
-        let is_anonymous = self.auth_state.is_anonymous_or_logged_out();
-        let display_name = self
-            .auth_state
-            .username_for_display()
-            .unwrap_or(DEFAULT_USER_DISPLAY_NAME.to_owned());
-
-        let avatar_content = if self.auth_state.is_anonymous_or_logged_out() {
-            AvatarContent::Icon(icons::Icon::Gear)
-        } else {
-            self.auth_state
-                .user_photo_url()
-                .map(|url| AvatarContent::Image {
-                    url,
-                    display_name: display_name.clone(),
-                })
-                .unwrap_or(AvatarContent::DisplayName(display_name.clone()))
-        };
+    fn render_avatar_button(&self, appearance: &Appearance, _ctx: &AppContext) -> Box<dyn Element> {
+        let display_name = DEFAULT_USER_DISPLAY_NAME.to_owned();
+        let avatar_content = AvatarContent::Icon(icons::Icon::Gear);
 
         let mut avatar = Avatar::new(
             avatar_content,
@@ -8372,7 +8332,7 @@ impl Workspace {
                     container = container.with_background(appearance.theme().surface_2());
                 }
                 // On hover, show tooltip of user's display name (if it exists)
-                if !self.is_user_menu_open && !is_anonymous {
+                if !self.is_user_menu_open {
                     stack.add_positioned_overlay_child(
                         appearance
                             .ui_builder()
@@ -9475,7 +9435,10 @@ ExportAllWarpDriveObjects => {
                 mode,
                 source,
                 query,
-            } => self.open_palette_action(*mode, *source, query.as_deref(), ctx),
+            } => {
+                let _ = query;
+                self.open_palette(*mode, *source, ctx)
+            }
             TogglePalette {
                 mode: palette_mode,
                 source,

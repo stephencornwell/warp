@@ -76,7 +76,6 @@ use crate::banner::{Banner, BannerEvent, BannerState, BannerTextContent, Dismiss
 use crate::channel::{Channel, ChannelState};
 use crate::code::view::CodeView;
 use crate::drive::items::WarpDriveItemId;
-use crate::drive::{CloudObjectTypeAndId, OpenWarpDriveObjectArgs};
 use crate::features::FeatureFlag;
 use crate::launch_configs::launch_config::{self, PaneMode, PaneTemplateType};
 use crate::persistence::ModelEvent;
@@ -92,15 +91,8 @@ use crate::terminal::local_tty;
 use crate::terminal::model::session::Session;
 use crate::terminal::session_settings::NewSessionSource;
 use crate::terminal::session_settings::SessionSettings;
-use crate::terminal::shared_session::render_util::ParticipantAvatarParams;
-use crate::terminal::shared_session::role_change_modal::{
-    RoleChangeCloseSource, RoleChangeModal, RoleChangeModalEvent,
-};
-use crate::terminal::shared_session::share_modal::{ShareSessionModal, ShareSessionModalEvent};
-use crate::terminal::shared_session::{self, IsSharedSessionCreator, SharedSessionActionSource};
-use crate::terminal::view::ssh_file_upload::FileUploadId;
 use crate::terminal::view::{
-    BlockNotification, ConversationRestorationInNewPaneType, ExecuteCommandEvent,
+    BlockNotification, ExecuteCommandEvent,
     LeftPanelTargetView, SyncEvent, TerminalViewState,
 };
 use crate::terminal::{
@@ -112,7 +104,6 @@ use settings::Setting as _;
 
 use crate::code::active_file::ActiveFileModel;
 use crate::util::bindings::{is_binding_pty_compliant, CustomAction};
-use crate::workflows::{WorkflowSelectionSource, WorkflowSource, WorkflowType};
 
 use crate::palette::PaletteMode;
 use crate::terminal::model::terminal_model::ConversationTranscriptViewerStatus;

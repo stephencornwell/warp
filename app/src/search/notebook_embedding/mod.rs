@@ -1,10 +1,8 @@
 use crate::cloud_object::{Owner, Space};
 
 mod embedded_fuzzy_match;
-mod notebooks;
 pub mod searcher;
 pub mod view;
-mod workflows;
 
 /// Tests if an object owned by `object_owner` is accessible to all users with permissions to
 /// `embedding_space`.

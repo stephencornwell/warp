@@ -11,7 +11,6 @@ pub mod item;
 pub mod macros;
 pub mod mixer;
 pub mod notebook_embedding;
-mod notebooks;
 mod palette_styles;
 pub mod result_renderer;
 mod search_bar;
@@ -19,7 +18,6 @@ pub mod search_results_menu;
 pub mod searcher;
 pub mod slash_command_menu;
 pub mod welcome_palette;
-mod workflows;
 
 pub use item::SearchItem;
 pub use mixer::SyncDataSource;
@@ -27,4 +25,3 @@ pub use result_renderer::ItemHighlightState;
 
 pub use data_source::QueryFilter;
 use filter_chip_renderer::FilterChipRenderer;
-pub use workflows::fuzzy_match::FuzzyMatchWorkflowResult;

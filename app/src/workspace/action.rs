@@ -4,13 +4,6 @@ use std::sync::Arc;
 
 use warp_util::path::LineAndColumnArg;
 
-use crate::ai::agent::api::ServerConversationToken;
-use crate::ai::agent::conversation::AIConversationId;
-use crate::ai::agent::AIAgentExchangeId;
-use crate::ai::ambient_agents::AmbientAgentTaskId;
-use crate::ai::document::ai_document_model::{AIDocumentId, AIDocumentVersion};
-use crate::drive::items::WarpDriveItemId;
-use crate::drive::CloudObjectTypeAndId;
 use crate::palette::PaletteMode;
 use crate::pane_group::PaneGroup;
 use crate::prompt::editor_modal::OpenSource as PromptEditorOpenSource;
@@ -20,12 +13,9 @@ use crate::settings_view::{SettingsAction as SettingsTabAction, SettingsSection}
 use crate::tab::{NewSessionMenuItem, SelectedTabColor};
 use crate::tab_configs::TabConfig;
 use crate::terminal::available_shells::AvailableShell;
-use crate::terminal::view::inline_banner::ZeroStatePromptSuggestionType;
 use crate::themes::theme::AnsiColorIdentifier;
 use crate::themes::theme_chooser::ThemeChooserMode;
-use crate::workflows::{WorkflowSelectionSource, WorkflowSource, WorkflowType};
 use crate::workspace::PaneViewLocator;
-use session_sharing_protocol::common::SessionId;
 
 use ui_components::lightbox;
 use warpui::accessibility::AccessibilityVerbosity;
@@ -302,14 +292,6 @@ pub enum WorkspaceAction {
     FocusLeftPanel,
     /// Moves focus to the panel on the right
     FocusRightPanel,
-    /// An action to view a newly created/edited workflow in WD from the toast
-    ViewObjectInWarpDrive(WarpDriveItemId),
-    /// Open the object's sharing settings in WD.
-    OpenObjectSharingSettings {
-        object_id: CloudObjectTypeAndId,
-        source: SharingDialogSource,
-    },
-    UndoTrash(CloudObjectTypeAndId),
     /// Open a local path in the file explorer.
     OpenInExplorer {
         path: PathBuf,
@@ -336,20 +318,6 @@ pub enum WorkspaceAction {
         /// Whether to ensure agent mode is enabled when inserting content
         ensure_agent_mode: bool,
     },
-    /// Open a new tab with its input in AI mode.
-    NewTabInAgentMode {
-        /// The entrypoint that triggered this action.
-        entrypoint: AgentModeEntrypoint,
-        /// The type of zero state prompt suggestion to start with (optional).
-        zero_state_prompt_suggestion_type: Option<ZeroStatePromptSuggestionType>,
-    },
-    /// Open a new pane with its input in AI mode.
-    NewPaneInAgentMode {
-        /// The entrypoint that triggered this action.
-        entrypoint: AgentModeEntrypoint,
-        /// The type of zero state prompt suggestion to start with (optional).
-        zero_state_prompt_suggestion_type: Option<ZeroStatePromptSuggestionType>,
-    },
     OpenCloudAgentSetupGuide,
     AttemptLoginGatedAIUpgrade,
     /// Dismisses the Wayland crash recovery banner and opens a link to our docs page with more
@@ -363,17 +331,6 @@ pub enum WorkspaceAction {
     },
     OpenAIFactCollection,
     OpenMCPServerCollection,
-    ToggleAIDocumentPane {
-        document_id: AIDocumentId,
-        document_version: AIDocumentVersion,
-    },
-    /// Closes all visible AI document panes in the active pane group.
-    HideAIDocumentPanes,
-    /// Closes any other ai document panes in the active pane group, and opens the specified document_id.
-    OpenAIDocumentPane {
-        document_id: AIDocumentId,
-        document_version: AIDocumentVersion,
-    },
     FocusTerminalViewInWorkspace {
         terminal_view_id: EntityId,
     },
@@ -393,12 +350,6 @@ pub enum WorkspaceAction {
     },
     OpenNotebook {
         id: SyncId,
-    },
-    RunWorkflow {
-        workflow: Arc<WorkflowType>,
-        workflow_source: WorkflowSource,
-        workflow_selection_source: WorkflowSelectionSource,
-        argument_override: Option<HashMap<String, String>>,
     },
     ScrollToSettingsWidget {
         page: SettingsSection,
@@ -475,23 +426,6 @@ pub enum WorkspaceAction {
     ToggleAgentManagementView,
     ViewAgentRunsForEnvironment {
         environment_id: String,
-    },
-    /// Execute the actual deletion of a conversation after confirmation
-    ExecuteDeleteConversation {
-        conversation_id: AIConversationId,
-        terminal_view_id: Option<EntityId>,
-    },
-    /// Open an ambient agent session by joining its shared session.
-    /// Used when the sandbox is running or when we need to view a live session.
-    OpenAmbientAgentSession {
-        session_id: SessionId,
-        task_id: AmbientAgentTaskId,
-    },
-    /// Load cloud conversation data into a transcript viewer.
-    /// Used when CloudConversations is enabled and the sandbox is not running.
-    OpenConversationTranscriptViewer {
-        conversation_id: ServerConversationToken,
-        ambient_agent_task_id: Option<AmbientAgentTaskId>,
     },
     /// Toggle the conversation transcript details panel (WASM-only).
     #[cfg(target_family = "wasm")]

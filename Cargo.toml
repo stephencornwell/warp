@@ -11,6 +11,8 @@ exclude = [
   "crates/managed_secrets",
   "crates/managed_secrets_wasm",
   "crates/remote_server",
+  "crates/serve-wasm",
+  "crates/warp_web_event_bus",
 ]
 
 # Include all members except serve-wasm (since it's a helper helper for serving
@@ -464,25 +466,11 @@ codegen-units = 1
 inherits = "release-cli"
 debug-assertions = true
 
-[profile.release-wasm]
-inherits = "release"
-opt-level = "s"
-lto = true
-codegen-units = 1
-
-[profile.release-wasm-debug_assertions]
-inherits = "release-wasm"
-debug-assertions = true
-
 # A dev profile optimized for remote server deployment. Strips symbols to
 # reduce binary size and improve rsync delta transfer efficiency.
 [profile.dev-remote]
 inherits = "dev"
 strip = "symbols"
-
-[profile.dev-wasm]
-inherits = "dev"
-opt-level = "s"
 
 [patch.crates-io]
 # Pinned to the merge commit of servo/core-foundation-rs#746, which fixes a

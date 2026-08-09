@@ -5758,66 +5758,6 @@ impl Input {
     }
 
     /// Set input mode to natural language detection (auto-detection)
-    pub fn set_input_mode_natural_language_detection(&mut self, ctx: &mut ViewContext<Self>) {
-        if self.is_input_mode_toggle_disabled() {
-            return;
-        }
-
-        let is_autodetection_enabled = AISettings::as_ref(ctx).is_ai_autodetection_enabled(ctx);
-
-        if !is_autodetection_enabled {
-            return;
-        }
-
-        let buffer_text = self.editor.as_ref(ctx).buffer_text(ctx);
-
-        self.ai_input_model.update(ctx, |ai_input_model, ctx| {
-            // If we're already configured to do autodetection, there's nothing to do here.
-            if ai_input_model.should_run_input_autodetection(ctx) {
-                return;
-            }
-
-            // Update the input mode to remove any locks and re-enable autodetection.
-            // If the buffer is empty, this returns the input mode to the default.
-            let input_type = if buffer_text.is_empty() {
-                InputType::default()
-            } else {
-                ai_input_model.input_config().input_type
-            };
-            ai_input_model.enable_autodetection(input_type, ctx);
-        });
-
-        // If the buffer is non-empty, we should kick off the autodetection process, in case the
-        // classification doesn't match the previous locked mode.
-        if !buffer_text.is_empty() {
-            if let Some(completion_context) = self.completion_session_context(ctx) {
-                let ai_input_model = self.ai_input_model.clone();
-
-                ctx.spawn(
-                    async move {
-                        (
-                            parse_current_commands_and_tokens(buffer_text, &completion_context)
-                                .await,
-                            completion_context,
-                        )
-                    },
-                    move |_input, (parsed_tokens, completion_context), ctx| {
-                        let session_id = completion_context.session.id();
-                        ai_input_model.update(ctx, |model, ctx| {
-                            model.detect_and_set_input_type(
-                                parsed_tokens,
-                                completion_context,
-                                Some(session_id),
-                                ctx,
-                            );
-                        });
-                    },
-                );
-            }
-        }
-    }
-
-    /// Set input mode to Agent Mode (AI input)
     pub fn set_input_mode_terminal(&mut self, steal_focus: bool, ctx: &mut ViewContext<Self>) {
         if self.is_input_mode_toggle_disabled() {
             return;

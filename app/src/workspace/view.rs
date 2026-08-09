@@ -6052,46 +6052,6 @@ impl Workspace {
         );
     }
 
-    fn open_file_notebook(
-        &mut self,
-        path: PathBuf,
-        session: Option<Arc<Session>>,
-        layout: EditorLayout,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        // TODO(ben): It might be worth managing file-based notebooks via NotebookManager
-        //   (e.g. for open-or-switch behavior). See if it overcomplicates things.
-        let pane = FilePane::new(
-            Some(path),
-            session,
-            #[cfg(feature = "local_fs")]
-            None,
-            ctx,
-        );
-
-        match layout {
-            EditorLayout::NewTab => {
-                let new_tab_placement_setting = TabSettings::as_ref(ctx).new_tab_placement;
-                let new_idx = match new_tab_placement_setting {
-                    NewTabPlacement::AfterAllTabs => self.tab_count(),
-                    // Add tab after current tab
-                    NewTabPlacement::AfterCurrentTab => self.active_tab_index + 1,
-                };
-                self.add_tab_from_existing_pane(Box::new(pane), new_idx, ctx);
-            }
-            EditorLayout::SplitPane => {
-                self.active_tab_pane_group().update(ctx, |pane_group, ctx| {
-                    pane_group.add_pane_with_direction(
-                        Direction::Right,
-                        pane,
-                        true, /* focus_new_pane */
-                        ctx,
-                    );
-                });
-            }
-        }
-    }
-
     fn attach_path_as_context(&mut self, path: PathBuf, ctx: &mut ViewContext<Self>) {
         let Some(view) = self.active_session_view(ctx) else {
             log::warn!("No active terminal view session when trying to attach path as context");

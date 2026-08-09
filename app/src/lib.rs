@@ -94,8 +94,6 @@ pub mod channel;
 pub mod editor;
 pub mod features;
 pub mod input_suggestions;
-#[cfg(feature = "integration_tests")]
-pub mod integration_testing;
 pub mod keyboard;
 pub mod launch_configs;
 pub mod pane_group;

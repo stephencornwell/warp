@@ -13,7 +13,6 @@ use super::{
     keybindings::KeybindingsView,
     main_page::MainSettingsPageView,
     privacy_page::PrivacyPageView,
-    show_blocks_view::ShowBlocksView,
     SettingsSection,
 };
 use crate::{

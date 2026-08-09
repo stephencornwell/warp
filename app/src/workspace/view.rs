@@ -8931,12 +8931,6 @@ impl Workspace {
         // Telemetry whenever tabs actually closed, not when confirmation dialog comes up.
         if tabs_closed {
             ctx.dispatch_global_action("workspace:save_app", ());
-            send_telemetry_from_ctx!(
-                TelemetryEvent::TabOperations {
-                    action: TabTelemetryAction::CloseTab,
-                },
-                ctx
-            );
         }
     }
 
@@ -8961,12 +8955,6 @@ impl Workspace {
 
         // Telemetry whenever tabs actually closed, not when confirmation dialog comes up.
         if tabs_closed {
-            send_telemetry_from_ctx!(
-                TelemetryEvent::TabOperations {
-                    action: TabTelemetryAction::CloseOtherTabs,
-                },
-                ctx
-            );
         }
     }
 
@@ -8998,12 +8986,6 @@ impl Workspace {
         if tabs_closed {
             match direction {
                 TabMovement::Right if self.active_tab_index > index => {
-                    send_telemetry_from_ctx!(
-                        TelemetryEvent::TabOperations {
-                            action: TabTelemetryAction::CloseTabsToRight,
-                        },
-                        ctx
-                    );
                 }
                 _ => (),
             }
@@ -9187,13 +9169,6 @@ impl Workspace {
         source: AddTabWithShellSource,
         ctx: &mut ViewContext<Self>,
     ) {
-        send_telemetry_from_ctx!(
-            TelemetryEvent::AddTabWithShell {
-                source,
-                shell: shell.telemetry_value()
-            },
-            ctx
-        );
         self.add_new_session_tab_with_default_mode(
             NewSessionSource::Tab,
             Some(ctx.window_id()),
@@ -10614,19 +10589,8 @@ impl Workspace {
                         );
                     }
                 }
-                send_telemetry_from_ctx!(
-                    TelemetryEvent::NotificationsRequestPermissionsOutcome { outcome },
-                    ctx
-                );
             });
 
-            send_telemetry_from_ctx!(
-                TelemetryEvent::NotificationPermissionsRequested {
-                    source: NotificationsTurnedOnSource::Settings,
-                    trigger: None
-                },
-                ctx
-            );
         }
     }
 
@@ -11316,22 +11280,10 @@ impl Workspace {
             }
             SettingsViewEvent::OpenAIFactCollection => {
                 self.open_ai_fact_collection_pane(Some(Direction::Right), None, ctx);
-                send_telemetry_from_ctx!(
-                    TelemetryEvent::KnowledgePaneOpened {
-                        entrypoint: KnowledgePaneEntrypoint::Settings,
-                    },
-                    ctx
-                );
             }
             SettingsViewEvent::OpenMCPServerCollection => {
                 self.show_settings_with_section(Some(SettingsSection::MCPServers), ctx);
 
-                send_telemetry_from_ctx!(
-                    TelemetryEvent::MCPServerCollectionPaneOpened {
-                        entrypoint: MCPServerCollectionPaneEntrypoint::Settings,
-                    },
-                    ctx
-                );
             }
             SettingsViewEvent::OpenLspLogs { log_path } => {
                 self.open_lsp_logs(log_path, ctx);

@@ -5006,12 +5006,6 @@ impl PaneGroup {
             .collect()
     }
 
-    pub fn code_diff_views(&self, ctx: &AppContext) -> Vec<ViewHandle<CodeDiffView>> {
-        self.panes_of::<CodeDiffPane>()
-            .map(|p| p.diff_view(ctx))
-            .collect()
-    }
-
     /// Get all terminal CWDs for this pane group.
     /// This is used by the Workspace to refresh the active directories model.
     pub fn terminal_view_working_directories<'a>(

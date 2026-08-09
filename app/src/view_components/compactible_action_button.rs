@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
 use crate::{
-    ai::blocklist::inline_action::inline_action_icons::icon_size,
     ui_components::icons::Icon,
     view_components::action_button::{
         ActionButton, ActionButtonTheme, AdjoinedSide, ButtonSize, KeystrokeSource,
@@ -223,7 +222,7 @@ pub fn render_expansion_icon(
         )
         .finish(),
     )
-    .with_width(icon_size(app))
-    .with_height(icon_size(app))
+    .with_width(appearance.ui_font_size())
+    .with_height(appearance.ui_font_size())
     .finish()
 }

@@ -1938,26 +1938,6 @@ impl TerminalView {
     /// the state of this terminal. If this terminal view has an active input
     /// editor, other terminals should match those contents.
     /// Otherwise, they should just start syncing.
-    fn is_nested_cloud_mode(&self, app: &AppContext) -> bool {
-        if !self.is_ambient_agent_session(app) {
-            return false;
-        }
-
-        let Some(pane_stack) = self
-            .pane_stack
-            .as_ref()
-            .and_then(|handle| handle.upgrade(app))
-        else {
-            return false;
-        };
-
-        pane_stack
-            .as_ref(app)
-            .entries()
-            .iter()
-            .position(|(_, view)| view.id() == self.view_id)
-            .is_some_and(|index| index > 0)
-    }
 
     pub fn create_sync_event_based_on_terminal_state(&self, app_ctx: &AppContext) -> SyncEvent {
         if !matches!(
@@ -2056,8 +2036,6 @@ impl TerminalView {
         colors: List,
         model_event_sender: Option<SyncSender<persistence::ModelEvent>>,
         current_prompt: ModelHandle<PromptType>,
-        initial_input_config: Option<InputConfig>,
-        conversation_restoration: Option<ConversationRestorationInNewPaneType>,
         inactive_pty_reads_rx: Option<async_broadcast::InactiveReceiver<Arc<Vec<u8>>>>,
         is_cloud_mode: bool,
         ctx: &mut ViewContext<Self>,
@@ -2200,18 +2178,10 @@ impl TerminalView {
                 size_info,
                 menu_positioning_provider,
                 current_prompt.clone(),
-                ai_controller.clone(),
-                ai_context_model.clone(),
-                ai_input_model.clone(),
-                ai_action_model.clone(),
-                cli_subagent_controller.clone(),
                 terminal_view_id,
                 None, // current_repo_path - will be set when CWD is determined
                 model_events_handle.clone(),
-                agent_view_controller.clone(),
-                ambient_agent_view_model.clone(),
                 active_session.clone(),
-                ephemeral_message_model.clone(),
                 ctx,
             )
         });
@@ -2811,44 +2781,8 @@ impl TerminalView {
         self.block_completed_callbacks.push(Box::new(callback));
     }
 
-    fn set_pending_cloud_mode_start_callback(
-        &mut self,
-        callback: TerminalViewCallback,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        self.clear_pending_cloud_mode_start_callback();
-        self.pending_cloud_mode_start_callback = Some(callback);
 
-        self.pending_cloud_mode_start_abort_handle = Some(ctx.spawn_abortable(
-            // Reuse the same timeout as agent-view confirmation prompts so a pending cloud-mode
-            // start cannot outlive the user-visible confirmation window semantics.
-            Timer::after(ENTER_OR_EXIT_CONFIRMATION_WINDOW),
-            |me, _, _ctx| {
-                me.pending_cloud_mode_start_callback = None;
-                me.pending_cloud_mode_start_abort_handle = None;
-            },
-            |_, _| (),
-        ));
-    }
 
-    fn clear_pending_cloud_mode_start_callback(&mut self) {
-        if let Some(handle) = self.pending_cloud_mode_start_abort_handle.take() {
-            handle.abort();
-        }
-        self.pending_cloud_mode_start_callback = None;
-    }
-
-    fn maybe_run_pending_cloud_mode_start_callback(&mut self, ctx: &mut ViewContext<Self>) {
-        let Some(callback) = self.pending_cloud_mode_start_callback.take() else {
-            return;
-        };
-
-        if let Some(handle) = self.pending_cloud_mode_start_abort_handle.take() {
-            handle.abort();
-        }
-
-        callback(self, ctx);
-    }
 
 
 
@@ -3006,16 +2940,6 @@ impl TerminalView {
 
     /// Returns `None` for local sessions, `Some("user@hostname")` for remote.
     /// Used to key per-host plugin install failure tracking.
-    fn active_session_remote_host<C: ModelAsRef>(&self, ctx: &C) -> Option<String> {
-        self.active_block_session_id().and_then(|session_id| {
-            let session = self.sessions.as_ref(ctx).get(session_id)?;
-            if session.is_local() {
-                None
-            } else {
-                Some(format!("{}@{}", session.user(), session.hostname()))
-            }
-        })
-    }
 
     /// Returns whether or not the active session is a local session.  Returns
     /// None if there is no active session.
@@ -3140,15 +3064,6 @@ impl TerminalView {
         self.is_focused_and_active = true;
     }
 
-    fn contains_restored_remote_blocks(&self) -> bool {
-        !self
-            .model
-            .lock()
-            .block_list()
-            .blocks()
-            .iter()
-            .all(|block| block.restored_block_was_local().unwrap_or(true))
-    }
 
     fn maybe_report_focus_out(&mut self, ctx: &mut ViewContext<Self>) {
         if self.should_report_focus(ctx) && self.is_focused_and_active {
@@ -4133,49 +4048,9 @@ impl TerminalView {
     }
 
     /// Util method to update the ssh block, with a lock
-    fn update_long_running_ssh_block_with_lock(&self, f: impl FnOnce(&mut Block)) -> bool {
-        if let Some(block_id) = self.warpify_state.block_id() {
-            if let Some(block) = self
-                .model
-                .lock()
-                .block_list_mut()
-                .mut_block_from_id(&block_id)
-            {
-                f(block);
-                return true;
-            }
-        }
-        false
-    }
 
-    fn cancel_bootstrap_workflow(&mut self, ctx: &mut ViewContext<Self>) {
-        self.clear_ssh_blocks(ctx);
-        self.update_long_running_ssh_block_with_lock(|block| {
-            block.unhide();
-        });
-        self.warpify_state.delete_state();
-        ctx.notify();
-    }
 
-    fn remove_ssh_block_by_id(&mut self, view_id: EntityId) {
-        self.model
-            .lock()
-            .block_list_mut()
-            .remove_rich_content(view_id);
-    }
 
-    fn clear_ssh_blocks(&mut self, ctx: &mut ViewContext<Self>) {
-        self.dismiss_warpify_banner(&RememberForWarpification::DoNotRememberSSHHost, ctx);
-        if let Some(ssh_block) = self.warpify_state.ssh_block_state() {
-            let view_id = ssh_block.get_block_view_id();
-
-            self.remove_ssh_block_by_id(view_id);
-
-            self.redetermine_global_focus(ctx);
-
-            self.warpify_state.clear_ssh_block_state();
-        }
-    }
 
     fn insert_most_recent_command_correction(&mut self, ctx: &mut ViewContext<Self>) {
         if let Some(most_recent_command_correction) = self.most_recent_command_correction.as_ref() {
@@ -4743,15 +4618,6 @@ impl TerminalView {
         }
     }
 
-    fn active_block_is_considered_remote(&self, app: &AppContext) -> bool {
-        let model = self.model.lock();
-        let active_block = model.block_list().active_block();
-        self.is_block_considered_remote(
-            active_block.session_id(),
-            Some(&active_block.command_to_string()),
-            app,
-        )
-    }
 
     /// Returns true if the block is considered remote.
     ///
@@ -4760,74 +4626,6 @@ impl TerminalView {
     ///
     /// For some organizations, we accept a regex list that we run against commands to
     /// further make the determination.
-    fn is_block_considered_remote(
-        &self,
-        session_id: Option<SessionId>,
-        command: Option<&str>,
-        app: &AppContext,
-    ) -> bool {
-        let is_warpified_remote = session_id
-            .map(|id| {
-                self.sessions
-                    .as_ref(app)
-                    .get(id)
-                    .map(|session| !session.is_local())
-                    .unwrap_or_default()
-            })
-            .unwrap_or_default();
-
-        if is_warpified_remote {
-            return true;
-        }
-
-        // If there's a command present and this user is subject to the regex list policy from their
-        // organization, check the commnand against the regex list.
-
-        let Some(command) = command else {
-            return false;
-        };
-
-        if UserWorkspaces::as_ref(app).is_ai_allowed_in_remote_sessions() {
-            // We don't check any regexes if the user is allowed to run AI in remote sessions.
-            return false;
-        }
-
-        let remote_session_regex_list = UserWorkspaces::as_ref(app).get_remote_session_regex_list();
-
-        // First check if the command matches any of the regexes in the list.
-        if remote_session_regex_list
-            .iter()
-            .any(|regex| regex.is_match(command))
-        {
-            return true;
-        }
-
-        // Then check if there's an alias for the top level command that matches the regex.
-        let Some(session_id) = session_id else {
-            return false;
-        };
-        let Some(session) = self.sessions.as_ref(app).get(session_id) else {
-            return false;
-        };
-        let escape_char = session.shell_family().escape_char();
-        let Some(top_level_command) =
-            warp_completer::parsers::simple::top_level_command(command, escape_char)
-        else {
-            return false;
-        };
-        let Some(alias) = session.alias_value(top_level_command.as_str()) else {
-            return false;
-        };
-
-        if remote_session_regex_list
-            .iter()
-            .any(|regex| regex.is_match(alias))
-        {
-            return true;
-        }
-
-        false
-    }
 
     // Abort any pending prompt or code suggestions, which may now be irrelevant.
 
@@ -6528,17 +6326,6 @@ impl TerminalView {
         }
     }
 
-    fn write_init_subshell_bytes_to_pty(
-        &mut self,
-        shell_type: Option<ShellType>,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        self.clear_line_editor_and_write_to_pty(
-            init_subshell_command(shell_type, &[], ctx).into_bytes(),
-            ctx,
-        );
-        self.write_to_pty(vec![escape_sequences::C0::CR], ctx);
-    }
 
     /// If a command correction exists, generate the command correction banner.
     fn after_command_correction_generation(
@@ -6682,16 +6469,10 @@ impl TerminalView {
     /// Marks this terminal to enter agent view once pending setup commands
     /// finish. Called from `pane_tree_from_template_recursive` when the tab
     /// config has both commands and `PaneMode::Agent`.
-    pub fn set_enter_agent_view_after_pending_commands(&mut self) {
-        self.enter_agent_view_after_pending_commands = true;
-    }
 
     /// Clears the deferred agent view entry flag. Called by the workspace
     /// during onboarding to keep the session in terminal mode for the
     /// guided tutorial.
-    pub fn clear_enter_agent_view_after_pending_commands(&mut self) {
-        self.enter_agent_view_after_pending_commands = false;
-    }
 
     #[cfg(not(target_family = "wasm"))]
     pub(super) fn on_pty_spawn_failed(

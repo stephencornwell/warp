@@ -87,7 +87,6 @@ use super::recorder;
 use super::shell::ShellStarter;
 use super::{event_loop::EventLoop, shell::ShellStarterSource};
 
-use crate::server::server_api::ServerApiProvider;
 #[cfg(unix)]
 use {
     super::terminal_attributes::TerminalAttributesPoller,
@@ -1439,44 +1438,6 @@ impl TerminalManager {
                     );
                 });
 
-                // Stream historical agent conversations so viewers have conversation and task context.
-                if FeatureFlag::AgentSharedSessions.is_enabled() {
-                    Self::stream_historical_agent_conversations(&terminal_view, &model, ctx);
-                }
-
-                let session_id_for_link = *session_id;
-
-                // Read task_id lazily so we still pick up a server-assigned
-                // task_id that arrived after the user clicked share.
-                let task_id = selected_conversation_id.and_then(|conversation_id| {
-                    BlocklistAIHistoryModel::as_ref(ctx)
-                        .conversation(&conversation_id)
-                        .and_then(|c| c.task_id())
-                });
-
-                if let Some(task_id) = task_id {
-                    let ai_client = ServerApiProvider::as_ref(ctx).get_ai_client();
-                    terminal_view.update(ctx, |_view, ctx| {
-                        ctx.spawn(
-                            async move {
-                                ai_client
-                                    .update_agent_task(
-                                        task_id,
-                                        None,
-                                        Some(session_id_for_link),
-                                        None,
-                                        None,
-                                    )
-                                    .await
-                            },
-                            move |_view, result, _ctx| {
-                                if let Err(e) = result {
-                                    log::warn!("Failed to link shared session to Oz task: {e}");
-                                }
-                            },
-                        );
-                    });
-                }
             }
             NetworkEvent::FailedToCreateSharedSession {
                 reason,

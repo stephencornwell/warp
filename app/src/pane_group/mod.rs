@@ -635,9 +635,6 @@ pub enum Event {
     OpenLspLogs {
         log_path: PathBuf,
     },
-    ShowCloudAgentCapacityModal {
-        variant: crate::workspace::view::cloud_agent_capacity_modal::CloudAgentCapacityModalVariant,
-    },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

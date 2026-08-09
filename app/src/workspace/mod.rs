@@ -90,7 +90,6 @@ pub fn init(app: &mut AppContext) {
     tab_configs::session_config_modal::init(app);
     view::launch_modal::oz_launch::init(app);
     view::openwarp_launch_modal::init(app);
-    view::cloud_agent_capacity_modal::init(app);
     view::global_search::view::GlobalSearchView::init(app);
     header_toolbar_editor::init(app);
 

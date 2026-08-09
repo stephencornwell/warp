@@ -1,11 +1,6 @@
 use super::{
-    AgentOnboardingVersion, AskAISource, ContextMenuAction, OnboardingIntention, OnboardingVersion,
-    TerminalAction,
+    ContextMenuAction, TerminalAction,
 };
-use crate::ai::predict::prompt_suggestions::ACCEPT_PROMPT_SUGGESTION_KEYBINDING;
-use crate::terminal::shared_session::SharedSessionActionSource;
-use crate::terminal::ssh::error::{SshErrorBlockAction, SSH_ERROR_BLOCK_VISIBLE_KEY};
-use crate::terminal::view::passive_suggestions::PromptSuggestionResolution;
 
 use crate::settings_view::flags;
 use crate::terminal::input::{
@@ -24,7 +19,6 @@ use crate::{
         escape_sequences::{self, EscCodes},
         selection::SelectionDirection,
     },
-    terminal::shared_session::SharedSessionStatus,
     terminal::TerminalView,
     util::bindings::CustomAction,
 };
@@ -298,61 +292,6 @@ pub fn init(app: &mut AppContext) {
     ]);
 
     app.register_editable_bindings([
-        // Ctrl-G: open rich input for CLI agents before the keystroke reaches the PTY.
-        EditableBinding::new(
-            OPEN_CLI_AGENT_RICH_INPUT_KEYBINDING,
-            "Toggle CLI Agent Rich Input",
-            TerminalAction::OpenCLIAgentRichInput,
-        )
-        .with_key_binding("ctrl-g")
-        .with_context_predicate(
-            id!("Terminal")
-                & !id!("IMEOpen")
-                & (id!("LongRunningCommand") | id!("AltScreen"))
-                & id!(flags::CLI_AGENT_FOOTER_ENABLED)
-                & id!(flags::CLI_AGENT_RICH_INPUT_CHIP_ENABLED),
-        ),
-        EditableBinding::new(
-            "terminal:warpify_subshell",
-            "Warpify subshell",
-            TerminalAction::TriggerSubshellBootstrap,
-        )
-        .with_key_binding("ctrl-i")
-        .with_context_predicate(
-            id!("Terminal") & !id!("IMEOpen") & id!("LongRunningCommand") & id!("SubshellBanner"),
-        ),
-        EditableBinding::new(
-            "terminal:warpify_ssh_session",
-            "Warpify ssh session",
-            TerminalAction::WarpifySSHSession,
-        )
-        .with_key_binding("ctrl-i")
-        .with_context_predicate(
-            id!("Terminal")
-                & !id!("IMEOpen")
-                & id!("LongRunningCommand")
-                & id!("SshWarpificationBanner"),
-        ),
-        EditableBinding::new(
-            ACCEPT_PROMPT_SUGGESTION_KEYBINDING,
-            "Accept Prompt Suggestion",
-            TerminalAction::ResolvePromptSuggestion(PromptSuggestionResolution::Accept {
-                interaction_source: InteractionSource::Keybinding,
-            }),
-        )
-        .with_mac_key_binding(if FeatureFlag::AgentView.is_enabled() {
-            "ctrl-enter"
-        } else {
-            "cmd-enter"
-        })
-        .with_linux_or_windows_key_binding(if FeatureFlag::AgentView.is_enabled() {
-            "alt-shift-enter"
-        } else {
-            "ctrl-shift-enter"
-        })
-        .with_context_predicate(
-            id!("Terminal") & !id!("IMEOpen") & id!(flags::HAS_PENDING_PROMPT_SUGGESTION),
-        ),
         EditableBinding::new(
             CANCEL_COMMAND_KEYBINDING,
             if cfg!(windows) {

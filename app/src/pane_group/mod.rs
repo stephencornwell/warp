@@ -1,7 +1,6 @@
 #[cfg(feature = "local_fs")]
 use crate::code::editor_management::CodeSource;
 use crate::code::view::CodeViewAction;
-use crate::notebooks::file::FileNotebookView;
 use crate::pane_group::focus_state::PaneGroupFocusEvent;
 use crate::pane_group::pane::get_started_pane::GetStartedPane;
 use crate::pane_group::pane::welcome_pane::WelcomePane;
@@ -1538,13 +1537,9 @@ impl PaneGroup {
                         notebook_id,
                         settings,
                     } => Box::new(NotebookPane::restore(notebook_id, &settings, ctx)?),
-                    NotebookPaneSnapshot::LocalFileNotebook { path } => Box::new(FilePane::new(
-                        path,
-                        None,
-                        #[cfg(feature = "local_fs")]
-                        None,
-                        ctx,
-                    )),
+                    NotebookPaneSnapshot::LocalFileNotebook { .. } => {
+                        return Err(anyhow::anyhow!("local file notebooks are no longer supported"))
+                    }
                 };
 
                 let pane_id = pane.as_pane().id();
@@ -6090,12 +6085,6 @@ impl PaneGroup {
             .collect()
     }
 
-    pub fn file_notebook_views(&self, ctx: &AppContext) -> Vec<ViewHandle<FileNotebookView>> {
-        self.panes_of::<FilePane>()
-            .map(|p| p.file_view(ctx))
-            .collect()
-    }
-
     /// Get all terminal CWDs for this pane group.
     /// This is used by the Workspace to refresh the active directories model.
     pub fn terminal_view_working_directories<'a>(
@@ -6140,16 +6129,7 @@ impl PaneGroup {
         &'a self,
         ctx: &'a AppContext,
     ) -> impl Iterator<Item = (EntityId, Option<String>)> + 'a {
-        self.file_notebook_views(ctx)
-            .into_iter()
-            .map(move |file_view| {
-                let id = file_view.id();
-                let local_path = file_view
-                    .as_ref(ctx)
-                    .local_path()
-                    .map(|p| p.display().to_string());
-                (id, local_path)
-            })
+        std::iter::empty()
     }
 
     #[cfg(test)]

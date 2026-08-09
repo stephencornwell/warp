@@ -66,7 +66,7 @@ use crate::code::editor_management::CodeManager;
 use crate::code::editor_management::CodeSource;
 use crate::launch_configs::launch_config::WindowTemplate;
 use crate::pane_group::{
-    Direction as PaneGroupDirection, EnvironmentManagementPane, NetworkLogPane, PaneGroup, PaneId,
+    Direction as PaneGroupDirection, NetworkLogPane, PaneGroup, PaneId,
     TerminalPaneId,
 };
 use crate::quit_warning::UnsavedStateSummary;
@@ -76,7 +76,6 @@ use crate::server::network_log_pane_manager::NetworkLogPaneManager;
 use crate::settings::{
     CodeSettings, CodeSettingsChangedEvent, CtrlTabBehavior, InputModeSettings,
 };
-use crate::settings_view::environments_page::EnvironmentsPage;
 use crate::settings_view::pane_manager::SettingsPaneManager;
 use crate::settings_view::{SettingsSection, SettingsView, SettingsViewEvent};
 #[cfg(all(target_os = "windows", feature = "local_tty"))]
@@ -115,8 +114,6 @@ use crate::menu::{
 };
 use crate::modal::{Modal, ModalEvent, ModalViewState};
 use crate::network::{NetworkStatus, NetworkStatusEvent};
-#[cfg(feature = "local_fs")]
-use crate::pane_group::FilePane;
 use crate::pane_group::{
     self, AnyPaneContent, Direction, NewTerminalOptions, PanesLayout,
     TabBarHoverIndex,
@@ -6484,27 +6481,6 @@ impl Workspace {
         self.active_tab_pane_group().update(ctx, |pane_group, ctx| {
             pane_group
                 .add_pane_with_direction(direction, pane, true /* focus_new_pane */, ctx);
-        });
-    }
-
-    /// Open the Environment Management pane in a split pane (default direction is right).
-    pub fn open_environment_management_pane(
-        &mut self,
-        direction: Option<Direction>,
-        mode: EnvironmentsPage,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        let direction = direction.unwrap_or(Direction::Right);
-        let environments_page_view = self.active_tab_pane_group().update(ctx, |pane_group, ctx| {
-            let pane = EnvironmentManagementPane::new(ctx);
-            let view = pane.environments_page_view(ctx);
-            pane_group
-                .add_pane_with_direction(direction, pane, true /* focus_new_pane */, ctx);
-            view
-        });
-        // Update page after the pane is added so focus works correctly
-        environments_page_view.update(ctx, |view, ctx| {
-            view.update_page(mode, ctx);
         });
     }
 

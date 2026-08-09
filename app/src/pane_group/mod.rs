@@ -3972,13 +3972,7 @@ impl PaneGroup {
     }
 
     pub fn shared_session_view_ids(&self, ctx: &AppContext) -> Vec<EntityId> {
-        self.panes_of::<TerminalPane>()
-            .filter_map(|p| {
-                let terminal_view = p.terminal_view(ctx);
-                let is_shared = terminal_view.as_ref(ctx).is_sharing_session();
-                is_shared.then(|| terminal_view.id())
-            })
-            .collect()
+        Vec::new()
     }
 
     /// Filters out any hidden panes that aren't yet deleted (due to undo functionality).
@@ -4006,11 +4000,7 @@ impl PaneGroup {
         &'a self,
         ctx: &'a AppContext,
     ) -> impl Iterator<Item = (EntityId, Option<String>)> + 'a {
-        self.code_diff_views(ctx).into_iter().map(move |diff_view| {
-            let id = diff_view.id();
-            let local_path = diff_view.as_ref(ctx).primary_file_path(ctx);
-            (id, local_path)
-        })
+        std::iter::empty()
     }
 
     pub fn file_notebook_local_paths<'a>(
@@ -4025,30 +4015,6 @@ impl PaneGroup {
         self.terminal_with_open_share_session_modal.is_some()
     }
 
-    #[cfg(test)]
-
-    fn handle_focus_change(&mut self, ctx: &mut ViewContext<Self>) {
-        for pane_index in 0..self.pane_count() {
-            if let Some(content) = self.pane_by_index(pane_index) {
-                if content.has_application_focus(ctx) {
-                    if let Some(pane_id) = self.pane_id_from_index(pane_index) {
-                        // Mark the pane as the focused pane _without_ moving
-                        // application focus to it.
-                        //
-                        // DO NOT CHANGE FALSE TO TRUE HERE!  It can create an
-                        // infinite loop of panes getting focused.  This
-                        // codepath should only be invoked when focus has
-                        // already changed, so we only want to update our own
-                        // state, and not manipulate application focus.
-                        self.focus_pane(pane_id, false, ctx);
-                        self.update_pane_history(pane_id);
-                        ctx.emit(Event::PaneFocused);
-                    };
-                    break;
-                }
-            }
-        }
-    }
 }
 
 impl Entity for PaneGroup {
@@ -4094,7 +4060,7 @@ impl TypedActionView for PaneGroup {
                 target_pane_id,
                 direction,
             } => self.move_pane(*id, *target_pane_id, *direction, ctx),
-            HandleFocusChange => self.handle_focus_change(ctx),
+            HandleFocusChange => {}
             FocusTerminalView(terminal_view_id) => self.focus_terminal_view(*terminal_view_id, ctx),
         }
     }
@@ -4163,28 +4129,6 @@ impl View for PaneGroup {
         column.add_child(Shrinkable::new(1., main_content).finish());
 
         let mut stack = Stack::new().with_child(column.finish());
-
-        if FeatureFlag::CreatingSharedSessions.is_enabled()
-            && self.terminal_with_open_share_session_modal.is_some()
-        {
-            stack.add_child(ChildView::new(&self.share_session_modal).finish());
-        } else if self
-            .terminal_with_shared_session_role_change_modal_open
-            .is_some()
-        {
-            stack.add_child(ChildView::new(&self.shared_session_role_change_modal).finish());
-        }
-
-        // Render the summarization cancel dialog at tab level when open.
-        if let Some(terminal_pane_id) = self.terminal_with_open_summarization_dialog {
-            if let Some(terminal_view) = self.terminal_view_from_pane_id(terminal_pane_id, app) {
-                if let Some(dialog_handle) = terminal_view.read(app, |view, ctx| {
-                    view.summarization_cancel_dialog_handle(ctx)
-                }) {
-                    stack.add_child(ChildView::new(&dialog_handle).finish());
-                }
-            }
-        }
 
         stack.finish()
     }

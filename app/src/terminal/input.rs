@@ -8912,184 +8912,24 @@ impl View for Input {
 
     fn keymap_context(&self, app: &AppContext) -> warpui::keymap::Context {
         let mut ctx = Self::default_keymap_context();
-        let ai_settings = AISettings::as_ref(app);
-
         if self.is_voltron_open {
             ctx.set.insert("VoltronActive");
         }
-
-        if self.ai_input_model.as_ref(app).is_ai_input_enabled() {
-            ctx.set.insert("AIInput");
-        }
-
-        if InputSettings::as_ref(app).is_universal_developer_input_enabled(app) {
-            ctx.set.insert("UniversalDeveloperInput");
-        }
-
-        if self.ai_input_model.as_ref(app).is_ai_input_enabled() {
-            ctx.set.insert(flags::AGENT_MODE_INPUT);
-        } else {
-            ctx.set.insert(flags::TERMINAL_MODE_INPUT);
-        }
-
-        if self.ai_input_model.as_ref(app).is_input_type_locked() {
-            ctx.set.insert(flags::LOCKED_INPUT);
-        }
-
-        // Keep Input's keymap context in sync with TerminalView's context for AgentView-related
-        // bindings (e.g. cmd-i).
-        if FeatureFlag::AgentView.is_enabled() {
-            ctx.set.insert(flags::AGENT_VIEW_ENABLED);
-            let agent_view_state = self.agent_view_controller.as_ref(app).agent_view_state();
-            if agent_view_state.is_fullscreen() {
-                ctx.set.insert(flags::ACTIVE_AGENT_VIEW);
-            } else if agent_view_state.is_inline() {
-                ctx.set.insert(flags::ACTIVE_INLINE_AGENT_VIEW);
-            }
-        }
-
         if self.buffer_text(app).is_empty() {
             ctx.set.insert(flags::EMPTY_INPUT_BUFFER);
         }
-
-        if ai_settings.is_any_ai_enabled(app) {
-            ctx.set.insert(flags::IS_ANY_AI_ENABLED);
+        if AppEditorSettings::as_ref(app).vim_mode_enabled() {
+            ctx.set.insert("VimModeEnabled");
         }
-
+        if let Some(VimMode::Normal) = self.editor.as_ref(app).vim_mode(app) {
+            ctx.set.insert("VimNormalMode");
+        }
         if *InputSettings::as_ref(app)
             .enable_slash_commands_in_terminal
             .value()
         {
             ctx.set.insert(flags::SLASH_COMMANDS_IN_TERMINAL_FLAG);
         }
-
-        if ai_settings.is_ai_autodetection_enabled(app) {
-            ctx.set.insert(flags::AI_INPUT_AUTODETECTION_FLAG);
-        }
-
-        if ai_settings.is_code_suggestions_enabled(app) {
-            ctx.set.insert(flags::CODE_SUGGESTIONS_FLAG);
-        }
-
-        if let Some(workflow) = self.workflows_state.selected_workflow_state.clone() {
-            if workflow.should_show_more_info_view {
-                ctx.set.insert("WorkflowInfoBox");
-            }
-        }
-
-        let is_profile_model_selector_open = self.should_show_universal_developer_input(app)
-            && self
-                .universal_developer_input_button_bar
-                .as_ref(app)
-                .is_profile_model_selector_open(app);
-        let is_agent_footer_model_selector_open = self
-            .agent_input_footer
-            .as_ref(app)
-            .is_model_selector_open(app);
-        let is_v2_model_selector_open = self
-            .agent_input_footer
-            .as_ref(app)
-            .is_v2_model_selector_open(app);
-        let is_v2_host_selector_open = self
-            .host_selector()
-            .is_some_and(|view| view.as_ref(app).is_menu_open());
-        let is_v2_harness_selector_open = self
-            .harness_selector()
-            .is_some_and(|view| view.as_ref(app).is_menu_open());
-        let is_v2_environment_selector_open = self
-            .agent_input_footer
-            .as_ref(app)
-            .is_v2_environment_selector_open(app);
-        if is_profile_model_selector_open
-            || is_agent_footer_model_selector_open
-            || is_v2_model_selector_open
-            || is_v2_host_selector_open
-            || is_v2_harness_selector_open
-            || is_v2_environment_selector_open
-        {
-            ctx.set.insert("ProfileModelSelectorOpen");
-        }
-
-        if self.prompt_render_helper.has_open_chip_menu(app)
-            || self.agent_input_footer.as_ref(app).has_open_chip_menu(app)
-        {
-            ctx.set.insert("PromptChipMenuOpen");
-        }
-
-        if BlocklistAIHistoryModel::as_ref(app)
-            .all_live_conversations_for_terminal_view(self.terminal_view_id)
-            .any(|conversation| conversation.initial_user_query().is_some())
-        {
-            ctx.set.insert("ActiveAIConversationHasHistory");
-        }
-
-        if AppEditorSettings::as_ref(app).vim_mode_enabled() {
-            ctx.set.insert("VimModeEnabled");
-        }
-
-        if let Some(VimMode::Normal) = self.editor.as_ref(app).vim_mode(app) {
-            ctx.set.insert("VimNormalMode");
-        }
-
-        if matches!(
-            self.suggestions_mode_model.as_ref(app).mode(),
-            InputSuggestionsMode::AIContextMenu { .. }
-        ) {
-            ctx.set.insert("AIContextMenuOpen");
-        } else if self
-            .suggestions_mode_model
-            .as_ref(app)
-            .is_conversation_menu()
-        {
-            ctx.set.insert(flags::OPEN_INLINE_CONVERSATION_MENU);
-        }
-
-        if self
-            .buy_credits_banner
-            .as_ref(app)
-            .is_denomination_dropdown_open(app)
-        {
-            ctx.set.insert("BuyCreditsBannerOpen");
-        }
-
-        let model_lock = self.model.lock();
-        ctx.set
-            .insert(model_lock.shared_session_status().as_keymap_context());
-
-        if model_lock
-            .block_list()
-            .active_block()
-            .is_active_and_long_running()
-        {
-            ctx.set.insert("LongRunningCommand");
-        }
-
-        if model_lock.is_block_list_empty() {
-            ctx.set.insert("TerminalView_EmptyBlockList");
-        } else {
-            ctx.set.insert("TerminalView_NonEmptyBlockList");
-        }
-
-        // Only enable keybindings for passive code diffs when there is one pending in the
-        // blocklist that is undismissed (i.e. keybindings are shown in the banner/block).
-        // This is to prevent any keybinding conflicts (with actions such as split pane
-        // down on non-Macs).
-        let has_undismissed_passive_code_diff = model_lock
-            .block_list()
-            .last_non_hidden_ai_block_handle(app)
-            .is_some_and(|ai_block| {
-                let block = ai_block.as_ref(app);
-                block.is_passive_conversation(app)
-                    && block.find_undismissed_code_diff(app).is_some()
-            });
-        if has_undismissed_passive_code_diff {
-            ctx.set.insert(flags::PASSIVE_CODE_DIFF_KEYBINDINGS_ENABLED);
-        }
-
-        for (_, command) in self.slash_command_data_source.as_ref(app).active_commands() {
-            ctx.set.insert(command.name);
-        }
-
         ctx
     }
 

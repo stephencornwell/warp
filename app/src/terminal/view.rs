@@ -4376,16 +4376,6 @@ impl TerminalView {
                     footer.clear_warpify_mode(ctx);
                 });
                 self.hide_use_agent_footer_in_blocklist(ctx);
-                if matches!(block_completed_event.block_type, BlockType::User(_)) {
-                    // Close the rich input editor if it was open (side effects
-                    // like input config restore happen reactively).
-                    // The auto-toggle flag is irrelevant here because the
-                    // session is removed immediately afterwards.
-                    self.close_cli_agent_rich_input(CLIAgentRichInputCloseReason::Other, ctx);
-                    CLIAgentSessionsModel::handle(ctx).update(ctx, |sessions_model, ctx| {
-                        sessions_model.remove_session(self.view_id, ctx);
-                    });
-                }
 
                 let next_block_index = block_completed_event.block_index + BlockIndex::from(1);
 
@@ -4542,93 +4532,15 @@ impl TerminalView {
                         } else {
                             self.warpify_state.clear_pending_ssh_host();
 
-                            ctx.spawn(
-                                Timer::after(Duration::from_millis(
-                                    LONG_RUNNING_COMMAND_DURATION_MS,
-                                )),
-                                move |me, _, ctx| {
-                                    // Detect CLI agent and create session before
-                                    // showing the footer, so the session drives
-                                    // the footer rather than the other way around.
-                                    let detection = {
-                                        let model = me.model.lock();
-                                        me.detect_cli_agent_from_model(&model, ctx)
-                                    };
-                                    let view_id = me.view_id;
-                                    CLIAgentSessionsModel::handle(ctx).update(
-                                        ctx,
-                                        |sessions_model, ctx| match detection {
-                                            Some((agent, ref custom_command_prefix))
-                                                if !sessions_model
-                                                    .session(view_id)
-                                                    .is_some_and(|s| s.agent == agent) =>
-                                            {
-                                                let remote_host =
-                                                    me.active_session_remote_host(ctx);
-                                                sessions_model.set_session(
-                                                    view_id,
-                                                    CLIAgentSession {
-                                                        agent,
-                                                        status: CLIAgentSessionStatus::InProgress,
-                                                        session_context:
-                                                            CLIAgentSessionContext::default(),
-                                                        input_state: CLIAgentInputState::Closed,
-                                                        should_auto_toggle_input: *AISettings::as_ref(
-                                                            ctx,
-                                                        )
-                                                        .auto_open_rich_input_on_cli_agent_start,
-                                                        listener: None,
-                                                        plugin_version: None,
-                                                        remote_host,
-                                                        draft_text: None,
-                                                        custom_command_prefix: custom_command_prefix.clone(),
-                                                    },
-                                                    ctx,
-                                                );
-                                            }
-                                            _ => {}
-                                        },
-                                    );
-
-                                    // Codex doesn't use the sentinel-based plugin protocol,
-                                    // so create the listener proactively on command detection
-                                    // (rather than waiting for a SessionStart event).
-                                    if matches!(detection, Some((CLIAgent::Codex, _))) {
-                                        me.register_cli_agent_listener_without_session_start_event(
-                                            CLIAgent::Codex,
-                                            ctx,
-                                        );
-                                    }
-
-                                    me.maybe_show_use_agent_footer_in_blocklist(ctx);
-                                    me.maybe_auto_open_cli_agent_rich_input(ctx);
-                                    me.input.update(ctx, |input, ctx| {
-                                        input.universal_developer_input_button_bar().update(
-                                            ctx,
-                                            |bar, ctx| {
-                                                bar.update_segmented_control_disabled_state(ctx);
-                                            },
-                                        )
-                                    });
-                                    // Update agent view back button state when command becomes long-running
-                                    if FeatureFlag::AgentView.is_enabled()
-                                        && me.agent_view_controller.as_ref(ctx).is_fullscreen()
-                                    {
-                                        me.update_agent_view_back_button_state(ctx);
-                                        me.update_agent_view_pane_header(ctx);
-                                    }
-                                },
-                            );
                         }
                     }
-
+                }
                     self.maybe_insert_setup_command_blocks(block_id, ctx);
 
                     self.set_current_state(TerminalViewState::LongRunning, ctx);
                     ctx.emit(Event::BlockStarted {
                         is_for_in_band_command: *is_for_in_band_command,
                     });
-                }
             }
             ModelEvent::AfterBlockCompleted(AfterBlockCompletedEvent {
                 command_finished_to_precmd_delay,

@@ -1,6 +1,5 @@
 //! The model for maintaining global experiment state.
 
-use warp_core::errors::report_if_error;
 use std::collections::HashSet;
 
 use super::ServerExperiment;

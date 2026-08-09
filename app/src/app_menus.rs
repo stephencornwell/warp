@@ -1,4 +1,3 @@
-use warp_core::errors::report_if_error;
 use std::borrow::Cow;
 use std::fs::File;
 use std::path::PathBuf;

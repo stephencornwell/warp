@@ -1,9 +1,9 @@
-use warp_core::errors::report_if_error;
 // The code in this file is adapted from the alacritty_terminal crate under the
 // Apache license; see: crates/warp_terminal/src/model/LICENSE-ALACRITTY.
 
 //! TTY related functionality.
 use crate::terminal::bootstrap::raw_init_shell_script_for_shell;
+use warp_core::errors::report_if_error;
 use crate::terminal::cli_agent_sessions::event::current_protocol_version;
 use crate::terminal::local_tty::docker_sandbox::{
     DockerSandboxShellStarter, DOCKER_SANDBOX_HOME_DIR,

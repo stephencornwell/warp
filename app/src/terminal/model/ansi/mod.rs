@@ -9,7 +9,6 @@
 //! the terminal, executing actions as a result of CSI or OSC sequences,
 //! executing one of Warp's DCS hooks, etc. [`Handler`] should be implemented by
 //! an app-level model that updates the terminal's state accordingly.
-use warp_core::safe_error;
 mod ansi_c_decoder;
 mod dcs_hooks;
 mod handler;

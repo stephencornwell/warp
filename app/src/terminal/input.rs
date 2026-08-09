@@ -1268,13 +1268,6 @@ pub fn init(app: &mut AppContext) {
     ]);
 
     app.register_editable_bindings([EditableBinding::new(
-        "input:insert_network_logging_workflow",
-        "Show Warp network log",
-        WorkspaceAction::OpenNetworkLogPane,
-    )
-    .with_enabled(|| ContextFlag::NetworkLogConsole.is_enabled())]);
-
-    app.register_editable_bindings([EditableBinding::new(
         "input:clear_screen",
         "Clear screen",
         InputAction::ClearScreen,
@@ -1539,10 +1532,6 @@ impl Input {
                     // and we don't want to double-paste.
                     middle_click_paste: false,
                     allow_user_cursor_preference: true,
-                    #[cfg(not(target_family = "wasm"))]
-                    include_ai_context_menu: true,
-                    #[cfg(target_family = "wasm")]
-                    include_ai_context_menu: false,
                     delegate_paste_handling: true,
 
                     ..Default::default()
@@ -2396,67 +2385,9 @@ impl Input {
                 );
                 true
             }
-            InputSuggestionsMode::StaticWorkflowEnumSuggestions {
-                selected_ranges, ..
-            }
-            | InputSuggestionsMode::DynamicWorkflowEnumSuggestions {
-                selected_ranges, ..
-            } => {
-                let selected_ranges = selected_ranges.clone();
-                self.editor.update(ctx, |editor, ctx| {
-                    editor.select_and_replace(
-                        suggestion,
-                        selected_ranges.iter().cloned(),
-                        PlainTextEditorViewAction::AcceptCompletionSuggestion,
-                        ctx,
-                    );
-                });
-                true
-            }
-            InputSuggestionsMode::AIContextMenu { .. } => {
-                // AI context menu selection is handled separately
-                // For now, just close the menu
-                false
-            }
             InputSuggestionsMode::SlashCommands => {
                 // Slash commands selection is handled separately
                 // For now, just close the menu
-                false
-            }
-            InputSuggestionsMode::ConversationMenu => {
-                // Conversation menu selection is handled separately
-                false
-            }
-            InputSuggestionsMode::ModelSelector => {
-                // Model selector selection is handled separately
-                false
-            }
-            InputSuggestionsMode::ProfileSelector => {
-                // Profile selector selection is handled separately
-                false
-            }
-            InputSuggestionsMode::PromptsMenu => {
-                // Prompts menu selection is handled separately
-                false
-            }
-            InputSuggestionsMode::SkillMenu => {
-                // Skill menu selection is handled via InlineSkillSelectorView
-                false
-            }
-            InputSuggestionsMode::UserQueryMenu { .. } => {
-                // User query menu selection is handled separately
-                false
-            }
-            InputSuggestionsMode::InlineHistoryMenu { .. } => {
-                // Inline history menu selection is handled separately
-                false
-            }
-            InputSuggestionsMode::IndexedReposMenu => {
-                // Repos menu selection is handled separately
-                false
-            }
-            InputSuggestionsMode::PlanMenu { .. } => {
-                // Plan menu selection is handled via InlinePlanMenuView
                 false
             }
         }
@@ -2668,15 +2599,8 @@ impl Input {
     /// Asks the currently active inline menu whether the buffer should be restored on dismiss
     /// (defaulting to true for any inline menus that don't have specific behavior requirements for this decision).
     fn should_restore_buffer_on_inline_menu_dismiss(&self, ctx: &ViewContext<Self>) -> bool {
-        match self.suggestions_mode_model.as_ref(ctx).mode() {
-            // If the input is not being used as a search on the model menu
-            // we should not restore/revert the changes to the input on-dismiss.
-            InputSuggestionsMode::ModelSelector => self
-                .inline_model_selector_view
-                .as_ref(ctx)
-                .filter_results_by_input(),
-            _ => true,
-        }
+        let _ = ctx;
+        true
     }
 
     fn editor_escape(&mut self, ctx: &mut ViewContext<Self>) {

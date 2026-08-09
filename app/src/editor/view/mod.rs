@@ -8229,7 +8229,6 @@ impl View for EditorView {
             local_selection_data,
             remote_selections_data,
             self.cursor_display_override,
-            self.voice_input_toggle_key_code(ctx),
         )
         .with_input_editor_icons(
             &self.accept_autosuggestion_keybinding_view,

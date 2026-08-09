@@ -1488,17 +1488,6 @@ impl EditorElement {
             .finish()
     }
 
-    pub fn with_voice_input_cursor_icon(self, element: Box<dyn Element>) -> Self {
-        // If voice input is not active, don't render the icon.
-        if !self.view_snapshot.voice_input_state.is_active() {
-            return self;
-        }
-        Self {
-            voice_input_cursor_icon: Some(element),
-            ..self
-        }
-    }
-
     /// Takes into account whether or not we're in Vim mode to determine the cursor type.
     fn get_cursor_type(&self) -> CursorDisplayType {
         self.vim_mode

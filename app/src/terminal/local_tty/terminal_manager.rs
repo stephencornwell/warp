@@ -292,25 +292,6 @@ impl TerminalManager {
             ctx,
         );
 
-        let session_sharer_clone = session_sharer.clone();
-        ctx.subscribe_to_model(&SessionSettings::handle(ctx), move |_, event, ctx| {
-            if let SessionSettingsChangedEvent::HonorPS1 { .. } = event {
-                if !*SessionSettings::as_ref(ctx).honor_ps1 {
-                    // We don't need to send a WarpPrompt message here when turning off PS1 because this will be sent
-                    // as part of observing the warp prompt and sending messages on updates.
-                    return;
-                }
-                if let Some(network) = session_sharer_clone.borrow().as_ref() {
-                    network.update(ctx, |network, _| {
-                        network.send_active_prompt_update_if_changed(
-                            session_sharing_protocol::common::ActivePrompt::PS1,
-                        )
-                    });
-                }
-            }
-        });
-
-
         // Send input mode updates during session sharing.
         // When AgentView is enabled, we only send updates when in an active agent view.
         // For ambient agent sessions, input mode is controlled locally, so we skip sending updates.

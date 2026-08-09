@@ -2005,7 +2005,6 @@ impl PaneGroup {
             Some(self.focused_pane_id(ctx)),
             self.active_session_id(ctx),
             chosen_shell,
-            None, /* conversation_restoration */
             ctx,
         );
         ctx.emit(Event::AppStateChanged);
@@ -2023,7 +2022,6 @@ impl PaneGroup {
             Some(self.focused_pane_id(ctx)),
             self.active_session_id(ctx),
             chosen_shell,
-            None, /* conversation_restoration */
             DefaultSessionModeBehavior::Ignore,
             ctx,
         );
@@ -2046,7 +2044,6 @@ impl PaneGroup {
             Some(base_pane_id),
             base_session_id,
             chosen_shell,
-            None, /* conversation_restoration */
             ctx,
         );
         ctx.emit(Event::AppStateChanged);
@@ -2310,7 +2307,6 @@ impl PaneGroup {
         base_pane_id_for_split: Option<PaneId>,
         base_pane_id_for_context: Option<TerminalPaneId>,
         chosen_shell: Option<AvailableShell>,
-        conversation_restoration: Option<ConversationRestorationInNewPaneType>,
         ctx: &mut ViewContext<Self>,
     ) -> TerminalPaneId {
         self.add_session_with_default_session_mode_behavior(
@@ -2318,7 +2314,6 @@ impl PaneGroup {
             base_pane_id_for_split,
             base_pane_id_for_context,
             chosen_shell,
-            conversation_restoration,
             DefaultSessionModeBehavior::Apply,
             ctx,
         )
@@ -2330,17 +2325,9 @@ impl PaneGroup {
         base_pane_id_for_split: Option<PaneId>,
         base_pane_id_for_context: Option<TerminalPaneId>,
         chosen_shell: Option<AvailableShell>,
-        conversation_restoration: Option<ConversationRestorationInNewPaneType>,
         default_session_mode_behavior: DefaultSessionModeBehavior,
         ctx: &mut ViewContext<Self>,
     ) -> TerminalPaneId {
-        // If restoring a conversation, use its initial working directory if it exists
-        let startup_directory_from_conversation = conversation_restoration
-            .as_ref()
-            .and_then(|restoration| restoration.initial_working_directory())
-            .map(PathBuf::from)
-            .filter(|path| path.is_dir());
-
         let startup_directory = startup_directory_from_conversation.or_else(|| {
             let ignore_custom_startup_directory =
                 self.should_ignore_custom_startup_directory(&chosen_shell, ctx);
@@ -2363,7 +2350,6 @@ impl PaneGroup {
             base_pane_id_for_split,
             chosen_shell,
             startup_directory,
-            conversation_restoration,
             default_session_mode_behavior,
             ctx,
         )
@@ -2374,7 +2360,6 @@ impl PaneGroup {
         startup_directory: Option<PathBuf>,
         env_vars: HashMap<OsString, OsString>,
         chosen_shell: Option<AvailableShell>,
-        conversation_restoration: Option<ConversationRestorationInNewPaneType>,
         ctx: &mut ViewContext<Self>,
     ) -> (TerminalPane, ViewHandle<TerminalView>) {
         let uuid = Uuid::new_v4();
@@ -2390,7 +2375,7 @@ impl PaneGroup {
             IsSharedSessionCreator::No,
             resources,
             None,
-            conversation_restoration,
+            None,
             self.user_default_shell_unsupported_banner_model_handle
                 .clone(),
             view_bounds.size(),
@@ -2418,10 +2403,6 @@ impl PaneGroup {
 
             // Discard any child agent panes parented by this terminal view.
 
-            // Preserve conversations from terminal views before cleaning up the pane
-            BlocklistAIHistoryModel::handle(ctx).update(ctx, |history_model, _| {
-                history_model.mark_conversations_historical_for_terminal_view(terminal_view_id);
-            });
         }
 
         self.cleanup_closed_pane(pane_id, ctx);
@@ -3552,33 +3533,15 @@ impl PaneGroup {
         default_session_mode_behavior: DefaultSessionModeBehavior,
         ctx: &mut ViewContext<Self>,
     ) -> TerminalPaneId {
-        let should_immediately_enter_agent_view = matches!(
-            default_session_mode_behavior,
-            DefaultSessionModeBehavior::Apply
-        ) && conversation_restoration.is_none()
-            && AISettings::as_ref(ctx).default_session_mode(ctx) == DefaultSessionMode::Agent;
-
         let (pane_data, view) = self.create_terminal_pane_data(
             startup_directory,
             HashMap::new(),
             chosen_shell,
-            conversation_restoration,
             ctx,
         );
         let new_pane_id = pane_data.terminal_pane_id();
 
         let _ = self.add_pane(direction, base_pane_id, Box::new(pane_data), true, ctx);
-
-        // Enter agent view if default session mode is Agent and AI is enabled
-        if should_immediately_enter_agent_view {
-            view.update(ctx, |terminal_view, ctx| {
-                terminal_view.enter_agent_view_for_new_conversation(
-                    None,
-                    AgentViewEntryOrigin::DefaultSessionMode,
-                    ctx,
-                );
-            });
-        }
 
         new_pane_id
     }

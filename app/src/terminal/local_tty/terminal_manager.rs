@@ -1,12 +1,4 @@
-use crate::auth::auth_state::AuthState;
-use crate::auth::AuthStateProvider;
 use crate::terminal::model::terminal_model::ExitReason;
-use crate::terminal::shared_session::replay_agent_conversations::reconstruct_response_events_from_conversations;
-use crate::terminal::shared_session::shared_handlers::{
-    apply_auto_approve_agent_actions_update, apply_cli_agent_state_update, apply_input_mode_update,
-    apply_selected_agent_model_update, apply_selected_conversation_update,
-    build_selected_conversation_update, RemoteUpdateGuard,
-};
 use crate::terminal::shell::ShellName;
 use crate::terminal::warpify::settings::WarpifySettings;
 use crate::terminal::TerminalManager as _;
@@ -81,16 +73,6 @@ use crate::terminal::model::session::Sessions;
 use crate::terminal::model_events::ModelEventDispatcher;
 use crate::terminal::safe_mode_settings::get_secret_obfuscation_mode;
 use crate::terminal::session_settings::{SessionSettings, SessionSettingsChangedEvent};
-use crate::terminal::shared_session::manager::Manager;
-use crate::terminal::shared_session::settings::SharedSessionSettings;
-use crate::terminal::shared_session::sharer::network::{
-    failed_to_add_guests_user_error, failed_to_initialize_session_user_error,
-    session_terminated_reason_string, Network, NetworkEvent,
-};
-use crate::terminal::shared_session::{
-    IsSharedSessionCreator, SharedSessionActionSource, SharedSessionScrollbackType,
-    SharedSessionStatus,
-};
 use crate::terminal::view::Event as TerminalViewEvent;
 use crate::terminal::writeable_pty::pty_controller::{EventLoopSendError, EventLoopSender};
 use crate::terminal::writeable_pty::terminal_manager_util::{

@@ -1,7 +1,3 @@
-use crate::auth::auth_manager::AuthManager;
-use crate::auth::auth_view_modal::AuthViewVariant;
-use crate::auth::AuthStateProvider;
-use crate::cloud_object::Space;
 #[cfg(feature = "local_fs")]
 use crate::code::editor_management::CodeSource;
 use crate::code::view::CodeViewAction;
@@ -12,9 +8,6 @@ use crate::pane_group::pane::get_started_pane::GetStartedPane;
 use crate::pane_group::pane::welcome_pane::WelcomePane;
 use crate::pane_group::pane::ActionOrigin;
 use crate::quit_warning::UnsavedStateSummary;
-#[cfg(target_family = "wasm")]
-use crate::server::cloud_objects::update_manager::UpdateManager;
-use crate::server::server_api::ServerApiProvider;
 use crate::settings::PaneSettings;
 use crate::settings_view::SettingsSection;
 use crate::shell_indicator::ShellIndicatorType;
@@ -73,7 +66,6 @@ use warpui::{
 };
 use warpui::{SingletonEntity, ViewContext};
 
-use crate::ai_assistant::AskAIType;
 use crate::app_state::{
     self, BranchSnapshot, EnvVarCollectionPaneSnapshot, LeafContents,
     LeafSnapshot, NotebookPaneSnapshot, PaneNodeSnapshot, PaneUuid, SettingsPaneSnapshot,
@@ -91,10 +83,6 @@ use crate::persistence::ModelEvent;
 use crate::report_if_error;
 use crate::resource_center::{
     mark_feature_used_and_write_to_user_defaults, Tip, TipAction, TipsCompleted,
-};
-use crate::server::ids::{ObjectUid, SyncId};
-use crate::server::telemetry::{
-    AnonymousUserSignupEntrypoint, PaletteSource, SharingDialogSource, TelemetryEvent,
 };
 use crate::session_management::SessionNavigationData;
 use crate::settings_view::mcp_servers_page::MCPServersSettingsPage;
@@ -118,7 +106,7 @@ use crate::terminal::view::{
 use crate::terminal::{
     MockTerminalManager, ShareBlockModal, ShareBlockModalEvent, ShellLaunchData, ShellLaunchState,
 };
-use crate::{cmd_or_ctrl_shift, send_telemetry_from_ctx};
+use crate::cmd_or_ctrl_shift;
 use session_sharing_protocol::sharer::SessionSourceType;
 use settings::Setting as _;
 

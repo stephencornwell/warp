@@ -168,13 +168,12 @@ impl TerminalManager {
         startup_directory: Option<PathBuf>,
         env_vars: HashMap<OsString, OsString>,
         resources: TerminalViewResources,
-        restored_blocks: Option<&Vec<SerializedBlockListItem>>,
+        restored_blocks: Option<&Vec<crate::terminal::model::block::SerializedBlock>>,
         user_default_shell_unsupported_banner_model_handle: ModelHandle<BannerState>,
         initial_size: Vector2F,
         model_event_sender: Option<SyncSender<ModelEvent>>,
         window_id: WindowId,
         chosen_shell: Option<AvailableShell>,
-        initial_input_config: Option<InputConfig>,
         ctx: &mut AppContext,
     ) -> ModelHandle<Box<dyn crate::terminal::TerminalManager>> {
         // Create all the necessary channels we need for communication.
@@ -263,7 +262,7 @@ impl TerminalManager {
                 colors,
                 model_event_sender.clone(),
                 prompt_type.clone(),
-                initial_input_config,
+                None,
                 None,
                 Some(inactive_pty_reads_rx.clone()),
                 false,
@@ -371,14 +370,12 @@ impl TerminalManager {
 
         log::debug!("Using shell starter source {shell_starter_source:?}");
         let bg_executor = ctx.background_executor();
-        let auth_state = AuthStateProvider::as_ref(ctx).get();
-
         let is_fallback_shell = matches!(
             shell_starter_source,
             Some(ShellStarterSource::Fallback { .. })
         );
         let shell_starter = shell_starter_source
-            .map(|source| get_shell_starter_internal(source, bg_executor, auth_state));
+            .map(|source| get_shell_starter_internal(source, bg_executor));
         let shell_starter = match shell_starter {
             Some(shell_starter) => shell_starter,
             None => {
@@ -534,11 +531,9 @@ impl TerminalManager {
         ctx: &mut AppContext,
     ) {
         if FeatureFlag::RecordPtyThroughput.is_enabled() {
-            let auth_state = AuthStateProvider::as_ref(ctx).get();
             recorder::record_pty_throughput(
                 pty_reads_rx.activate(),
                 model,
-                auth_state.clone(),
                 ctx.background_executor().to_owned(),
             );
         }
@@ -574,15 +569,7 @@ impl TerminalManager {
         let is_honor_ps1_enabled = *SessionSettings::as_ref(ctx).honor_ps1;
         let is_crash_reporting_enabled = PrivacySettings::as_ref(ctx).is_crash_reporting_enabled;
 
-        // The TMUX SSH wrapper supercedes the original ControlMaster wrapper.
-        let enable_ssh_wrapper = if FeatureFlag::SSHTmuxWrapper.is_enabled() {
-            *WarpifySettings::as_ref(ctx)
-                .enable_ssh_warpification
-                .value()
-                && !*WarpifySettings::as_ref(ctx).use_ssh_tmux_wrapper.value()
-        } else {
-            *SshSettings::as_ref(ctx).enable_legacy_ssh_wrapper.value()
-        };
+        let enable_ssh_wrapper = *SshSettings::as_ref(ctx).enable_legacy_ssh_wrapper.value();
 
         let size: crate::terminal::SizeInfo = model.lock().block_list().size().to_owned();
         let options = PtyOptions {
@@ -781,7 +768,6 @@ fn show_password_notifications(
 
 pub fn get_shell_starter(
     chosen_shell: Option<AvailableShell>,
-    auth_state: &AuthState,
     ctx: &mut AppContext,
 ) -> Option<ShellStarter> {
     let preferred_shell = chosen_shell.unwrap_or_else(|| {
@@ -798,7 +784,6 @@ pub fn get_shell_starter(
             get_shell_starter_internal(
                 starter_source,
                 ctx.background_executor().clone(),
-                auth_state,
             )
         })
 }
@@ -806,7 +791,6 @@ pub fn get_shell_starter(
 fn get_shell_starter_internal(
     shell_starter_source: ShellStarterSource,
     background_executor: Arc<Background>,
-    auth_state: &AuthState,
 ) -> ShellStarter {
     match shell_starter_source {
         ShellStarterSource::Override(shell_starter) => shell_starter,

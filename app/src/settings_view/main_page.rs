@@ -8,17 +8,9 @@ use super::{
     },
     SettingsAction, SettingsSection, ToggleSettingActionPair,
 };
-use crate::auth::{AuthStateProvider, UserUid};
-use crate::workspaces::user_workspaces::UserWorkspaces;
 use crate::{
     appearance::Appearance,
-    auth::{auth_state::AuthState, auth_view_modal::AuthViewVariant},
-    settings::cloud_preferences::CloudPreferencesSettings,
-    TelemetryEvent,
 };
-use crate::{auth::auth_manager::AuthManager, server::ids::ServerId};
-use crate::{auth::auth_manager::LoginGatedFeature, workspaces::workspace::CustomerType};
-use crate::{workspace::WorkspaceAction, workspaces::update_manager::TeamUpdateManager};
 use ::settings::{Setting, ToggleableSetting};
 use lazy_static::lazy_static;
 use pathfinder_color::ColorU;
@@ -26,7 +18,7 @@ use pathfinder_geometry::vector::vec2f;
 use std::sync::{Arc, Mutex};
 use warp_core::features::FeatureFlag;
 use warp_core::ui::icons::Icon;
-use warp_core::{channel::ChannelState, context_flag::ContextFlag};
+use warp_core::channel::ChannelState;
 use warpui::{
     assets::asset_cache::AssetSource,
     elements::{Border, Empty, MainAxisAlignment, MainAxisSize},
@@ -121,37 +113,7 @@ pub enum MainPageAction {
     DownloadUpdate,
     CheckForUpdate,
     ToggleSettingsSync,
-    Upgrade {
-        team_uid: Option<ServerId>,
-        user_id: UserUid,
-    },
-    GenerateStripeBillingPortalLink {
-        team_uid: ServerId,
-    },
-    SignupAnonymousUser,
     OpenUrl(String),
-}
-
-impl MainPageAction {
-    fn blocked_for_anonymous_user(&self) -> bool {
-        use MainPageAction::*;
-        matches!(
-            self,
-            Upgrade { .. } | GenerateStripeBillingPortalLink { .. } | ToggleSettingsSync,
-        )
-    }
-}
-
-impl From<&MainPageAction> for LoginGatedFeature {
-    fn from(val: &MainPageAction) -> LoginGatedFeature {
-        use MainPageAction::*;
-        match val {
-            Upgrade { .. } => "Upgrade Plan",
-            GenerateStripeBillingPortalLink { .. } => "Generate Stripe Billing Portal Link",
-            ToggleSettingsSync => "Toggle Settings Sync",
-            _ => "Unknown reason",
-        }
-    }
 }
 
 #[derive(Clone, Copy)]
@@ -159,12 +121,10 @@ pub enum MainSettingsPageEvent {
     CheckForUpdate,
     #[allow(dead_code)]
     OpenWarpDrive,
-    SignupAnonymousUser,
 }
 
 pub struct MainSettingsPageView {
     page: PageType<Self>,
-    auth_state: Arc<AuthState>,
 }
 
 impl Entity for MainSettingsPageView {

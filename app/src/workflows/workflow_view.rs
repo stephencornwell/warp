@@ -1,6 +1,5 @@
 use alias_bar::{AliasBar, AliasBarEvent};
 use argument_editor::{ArgumentEditorRow, DEFAULT_ARGUMENT_PREFIX};
-use env_var_selector::{EnvVarSelector, EnvVarSelectorEvent};
 use itertools::Itertools;
 use pathfinder_color::ColorU;
 use pathfinder_geometry::vector::vec2f;
@@ -110,7 +109,6 @@ use crate::uri::web_intent_parser::open_url_on_desktop;
 mod alias_argument_selector;
 mod alias_bar;
 mod argument_editor;
-pub mod env_var_selector;
 mod syntax_highlightable;
 
 pub fn init(app: &mut AppContext) {

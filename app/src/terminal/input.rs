@@ -2896,21 +2896,6 @@ impl Input {
                 );
             });
 
-            // Emit telemetry for @ menu opened
-            let is_udi_enabled =
-                InputSettings::as_ref(ctx).is_universal_developer_input_enabled(ctx);
-            let current_input_mode = self.ai_input_model.as_ref(ctx).input_type();
-
-            send_telemetry_from_ctx!(
-                TelemetryEvent::AtMenuInteracted {
-                    action: "opened".to_string(),
-                    item_count: None,
-                    query_length: None,
-                    is_udi_enabled,
-                    current_input_mode,
-                },
-                ctx
-            );
         } else if self.suggestions_mode_model.as_ref(ctx).is_ai_context_menu() {
             self.close_ai_context_menu(ctx);
         }
@@ -2951,16 +2936,6 @@ impl Input {
             self.close_slash_commands_menu(ctx);
         } else {
             self.system_insert("/", ctx);
-            let is_in_agent_view = FeatureFlag::AgentView.is_enabled()
-                && self.agent_view_controller.as_ref(ctx).is_fullscreen();
-            send_telemetry_from_ctx!(
-                TelemetryEvent::OpenSlashMenu {
-                    source: SlashMenuSource::SlashButton,
-                    is_inline_ui_enabled: true,
-                    is_in_agent_view,
-                },
-                ctx
-            );
         }
     }
 
@@ -2973,13 +2948,6 @@ impl Input {
             InlineConversationMenuEvent::NavigateToConversation {
                 conversation_navigation_data,
             } => {
-                let is_in_agent_view = FeatureFlag::AgentView.is_enabled()
-                    && self.agent_view_controller.as_ref(ctx).is_fullscreen();
-                send_telemetry_from_ctx!(
-                    TelemetryEvent::InlineConversationMenuItemSelected { is_in_agent_view },
-                    ctx
-                );
-
                 let conversation_id = conversation_navigation_data.id;
                 let active_ids =
                     ActiveAgentViewsModel::as_ref(ctx).get_all_active_conversation_ids(ctx);
@@ -3408,12 +3376,6 @@ impl Input {
         self.suggestions_mode_model.update(ctx, |model, ctx| {
             model.set_mode(InputSuggestionsMode::ConversationMenu, ctx);
         });
-        let is_in_agent_view = FeatureFlag::AgentView.is_enabled()
-            && self.agent_view_controller.as_ref(ctx).is_fullscreen();
-        send_telemetry_from_ctx!(
-            TelemetryEvent::InlineConversationMenuOpened { is_in_agent_view },
-            ctx
-        );
         ctx.notify();
     }
 
@@ -3469,18 +3431,6 @@ impl Input {
                     initial_prompt: None,
                     destination,
                 });
-
-                let is_in_agent_view = FeatureFlag::AgentView.is_enabled()
-                    && self.agent_view_controller.as_ref(ctx).is_active();
-                send_telemetry_from_ctx!(
-                    TelemetryEvent::SlashCommandAccepted {
-                        command_details: SlashCommandAcceptedDetails::StaticCommand {
-                            command_name: commands::FORK_FROM.name.to_owned(),
-                        },
-                        is_in_agent_view,
-                    },
-                    ctx
-                );
 
                 self.suggestions_mode_model.update(ctx, |model, ctx| {
                     model.set_mode(InputSuggestionsMode::Closed, ctx);

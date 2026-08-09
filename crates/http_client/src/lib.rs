@@ -127,7 +127,6 @@ impl Client {
             // never be making real requests in tests.
             .tls_built_in_native_certs(false)
             .tls_built_in_root_certs(false)
-            .tls_built_in_webpki_certs(false)
             // Disable proxy usage in tests, as loading system proxy configuration can be
             // slow.
             .no_proxy();

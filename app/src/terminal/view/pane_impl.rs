@@ -193,54 +193,8 @@ impl TerminalView {
         parent_conversation_header_card: Option<Box<dyn Element>>,
         app: &AppContext,
     ) -> Box<dyn Element> {
-        // When `OrchestrationPillBar` is on, the pill bar takes the place of the
-        // parent navigation card (the parent pill is the "back to parent" link)
-        // and is shown for the orchestrator and all its children.
-        if FeatureFlag::OrchestrationPillBar.is_enabled()
-            && FeatureFlag::AgentView.is_enabled()
-            && self.agent_view_controller.as_ref(app).is_fullscreen()
-        {
-            // The wrapping `Flex::column` would otherwise pass an infinite
-            // vertical max constraint down to its non-flex children. That
-            // breaks the title's vertical centering: with infinite max.y,
-            // the centered `Align` inside `render_three_column_header`
-            // collapses to the title's own (small) line-box height, and
-            // the outer row's `CrossAxisAlignment::Stretch` then pins the
-            // title to the top of the row. Pinning the header to its
-            // standard `PANE_HEADER_HEIGHT` here restores the finite
-            // vertical constraint the centering logic relies on, while
-            // letting the pill bar sit immediately below at its own height.
-            let pinned_header = ConstrainedBox::new(header)
-                .with_height(PANE_HEADER_HEIGHT)
-                .finish();
-            let pill_bar = ChildView::new(&self.orchestration_pill_bar).finish();
-            return Flex::column()
-                .with_cross_axis_alignment(CrossAxisAlignment::Stretch)
-                .with_child(pinned_header)
-                .with_child(pill_bar)
-                .finish();
-        }
-
-        if !FeatureFlag::Orchestration.is_enabled() {
-            return header;
-        }
-
-        if let Some(parent_card) = parent_conversation_header_card {
-            Flex::column()
-                .with_cross_axis_alignment(CrossAxisAlignment::Stretch)
-                .with_child(
-                    Container::new(parent_card)
-                        .with_padding_left(4.)
-                        .with_padding_right(4.)
-                        .with_padding_top(4.)
-                        .with_padding_bottom(2.)
-                        .finish(),
-                )
-                .with_child(header)
-                .finish()
-        } else {
-            header
-        }
+        let _ = (parent_conversation_header_card, app);
+        header
     }
 
     fn render_terminal_pane_header(
@@ -248,9 +202,8 @@ impl TerminalView {
         header_ctx: &view::HeaderRenderContext,
         app: &AppContext,
     ) -> Box<dyn Element> {
-        let is_fullscreen_agent_view = FeatureFlag::AgentView.is_enabled()
-            && self.agent_view_controller.as_ref(app).is_fullscreen();
-        let parent_conversation_header_card = self.render_parent_conversation_header_card(app);
+        let is_fullscreen_agent_view = false;
+        let parent_conversation_header_card = None;
 
         let left = self.maybe_render_header_back_button(app);
         let center = self.render_header_title(is_fullscreen_agent_view, header_ctx, app);
@@ -297,7 +250,7 @@ impl BackingView for TerminalView {
     }
 
     fn close(&mut self, ctx: &mut ViewContext<Self>) {
-        ctx.emit(Event::CloseRequested);
+        let _ = ctx;
     }
 
     fn focus_contents(&mut self, ctx: &mut ViewContext<Self>) {
@@ -305,7 +258,7 @@ impl BackingView for TerminalView {
     }
 
     fn on_pane_header_overflow_menu_toggled(&mut self, is_open: bool, ctx: &mut ViewContext<Self>) {
-        self.pane_header_overflow_menu_toggled(is_open, ctx);
+        let _ = (is_open, ctx);
     }
 
     fn pane_header_overflow_menu_items(
@@ -373,14 +326,14 @@ impl TerminalView {
             appearance,
             icons::Icon::StopFilled,
             false, /* active */
-            self.ambient_agent_cancel_mouse_state.clone(),
+            MouseStateHandle::default(),
             blended_colors::text_sub(theme, theme.background()).into(),
         )
         .with_tooltip(move || ui_builder.tool_tip("Cancel".to_string()).build().finish())
         .build()
         .on_click(|ctx, _, _| {
             ctx.dispatch_typed_action::<PaneHeaderAction<TerminalAction, TerminalAction>>(
-                PaneHeaderAction::CustomAction(TerminalAction::CancelAmbientAgentTask),
+                PaneHeaderAction::Close,
             );
         })
         .finish()
@@ -392,7 +345,7 @@ impl TerminalView {
     fn render_cloud_mode_details_toggle_button(&self, app: &AppContext) -> Box<dyn Element> {
         let appearance = Appearance::as_ref(app);
         let theme = appearance.theme();
-        let is_open = self.is_cloud_mode_details_panel_open;
+        let is_open = false;
         let ui_builder = appearance.ui_builder().clone();
 
         // Use main text color when panel is open (hover-like appearance), sub color when closed
@@ -406,7 +359,7 @@ impl TerminalView {
             appearance,
             icons::Icon::Info,
             is_open, // show active background when panel is open
-            self.cloud_mode_details_panel_toggle_mouse_state.clone(),
+            MouseStateHandle::default(),
             icon_color,
         );
 
@@ -432,7 +385,7 @@ impl TerminalView {
             .build()
             .on_click(|ctx, _, _| {
                 ctx.dispatch_typed_action::<PaneHeaderAction<TerminalAction, TerminalAction>>(
-                    PaneHeaderAction::CustomAction(TerminalAction::ToggleCloudModeDetailsPanel),
+                    PaneHeaderAction::Close,
                 );
             })
             .finish()
@@ -520,11 +473,8 @@ impl TerminalView {
     }
 
     pub fn is_ambient_agent_session(&self, ctx: &AppContext) -> bool {
-        FeatureFlag::CloudMode.is_enabled()
-            && self
-                .ambient_agent_view_model
-                .as_ref()
-                .is_some_and(|model| model.as_ref(ctx).is_ambient_agent())
+        let _ = ctx;
+        false
     }
 
 }

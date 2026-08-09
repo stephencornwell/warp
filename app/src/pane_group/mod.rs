@@ -1202,29 +1202,7 @@ impl PaneGroup {
         #[cfg_attr(not(feature = "local_fs"), allow(unused_variables, clippy::ptr_arg))]
         deferred_panes: &mut Vec<(PaneId, LeafSnapshot)>,
     ) -> anyhow::Result<(PaneData, InitialFocus)> {
-        let custom_title = leaf.custom_vertical_tabs_title.clone();
         let result = match leaf.contents {
-            LeafContents::AIDocument(_) => {
-                // Defer AI document pane restoration until after terminal panes are restored.
-                // We do this because the terminal view seeds the AIDocumentModel as part of
-                // conversation restoration, and the AIDocumentView requires the data to already
-                // exist in the AIDocumentModel. In practice, this will work most of the time
-                // because the AIDocumentView is usually in the same tab as the terminal view containing
-                // the conversation data.
-                // TODO (roland): this is not ideal. If the AIDocumentView is moved to an earlier tab
-                // than the terminal view with the data, the data won't exist when the AIDocumentView is restored. Right now
-                // the AIDocumentView handles this case and renders with an empty buffer until the data is restored.
-                // But if the AIDocumentView is leftover after the terminal view containing the conversation
-                // is closed, the data would never be loaded because the conversation is never restored.
-                let pane_id = PaneId::deferred_placeholder_pane_id();
-                let is_focused = leaf.is_focused;
-                deferred_panes.push((pane_id, leaf));
-                let focus = InitialFocus {
-                    focused_pane: is_focused.then_some(pane_id),
-                    active_session: None,
-                };
-                Ok((PaneData::new(pane_id), focus))
-            }
             LeafContents::Terminal(terminal_snapshot) => {
                 let uuid = PaneUuid(terminal_snapshot.uuid.clone());
                 let block_list = block_lists.get(&uuid);
@@ -1245,7 +1223,6 @@ impl PaneGroup {
                     .map(PathBuf::from)
                     .filter(|path| path.is_dir());
 
-                let conversation_restoration = None;
                 let (terminal_view, terminal_manager) = PaneGroup::create_session(
                     startup_directory,
                     HashMap::new(),
@@ -1255,7 +1232,6 @@ impl PaneGroup {
                     view_size,
                     model_event_sender.clone(),
                     chosen_shell,
-                    terminal_snapshot.input_config,
                     ctx,
                 );
 
@@ -1281,7 +1257,6 @@ impl PaneGroup {
                 Ok((PaneData::new(pane_id), focus))
             }
             LeafContents::Notebook(_) => Err(anyhow::anyhow!("Skipping removed notebook pane")),
-            LeafContents::Code(_) => Err(anyhow::anyhow!("Skipping removed code pane")),
             LeafContents::Workflow(_) => Err(anyhow::anyhow!("Skipping removed workflow pane")),
             LeafContents::Settings(snapshot) => {
                 let pane: Box<dyn AnyPaneContent + 'static> = match snapshot {
@@ -1303,11 +1278,6 @@ impl PaneGroup {
                     active_session: None,
                 };
                 Ok((PaneData::new(pane_id), focus))
-            }
-            LeafContents::AIFact(_) => Err(anyhow::anyhow!("Skipping removed AI fact pane")),
-            LeafContents::AmbientAgent(_) => Err(anyhow::anyhow!("Skipping removed ambient agent pane")),
-            LeafContents::CodeReview(_) => {
-                Err(anyhow::anyhow!("Code review panes are no longer supported"))
             }
             LeafContents::ExecutionProfileEditor => {
                 // We don't yet support restoring execution profile editor panes.
@@ -1365,28 +1335,9 @@ impl PaneGroup {
                     Ok((PaneData::new(pane_id), focus))
                 }
             }
-            LeafContents::EnvironmentManagement(_) => {
-                // Environment management panes are not restored from persistence.
-                // They are opened on-demand via workspace actions.
-                Err(anyhow::anyhow!(
-                    "Environment management panes are not restored"
-                ))
-            }
         };
 
-        result.map(|(pane_data, focus)| {
-            if let (Some(custom_title), PaneNode::Leaf(pane_id)) = (custom_title, &pane_data.root) {
-                if let Some(pane) = pane_contents.get(pane_id) {
-                    pane.as_pane()
-                        .pane_configuration()
-                        .update(ctx, |configuration, ctx| {
-                            configuration.set_title(custom_title.clone(), ctx);
-                            configuration.set_custom_title(custom_title, ctx);
-                        });
-                }
-            }
-            (pane_data, focus)
-        })
+        result
     }
 
     #[cfg_attr(not(feature = "local_fs"), allow(unused_variables, unused_mut))]
@@ -1397,12 +1348,7 @@ impl PaneGroup {
         ctx: &mut ViewContext<Self>,
     ) -> (PaneData, InitialFocus) {
         for (placeholder_id, leaf) in deferred_panes {
-            match leaf.contents {
-                LeafContents::AIDocument(_) => continue,
-                _ => {
-                    // Ignore other pane types in deferred processing
-                }
-            }
+            let _ = (placeholder_id, leaf, pane_contents, ctx);
         }
 
         result
@@ -1456,16 +1402,12 @@ impl PaneGroup {
                             is_active: pane_id.as_terminal_pane_id() == self.active_session_id(app),
                             is_read_only: false,
                             shell_launch_data: None,
-                            llm_model_override: None,
                             active_profile_id: None,
-                            conversation_ids_to_restore: Vec::new(),
-                            active_conversation_id: None,
                         })
                     }
                 };
                 PaneNodeSnapshot::Leaf(LeafSnapshot {
                     is_focused: *pane_id == self.focused_pane_id(app),
-                    custom_vertical_tabs_title: custom_title,
                     contents,
                 })
             }

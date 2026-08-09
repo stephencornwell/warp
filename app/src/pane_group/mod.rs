@@ -3291,10 +3291,9 @@ impl PaneGroup {
                 display_name: ShellName::blank(),
                 shell_type: ShellType::Zsh,
             },
-            resources,
-            None, // No restored blocks
-            None, // No conversation restoration
-            view_bounds_size,
+                    resources,
+                    None, // No restored blocks
+                    view_bounds_size,
             window_id,
             ctx,
         );

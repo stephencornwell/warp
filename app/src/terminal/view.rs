@@ -3565,7 +3565,6 @@ impl TerminalView {
     ) {
         if action == VimModeBannerAction::Enable {
             self.enable_vim_keybindings(ctx);
-        } else {
         }
         self.remove_vim_mode_banner(ctx);
         VimBannerSettings::handle(ctx).update(ctx, |banner_settings, model_ctx| {
@@ -6759,9 +6758,6 @@ impl TerminalView {
         let model = self.model.lock();
         let inverted_blocklist = self.is_inverted_blocklist(ctx);
         // Emit a telemetry event depending on whether the find bar is opened in blocklist or alt screen.
-        if model.is_alt_screen_active() {
-        } else {
-        }
         self.find_bar.update(ctx, |view, ctx| {
             let semantic_selection = SemanticSelection::as_ref(ctx);
             if let Some(selected) =

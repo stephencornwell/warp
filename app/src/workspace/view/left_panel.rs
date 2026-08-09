@@ -619,9 +619,6 @@ impl LeftPanelView {
         match action {
             LeftPanelAction::ProjectExplorer => {
                 active_view_state::set(self, ToolPanelView::ProjectExplorer, ctx);
-                if force_open {
-                } else {
-                }
             }
             LeftPanelAction::GlobalSearch { entry_focus } => {
                 let was_active = self.active_view.get()

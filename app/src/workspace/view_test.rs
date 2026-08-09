@@ -9,7 +9,6 @@ use crate::report_if_error;
 use repo_metadata::repositories::DetectedRepositories;
 use repo_metadata::watcher::DirectoryWatcher;
 #[cfg(feature = "local_fs")]
-#[cfg(feature = "local_fs")]
 use std::collections::HashMap;
 #[cfg(feature = "local_fs")]
 use watcher::HomeDirectoryWatcher;
@@ -86,9 +85,6 @@ fn mock_workspace(app: &mut App) -> ViewHandle<Workspace> {
     workspace
 }
 
-#[cfg(feature = "local_fs")]
-#[cfg(feature = "local_fs")]
-#[cfg(feature = "local_fs")]
 #[cfg(feature = "local_fs")]
 /// Disable the warn-before-quit setting. Because we don't fully bootstrap the shell in tests, this
 /// is generally needed in tests that close tabs.
@@ -755,7 +751,6 @@ fn test_pointer_opened_tab_configs_menu_does_not_select_top_item() {
     });
 }
 
-#[cfg(feature = "local_fs")]
 #[cfg(feature = "local_fs")]
 #[test]
 fn test_standard_tab_context_menu_shows_hover_only_tab_bar() {

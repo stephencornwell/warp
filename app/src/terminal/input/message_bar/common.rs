@@ -1,5 +1,3 @@
-use crate::ai::blocklist::agent_view::agent_view_bg_color;
-use pathfinder_color::ColorU;
 use warp_core::ui::appearance::Appearance;
 use warp_core::ui::theme::Fill;
 use warp_core::ui::Icon;
@@ -12,7 +10,6 @@ use warpui::prelude::{Align, ConstrainedBox, CrossAxisAlignment, Flex, Text};
 use warpui::ui_components::keyboard_shortcut::keystroke_to_keys;
 use warpui::{AppContext, SingletonEntity};
 
-use crate::ai::blocklist::agent_view::shortcuts::render_keystroke_with_color_overrides;
 use crate::terminal;
 use crate::terminal::input::message_bar::{ChipHorizontalAlignment, Message, MessageItem};
 use crate::ui_components::blended_colors;
@@ -22,68 +19,6 @@ pub fn standard_message_bar_height(app: &AppContext) -> f32 {
     app.font_cache()
         .line_height(styles::font_size(app), appearance.line_height_ratio())
         + styles::VERTICAL_PADDING * 2.
-}
-
-pub fn render_standard_message_bar(
-    message: Message,
-    right_element: Option<Box<dyn Element>>,
-    app: &AppContext,
-) -> Box<dyn Element> {
-    use warpui::prelude::{MainAxisAlignment, MainAxisSize};
-
-    let (left_items, right_chips): (Vec<_>, Vec<_>) = message.items.into_iter().partition(|item| {
-        !matches!(
-            item,
-            MessageItem::Chip {
-                horizontal_alignment: ChipHorizontalAlignment::Right,
-                ..
-            }
-        )
-    });
-
-    let right_element = if right_chips.is_empty() {
-        right_element
-    } else {
-        let right_chips_element = render_message_bar_items(&right_chips, app);
-        Some(if let Some(existing_right) = right_element {
-            Flex::row()
-                .with_cross_axis_alignment(CrossAxisAlignment::Center)
-                .with_child(right_chips_element)
-                .with_child(existing_right)
-                .finish()
-        } else {
-            right_chips_element
-        })
-    };
-
-    let content = if let Some(right_element) = right_element {
-        Flex::row()
-            .with_main_axis_size(MainAxisSize::Max)
-            .with_main_axis_alignment(MainAxisAlignment::SpaceBetween)
-            .with_cross_axis_alignment(CrossAxisAlignment::Center)
-            .with_child(render_message_bar_items(&left_items, app))
-            .with_child(right_element)
-            .finish()
-    } else {
-        Align::new(render_message_bar_items(&left_items, app))
-            .left()
-            .finish()
-    };
-
-    ConstrainedBox::new(
-        Clipped::new(
-            Container::new(content)
-                .with_horizontal_padding(*terminal::view::PADDING_LEFT)
-                .finish(),
-        )
-        .finish(),
-    )
-    .with_height(standard_message_bar_height(app))
-    .finish()
-}
-
-pub fn render_standard_message(message: Message, app: &AppContext) -> Box<dyn Element> {
-    render_message_bar_items(&message.items, app)
 }
 
 /// Renders a sequence of message items into a flex row.
@@ -100,13 +35,14 @@ fn render_message_bar_items(items: &[MessageItem], app: &AppContext) -> Box<dyn 
                 keystroke,
                 color,
                 background_color,
-            } => Container::new(render_keystroke_with_color_overrides(
-                keystroke,
-                *color,
-                *background_color,
+            } => render_terminal_message_items(
+                &[MessageItem::Keystroke {
+                    keystroke: keystroke.clone(),
+                    color: *color,
+                    background_color: *background_color,
+                }],
                 app,
-            ))
-            .finish(),
+            ),
             MessageItem::Text { content, color } => {
                 let font_color = color.unwrap_or(default_font_color);
                 Text::new(
@@ -444,27 +380,6 @@ fn render_message_chip_container(
         .with_horizontal_padding(styles::CHIP_HORIZONTAL_PADDING)
         .with_vertical_margin(-(styles::CHIP_VERTICAL_PADDING + styles::CHIP_BORDER_WIDTH))
         .finish()
-}
-
-/// Returns the background and foreground colors for a message item that can be disabled.
-pub fn disableable_message_item_color_overrides(
-    is_disabled: bool,
-    app: &AppContext,
-) -> (Option<ColorU>, Option<ColorU>) {
-    if !is_disabled {
-        return (None, None);
-    }
-
-    let appearance = Appearance::as_ref(app);
-    (
-        Some(
-            appearance
-                .theme()
-                .disabled_text_color(agent_view_bg_color(app).into())
-                .into_solid(),
-        ),
-        Some(blended_colors::neutral_2(appearance.theme())),
-    )
 }
 
 pub mod styles {

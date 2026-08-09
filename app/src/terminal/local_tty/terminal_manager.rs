@@ -206,18 +206,7 @@ impl TerminalManager {
 
         // If we have explicit restored_blocks, prioritize those (these come from db on startup).
         // Otherwise if there's a conversation we're restoring, get blocks from those.
-        let all_restored_blocks =
-            restored_blocks
-                .cloned()
-                .or_else(|| match &conversation_restoration {
-                    Some(ConversationRestorationInNewPaneType::Historical {
-                        conversation, ..
-                    })
-                    | Some(ConversationRestorationInNewPaneType::Forked { conversation, .. }) => {
-                        Some(conversation.to_serialized_blocklist_items())
-                    }
-                    _ => None,
-                });
+        let all_restored_blocks = restored_blocks.cloned();
 
         // Create the terminal model with all restored blocks
         let model = terminal_manager::create_terminal_model(
@@ -243,17 +232,6 @@ impl TerminalManager {
             Self::record_pty_throughput(inactive_pty_reads_rx.clone(), model.clone(), ctx);
         }
 
-        // If this session should be a shared-session creator, configure its initial
-        // shared-session state before we construct the view, so that bootstrap
-        // events can observe the correct pending status and source type.
-        if FeatureFlag::CreatingSharedSessions.is_enabled() {
-            if let IsSharedSessionCreator::Yes { source_type } = is_shared_session_creator {
-                model.lock().set_shared_session_status(
-                    SharedSessionStatus::SharePendingPreBootstrap { source_type },
-                );
-            }
-        }
-
         // Initialize the PtyController.
         let pty_controller = init_pty_controller_model(
             event_loop_tx.clone(),
@@ -268,48 +246,11 @@ impl TerminalManager {
             CurrentPrompt::new_with_model_events(sessions.clone(), Some(&model_events), ctx)
         });
         let prompt_type = ctx.add_model(|ctx| PromptType::new_dynamic(current_prompt.clone(), ctx));
-        let session_sharer_clone = session_sharer.clone();
-
-        // Send warp prompt updates.
-        ctx.observe_model(&current_prompt, move |current_prompt, ctx| {
-            // If for some reason ctx.notify() was called on the warp prompt but we're using ps1, do nothing.
-            if *SessionSettings::as_ref(ctx).honor_ps1 {
-                return
-            }
-            let prompt_snapshot = current_prompt.read(ctx, |current_prompt, ctx| {
-                PromptSnapshot::from_current_prompt(current_prompt, ctx)
-            });
-            if let Some(network) = session_sharer_clone.borrow().as_ref() {
-                let Ok(serialized_prompt) = serde_json::to_string(&prompt_snapshot) else {
-                    log::error!("Failed to serialize prompt snapshot to send active prompt update to shared session server");
-                    return
-                };
-                network.update(ctx, |network, _| {
-                    network.send_active_prompt_update_if_changed(session_sharing_protocol::common::ActivePrompt::WarpPrompt(serialized_prompt))
-                });
-            }
-        });
-
         let has_restored_command_blocks = all_restored_blocks
             .as_ref()
             .is_some_and(|blocks| !blocks.is_empty());
-        let has_conversation_restoration = matches!(
-            &conversation_restoration,
-            Some(
-                ConversationRestorationInNewPaneType::Startup { .. }
-                    | ConversationRestorationInNewPaneType::Historical { .. }
-            )
-        );
-        let is_historical = matches!(
-            &conversation_restoration,
-            Some(ConversationRestorationInNewPaneType::Historical { .. })
-        );
         // Create the view.
         let cloned_model = model.clone();
-        let should_use_live_appearance = conversation_restoration
-            .as_ref()
-            .map(|restoration| restoration.should_use_live_appearance())
-            .unwrap_or(false);
         let view = ctx.add_typed_action_view(window_id, |ctx| {
             let size_info = cloned_model.lock().block_list().size().to_owned();
             TerminalView::new(
@@ -323,7 +264,7 @@ impl TerminalManager {
                 model_event_sender.clone(),
                 prompt_type.clone(),
                 initial_input_config,
-                conversation_restoration,
+                None,
                 Some(inactive_pty_reads_rx.clone()),
                 false,
                 ctx,
@@ -333,34 +274,13 @@ impl TerminalManager {
         // We need to append the session restoration separator to the block list if there are any
         // restored blocks (command blocks or AI conversations) to show.
         // Add separator if we have restored command blocks or we're restoring from historical or startup.
-        let should_show_restoration_separator = (has_conversation_restoration
-            || has_restored_command_blocks)
-            && !should_use_live_appearance;
+        let should_show_restoration_separator = has_restored_command_blocks;
 
         if should_show_restoration_separator {
             model
                 .lock()
                 .block_list_mut()
-                .append_session_restoration_separator_to_block_list(is_historical);
-        }
-
-        // In unit tests, we know we aren't going to bootstrap a shell
-        // so if we're waiting on starting a shared session until bootstrapped,
-        // just attempt to start it now.
-        #[cfg(test)]
-        if matches!(
-            model.lock().shared_session_status(),
-            SharedSessionStatus::SharePendingPreBootstrap { .. }
-        ) {
-            view.update(ctx, |view, ctx| {
-                view.attempt_to_share_session(
-                    SharedSessionScrollbackType::All,
-                    None,
-                    SessionSourceType::default(),
-                    false,
-                    ctx,
-                )
-            });
+                .append_session_restoration_separator_to_block_list(false);
         }
 
         wire_up_pty_controller_with_view(

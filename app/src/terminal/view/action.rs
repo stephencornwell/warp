@@ -441,34 +441,6 @@ impl fmt::Debug for TerminalAction {
             } => write!(f, "SetMarkedText {{{marked_text:?}, {selected_range:?}}}"),
             ClearMarkedText => write!(f, "ClearMarkedText"),
             _ResumeConversation => write!(f, "ResumeConversation"),
-            _ForkConversationFromLastKnownGoodState => {
-                write!(f, "ForkConversationFromLastKnownGoodState")
-            }
-            _ToggleAIDocumentPane => write!(f, "ToggleAIDocumentPane"),
-            _ToggleTodoPopup => write!(f, "ToggleTodoPopup"),
-            _CloseTodoPopup => write!(f, "CloseTodoPopup"),
-            InitProject => write!(f, "InitProject"),
-            IndexProjectSpeedbump => write!(f, "IndexProject"),
-            AddProjectAtCurrentDirectory => write!(f, "AddProjectAtCurrentDirectory"),
-            OpenProjectRulesPane => write!(f, "OpenProjectRulesPane"),
-            OpenViewMCPPane => write!(f, "OpenViewMCPPane"),
-            OpenAddMCPPane => write!(f, "OpenAddMCPPane"),
-            OpenAddRulePane => write!(f, "OpenAddRulePane"),
-            OpenRulesPane => write!(f, "OpenRulesPane"),
-            OpenAddPromptPane => write!(f, "OpenAddPromptPane"),
-            PickRepoToOpen => write!(f, "PickRepoToOpen"),
-            OpenFilesPalette { .. } => write!(f, "OpenFilesPalette"),
-            DismissCodeToolbeltTooltip => write!(f, "DismissCodeToolbeltTooltip"),
-            StartLspServer => write!(f, "StartLspServer"),
-            SummarizeConversation => write!(f, "SummarizeConversation"),
-            ToggleLongRunningCommandControl => {
-                write!(f, "TakeOverLongRunningCommandControlForUser")
-            }
-            ToggleHideCliResponses => write!(f, "ToggleHideCliResponses"),
-            OpenInlineHistoryMenu => write!(f, "OpenInlineHistoryMenu"),
-            OpenModelSelector => write!(f, "OpenModelSelector"),
-            ToggleSessionRecording => write!(f, "ToggleSessionRecording"),
-            OpenCLIAgentRichInput => write!(f, "OpenCLIAgentRichInput"),
         }
     }
 }

@@ -298,15 +298,15 @@ pub async fn get_repo_git_summary(repo_root: &Path) -> Option<RepoGitSummary> {
             if file_name.is_empty() {
                 continue;
             }
-            lines_added += count_lines_if_text_file(&repo_root.join(file_name));
+            lines_added += count_lines_if_text_file(&repo_root.join(file_name)) as usize;
         }
     }
 
     let branch = branch?;
     Some(RepoGitSummary {
         branch,
-        lines_added,
-        lines_removed,
+        lines_added: lines_added as u32,
+        lines_removed: lines_removed as u32,
     })
 }
 

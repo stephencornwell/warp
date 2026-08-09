@@ -37,7 +37,7 @@ use crate::{
     ui_components::blended_colors,
     user_config::{self, WarpConfig},
     window_settings::WindowSettings,
-    GlobalResourceHandlesProvider, TelemetryEvent,
+    GlobalResourceHandlesProvider,
 };
 
 use super::config::{QuakeModeWindow, ThemeType};

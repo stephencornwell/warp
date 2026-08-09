@@ -50,7 +50,6 @@ use crate::{
     },
     util::bindings::keybinding_name_to_display_string,
     workspace::WorkspaceAction,
-    TelemetryEvent,
 };
 
 #[derive(Default)]

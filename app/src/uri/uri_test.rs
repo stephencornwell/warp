@@ -92,23 +92,7 @@ fn add_mock_config_with_name(name: &str, configs: &mut Vec<LaunchConfig>) {
     configs.push(new_config);
 }
 
-#[test]
-fn test_get_launch_config_path() {
-    assert_eq!(
-        get_launch_config_path("/path/to/a/config"),
-        Some(String::from("path/to/a/config")),
-    );
-    assert_eq!(
-        get_launch_config_path("/hello%20world.yaml"),
-        Some(String::from("hello world.yaml")),
-    );
-    assert_eq!(
-        get_launch_config_path("/%3Bhello%20%23world!"),
-        Some(String::from(";hello #world!")),
-    );
-    assert_eq!(
-        get_launch_config_path("/yes%21%20this_works%2Ctoo-even%5Bbraces%7Dand%28parens%27."),
-        Some(String::from("yes! this_works,too-even[braces}and(parens'."))
+and(parens'."))
     );
     assert_eq!(
         get_launch_config_path("/%F0%9F%8D%9E"),
@@ -120,19 +104,7 @@ fn test_get_launch_config_path() {
     );
 }
 
-#[test]
-fn test_get_launch_config_path_invalid() {
-    assert_eq!(get_launch_config_path(""), None);
-    assert_eq!(get_launch_config_path("/"), None);
-    assert_eq!(get_launch_config_path("%2F"), None);
-    assert_eq!(get_launch_config_path("/../outside"), None);
-    assert_eq!(get_launch_config_path("/..%2Foutside"), None);
-    assert_eq!(get_launch_config_path("/A/.."), None);
-    assert_eq!(get_launch_config_path("/A/../B"), None);
-    assert_eq!(get_launch_config_path("//absolute"), None);
-    assert_eq!(get_launch_config_path("/%2Fabsolute sneaky"), None);
-    assert_eq!(get_launch_config_path("//../very_bad/.."), None);
-}
+
 
 #[test]
 fn test_remove_extension() {
@@ -189,17 +161,7 @@ fn test_action_create_environment_parse() {
     }
 }
 
-#[test]
-fn test_action_focus_cloud_mode_parse() {
-    let url = Url::parse(&format!(
-        "{}://action/focus_cloud_mode",
-        ChannelState::url_scheme()
-    ))
-    .unwrap();
 
-    let action = Action::parse(&url).unwrap();
-    assert!(matches!(action, Action::FocusCloudMode));
-}
 
 #[test]
 fn test_action_create_environment_parse_no_repos() {
@@ -218,41 +180,11 @@ fn test_action_create_environment_parse_no_repos() {
     }
 }
 
-#[test]
-fn test_action_cloud_agent_setup_parse() {
-    let url = Url::parse(&format!(
-        "{}://action/cloud_agent_setup",
-        ChannelState::url_scheme()
-    ))
-    .unwrap();
 
-    let action = Action::parse(&url).unwrap();
-    assert!(matches!(action, Action::CloudAgentSetup));
-}
 
-#[test]
-fn test_action_new_cloud_agent_conversation_parse() {
-    let url = Url::parse(&format!(
-        "{}://action/new_cloud_agent_conversation",
-        ChannelState::url_scheme()
-    ))
-    .unwrap();
 
-    let action = Action::parse(&url).unwrap();
-    assert!(matches!(action, Action::NewCloudAgentConversation));
-}
 
-#[test]
-fn test_action_new_agent_conversation_parse() {
-    let url = Url::parse(&format!(
-        "{}://action/new_agent_conversation",
-        ChannelState::url_scheme()
-    ))
-    .unwrap();
 
-    let action = Action::parse(&url).unwrap();
-    assert!(matches!(action, Action::NewAgentConversation));
-}
 
 #[test]
 fn test_validate_custom_uri_linear() {

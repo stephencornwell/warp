@@ -1,6 +1,3 @@
-use crate::send_telemetry_from_ctx;
-use crate::send_telemetry_from_app_ctx;
-use crate::send_telemetry_sync_from_ctx;
 // Suppress warnings about rustdoc style.
 #![allow(clippy::doc_lazy_continuation)]
 

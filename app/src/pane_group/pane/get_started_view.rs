@@ -25,13 +25,11 @@ use crate::{
     pane_group::{
         focus_state::PaneFocusHandle, pane::view, BackingView, PaneConfiguration, PaneEvent,
     },
-    send_telemetry_from_ctx,
     terminal::TerminalView,
     util::bindings::{keybinding_name_to_display_string, BindingGroup, CustomAction},
     view_components::DismissibleToast,
     workspace::ToastStack,
     workspace::{Workspace, WorkspaceAction},
-    TelemetryEvent,
 };
 
 pub fn init(app: &mut AppContext) {

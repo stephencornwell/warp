@@ -589,38 +589,6 @@ jobs:
       - name: Validate repo-sync markers
         uses: warpdotdev/repo-sync/actions/validate-markers@main
 
-  wasm-lint:
-    name: Formatting + Clippy (wasm)
-    timeout-minutes: 20
-    strategy:
-      fail-fast: false
-    runs-on: ${{ fromJSON(needs.params.outputs.wasm-runner) }}
-    needs: params
-    steps:
-      - name: Compute IS_SELF_HOSTED
-        id: is_self_hosted
-        run: |
-          IS_SELF_HOSTED="${{ contains(fromJSON(needs.params.outputs.wasm-runner), 'self-hosted') }}"
-          echo "value=$IS_SELF_HOSTED" >> $GITHUB_OUTPUT
-
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-
-      - uses: ./.github/actions/prepare_environment
-        with:
-          target_os: wasm
-          is_self_hosted: ${{ steps.is_self_hosted.outputs.value }}
-
-      - name: Ensure cargo.lock is up-to-date
-        run:
-          cargo metadata --locked --format-version=1 >/dev/null || (echo "::error::Cargo.lock is out-of-date with Cargo.toml. Run 'cargo check' to update." && exit 1)
-
-      - name: Run cargo fmt
-        run: cargo fmt --check
-
-      - name: Run cargo clippy
-        run: |
-          cargo clippy --locked --target wasm32-unknown-unknown --profile release-wasm-debug_assertions -- -D warnings
-
   check-release-compilation:
     name: Verify compilation with release flags (${{ matrix.name }})
     timeout-minutes: 15
@@ -650,11 +618,6 @@ jobs:
             is_self_hosted: false
             null_device: "NUL"
 
-          - os: "wasm"
-            name: "wasm"
-            runner: ${{ fromJSON(needs.params.outputs.wasm-runner) }}
-            is_self_hosted: ${{ contains(fromJSON(needs.params.outputs.wasm-runner), 'self-hosted') }}
-            null_device: "/dev/null"
     runs-on: ${{ matrix.runner }}
     needs: params
     steps:
@@ -668,11 +631,7 @@ jobs:
       - name: Verify compilation with release flags
         shell: bash
         run: |
-          if ${{ matrix.os == 'wasm' }}; then
-            ./script/wasm/bundle --channel oss --nouniversal --check-only
-          else
-            ./script/bundle --channel oss --nouniversal --check-only
-          fi
+          ./script/bundle --channel oss --nouniversal --check-only
         env:
           # Attach the GitHub auth token so that requests to the GitHub API
           # don't get rate limited during compilation (e.g.: retrieving
@@ -697,7 +656,6 @@ jobs:
       - database-migration
       - tests
       - lints
-      - wasm-lint
       - general-lint
       - check-release-compilation
     steps:

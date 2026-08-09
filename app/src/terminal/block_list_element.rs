@@ -996,11 +996,7 @@ impl BlockListElement {
             self.size
                 .expect("Cannot construct ViewportState prior to element layout."),
             self.input_size_at_last_frame,
-            if self.ai_render_context.borrow().has_active_conversation() {
-                AutoscrollBehavior::WhenScrolledToEnd
-            } else {
-                AutoscrollBehavior::Always
-            },
+            AutoscrollBehavior::Always,
         )
     }
 
@@ -1480,12 +1476,6 @@ impl BlockListElement {
 
                             if self.snackbar_header_state().mouse_down(position, ctx) {
                                 return true;
-                            }
-
-                            if let Some(RichContentMetadata::AIBlock { .. }) =
-                                self.rich_content_metadata.get(view_id)
-                            {
-                                should_redetermine_focus = false;
                             }
 
                             ctx.dispatch_typed_action(TerminalAction::BlockSelect {
@@ -2787,12 +2777,7 @@ impl Element for BlockListElement {
                     self.horizontal_clipped_scroll_state.clone(),
                     constraint.max,
                     self.input_size_at_last_frame,
-                    if self.ai_render_context.borrow().has_active_conversation() {
-                        AutoscrollBehavior::WhenScrolledToEnd
-                    } else {
-                        AutoscrollBehavior::Always
-                    },
-                    self.inline_menu_positioner.clone(),
+                    AutoscrollBehavior::Always,
                 )
             };
         }
@@ -2895,23 +2880,6 @@ impl Element for BlockListElement {
 
                             let _ = block;
 
-                            if let Some(cli_subagent_view) =
-                                self.cli_subagent_views.get_mut(block.id())
-                            {
-                                let block_height = (height.as_f64() as f32) * cell_size.y();
-                                cli_subagent_view.layout(
-                                    SizeConstraint {
-                                        min: vec2f(0., 0.),
-                                        max: vec2f(
-                                            constraint.max.x() * 0.4
-                                                - CLI_SUBAGENT_HORIZONTAL_MARGIN,
-                                            block_height - CLI_SUBAGENT_VERTICAL_MARGIN * 2.,
-                                        ),
-                                    },
-                                    ctx,
-                                    app,
-                                );
-                            }
                         }
 
                         visible_items.push(VisibleItem::Block {
@@ -3059,16 +3027,6 @@ impl Element for BlockListElement {
             );
         }
 
-        for avatar_element in self.presence_avatars.values_mut() {
-            avatar_element.layout(
-                SizeConstraint::new(
-                    vec2f(constraint.min.x(), BLOCK_HOVER_BUTTON_HEIGHT),
-                    vec2f(constraint.max.x(), BLOCK_HOVER_BUTTON_HEIGHT),
-                ),
-                ctx,
-                app,
-            );
-        }
 
         self.visible_blocks = Some(viewport_iter.visible_block_range());
         self.visible_items = Some(Rc::new(visible_items));

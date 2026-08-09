@@ -346,11 +346,6 @@ pub struct BlockFilter {
 
 impl BlockFilter {
     /// Tests if a block matches this filter.
-    pub fn matches(self, block: &Block, agent_view_state: &AgentViewState) -> bool {
-        (self.include_background || !block.is_background())
-            && (self.include_hidden || !block.is_empty(agent_view_state))
-    }
-
     /// Block filter for visible command blocks. This excludes background output
     /// blocks and hidden blocks.
     pub fn commands() -> BlockFilter {
@@ -2298,74 +2293,6 @@ impl BlockList {
             BlockId::new(),
             self.bootstrap_stage,
             did_active_block_receive_precmd
-                .then(|| self.last_populated_precmd_payload.clone())
-                .flatten(),
-            None,
-        );
-    }
-
-    /// Creates a restored command block with the given command, output, and exit code.
-    /// This is used for creating command blocks from restored AI conversation data.
-    /// The block is created hidden by default and can be toggled visible by the RequestedCommandView.
-    pub fn create_restored_command_block(
-        &mut self,
-        command: &str,
-        output: &str,
-        current_working_directory: Option<String>,
-        exit_code: i32,
-        action_id: Option<AIAgentActionId>,
-        conversation_id: Option<AIConversationId>,
-    ) {
-        let did_active_block_receive_precmd_already = self.active_block().has_received_precmd();
-        let precmd_value = PrecmdValue {
-            pwd: current_working_directory,
-            ..Default::default()
-        };
-
-        let block_id = BlockId::new();
-        self.create_new_block(
-            block_id,
-            // Hardcode to PostBootstrapPrecmd so they show up even in the conversation transcript view
-            // when bootstrapping is skipped because there's no shell.
-            BootstrapStage::PostBootstrapPrecmd,
-            Some(precmd_value),
-            None, // restored_block_was_local
-        );
-
-        // Set up the block with command and output
-        let mut processor = Processor::new();
-
-        // Start the block and add the command
-        self.active_block_mut().start();
-        processor.parse_bytes(self, command.as_bytes(), &mut io::sink());
-
-        // Simulate preexec to transition to Executing state
-        self.preexec(PreexecValue {
-            command: command.to_string(),
-        });
-
-        // Add the command output
-        processor.parse_bytes(self, output.as_bytes(), &mut io::sink());
-
-        // Finish the block (should transition from Executing to DoneWithExecution)
-        self.active_block_mut().finish(exit_code);
-        self.update_active_block_height();
-
-        // Set AI metadata if provided
-        if let (Some(action_id), Some(conversation_id)) = (action_id, conversation_id) {
-            self.active_block_mut()
-                .set_agent_interaction_mode_for_requested_command(action_id, None, conversation_id);
-        }
-
-        // Create a new active block for the next operations
-        let new_active_block_id = BlockId::new();
-        self.create_new_block(
-            new_active_block_id,
-            self.bootstrap_stage,
-            // If the active block (prior to the insertion of the restore block) had received
-            // precmd, ensure the next active block receives the same precmd payload (as if it had
-            // received the most recent precmd hook).
-            did_active_block_receive_precmd_already
                 .then(|| self.last_populated_precmd_payload.clone())
                 .flatten(),
             None,

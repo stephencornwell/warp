@@ -2275,6 +2275,7 @@ fn upsert_current_user_information(
 
 /// Converts the ObjectAction type into a uniform type that can be inserted into
 /// the sqlite table.
+
 impl From<ObjectAction> for model::NewPersistedObjectAction {
     fn from(action: ObjectAction) -> Self {
         match action.action_subtype {

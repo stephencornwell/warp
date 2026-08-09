@@ -6407,8 +6407,6 @@ impl TerminalView {
                 let is_share_disabled =
                     !is_single_selection || (is_active_block_selected && is_active_block_running);
 
-                let is_ask_ai_disabled = !is_single_selection;
-
                 let is_copy_commands_disabled =
                     is_single_selection && tail_block.command_to_string().trim().is_empty();
                 let is_copy_both_disabled =

@@ -205,7 +205,9 @@ use warp_logging::LogDestination;
 
 #[macro_export]
 macro_rules! safe_error {
-    ($($tokens:tt)*) => { () };
+    ($($tokens:tt)*) => {
+        ()
+    };
 }
 
 // Re-export the safe logging macros at the crate root level for backwards compatibility
@@ -989,7 +991,6 @@ fn initialize_app(
 
     timer.mark_interval_end("AUTH_MANAGER_SET_USER");
 
-
     ctx.add_singleton_model(|_ctx| GPUState::new());
 
     PrivacySettings::register_singleton(ctx);
@@ -1038,13 +1039,7 @@ fn initialize_app(
                 sqlite_data.projects,
             )
         })
-        .unwrap_or_else(|| {
-            (
-                Default::default(),
-                Default::default(),
-                Default::default(),
-            )
-        });
+        .unwrap_or_else(|| (Default::default(), Default::default(), Default::default()));
 
     ctx.add_singleton_model(AntivirusInfo::new);
 
@@ -1065,7 +1060,6 @@ fn initialize_app(
     ctx.set_fallback_font_source_provider(|url| ::asset_cache::url_source(url));
 
     ctx.set_default_binding_validator(is_binding_cross_platform);
-
 
     // Initialize timestamp for session id and last active event
     App::record_last_active_timestamp();
@@ -1093,7 +1087,6 @@ fn initialize_app(
     });
 
     ctx.add_singleton_model(|_ctx| SyncedInputState::new());
-
 
     log::info!(
         "Starting warp with channel state {} and version {:?}",
@@ -1206,7 +1199,6 @@ fn initialize_app(
     #[cfg(windows)]
     ctx.add_singleton_model(util::traffic_lights::windows::RendererState::new);
 
-
     ctx.add_singleton_model(|_| AudibleBell::new());
 
     let toml_file_path = settings::user_preferences_toml_file_path();
@@ -1218,7 +1210,6 @@ fn initialize_app(
         .as_ref()
         .map(|app_state| app_state.running_mcp_servers.as_slice())
         .unwrap_or(&[]);
-
 
     ctx.add_singleton_model(|_| OpenedFilesModel::new());
     ctx.add_singleton_model(TerminalKeybindings::new);
@@ -1238,8 +1229,6 @@ fn initialize_app(
 
     // Add a singleton model to maintain state of shared session across all windows.
 
-
-
     timer.mark_interval_end("SINGLETON_MODELS_REGISTERED");
 
     ctx.add_singleton_model(move |_| timer);
@@ -1255,13 +1244,9 @@ fn initialize_app(
         FeatureFlag::SSHTmuxWrapper.set_user_preference(is_ssh_tmux_wrapper_enabled);
     }
 
-
     ctx.add_singleton_model(DefaultTerminal::new);
 
     ctx.add_singleton_model(move |_| persistence_writer);
-
-
-
 
     // When running natively, add the http server singleton to the application.
     #[cfg(not(target_family = "wasm"))]
@@ -1282,8 +1267,7 @@ fn app_callbacks(is_integration_test: bool) -> warpui::platform::AppCallbacks {
             NetworkStatus::handle(ctx)
                 .update(ctx, move |me, ctx| me.reachability_changed(reachable, ctx));
         })),
-        on_become_active: Some(Box::new(move |ctx| {
-        })),
+        on_become_active: Some(Box::new(move |ctx| {})),
         on_screen_changed: Some(Box::new(move |ctx| {
             ctx.dispatch_global_action(
                 "root_view:move_quake_mode_window_from_screen_change",
@@ -1331,7 +1315,6 @@ fn app_callbacks(is_integration_test: bool) -> warpui::platform::AppCallbacks {
                 }
             }
             ctx.dispatch_global_action("root_view:update_quake_mode_state", &update_quake_mode_arg);
-
         })),
         on_will_terminate: Some(Box::new(move |ctx| {
             PersistenceWriter::handle(ctx).update(ctx, |writer, _ctx| {

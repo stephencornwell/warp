@@ -41,9 +41,7 @@ use crate::{
     channel::{Channel, ChannelState},
     cmd_or_ctrl_shift,
     completer::SessionContext,
-    context_chips::{
-        prompt_type::PromptType,
-    },
+    context_chips::prompt_type::PromptType,
     debounce::debounce,
     editor::{
         default_cursor_colors, position_id_for_cached_point, position_id_for_cursor,
@@ -68,13 +66,11 @@ use crate::{
         mark_feature_used_and_write_to_user_defaults, Tip, TipAction, TipHint, TipsCompleted,
     },
     search::QueryFilter,
-    server::{
-        ids::SyncId,
-    },
+    server::ids::SyncId,
     session_management::SessionNavigationPromptElements,
     settings::{
-        AliasExpansionSettings, AppEditorSettings,
-        AppEditorSettingsChangedEvent, InputModeSettings, InputSettings, InputSettingsChangedEvent,
+        AliasExpansionSettings, AppEditorSettings, AppEditorSettingsChangedEvent,
+        InputModeSettings, InputSettings, InputSettingsChangedEvent,
         MAX_TIMES_TO_SHOW_AUTOSUGGESTION_HINT,
     },
     settings_view::{flags, SettingsSection},
@@ -84,9 +80,8 @@ use crate::{
     util::image::MAX_IMAGE_COUNT_FOR_QUERY,
     view_components::{DismissibleToast, ToastFlavor},
     workspace::{
-        sync_inputs::SyncedInputState, CommandSearchOptions, PaletteSource,
-        ForkedConversationDestination, InitContent, RestoreConversationLayout, ToastStack,
-        WorkspaceAction,
+        sync_inputs::SyncedInputState, CommandSearchOptions, ForkedConversationDestination,
+        InitContent, PaletteSource, RestoreConversationLayout, ToastStack, WorkspaceAction,
     },
 };
 
@@ -440,7 +435,9 @@ enum InputType {
 }
 
 impl InputType {
-    fn is_ai(self) -> bool { false }
+    fn is_ai(self) -> bool {
+        false
+    }
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -564,7 +561,6 @@ impl InputSuggestionsMode {
         }
     }
 }
-
 
 #[derive(Clone)]
 pub enum CommandExecutionSource {
@@ -800,7 +796,6 @@ impl MenuPositioningProvider for MenuPositioning {
         *self
     }
 }
-
 
 /// Helper struct for performing alias expansion.
 struct ExpansionInfo {
@@ -1251,19 +1246,13 @@ pub fn init(app: &mut AppContext) {
         .with_key_binding("tab"),
     ]);
 
-
     app.register_editable_bindings([
         EditableBinding::new(
             "input:toggle_natural_language_command_search",
             "Open AI Command Suggestions",
             InputAction::ShowAiCommandSearch,
         )
-        .with_context_predicate(
-            id!("Input")
-                
-                & id!(flags::IS_ANY_AI_ENABLED)
-                & !id!("AIInput"),
-        )
+        .with_context_predicate(id!("Input") & id!(flags::IS_ANY_AI_ENABLED) & !id!("AIInput"))
         .with_group(bindings::BindingGroup::WarpAi.as_str())
         .with_custom_action(CustomAction::AISearch),
         EditableBinding::new(
@@ -1392,7 +1381,7 @@ impl Input {
     pub(crate) fn new(
         model: Arc<FairMutex<TerminalModel>>,
         tips_completed: ModelHandle<TipsCompleted>,
-            sessions: ModelHandle<Sessions>,
+        sessions: ModelHandle<Sessions>,
         size_info: SizeInfo,
         menu_positioning_provider: Arc<dyn MenuPositioningProvider>,
         current_prompt: ModelHandle<PromptType>,
@@ -1419,7 +1408,6 @@ impl Input {
         let input_render_state_model_handle: ModelHandle<InputRenderStateModel> =
             ctx.add_model(|_| InputRenderStateModel::new(false, size_info));
 
-
         let prompt_render_helper = PromptRenderHelper::new(
             sessions.clone(),
             prompt_selection_state_handle,
@@ -1434,8 +1422,6 @@ impl Input {
             let terminal_model_for_keymap_context = model.clone();
             let input_render_state_model_handle_clone = input_render_state_model_handle.clone();
 
-
-
             ctx.add_typed_action_view(|ctx| {
                 let options = EditorOptions {
                     autogrow: true,
@@ -1448,7 +1434,6 @@ impl Input {
                     soft_wrap: true,
                     supports_vim_mode: true,
                     use_settings_line_height_ratio: true,
-
 
                     baseline_position_computation_method: BaselinePositionComputationMethod::Grid,
                     // We implement middle-click paste at the [`TerminalView`] level,
@@ -1466,7 +1451,6 @@ impl Input {
         let buffer_model = ctx.add_model(|ctx| InputBufferModel::new(&editor, ctx));
         let suggestions_mode_model =
             ctx.add_model(|_| InputSuggestionsModeModel::new(buffer_model.clone()));
-
 
         current_prompt.update(ctx, |prompt_type, ctx| {
             if let PromptType::Dynamic { prompt } = prompt_type {
@@ -1857,8 +1841,8 @@ impl Input {
         {
             CanExecuteCommand::No(DenyExecutionReason::ExistingActiveCommand)
         } else if active_block
-                .session_id()
-                .is_none_or(|session_id| !History::as_ref(ctx).is_appendable(&session_id))
+            .session_id()
+            .is_none_or(|session_id| !History::as_ref(ctx).is_appendable(&session_id))
         {
             CanExecuteCommand::No(DenyExecutionReason::HistoryNotAppendable)
         } else {
@@ -2409,7 +2393,8 @@ impl Input {
 
     fn editor_up(&mut self, ctx: &mut ViewContext<Self>) {
         if self.suggestions_mode_model.as_ref(ctx).is_visible() {
-            self.input_suggestions.update(ctx, |suggestions, ctx| suggestions.select_prev(ctx));
+            self.input_suggestions
+                .update(ctx, |suggestions, ctx| suggestions.select_prev(ctx));
         } else {
             self.editor.update(ctx, |editor, ctx| editor.move_up(ctx));
         }
@@ -2479,7 +2464,8 @@ impl Input {
     /// in either direction.
     fn editor_down(&mut self, ctx: &mut ViewContext<Self>) {
         if self.suggestions_mode_model.as_ref(ctx).is_visible() {
-            self.input_suggestions.update(ctx, |suggestions, ctx| suggestions.select_next(ctx));
+            self.input_suggestions
+                .update(ctx, |suggestions, ctx| suggestions.select_next(ctx));
         } else {
             self.editor.update(ctx, |editor, ctx| editor.move_down(ctx));
         }
@@ -2531,9 +2517,10 @@ impl Input {
         });
         let ignored_suggestions = IgnoredSuggestionsModel::as_ref(ctx)
             .get_ignored_suggestions_for_type(SuggestionType::ShellCommand);
-        let abort_handle = ctx.spawn_abortable(
-            async move {
-                // Fall back to the first completer result.
+        let abort_handle = ctx
+            .spawn_abortable(
+                async move {
+                    // Fall back to the first completer result.
                     let Some(completion_context) = completion_context else {
                         return AutoSuggestionResult {
                             buffer_text,
@@ -2571,18 +2558,19 @@ impl Input {
                             .find(|suggestion| !ignored_suggestions.contains(suggestion))
                     });
 
-                AutoSuggestionResult {
-                    buffer_text,
-                    autosuggestion_result: autosuggestion,
-                }
-            },
-            Self::on_autosuggestion_result,
-            move |_, _| {
-                if let Some(session) = completion_session {
-                    session.cancel_active_commands();
-                }
-            },
-        ).abort_handle();
+                    AutoSuggestionResult {
+                        buffer_text,
+                        autosuggestion_result: autosuggestion,
+                    }
+                },
+                Self::on_autosuggestion_result,
+                move |_, _| {
+                    if let Some(session) = completion_session {
+                        session.cancel_active_commands();
+                    }
+                },
+            )
+            .abort_handle();
 
         self.set_autosuggestion_future(abort_handle);
     }
@@ -2755,7 +2743,10 @@ impl Input {
         self.hide_x_ray(ctx);
         match event {
             EditorEvent::Edited(edit_origin) => {
-                if matches!(edit_origin, EditOrigin::UserTyped | EditOrigin::UserInitiated) {
+                if matches!(
+                    edit_origin,
+                    EditOrigin::UserTyped | EditOrigin::UserInitiated
+                ) {
                     self.model.lock().set_is_input_dirty(true);
                 }
                 self.maybe_generate_autosuggestion(ctx);
@@ -3501,7 +3492,6 @@ impl Input {
                                 ctx,
                             );
                         });
-
 
                         let preselect_option = if self.is_classic_completions_enabled(ctx) {
                             TabCompletionsPreselectOption::Unselected
@@ -4443,7 +4433,9 @@ impl TypedActionView for Input {
             InputAction::ToggleClassicCompletionsMode => {
                 InputSettings::handle(ctx).update(ctx, |settings, ctx| {
                     if let Err(e) = settings.classic_completions_mode.toggle_and_save_value(ctx) {
-                        log::warn!("Failed to toggle and save classic completions mode setting: {e}.");
+                        log::warn!(
+                            "Failed to toggle and save classic completions mode setting: {e}."
+                        );
                     }
                 });
             }
@@ -4460,7 +4452,6 @@ impl TypedActionView for Input {
             _ => {}
         }
     }
-
 }
 
 impl View for Input {

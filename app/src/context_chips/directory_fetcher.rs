@@ -6,7 +6,6 @@ use warp_completer::completer::{EngineDirEntry, EngineFileType, PathCompletionCo
 use warp_util::file_type::is_binary_file;
 use warpui::{r#async::SpawnedFutureHandle, AppContext, Entity, ModelContext};
 
-
 /// DirectoryFetcher model that caches directory state and provides an explicit refetch API
 pub struct DirectoryFetcher {
     current_directory: String,

@@ -1,10 +1,10 @@
 pub mod header;
 pub mod header_content;
 
-use crate::pane_group::pane::ActionOrigin;
 use super::{
     BackingView, PaneConfiguration, PaneConfigurationEvent, PaneId, PaneStack, PaneStackEvent,
 };
+use crate::pane_group::pane::ActionOrigin;
 use header::PaneHeader;
 
 use warpui::{

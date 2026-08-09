@@ -7,6 +7,10 @@ use super::{
     },
     SettingsSection,
 };
+use crate::search_bar::SearchBar;
+use crate::util::bindings::{
+    filter_bindings_including_keystroke, reset_keybinding_to_default, set_custom_keybinding,
+};
 use crate::{appearance::Appearance, themes};
 use crate::{
     editor::EditorView, keyboard::write_custom_keybinding, util::bindings::CommandBinding,
@@ -16,12 +20,6 @@ use crate::{
         Event as EditorEvent, PropagateAndNoOpNavigationKeys, SingleLineEditorOptions, TextOptions,
     },
     keyboard::UserDefinedKeybinding,
-};
-use crate::search_bar::SearchBar;
-use crate::{
-    util::bindings::{
-        filter_bindings_including_keystroke, reset_keybinding_to_default, set_custom_keybinding,
-    },
 };
 use itertools::Itertools;
 

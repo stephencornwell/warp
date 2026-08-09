@@ -1,16 +1,15 @@
-use warp_core::report_if_error;
 use std::borrow::Cow;
 use std::fs::File;
 use std::path::PathBuf;
+use warp_core::report_if_error;
 
 use crate::ai::persisted_workspace::PersistedWorkspace;
+use crate::auth;
 use crate::auth::AuthStateProvider;
 use crate::default_terminal::DefaultTerminal;
 use crate::features::{runtime_flags_menu_items, FeatureFlag};
 use crate::root_view::OpenLaunchConfigArg;
-use crate::settings::{
-    BlockVisibilitySettings, DebugSettings, SelectionSettings,
-};
+use crate::settings::{BlockVisibilitySettings, DebugSettings, SelectionSettings};
 use crate::terminal::alt_screen_reporting::AltScreenReporting;
 use crate::terminal::session_settings::SessionSettings;
 use crate::terminal::settings::{SpacingMode, TerminalSettings};
@@ -19,7 +18,6 @@ use crate::user_config::WarpConfig;
 use crate::util::bindings::{self, trigger_to_keystroke, CustomAction};
 use crate::util::links;
 use crate::workspace::sync_inputs::SyncedInputState;
-use crate::{auth};
 use ai::workspace::WorkspaceMetadata;
 use csv::Writer;
 use enclose::enclose;

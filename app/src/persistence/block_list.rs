@@ -4,8 +4,8 @@ use std::collections::HashMap;
 
 use diesel::{prelude::*, result::Error, sqlite::SqliteConnection};
 
-use crate::terminal::model::block::SerializedBlock;
 use crate::app_state::PaneUuid;
+use crate::terminal::model::block::SerializedBlock;
 
 use super::model::Block;
 use super::{model, schema};

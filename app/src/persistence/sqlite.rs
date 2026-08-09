@@ -1,4 +1,3 @@
-use warp_core::report_if_error;
 use std::collections::HashSet;
 use std::ffi::OsString;
 use std::path::Path;
@@ -13,6 +12,7 @@ use std::{
     sync::Arc,
     thread,
 };
+use warp_core::report_if_error;
 
 use anyhow::{anyhow, bail, Context, Result};
 use chrono::{DateTime, Utc};
@@ -39,32 +39,27 @@ use super::model::{
     NewApp, NewCommand, NewFolder, NewNotebook, NewServerExperiment, NewTab, NewTeam, NewWindow,
     NewWorkspace, NewWorkspaceMetadata, NewWorkspaceTeam, ObjectMetadata, ObjectPermissions,
     Project, Tab, Window, WorkspaceMetadata as WorkspaceMetadataModel, AI_DOCUMENT_PANE_KIND,
-    AI_FACT_PANE_KIND, CODE_PANE_KIND,
-    EXECUTION_PROFILE_EDITOR_PANE_KIND, MCP_SERVER_PANE_KIND, NOTEBOOK_PANE_KIND,
-    SETTINGS_PANE_KIND, TERMINAL_PANE_KIND, WELCOME_PANE_KIND, WORKFLOW_PANE_KIND,
+    AI_FACT_PANE_KIND, CODE_PANE_KIND, EXECUTION_PROFILE_EDITOR_PANE_KIND, MCP_SERVER_PANE_KIND,
+    NOTEBOOK_PANE_KIND, SETTINGS_PANE_KIND, TERMINAL_PANE_KIND, WELCOME_PANE_KIND,
+    WORKFLOW_PANE_KIND,
 };
 use super::schema;
 use super::{
     BlockCompleted, FinishedCommandMetadata, ModelEvent, PersistedData, StartedCommandMetadata,
     WriterHandles,
 };
-use crate::app_state::{LeftPanelSnapshot, SettingsPaneSnapshot, WorkflowPaneSnapshot};
-use crate::persistence::model::{
-    ProjectRules, CODE_REVIEW_PANE_KIND, GET_STARTED_PANE_KIND,
+use crate::app_state::{
+    AppState, BranchSnapshot, LeafContents, LeafSnapshot, NotebookPaneSnapshot, PaneFlex,
+    PaneNodeSnapshot, SplitDirection, TabSnapshot, TerminalPaneSnapshot, WindowSnapshot,
 };
+use crate::app_state::{LeftPanelSnapshot, SettingsPaneSnapshot, WorkflowPaneSnapshot};
+use crate::persistence::model::{ProjectRules, CODE_REVIEW_PANE_KIND, GET_STARTED_PANE_KIND};
 use crate::settings_view::SettingsSection;
 use crate::suggestions::ignored_suggestions_model::SuggestionType;
 use crate::tab::SelectedTabColor;
 use crate::terminal::history::PersistedCommand;
 use crate::terminal::ShellLaunchData;
 use crate::themes::theme::AnsiColorIdentifier;
-use crate::{
-    app_state::{
-        AppState, BranchSnapshot, LeafContents,
-        LeafSnapshot, NotebookPaneSnapshot, PaneFlex, PaneNodeSnapshot, SplitDirection,
-        TabSnapshot, TerminalPaneSnapshot, WindowSnapshot,
-    },
-};
 use crate::{report_error, safe_info};
 use lsp::supported_servers::LSPServerType;
 
@@ -76,7 +71,6 @@ diesel::define_sql_function! {
 // events to queue.
 const CHANNEL_SIZE: usize = 1024;
 const COMMANDS_COUNT_LIMIT: i64 = 10000;
-
 
 const WARP_SQLITE_FILE_NAME: &str = "warp.sqlite";
 
@@ -1048,7 +1042,10 @@ fn remove_ignored_suggestion(
     Ok(())
 }
 
-fn read_root_node(conn: &mut SqliteConnection, tab_id_val: i32) -> Result<Option<PaneNodeSnapshot>> {
+fn read_root_node(
+    conn: &mut SqliteConnection,
+    tab_id_val: i32,
+) -> Result<Option<PaneNodeSnapshot>> {
     use schema::pane_nodes::dsl::*;
 
     let pane_node: model::PaneNode = schema::pane_nodes::dsl::pane_nodes
@@ -1059,7 +1056,10 @@ fn read_root_node(conn: &mut SqliteConnection, tab_id_val: i32) -> Result<Option
 }
 
 /// Reads a saved node back into a snapshot.
-fn read_node(conn: &mut SqliteConnection, node: model::PaneNode) -> Result<Option<PaneNodeSnapshot>> {
+fn read_node(
+    conn: &mut SqliteConnection,
+    node: model::PaneNode,
+) -> Result<Option<PaneNodeSnapshot>> {
     match node.is_leaf {
         true => {
             let pane = schema::pane_leaves::dsl::pane_leaves
@@ -1176,9 +1176,7 @@ fn read_node(conn: &mut SqliteConnection, node: model::PaneNode) -> Result<Optio
 /// happen is the user won't have session restoration.
 ///
 /// In the future, the awkwardness of the transaction interface is resolved in diesel 2.0.0.
-fn read_sqlite_data(
-    conn: &mut SqliteConnection,
-) -> Result<PersistedData, Error> {
+fn read_sqlite_data(conn: &mut SqliteConnection) -> Result<PersistedData, Error> {
     use schema::windows::dsl::*;
 
     let active_window_id = schema::app::dsl::app
@@ -1416,7 +1414,6 @@ fn update_finished_command(
         Ok(())
     })
 }
-
 
 #[cfg(test)]
 #[path = "sqlite_tests.rs"]

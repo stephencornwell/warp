@@ -192,7 +192,8 @@ impl Renderer {
             );
         }
 
-        let container = Container::new(content.finish()).with_background(appearance.theme().surface_1());
+        let container =
+            Container::new(content.finish()).with_background(appearance.theme().surface_1());
 
         let mut hoverable = Hoverable::new(self.tooltip_state_handle.clone(), |mouse_state| {
             if !mouse_state.is_hovered()

@@ -1,5 +1,5 @@
-use crate::report_if_error;
 use crate::features::FeatureFlag;
+use crate::report_if_error;
 use crate::settings::{InputSettings, WarpPromptSeparator};
 use crate::terminal::event::{BlockType, UserBlockCompleted};
 use crate::terminal::model::session::{ExecuteCommandOptions, Session, SessionsEvent};
@@ -175,7 +175,6 @@ pub struct CurrentPrompt {
     sessions: ModelHandle<Sessions>,
     prompt_chip_logger: PromptChipLogger,
     update_tx: async_channel::Sender<()>,
-
 }
 
 /// Context about the current terminal session, needed to update the prompt.
@@ -1157,7 +1156,6 @@ impl CurrentPrompt {
                 session_settings.saved_prompt.same_line_prompt_enabled();
             self.separator = session_settings.saved_prompt.separator();
         }
-
     }
 
     fn clear_chips(&mut self) {

@@ -1,8 +1,8 @@
-use anyhow::Result;
-use warpui::{AppContext, Entity, SingletonEntity};
 #[cfg(target_os = "windows")]
 use super::PseudoConsoleChild;
 use super::{PtyOptions, PtySpawnResult};
+use anyhow::Result;
+use warpui::{AppContext, Entity, SingletonEntity};
 #[cfg(unix)]
 use {
     crate::report_error,

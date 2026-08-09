@@ -80,9 +80,6 @@ impl HeaderToolbarItemKind {
 
     /// All toolbar item variants (availability filtering is done at the call site).
     pub fn all_items() -> Vec<Self> {
-        vec![
-            Self::TabsPanel,
-            Self::ToolsPanel,
-        ]
+        vec![Self::TabsPanel, Self::ToolsPanel]
     }
 }

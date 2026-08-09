@@ -40,7 +40,6 @@ use warpui::{AppContext, ModelContext, ModelHandle, SingletonEntity, ViewHandle,
 
 use warp_core::execution_mode::AppExecutionMode;
 
-
 use crate::banner::BannerState;
 use crate::context_chips::current_prompt::CurrentPrompt;
 use crate::context_chips::prompt_snapshot::PromptSnapshot;
@@ -123,7 +122,6 @@ pub struct TerminalManager {
     /// Note that we need to hold onto the inactive receiver so that the channel isn't closed prematurely.
     #[allow(dead_code)]
     inactive_pty_reads_rx: InactiveReceiver<Arc<Vec<u8>>>,
-
 }
 
 impl Drop for TerminalManager {
@@ -226,8 +224,7 @@ impl TerminalManager {
         let model = Arc::new(FairMutex::new(model));
 
         // This is purely for measuring throughput on WarpDev.
-        if FeatureFlag::RecordPtyThroughput.is_enabled() {
-        }
+        if FeatureFlag::RecordPtyThroughput.is_enabled() {}
 
         // Initialize the PtyController.
         let pty_controller = init_pty_controller_model(
@@ -370,8 +367,8 @@ impl TerminalManager {
             shell_starter_source,
             Some(ShellStarterSource::Fallback { .. })
         );
-        let shell_starter = shell_starter_source
-            .map(|source| get_shell_starter_internal(source, bg_executor));
+        let shell_starter =
+            shell_starter_source.map(|source| get_shell_starter_internal(source, bg_executor));
         let shell_starter = match shell_starter {
             Some(shell_starter) => shell_starter,
             None => {
@@ -674,7 +671,6 @@ impl TerminalManager {
                     && termios.local_flags.contains(LocalFlags::ICANON);
 
                 if might_be_password_prompt {
-
                     // Only send the notification if the user is navigated away from the window
                     // when the password prompt appears. If the password prompt appears and they
                     // are not navigated away, don't poll again since we would then send a notification
@@ -720,7 +716,6 @@ impl TerminalManager {
             None
         }
     }
-
 }
 
 /// Determine whether to show password notifications based on the user's settings.
@@ -751,10 +746,7 @@ pub fn get_shell_starter(
             warpui::r#async::block_on(async { starter.to_shell_starter_source().await })
         })
         .map(|starter_source| {
-            get_shell_starter_internal(
-                starter_source,
-                ctx.background_executor().clone(),
-            )
+            get_shell_starter_internal(starter_source, ctx.background_executor().clone())
         })
 }
 

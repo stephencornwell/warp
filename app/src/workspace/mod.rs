@@ -41,9 +41,7 @@ pub use action::{
     RestoreConversationLayout, TabContextMenuAnchor, WorkspaceAction,
 };
 pub use active_session::ActiveSession;
-pub use global_actions::{
-    ForkedConversationDestination,
-};
+pub use global_actions::ForkedConversationDestination;
 pub use util::{active_terminal_in_window, PaneViewLocator, TabMovement};
 pub use view::{
     Workspace, NEW_SESSION_MENU_BUTTON_POSITION_ID, NEW_TAB_BUTTON_POSITION_ID,
@@ -61,13 +59,10 @@ pub fn panel_header_corner_radius() -> warpui::elements::CornerRadius {
 ///
 /// Kept in sync with the availability check in `Workspace::send_feedback` so
 /// the command palette label and the menu item behavior never diverge.
-
 use crate::workspace::view::{
-    LEFT_PANEL_GLOBAL_SEARCH_BINDING_NAME,
-    LEFT_PANEL_PROJECT_EXPLORER_BINDING_NAME, LEFT_PANEL_WARP_DRIVE_BINDING_NAME,
-    NEW_TAB_BINDING_NAME,
-    NEW_TERMINAL_TAB_BINDING_NAME, OPEN_GLOBAL_SEARCH_BINDING_NAME,
-    TOGGLE_NOTIFICATION_MAILBOX_BINDING_NAME,
+    LEFT_PANEL_GLOBAL_SEARCH_BINDING_NAME, LEFT_PANEL_PROJECT_EXPLORER_BINDING_NAME,
+    LEFT_PANEL_WARP_DRIVE_BINDING_NAME, NEW_TAB_BINDING_NAME, NEW_TERMINAL_TAB_BINDING_NAME,
+    OPEN_GLOBAL_SEARCH_BINDING_NAME, TOGGLE_NOTIFICATION_MAILBOX_BINDING_NAME,
     TOGGLE_PROJECT_EXPLORER_BINDING_NAME, TOGGLE_RIGHT_PANEL_BINDING_NAME,
     TOGGLE_TAB_CONFIGS_MENU_BINDING_NAME, TOGGLE_WARP_DRIVE_BINDING_NAME,
 };
@@ -556,10 +551,7 @@ pub fn init(app: &mut AppContext) {
         )
         .with_custom_action(CustomAction::NewTeamNotebook)
         .with_context_predicate(
-            id!("Workspace")
-                & id!("Workspace")
-                & id!("WarpDrive_BelongsToTeam")
-                & id!("IsOnline"),
+            id!("Workspace") & id!("Workspace") & id!("WarpDrive_BelongsToTeam") & id!("IsOnline"),
         )
         .with_group(bindings::BindingGroup::Notebooks.as_str()),
         EditableBinding::new(
@@ -579,10 +571,7 @@ pub fn init(app: &mut AppContext) {
         )
         .with_custom_action(CustomAction::NewTeamWorkflow)
         .with_context_predicate(
-            id!("Workspace")
-                & id!("Workspace")
-                & id!("IsOnline")
-                & id!("WarpDrive_BelongsToTeam"),
+            id!("Workspace") & id!("Workspace") & id!("IsOnline") & id!("WarpDrive_BelongsToTeam"),
         )
         .with_group(bindings::BindingGroup::Workflow.as_str()),
         EditableBinding::new(
@@ -601,10 +590,7 @@ pub fn init(app: &mut AppContext) {
             WorkspaceAction::CreateTeamFolder,
         )
         .with_context_predicate(
-            id!("Workspace")
-                & id!("Workspace")
-                & id!("IsOnline")
-                & id!("WarpDrive_BelongsToTeam"),
+            id!("Workspace") & id!("Workspace") & id!("IsOnline") & id!("WarpDrive_BelongsToTeam"),
         )
         .with_group(bindings::BindingGroup::Folders.as_str()),
         EditableBinding::new(
@@ -1006,9 +992,7 @@ pub fn init(app: &mut AppContext) {
         )
         .with_group(bindings::BindingGroup::WarpAi.as_str())
         .with_custom_action(CustomAction::NewPersonalAIPrompt)
-        .with_context_predicate(
-            id!("Workspace") & id!(flags::IS_ANY_AI_ENABLED),
-        ),
+        .with_context_predicate(id!("Workspace") & id!(flags::IS_ANY_AI_ENABLED)),
         EditableBinding::new(
             "workspace:create_team_ai_prompt",
             BindingDescription::new("Create a new team prompt")
@@ -1055,9 +1039,7 @@ pub fn init(app: &mut AppContext) {
             "Import To Team Drive",
             WorkspaceAction::ImportToTeamDrive,
         )
-        .with_context_predicate(
-            id!("Workspace") & id!("WarpDrive_BelongsToTeam"),
-        ),
+        .with_context_predicate(id!("Workspace") & id!("WarpDrive_BelongsToTeam")),
     ]);
 
     // Register a debug-only action for writing the user's access token to the system clipboard
@@ -1072,17 +1054,15 @@ pub fn init(app: &mut AppContext) {
         .with_context_predicate(id!("Workspace"))]);
     }
 
-    app.register_editable_bindings([
-        EditableBinding::new(
-            "workspace:open_repository",
-            BindingDescription::new("Open repository")
-                .with_custom_description(bindings::MAC_MENUS_CONTEXT, "Open Repository"),
-            WorkspaceAction::OpenRepository { path: None },
-        )
-        .with_context_predicate(id!("Workspace"))
-        .with_custom_action(CustomAction::OpenRepository)
-        .with_group(bindings::BindingGroup::Folders.as_str()),
-    ]);
+    app.register_editable_bindings([EditableBinding::new(
+        "workspace:open_repository",
+        BindingDescription::new("Open repository")
+            .with_custom_description(bindings::MAC_MENUS_CONTEXT, "Open Repository"),
+        WorkspaceAction::OpenRepository { path: None },
+    )
+    .with_context_predicate(id!("Workspace"))
+    .with_custom_action(CustomAction::OpenRepository)
+    .with_group(bindings::BindingGroup::Folders.as_str())]);
 
     app.register_editable_bindings([EditableBinding::new(
         "workspace:jump_to_latest_toast",

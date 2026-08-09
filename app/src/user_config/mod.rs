@@ -6,9 +6,7 @@ mod imp;
 
 use crate::tab_configs::{TabConfig, TabConfigError};
 use crate::themes::theme::WarpThemeConfig;
-use crate::{
-    launch_configs::launch_config::LaunchConfig, themes::theme::ThemeKind,
-};
+use crate::{launch_configs::launch_config::LaunchConfig, themes::theme::ThemeKind};
 use lazy_static::lazy_static;
 #[cfg(feature = "local_fs")]
 use std::path::Path;
@@ -109,7 +107,6 @@ impl WarpConfig {
     pub fn theme_config(&self) -> &WarpThemeConfig {
         &self.theme_config
     }
-
 
     /// Saving the newly created launch configuration to the WarpConfig that we currently
     /// have.

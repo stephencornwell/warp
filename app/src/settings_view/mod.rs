@@ -204,10 +204,7 @@ impl SettingsSection {
     pub fn is_ai_subpage(&self) -> bool {
         matches!(
             self,
-            Self::WarpAgent
-                | Self::AgentProfiles
-                | Self::Knowledge
-                | Self::ThirdPartyCLIAgents
+            Self::WarpAgent | Self::AgentProfiles | Self::Knowledge | Self::ThirdPartyCLIAgents
         )
     }
 
@@ -1013,9 +1010,7 @@ impl SettingsView {
             )),
             SettingsNavItem::Umbrella(SettingsUmbrella::new(
                 "Cloud platform",
-                vec![
-                    SettingsSection::CloudEnvironments,
-                ],
+                vec![SettingsSection::CloudEnvironments],
             )),
             SettingsNavItem::Page(SettingsSection::Teams),
             SettingsNavItem::Page(SettingsSection::Appearance),
@@ -2028,7 +2023,6 @@ impl View for SettingsView {
             );
         }
 
-
         SavePosition::new(stack.finish(), POSITION_ID).finish()
     }
 }
@@ -2040,7 +2034,6 @@ impl TypedActionView for SettingsView {
         match action {
             SettingsAction::SelectAndRefresh(section) => {
                 self.set_and_refresh_current_page_internal(*section, false, true, ctx);
-
             }
             SettingsAction::ToggleUmbrella(nav_index) => {
                 if let Some(SettingsNavItem::Umbrella(umbrella)) =

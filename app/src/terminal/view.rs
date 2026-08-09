@@ -66,11 +66,11 @@ use crate::server::ids::{ObjectUid, SyncId};
 use crate::settings::import::model::ImportedConfigModel;
 use crate::settings::import::view::{SettingsImportEvent, SettingsImportView};
 use crate::settings::{
-    AliasExpansionSettings, AppEditorSettings,
-    BlockVisibilitySettings, BlockVisibilitySettingsChangedEvent, DebugSettings,
-    DebugSettingsChangedEvent, EmacsBindingsSettings, FontSettings, FontSettingsChangedEvent,
-    InputModeSettings, InputModeSettingsChangedEvent, InputSettings, PaneSettings,
-    PaneSettingsChangedEvent, SelectionSettings, VimBannerSettings,
+    AliasExpansionSettings, AppEditorSettings, BlockVisibilitySettings,
+    BlockVisibilitySettingsChangedEvent, DebugSettings, DebugSettingsChangedEvent,
+    EmacsBindingsSettings, FontSettings, FontSettingsChangedEvent, InputModeSettings,
+    InputModeSettingsChangedEvent, InputSettings, PaneSettings, PaneSettingsChangedEvent,
+    SelectionSettings, VimBannerSettings,
 };
 use crate::settings_view::flags;
 use crate::settings_view::keybindings::KeybindingChangedNotifier;
@@ -127,8 +127,8 @@ use crate::util::clipboard::clipboard_content_with_escaped_paths;
 use crate::util::openable_file_type::{is_markdown_file, resolve_file_target, FileTarget};
 use crate::view_components::{DismissibleToast, ToastFlavor};
 use crate::workspace::sync_inputs::SyncedInputState;
-use crate::workspace::{CommandSearchOptions, OneTimeModalModel, ToastStack, WorkspaceAction};
 use crate::workspace::ForkedConversationDestination;
+use crate::workspace::{CommandSearchOptions, OneTimeModalModel, ToastStack, WorkspaceAction};
 use crate::ActiveSession as WindowActiveSession;
 
 use async_channel::{Receiver, Sender};
@@ -226,8 +226,7 @@ use crate::editor::{AutosuggestionType, CrdtOperation, EditorAction};
 use crate::features::FeatureFlag;
 use crate::pane_group::SplitPaneState;
 use crate::pane_group::{
-    PaneConfiguration, PaneEvent, PaneGroupAction, PaneHeaderAction,
-    TerminalViewResources,
+    PaneConfiguration, PaneEvent, PaneGroupAction, PaneHeaderAction, TerminalViewResources,
 };
 use crate::resource_center::{
     mark_feature_used_and_write_to_user_defaults, Tip, TipHint, TipsCompleted,
@@ -285,13 +284,6 @@ use settings::{Setting, ToggleableSetting};
 use warp_core::semantic_selection::SemanticSelection;
 use warpui::text::SelectionType;
 
-use crate::menu::{Event as MenuEvent, Menu, MenuItem, MenuItemFields};
-use crate::terminal::{block_list_element::BlockListMenuSource, prompt};
-use crate::terminal::{color, History, SizeInfo};
-use crate::terminal::{color::List, model::block::LONG_RUNNING_BOTTOM_PADDING_LINES};
-use crate::terminal::{event::AfterBlockCompletedEvent, event::BlockLatencyData, event::BlockType};
-use crate::throttle::throttle;
-use crate::util::color::darken;
 use self::link_detection::HighlightedLinkOption;
 use super::available_shells::AvailableShell;
 use super::block_list_viewport::FindMatchScrollLocation;
@@ -310,18 +302,24 @@ use super::model::session::SessionBootstrappedEvent;
 use super::settings::AltScreenPaddingMode;
 use super::{GridType, HistoryEvent};
 use crate::antivirus::AntivirusInfo;
+use crate::menu::{Event as MenuEvent, Menu, MenuItem, MenuItemFields};
 use crate::terminal::links::should_directly_open_link;
 use crate::terminal::model_events::{AnsiHandlerEvent, ModelEvent, ModelEventDispatcher};
+use crate::terminal::{block_list_element::BlockListMenuSource, prompt};
+use crate::terminal::{color, History, SizeInfo};
+use crate::terminal::{color::List, model::block::LONG_RUNNING_BOTTOM_PADDING_LINES};
+use crate::terminal::{event::AfterBlockCompletedEvent, event::BlockLatencyData, event::BlockType};
+use crate::throttle::throttle;
+use crate::util::color::darken;
 use action::RememberForWarpification;
 use bookmarks::render_floating_block_snapshot;
 use command_corrections::rules::generic::history::History as CommandCorrectionsHistoryRule;
 use init::{INPUT_BOX_VISIBLE_KEY, TOGGLE_BLOCK_FILTER_KEYBINDING};
 use inline_banner::{
     render_alias_expansion_banner, render_inline_notifications_discovery_banner,
-    render_inline_notifications_error_banner,
-    render_open_in_warp_banner, render_shell_process_terminated_banner, render_vim_mode_banner,
-    AliasExpansionBanner, AliasExpansionBannerAction,
-    OpenInWarpBannerState, VimModeBannerAction,
+    render_inline_notifications_error_banner, render_open_in_warp_banner,
+    render_shell_process_terminated_banner, render_vim_mode_banner, AliasExpansionBanner,
+    AliasExpansionBannerAction, OpenInWarpBannerState, VimModeBannerAction,
 };
 use warp_core::command::ExitCode;
 
@@ -765,8 +763,7 @@ pub enum InlineBannerType {
     VimMode,
 }
 
-impl InlineBannerType {
-}
+impl InlineBannerType {}
 
 /// An inline banner with its unique ID and type metadata.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
@@ -805,7 +802,6 @@ struct InlineBannersState {
     open_in_warp_banner: Option<OpenInWarpBannerState>,
 
     vim_banner_state: Option<VimModeBannerState>,
-
 }
 
 impl InlineBannersState {
@@ -1356,7 +1352,6 @@ pub enum ContextMenuType {
     Prompt { position: Vector2F },
     /// Opened via right-clicking on the input box.
     Input { position: Vector2F },
-
 }
 
 impl ContextMenuType {
@@ -1395,8 +1390,7 @@ pub struct ContextMenuInfo {
     menu_type: ContextMenuType,
 }
 
-impl ContextMenuInfo {
-}
+impl ContextMenuInfo {}
 
 #[derive(Debug, Copy, Clone)]
 struct ContextMenuState {
@@ -1444,7 +1438,6 @@ pub struct TerminalViewRenderContext {
     pub hovered_secret: Option<SecretHandle>,
 
     pub horizontal_clipped_scroll_state: ClippedScrollStateHandle,
-
 }
 
 #[derive(Default)]
@@ -1817,8 +1810,6 @@ pub struct TerminalView {
     // If there is a selected conversation in the view before bootstrapping (from loading a conversation into a new pane),
     // we want to keep the title as the conversation title, so we should ignore the model event setting the title after bootstrapping finishes
     ignore_next_set_title_event: bool,
-
-
 
     /// Weak handle to the [`PaneStack`] this view is part of, allowing push/pop operations.
     pane_stack: Option<WeakModelHandle<crate::pane_group::pane::PaneStack<Self>>>,
@@ -2302,8 +2293,7 @@ impl TerminalView {
 
         // Re-evaluate git status subscription when the prompt configuration
         // changes (e.g. chips added/removed, input type toggled).
-        ctx.subscribe_to_model(&Prompt::handle(ctx), |me, _, _, ctx| {
-        });
+        ctx.subscribe_to_model(&Prompt::handle(ctx), |me, _, _, ctx| {});
 
         ctx.subscribe_to_model(&AltScreenReporting::handle(ctx), move |me, _, evt, ctx| {
             me.handle_reporting_settings_event(evt, ctx);
@@ -2359,7 +2349,6 @@ impl TerminalView {
                 }
             }
         });
-
 
         let window_id = ctx.window_id();
         let mut terminal_view = Self {
@@ -2474,11 +2463,6 @@ impl TerminalView {
         self.block_completed_callbacks.push(Box::new(callback));
     }
 
-
-
-
-
-
     /// Exits the active agent, either:
     /// Schedule a callback to run after the next
     /// [`BlocklistAIControllerEvent::FinishedReceivingOutput`] received, regardless of whether the
@@ -2511,24 +2495,15 @@ impl TerminalView {
     /// - Inside a git repository
     /// - Window is wide enough to support the code review panel
 
-
-
-
     #[cfg(feature = "local_fs")]
 
     fn update_context_blocks_and_exchanges(&mut self, ctx: &mut ViewContext<Self>) {
         let _ = ctx;
     }
 
-
-
-
     /// Gets the DiffMode for the given branch name by fetching the main branch name
     /// for this session and comparing it to the given branch name.
     #[cfg_attr(not(feature = "local_fs"), allow(unused_variables))]
-
-
-
 
     fn handle_windowing_state_update(
         &mut self,
@@ -2693,7 +2668,6 @@ impl TerminalView {
         self.is_focused_and_active = true;
     }
 
-
     fn maybe_report_focus_out(&mut self, ctx: &mut ViewContext<Self>) {
         if self.should_report_focus(ctx) && self.is_focused_and_active {
             self.write_to_pty(EscCodes::FOCUS_OUT, ctx);
@@ -2752,11 +2726,7 @@ impl TerminalView {
     /// Windows users expect ctrl-c to copy if there is selected text. Otherwise,
     /// we perform the normal ctrl-c action.
     fn ctrl_c(&mut self, ctx: &mut ViewContext<Self>) {
-        let (
-            has_block_list_selection,
-            has_alt_screen_selection,
-            is_long_running,
-        ) = {
+        let (has_block_list_selection, has_alt_screen_selection, is_long_running) = {
             let model = self.model.lock();
             let has_alt_screen_selection = model.alt_screen().selection().is_some();
             let has_block_list_selection = model.block_list().selection().is_some();
@@ -2831,11 +2801,7 @@ impl TerminalView {
         self.ctrl_c_to_active_block(is_long_running, ctx);
     }
 
-    fn ctrl_c_to_active_block(
-        &mut self,
-        is_long_running: bool,
-        ctx: &mut ViewContext<Self>,
-    ) {
+    fn ctrl_c_to_active_block(&mut self, is_long_running: bool, ctx: &mut ViewContext<Self>) {
         if is_long_running {
             self.user_write_ctrl_c_to_pty(ctx);
         }
@@ -2954,7 +2920,6 @@ impl TerminalView {
                 },
             }));
         }
-
     }
 
     fn update_scroll_position_locking(
@@ -3105,7 +3070,6 @@ impl TerminalView {
     ) {
         ctx.emit(Event::WriteBytesToPty { bytes: data.into() });
     }
-
 
     /// Ends the current line before writing 1000 byte chunks to the pty with a small delay in
     /// between to work around a macos pty bug.
@@ -3449,9 +3413,6 @@ impl TerminalView {
 
     /// Util method to update the ssh block, with a lock
 
-
-
-
     fn insert_most_recent_command_correction(&mut self, ctx: &mut ViewContext<Self>) {
         if let Some(most_recent_command_correction) = self.most_recent_command_correction.as_ref() {
             self.input.update(ctx, |input, ctx| {
@@ -3607,11 +3568,8 @@ impl TerminalView {
 
     /// Returns the view type for prompt suggestion telemetry based on whether agent view is active.
 
-
     /// Try clearing agent mode query banner's passive code generation state.
     /// Called when a suggested code diff fails and we need to fall back to prompt suggestions.
-
-
 
     fn insert_alias_expansion_banner(
         &mut self,
@@ -3701,22 +3659,11 @@ impl TerminalView {
         });
     }
 
-
-
     #[cfg(feature = "local_fs")]
-
     #[cfg(feature = "local_fs")]
-
     #[cfg(feature = "local_fs")]
-
     #[cfg(feature = "local_fs")]
-
     #[cfg(not(feature = "local_fs"))]
-
-
-
-
-
 
     /// Runs the AWS login command configured in settings to refresh Bedrock credentials.
     /// Doing this in PTY vs just a subprocess allows the user to see any output/errors
@@ -3727,8 +3674,6 @@ impl TerminalView {
     /// isn't already using it. If so, inserts a banner prompting the user to log in.
     ///
     /// The banner is shown when the user could be using AWS Bedrock to save on warp AI spend, but isn't.
-
-
 
     /// Checks if the user tried to run an AWS login command and the AWS CLI wasn't installed.
     /// If so, shows a helpful banner explaining the issue.
@@ -3803,7 +3748,6 @@ impl TerminalView {
     }
 
     /// Inserts telemetry policy banner into the blocklist.
-
 
     /// Redetermine focus in the terminal view -- note that this will not steal focus
     /// from other parts of the app, the find bar, or the block filter editor.
@@ -3883,9 +3827,7 @@ impl TerminalView {
                 .clear_pending_warp_initiated_control_mode();
         }
         self.model.lock().end_notify_on_ssh_login_complete();
-
     }
-
 
     /// Returns true if the block is considered remote.
     ///
@@ -3992,8 +3934,7 @@ impl TerminalView {
                     //
                     // Since our baseline commands are all very small, when the command finishes,
                     // the same terminal almost certainly still has the focus.
-                    if reset_focus {
-                    }
+                    if reset_focus {}
                 }
 
                 if let BlockType::User(_) = &block_completed_event.block_type {
@@ -4181,22 +4122,32 @@ impl TerminalView {
                                         ctx.emit(Event::Pane(PaneEvent::RepoChanged));
                                     }
 
-                                    let callbacks = me.block_completed_callbacks.drain(..).collect_vec();
+                                    let callbacks =
+                                        me.block_completed_callbacks.drain(..).collect_vec();
                                     for callback in callbacks {
                                         callback(me, ctx);
                                     }
 
-                                    let Some(active_directory) = me.active_session_path_if_local(ctx) else {
+                                    let Some(active_directory) =
+                                        me.active_session_path_if_local(ctx)
+                                    else {
                                         return;
                                     };
 
                                     if let Some(repo_path) = &repo_path_opt {
-                                        let Ok(active_directory) = repo_metadata::CanonicalizedPath::try_from(active_directory) else {
+                                        let Ok(active_directory) =
+                                            repo_metadata::CanonicalizedPath::try_from(
+                                                active_directory,
+                                            )
+                                        else {
                                             return;
                                         };
 
                                         // Make sure the repo path is still an ancestor of the active directory.
-                                        let is_ancestor = active_directory.as_path_buf().ancestors().any(|ancestor| ancestor == repo_path.as_path());
+                                        let is_ancestor = active_directory
+                                            .as_path_buf()
+                                            .ancestors()
+                                            .any(|ancestor| ancestor == repo_path.as_path());
                                         if !is_ancestor {
                                             return;
                                         }
@@ -4206,7 +4157,7 @@ impl TerminalView {
                                         if old_repo_path.as_ref() != Some(repo_path) {
                                             // Drop old handle (unsubscribes automatically).
                                             let _ = old_repo_path;
-                                                                        }
+                                        }
 
                                         // Notify chips of the new repo path.
                                         me.input.update(ctx, |input, ctx| {
@@ -4330,7 +4281,6 @@ impl TerminalView {
                     self.close_find_bar(ctx);
                     self.redetermine_global_focus(ctx);
                 }
-
             }
             ModelEvent::ExecutedInBandCommand(event) => {
                 // TODO(vorporeal): Figure out a way to not need the terminal view involved
@@ -4394,9 +4344,7 @@ impl TerminalView {
                     });
                 }
             }
-            ModelEvent::ExitShell { session_id } => {
-            }
-            // Handled by RemoteServerController via model subscription.
+            ModelEvent::ExitShell { session_id } => {} // Handled by RemoteServerController via model subscription.
         }
     }
 
@@ -4409,7 +4357,6 @@ impl TerminalView {
     /// Returns `true` when the pending session has a connecting remote-server setup state
     /// and no failure banner is already shown for that session.
 
-
     /// Creates and inserts the install-failed banner as rich content.
 
     /// Removes any install-failed banner for the given session.
@@ -4419,7 +4366,6 @@ impl TerminalView {
     /// Handles an OSC 777 event with the `warp://cli-agent` sentinel title.
     /// On `session_start`, creates a `CLIAgentSessionListener` that subscribes
     /// to subsequent events from this terminal's PTY.
-
 
     /// Creates and registers a listener for flows without a `SessionStart` event.
 
@@ -4493,7 +4439,6 @@ impl TerminalView {
 
         self.ignore_next_set_title_event = true;
 
-
         self.refresh_warp_prompt(ctx);
         ctx.emit(Event::SessionBootstrapped);
     }
@@ -4535,7 +4480,6 @@ impl TerminalView {
         }
         None
     }
-
 
     fn should_display_vim_banner(
         &self,
@@ -4584,35 +4528,21 @@ impl TerminalView {
         ps1_grid_info
     }
 
-
     #[cfg_attr(not(feature = "local_fs"), allow(dead_code))]
-
     #[cfg_attr(not(feature = "local_fs"), allow(dead_code))]
-
-
 
     /// Opens a folder that the user may or may not have opened in the past
-
-
-
 
     // Initialize project for a path and suppress the agent mode setup banner for that path. This also auto-opens
     // the code-review pane after the initialization step completes.
 
     // Show or hide codebase index speedbump depending when a settings change happens.
 
-
-
     /// Insert an InitStepBlock for the given step kind
 
     /// Try to focus the most recent init step block that's awaiting user input
 
     /// Check if completed command was `warp environment create` and emit event if successful
-
-
-
-
-
 
     #[cfg(feature = "local_fs")]
     fn update_repo_banner_state(&mut self, directory: PathBuf, ctx: &mut ViewContext<Self>) {
@@ -4625,12 +4555,8 @@ impl TerminalView {
     }
 
     #[cfg(feature = "local_fs")]
-
     #[cfg(feature = "local_fs")]
-
     #[cfg(not(feature = "local_fs"))]
-
-
 
     /// Returns the save position ID for the agent view zero state, if one exists.
 
@@ -4664,8 +4590,6 @@ impl TerminalView {
 }
 
 impl TerminalView {
-
-
     // Read the current terminal input text from the onboarding tutorial callout
     // and apply it to the terminal input box. Lock the input mode based on query type.
     // Redundantly issues resize changes to increase the chances that the alt-screen program
@@ -4742,10 +4666,7 @@ impl TerminalView {
         }
     }
 
-
     /// If a command correction exists, generate the command correction banner.
-
-
 
     /// Removes hidden AI blocks for passive requests from the sumtree.
     ///
@@ -4756,17 +4677,10 @@ impl TerminalView {
     /// This handles cleanup of the block, removal from the block list model, and notifying the
     /// new last AI block in the conversation so it re-renders with the footer.
 
-
     #[allow(clippy::too_many_arguments)]
-
     #[allow(clippy::too_many_arguments)]
-
 
     /// Generates command corrections, if applicable.
-
-
-
-
 
     /// Send a desktop notification that agent mode needs attention or has finished,
     /// otherwise insert a callout banner if notifications are unset.
@@ -5155,7 +5069,6 @@ impl TerminalView {
         }
     }
 
-
     fn is_inverted_blocklist(&self, ctx: &ViewContext<Self>) -> bool {
         let input_mode = *InputModeSettings::as_ref(ctx).input_mode.value();
         input_mode.is_inverted_blocklist()
@@ -5416,9 +5329,7 @@ impl TerminalView {
                             .block_list()
                             .block_at(tail_block_index)
                             .is_none_or(|b| b.is_restored());
-
                 }
-
 
                 if is_single_selection {
                     let mut copy_output_menu_item = MenuItemFields::new("Copy output")
@@ -5681,7 +5592,6 @@ impl TerminalView {
         });
     }
 
-
     fn prompt_context_menu_items(&self, ctx: &AppContext) -> Vec<MenuItem<TerminalAction>> {
         let copy_prompt = MenuItemFields::new("Copy prompt")
             .with_on_select_action(TerminalAction::ContextMenu(ContextMenuAction::CopyPrompt {
@@ -5692,9 +5602,7 @@ impl TerminalView {
 
         let edit_menu_item = Some(
             MenuItemFields::new("Edit prompt")
-                .with_on_select_action(TerminalAction::ContextMenu(
-                    ContextMenuAction::EditPrompt,
-                ))
+                .with_on_select_action(TerminalAction::ContextMenu(ContextMenuAction::EditPrompt))
                 .into_item(),
         );
 
@@ -5860,7 +5768,6 @@ impl TerminalView {
         ();
     }
 
-
     fn open_block_filter_editor(
         &mut self,
         block_index: BlockIndex,
@@ -5901,7 +5808,6 @@ impl TerminalView {
         });
         ctx.notify();
     }
-
 
     /// Helper method to build alt screen context menu items.
     /// Used both when opening the menu and when rebuilding it (e.g., on pane state changes).
@@ -6007,9 +5913,6 @@ impl TerminalView {
 
     /// Show the context menu that lists the context blocks or selected text attached to an AI query.
     /// The query is the query in the exchange with the given [`AIAgentExchangeId`].
-
-
-
 
     fn show_context_menu(
         &mut self,
@@ -6146,7 +6049,6 @@ impl TerminalView {
     {
         change_selection(&mut self.selected_blocks);
         self.update_find_selection(ctx);
-
     }
 
     // Additionally handles side effects of changing block selections (i.e. CMD + F results, etc.),
@@ -6431,11 +6333,7 @@ impl TerminalView {
         });
     }
 
-    fn maybe_open_link(
-        &mut self,
-        position: &WithinModel<Point>,
-        ctx: &mut ViewContext<Self>,
-    ) {
+    fn maybe_open_link(&mut self, position: &WithinModel<Point>, ctx: &mut ViewContext<Self>) {
         let Some(link) = self.highlighted_link.as_ref() else {
             return;
         };
@@ -6716,7 +6614,6 @@ impl TerminalView {
 
         self.rich_content_views.clear();
 
-
         // Clear screen will remove all blocks except the started block so insert
         // the label mouse state here to make sure this is handled.
         self.block_list_mouse_states
@@ -6767,7 +6664,6 @@ impl TerminalView {
         // Since we just cleared blocks, we can just look at the state of the active block
 
         ctx.notify();
-
     }
 
     fn find_within_block(&mut self, ctx: &mut ViewContext<Self>) {
@@ -6925,8 +6821,6 @@ impl TerminalView {
         ctx.emit(Event::ShowCommandSearch(Default::default()))
     }
 
-
-
     fn toggle_input_hint_text(&mut self, ctx: &mut ViewContext<Self>) {
         let new_val = InputSettings::handle(ctx).update(ctx, |input_settings, ctx| {
             report_if_error!(input_settings.show_hint_text.toggle_and_save_value(ctx));
@@ -6936,7 +6830,6 @@ impl TerminalView {
         // Send the same telemetry event that we do from the features page to make data analysis easier.
         ();
     }
-
 
     fn copy_prompt(
         &mut self,
@@ -7645,10 +7538,7 @@ impl TerminalView {
         let sorted_ranges = self.selected_blocks.sorted_ranges(sort_direction);
         for selection_range in sorted_ranges {
             for block_index in selection_range.range(Some(sort_direction)) {
-                if let Some(block) = model
-                    .block_list()
-                    .block_at(block_index)
-                {
+                if let Some(block) = model.block_list().block_at(block_index) {
                     action(block);
                 }
             }
@@ -7829,12 +7719,9 @@ impl TerminalView {
                 }
 
                 ctx.emit(Event::ExecuteCommand(event.as_ref().clone()));
-
             }
             InputEvent::ClearSelectedBlock => self.clear_selected_blocks(ctx),
-            InputEvent::SelectRecentBlocks { count } => {
-                self.select_most_recent_blocks(*count, ctx)
-            }
+            InputEvent::SelectRecentBlocks { count } => self.select_most_recent_blocks(*count, ctx),
             InputEvent::Copy => self.copy(ctx),
             InputEvent::UnhandledModifierKeyOnEditor(keystroke) => {
                 ();
@@ -8598,7 +8485,6 @@ impl TerminalView {
     /// The directory is set to ~.
     #[cfg(any(test, feature = "integration_tests"))]
 
-
     /// Returns the environment setup mode selector view handle for tab-level rendering.
 
     pub fn summarization_cancel_dialog_handle(
@@ -8646,7 +8532,6 @@ impl TerminalView {
                 if let Some(session) = session {
                     self.update_incompatible_configuration_banner(session.shell().plugins(), ctx)
                 }
-
             }
             _ => {}
         }
@@ -10007,7 +9892,6 @@ impl TerminalView {
                 ctx.notify();
             }
         }
-
     }
 
     /// Toggles the block filter on the last selected block, or the last non-hidden
@@ -10124,12 +10008,6 @@ impl TerminalView {
         }
     }
 
-
-
-
-
-
-
     /// Parses the shell launch data and sets the necessary fields so a shell
     /// indicator is rendered in the tab bar and pane header. Does nothing on
     /// non-Windows platforms.
@@ -10159,9 +10037,6 @@ impl TerminalView {
     }
 
     /// Shows the warpify footer for a detected subshell/SSH command.
-
-
-
 
     /// Starts all enabled LSP servers for the current working directory.
     #[cfg(feature = "local_fs")]
@@ -10537,7 +10412,6 @@ impl TypedActionView for TerminalView {
                         )
                     }
                 }
-
             }
             SelectNextBlock => {
                 match input_mode {
@@ -10877,35 +10751,33 @@ impl View for TerminalView {
                 self.render_waterfall_gap_element(&model, &viewport, active_gap, appearance, app)
             }
             (input_mode, _, _) => {
-                {
-                    let output_area = if is_alt_screen_active {
-                        did_wrap_terminal_size = true;
-                        wrap_in_terminal_size_element(
-                            &self.resize_tx,
-                            self.render_alt_screen_element(
-                                app,
-                                &model,
-                                model.alt_screen().selection_range(semantic_selection),
-                            ),
-                        )
-                    } else {
-                        self.render_block_list_element(&model, input_mode, true, app)
-                    };
+                let output_area = if is_alt_screen_active {
+                    did_wrap_terminal_size = true;
+                    wrap_in_terminal_size_element(
+                        &self.resize_tx,
+                        self.render_alt_screen_element(
+                            app,
+                            &model,
+                            model.alt_screen().selection_range(semantic_selection),
+                        ),
+                    )
+                } else {
+                    self.render_block_list_element(&model, input_mode, true, app)
+                };
 
-                    column.add_child(Shrinkable::new(1., output_area).finish());
+                column.add_child(Shrinkable::new(1., output_area).finish());
 
-                    if self.is_input_box_visible(&model, app) {
-                        column.add_child(self.render_input());
-                    }
+                if self.is_input_box_visible(&model, app) {
+                    column.add_child(self.render_input());
+                }
 
-                    let stack = Stack::new()
-                        .with_constrain_absolute_children()
-                        .with_child(column.finish());
-                    if matches!(input_mode, InputMode::Waterfall) && !is_alt_screen_active {
-                        self.render_waterfall_mode_background(&model, stack, app)
-                    } else {
-                        stack
-                    }
+                let stack = Stack::new()
+                    .with_constrain_absolute_children()
+                    .with_child(column.finish());
+                if matches!(input_mode, InputMode::Waterfall) && !is_alt_screen_active {
+                    self.render_waterfall_mode_background(&model, stack, app)
+                } else {
+                    stack
                 }
             }
         };
@@ -10933,9 +10805,7 @@ impl View for TerminalView {
         };
 
         final_element
-
     }
-
 }
 
 /// Returns an instance of [`SizeInfo`] that is to be used

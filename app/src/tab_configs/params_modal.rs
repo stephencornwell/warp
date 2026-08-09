@@ -170,36 +170,36 @@ impl TabConfigParamsModal {
 
         for (i, (name, param)) in params.iter().enumerate() {
             let field = {
-                    let default_text = param.default.clone().unwrap_or_default();
-                    let placeholder = if default_text.is_empty() {
-                        format!("Enter {name}")
-                    } else {
-                        default_text.clone()
+                let default_text = param.default.clone().unwrap_or_default();
+                let placeholder = if default_text.is_empty() {
+                    format!("Enter {name}")
+                } else {
+                    default_text.clone()
+                };
+                let text_options = TextOptions::ui_font_size(Appearance::as_ref(ctx));
+                let editor = ctx.add_typed_action_view(|ctx| {
+                    let options = SingleLineEditorOptions {
+                        text: text_options,
+                        propagate_and_no_op_vertical_navigation_keys:
+                            PropagateAndNoOpNavigationKeys::Always,
+                        ..Default::default()
                     };
-                    let text_options = TextOptions::ui_font_size(Appearance::as_ref(ctx));
-                    let editor = ctx.add_typed_action_view(|ctx| {
-                        let options = SingleLineEditorOptions {
-                            text: text_options,
-                            propagate_and_no_op_vertical_navigation_keys:
-                                PropagateAndNoOpNavigationKeys::Always,
-                            ..Default::default()
-                        };
-                        let mut editor = EditorView::single_line(options, ctx);
-                        editor.set_placeholder_text(placeholder.as_str(), ctx);
-                        editor
+                    let mut editor = EditorView::single_line(options, ctx);
+                    editor.set_placeholder_text(placeholder.as_str(), ctx);
+                    editor
+                });
+
+                if !default_text.is_empty() {
+                    editor.update(ctx, |e, ctx| {
+                        e.system_reset_buffer_text(&default_text, ctx);
                     });
+                }
 
-                    if !default_text.is_empty() {
-                        editor.update(ctx, |e, ctx| {
-                            e.system_reset_buffer_text(&default_text, ctx);
-                        });
-                    }
+                ctx.subscribe_to_view(&editor, move |me, _, event, ctx| {
+                    me.handle_editor_event(i, event, ctx);
+                });
 
-                    ctx.subscribe_to_view(&editor, move |me, _, event, ctx| {
-                        me.handle_editor_event(i, event, ctx);
-                    });
-
-                    ParamField::Text(editor)
+                ParamField::Text(editor)
             };
 
             self.param_fields.push((name.clone(), param.clone(), field));

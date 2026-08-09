@@ -25,8 +25,7 @@ use super::ansi::{
     WarpificationUnavailableReason,
 };
 use super::block::{
-    Block, BlockId, BlockMetadata, BlockSize, BlocklistEnvVarMetadata,
-    SerializedBlock,
+    Block, BlockId, BlockMetadata, BlockSize, BlocklistEnvVarMetadata, SerializedBlock,
 };
 use super::blockgrid::BlockGrid;
 use super::grid::grid_handler::{
@@ -557,7 +556,6 @@ pub struct TerminalModel {
     /// Whether or not to respect secrets that are obfuscated, respecting the Safe Mode/Secret Redaction setting.
     obfuscate_secrets: ObfuscateSecrets,
 
-
     /// The source type of the shared session (if this is a shared session).
     /// If it is not a shared session, this will be `None`.
 
@@ -618,7 +616,6 @@ pub struct SubshellInitializationInfo {
 
     /// The subshell was triggered from an EVC invocation
     pub env_var_collection_name: Option<String>,
-
 }
 
 /// Since a SelectedBlockRange is a range of blocks, it is possible that
@@ -1265,11 +1262,9 @@ impl TerminalModel {
         )
     }
 
-    pub fn send_agent_conversation_replay_started_for_shared_session(&mut self) {
-    }
+    pub fn send_agent_conversation_replay_started_for_shared_session(&mut self) {}
 
-    pub fn send_agent_conversation_replay_ended_for_shared_session(&mut self) {
-    }
+    pub fn send_agent_conversation_replay_ended_for_shared_session(&mut self) {}
 
     /// Whether the session sharing server is currently replaying
     /// conversation events (for conversation reconstruction).
@@ -1750,11 +1745,7 @@ impl TerminalModel {
             // - Sharers skip reflow when honoring a viewer's reported size
             //   (the viewer's smaller size is transient and shouldn't reshape history).
             let update_old_blocks = match size_update.update_reason {
-                SizeUpdateReason::SharerSizeChanged { .. }
-                    if false =>
-                {
-                    false
-                }
+                SizeUpdateReason::SharerSizeChanged { .. } if false => false,
                 SizeUpdateReason::ViewerSizeReported { .. } => false,
                 _ => true,
             };
@@ -2000,8 +1991,7 @@ impl TerminalModel {
     }
 
     /// Stop monitoring for the end of ssh login.
-    pub fn end_notify_on_ssh_login_complete(&mut self) {
-    }
+    pub fn end_notify_on_ssh_login_complete(&mut self) {}
 
     pub fn tmux_control_mode_active(&self) -> bool {
         self.tmux_control_mode_context.is_some()

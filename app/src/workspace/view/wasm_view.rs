@@ -153,10 +153,7 @@ impl Workspace {
             return None;
         }
 
-        Some(self.render_panel(
-            app,
-            ChildView::new(&self.transcript_details_panel).finish(),
-        ))
+        Some(self.render_panel(app, ChildView::new(&self.transcript_details_panel).finish()))
     }
 
     pub(super) fn update_transcript_details_panel_data(&mut self, ctx: &mut ViewContext<Self>) {

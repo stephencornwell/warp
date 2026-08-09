@@ -13,15 +13,10 @@ use crate::{
     pane_group::{self, Direction, Event::OpenConversationHistory, PaneGroup},
     persistence::{BlockCompleted, ModelEvent},
     session_management::SessionNavigationData,
-        terminal::{
-        general_settings::GeneralSettings,
-        view::Event,
-        TerminalManager, TerminalView,
-    },
+    terminal::{general_settings::GeneralSettings, view::Event, TerminalManager, TerminalView},
     view_components::ToastFlavor,
     workspace::{sync_inputs::SyncedInputState, PaneViewLocator},
 };
-
 
 use warp_core::execution_mode::AppExecutionMode;
 
@@ -188,7 +183,6 @@ impl PaneContent for TerminalPane {
                 group.send_sync_event_to_session(terminal_pane_id, &event, ctx);
             }
         }
-
     }
 
     fn detach(
@@ -217,7 +211,6 @@ impl PaneContent for TerminalPane {
         ctx.unsubscribe_to_model(&pane_stack);
 
         ctx.unsubscribe_to_view(&self.view);
-
     }
 
     fn snapshot(&self, app: &AppContext) -> LeafContents {

@@ -3,10 +3,7 @@ use std::collections::HashSet;
 
 use settings::Setting as _;
 
-use crate::{
-    terminal::general_settings::GeneralSettings,
-    util::bindings::trigger_to_keystroke,
-};
+use crate::{terminal::general_settings::GeneralSettings, util::bindings::trigger_to_keystroke};
 
 use chrono::{DateTime, FixedOffset};
 

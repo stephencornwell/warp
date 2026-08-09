@@ -6,13 +6,9 @@ use std::borrow::Cow;
 use std::collections::HashMap;
 
 use super::{
-    about_page::AboutPageView,
-    appearance_page::AppearanceSettingsPageView,
-    features_page::FeaturesPageView,
-    keybindings::KeybindingsView,
-    main_page::MainSettingsPageView,
-    privacy_page::PrivacyPageView,
-    SettingsSection,
+    about_page::AboutPageView, appearance_page::AppearanceSettingsPageView,
+    features_page::FeaturesPageView, keybindings::KeybindingsView, main_page::MainSettingsPageView,
+    privacy_page::PrivacyPageView, SettingsSection,
 };
 use crate::{
     appearance::Appearance,
@@ -29,10 +25,9 @@ use warpui::{
     elements::{
         new_scrollable::{ClippedAxisConfiguration, DualAxisConfig, SingleAxisConfig},
         Align, Border, ChildView, ClippedScrollStateHandle, ConstrainedBox, Container,
-        CornerRadius, CrossAxisAlignment, Element, Empty, Expanded, Flex, Hoverable,
-        MainAxisSize, MouseStateHandle, NewScrollable, ParentElement, Radius,
-        SavePosition, ScrollTarget, ScrollToPositionMode, Shrinkable, SizeConstraintCondition,
-        SizeConstraintSwitch, Text,
+        CornerRadius, CrossAxisAlignment, Element, Empty, Expanded, Flex, Hoverable, MainAxisSize,
+        MouseStateHandle, NewScrollable, ParentElement, Radius, SavePosition, ScrollTarget,
+        ScrollToPositionMode, Shrinkable, SizeConstraintCondition, SizeConstraintSwitch, Text,
     },
     fonts::{Properties, Weight},
     ui_components::{
@@ -112,7 +107,6 @@ impl SettingsPageViewHandle {
         }
     }
 }
-
 
 impl SettingsPage {
     pub fn new<V>(view_handle: ViewHandle<V>) -> Self

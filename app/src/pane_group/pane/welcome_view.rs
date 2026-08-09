@@ -182,7 +182,6 @@ impl WelcomeView {
                 ctx,
             );
 
-
             // Update project accesstime
             ProjectManagementModel::handle(ctx).update(ctx, |projects, ctx| {
                 projects.upsert_project(path_buf, ctx);

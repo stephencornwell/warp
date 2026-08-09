@@ -5,9 +5,7 @@ use parking_lot::FairMutex;
 use pathfinder_geometry::vector::Vector2F;
 use warpui::{AppContext, ModelHandle, SingletonEntity, ViewHandle, WindowId};
 
-use crate::{
-    context_chips::prompt_type::PromptType, pane_group::TerminalViewResources,
-};
+use crate::{context_chips::prompt_type::PromptType, pane_group::TerminalViewResources};
 
 use super::{
     event_listener::ChannelEventListener, model::session::Sessions,

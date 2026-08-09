@@ -10,17 +10,15 @@ use warpui::{
     AppContext, EntityId, ViewAsRef as _,
 };
 
-use crate::{
-    terminal::{
-        event::Event as TerminalEvent,
-        model::{
-            block::BlockSection,
-            index::{Direction, Point, Side},
-            selection::{ExpandedSelectionRange, Selection, SelectionDirection},
-            terminal_model::{BlockIndex, WithinBlock},
-        },
-        GridType,
+use crate::terminal::{
+    event::Event as TerminalEvent,
+    model::{
+        block::BlockSection,
+        index::{Direction, Point, Side},
+        selection::{ExpandedSelectionRange, Selection, SelectionDirection},
+        terminal_model::{BlockIndex, WithinBlock},
     },
+    GridType,
 };
 
 use super::{

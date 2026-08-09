@@ -1,5 +1,3 @@
-use crate::{
-};
 use serde::{Deserialize, Serialize};
 use warp_core::user_preferences::GetUserPreferences as _;
 use warpui::{Entity, ModelContext, SingletonEntity};
@@ -60,8 +58,6 @@ impl ReferralThemeStatus {
     pub fn received_referral_theme_active(&self) -> bool {
         self.received_referral_theme.is_active()
     }
-
-
 }
 
 /// Type used for tracking the fetch status of different referral themes

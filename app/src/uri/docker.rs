@@ -1,5 +1,5 @@
-use std::{collections::HashMap, fmt::Display};
 use regex::Regex;
+use std::{collections::HashMap, fmt::Display};
 use url::Url;
 use warp_util::path::{is_posix_portable_pathname, ShellFamily};
 use warpui::AppContext;

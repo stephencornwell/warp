@@ -82,7 +82,6 @@ impl super::WarpConfig {
             );
         }
 
-
         if update_touches_dir(update, &launch_configs_dir()) {
             let launch_config_dir = launch_configs_dir();
             let _ = ctx.spawn(

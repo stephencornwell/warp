@@ -21,7 +21,6 @@ pub enum CommandSearchItemAction {
     /// The user requested the re-execution of a history search item. The
     /// contained string is the command they accepted.
     ExecuteHistory(String),
-
 }
 
 #[cfg(test)]

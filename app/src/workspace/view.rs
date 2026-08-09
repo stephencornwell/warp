@@ -12,11 +12,10 @@ mod tests;
 #[cfg(target_family = "wasm")]
 mod wasm_view;
 
-
 use crate::app_state::{
     LeafContents, LeafSnapshot, LeftPanelDisplayedTab, LeftPanelSnapshot, NotebookPaneSnapshot,
-    PaneNodeSnapshot, PaneUuid, SettingsPaneSnapshot, TabSnapshot,
-    TerminalPaneSnapshot, WindowSnapshot, WorkflowPaneSnapshot,
+    PaneNodeSnapshot, PaneUuid, SettingsPaneSnapshot, TabSnapshot, TerminalPaneSnapshot,
+    WindowSnapshot, WorkflowPaneSnapshot,
 };
 use crate::coding_panel_enablement_state::CodingPanelEnablementState;
 use crate::default_terminal::DefaultTerminal;
@@ -60,16 +59,11 @@ use super::WorkspaceRegistry;
 #[cfg(feature = "local_fs")]
 use crate::code::editor_management::CodeSource;
 use crate::launch_configs::launch_config::WindowTemplate;
-use crate::pane_group::{
-    Direction as PaneGroupDirection, PaneGroup, PaneId,
-    TerminalPaneId,
-};
+use crate::pane_group::{Direction as PaneGroupDirection, PaneGroup, PaneId, TerminalPaneId};
 use crate::quit_warning::UnsavedStateSummary;
 use crate::search::command_palette::view::NavigationMode;
 use crate::search::slash_command_menu::static_commands::commands;
-use crate::settings::{
-    CodeSettings, CodeSettingsChangedEvent, CtrlTabBehavior, InputModeSettings,
-};
+use crate::settings::{CodeSettings, CodeSettingsChangedEvent, CtrlTabBehavior, InputModeSettings};
 use crate::settings_view::pane_manager::SettingsPaneManager;
 use crate::settings_view::{SettingsSection, SettingsView, SettingsViewEvent};
 #[cfg(all(target_os = "windows", feature = "local_tty"))]
@@ -92,15 +86,12 @@ use repo_metadata::RemoteRepositoryIdentifier;
 #[cfg(target_family = "wasm")]
 use url::Url;
 
-
 #[cfg(target_family = "wasm")]
 use crate::wasm_nux_dialog::WasmNUXDialog;
-
 
 use crate::appearance::{Appearance, AppearanceManager};
 use crate::banner::BannerState;
 use crate::channel::Channel;
-use crate::GlobalResourceHandles;
 use crate::context_chips::ChipRuntimeCapabilities;
 use crate::menu::{
     Event as MenuEvent, Menu, MenuItem, MenuItemFields, MenuSelectionSource,
@@ -109,10 +100,10 @@ use crate::menu::{
 use crate::modal::{Modal, ModalEvent, ModalViewState};
 use crate::network::{NetworkStatus, NetworkStatusEvent};
 use crate::pane_group::{
-    self, AnyPaneContent, Direction, NewTerminalOptions, PanesLayout,
-    TabBarHoverIndex,
+    self, AnyPaneContent, Direction, NewTerminalOptions, PanesLayout, TabBarHoverIndex,
 };
 use crate::terminal::keys_settings::KeysSettings;
+use crate::GlobalResourceHandles;
 
 use crate::referral_theme_status::ReferralThemeEvent;
 use crate::resource_center::{
@@ -121,9 +112,7 @@ use crate::resource_center::{
 };
 use crate::reward_view::{RewardEvent, RewardKind, RewardView};
 use crate::root_view::{quake_mode_window_id, NewWorkspaceSource, OpenLaunchConfigArg};
-use crate::search::command_search::searcher::{
-    AcceptedHistoryItem, CommandSearchItemAction,
-};
+use crate::search::command_search::searcher::{AcceptedHistoryItem, CommandSearchItemAction};
 use crate::search::command_search::view::{CommandSearchEvent, CommandSearchView};
 use crate::server::ids::{ObjectUid, ServerId, SyncId};
 use crate::session_management::{SessionNavigationData, SessionSource};
@@ -170,6 +159,7 @@ use crate::themes::theme_chooser::{ThemeChooser, ThemeChooserEvent, ThemeChooser
 use crate::themes::theme_creator_modal::{ThemeCreatorModal, ThemeCreatorModalEvent};
 use crate::themes::theme_deletion_modal::{ThemeDeletionModal, ThemeDeletionModalEvent};
 use crate::tips::{TipsEvent, TipsView};
+use crate::ui_components::blended_colors;
 use crate::ui_components::buttons::{combo_inner_button, icon_button_with_color};
 use crate::undo_close::UndoCloseStack;
 #[cfg(feature = "local_fs")]
@@ -200,7 +190,6 @@ use crate::workspace::sync_inputs::SyncedInputState;
 use crate::workspace::toast_stack::{
     ToastStack as WorkspaceToastStack, ToastStackEvent as WorkspaceToastStackEvent,
 };
-use crate::ui_components::blended_colors;
 
 use futures::Future;
 use itertools::Itertools;
@@ -1014,7 +1003,6 @@ impl Workspace {
         }
     }
 
-
     fn build_settings_views(
         global_resource_handles: GlobalResourceHandles,
         tips_completed: ModelHandle<TipsCompleted>,
@@ -1242,7 +1230,6 @@ impl Workspace {
                 // No tab config was created, so don't show the chip.
                 self.pending_session_config_tab_config_chip = false;
                 self.close_session_config_modal(ctx);
-
             }
         }
     }
@@ -1508,7 +1495,6 @@ impl Workspace {
             referral_theme_status,
             settings_file_error,
         } = global_resource_handles.clone();
-
 
         // Inserting a (window, ModalSizes) pair to the ResizableData singleton. A restored window
         // reads the sizes from the window snapshot. A new window initializes with all default sizes.
@@ -1962,7 +1948,6 @@ impl Workspace {
                         if let Some(left_panel_snapshot) = &saved_tab.left_panel {
                             self.restore_left_panel_for_tab(&pane_group, left_panel_snapshot, ctx);
                         }
-
                     });
 
                 if self.tab_count() == 0 {
@@ -3193,9 +3178,14 @@ impl Workspace {
     ) -> Vec<MenuItem<WorkspaceAction>> {
         vec![
             MenuItemFields::new("Terminal")
-                .with_on_select_action(WorkspaceAction::AddTerminalTab { hide_homepage: false })
+                .with_on_select_action(WorkspaceAction::AddTerminalTab {
+                    hide_homepage: false,
+                })
                 .with_icon(icons::Icon::LayoutAlt01)
-                .with_key_shortcut_label(keybinding_name_to_display_string(NEW_TAB_BINDING_NAME, ctx))
+                .with_key_shortcut_label(keybinding_name_to_display_string(
+                    NEW_TAB_BINDING_NAME,
+                    ctx,
+                ))
                 .into_item(),
             MenuItem::Separator,
             MenuItemFields::new("Reopen closed session")
@@ -3716,7 +3706,6 @@ impl Workspace {
         ctx.notify();
     }
 
-
     fn close_left_panel(&mut self, ctx: &mut ViewContext<Self>) {
         self.left_panel_open = false;
 
@@ -3769,7 +3758,6 @@ impl Workspace {
                     // so we don't need to do anything - the width is already preserved
                 }
             }
-
         }
 
         if !new_state {
@@ -4019,8 +4007,7 @@ impl Workspace {
                     worktree_name.as_deref(),
                     ctx,
                 );
-                if should_track_existing_config_open {
-                }
+                if should_track_existing_config_open {}
                 self.close_tab_config_params_modal(ctx);
                 self.complete_pending_session_config_replacement(ctx);
 
@@ -4639,9 +4626,7 @@ impl Workspace {
                 if !self.current_workspace_state.is_ctrl_tab_palette_open {
                     self.open_palette(
                         PaletteMode::Navigation,
-                        PaletteSource::CtrlTab {
-                            query: None,
-                        },
+                        PaletteSource::CtrlTab { query: None },
                         ctx,
                     );
                 }
@@ -4879,7 +4864,6 @@ impl Workspace {
                     })
                     .build();
 
-
                 if cfg!(all(not(target_family = "wasm"), target_os = "macos")) {
                     AppContext::show_native_platform_modal(ctx, dialog);
                     return false;
@@ -4952,8 +4936,7 @@ impl Workspace {
         );
 
         // Telemetry whenever tabs actually closed, not when confirmation dialog comes up.
-        if tabs_closed {
-        }
+        if tabs_closed {}
     }
 
     /// Opens a confirmation dialog if necessary, or closes immediately if not.
@@ -4983,8 +4966,7 @@ impl Workspace {
         // Telemetry whenever tabs actually closed, not when confirmation dialog comes up.
         if tabs_closed {
             match direction {
-                TabMovement::Right if self.active_tab_index > index => {
-                }
+                TabMovement::Right if self.active_tab_index > index => {}
                 _ => (),
             }
         }
@@ -5095,7 +5077,6 @@ impl Workspace {
             None, /*custom_tab_title*/
             ctx,
         );
-
     }
 
     /// Enters agent view with a new conversation on the active tab's terminal.
@@ -5493,7 +5474,6 @@ impl Workspace {
                     }
                 }
             });
-
         }
     }
 
@@ -5634,7 +5614,6 @@ impl Workspace {
         }
 
         ctx.focus(&self.palette);
-
 
         ctx.notify();
     }
@@ -6110,8 +6089,7 @@ impl Workspace {
                     input_handle.read(ctx, |input, ctx| input.menu_positioning(ctx))
                 });
 
-            if !self.current_workspace_state.is_command_search_open {
-            }
+            if !self.current_workspace_state.is_command_search_open {}
 
             // Make sure we close any already-open input suggestions panel.
             if let Some(input_handle) = &active_input_handle {
@@ -6237,30 +6215,24 @@ impl Workspace {
 
         if let Some(terminal_handle) = pane_group_handle.as_ref(ctx).active_session_view(ctx) {
             #[cfg_attr(not(feature = "local_fs"), allow(unused_variables))]
-            let (
-                session,
-                path_if_local,
-                is_local,
-                is_wsl_session,
-                session_id,
-                pwd,
-            ) = terminal_handle.read(ctx, |terminal, ctx| {
-                let active_session_id = terminal.active_block_session_id();
-                let session =
-                    active_session_id.and_then(|id| terminal.sessions_model().as_ref(ctx).get(id));
-                let path_if_local = terminal.active_session_path_if_local(ctx);
-                let is_local = terminal.active_session_is_local(ctx);
-                let is_wsl_session = session.as_ref().map(|s| s.is_wsl()).unwrap_or(false);
-                let pwd = terminal.pwd();
-                (
-                    session,
-                    path_if_local,
-                    is_local,
-                    is_wsl_session,
-                    active_session_id,
-                    pwd,
-                )
-            });
+            let (session, path_if_local, is_local, is_wsl_session, session_id, pwd) =
+                terminal_handle.read(ctx, |terminal, ctx| {
+                    let active_session_id = terminal.active_block_session_id();
+                    let session = active_session_id
+                        .and_then(|id| terminal.sessions_model().as_ref(ctx).get(id));
+                    let path_if_local = terminal.active_session_path_if_local(ctx);
+                    let is_local = terminal.active_session_is_local(ctx);
+                    let is_wsl_session = session.as_ref().map(|s| s.is_wsl()).unwrap_or(false);
+                    let pwd = terminal.pwd();
+                    (
+                        session,
+                        path_if_local,
+                        is_local,
+                        is_wsl_session,
+                        active_session_id,
+                        pwd,
+                    )
+                });
 
             let window_id = ctx.window_id();
             let working_directory_clone = path_if_local.clone();
@@ -6291,8 +6263,7 @@ impl Workspace {
             });
 
             #[cfg(feature = "local_fs")]
-            {
-            }
+            {}
         } else {
             let enablement = CodingPanelEnablementState::from_session_env(
                 file_tree_and_global_search_are_enabled,
@@ -6306,8 +6277,7 @@ impl Workspace {
             });
 
             #[cfg(feature = "local_fs")]
-            {
-            }
+            {}
         }
     }
 
@@ -6571,7 +6541,6 @@ impl Workspace {
         });
     }
 
-
     /// Shows the theme chooser so the user can change the active theme.
     pub fn show_theme_chooser_for_active_theme(&mut self, ctx: &mut ViewContext<Self>) {
         self.show_theme_chooser(Some(ThemeChooserMode::for_active_theme(ctx)), ctx)
@@ -6805,7 +6774,6 @@ impl Workspace {
         ctx.focus(&self.theme_chooser_view);
         ctx.notify();
     }
-
 
     fn open_theme_creator_modal(&mut self, ctx: &mut ViewContext<Self>) {
         self.current_workspace_state.is_theme_creator_modal_open = true;
@@ -8126,11 +8094,7 @@ impl Workspace {
         ctx.notify();
     }
 
-    fn render_panel(
-        &self,
-        app: &AppContext,
-        contents: Box<dyn Element>,
-    ) -> Box<dyn Element> {
+    fn render_panel(&self, app: &AppContext, contents: Box<dyn Element>) -> Box<dyn Element> {
         let appearance = Appearance::as_ref(app);
 
         let mut col = Flex::column().with_main_axis_size(MainAxisSize::Max);
@@ -8194,10 +8158,7 @@ impl Workspace {
             if prev_panel_added {
                 panels_view.add_child(Self::render_panel_separator(app));
             }
-            panels_view.add_child(self.render_panel(
-                app,
-                self.render_theme_chooser(),
-            ));
+            panels_view.add_child(self.render_panel(app, self.render_theme_chooser()));
             prev_panel_added = false;
         }
 
@@ -8687,7 +8648,7 @@ impl TypedActionView for Workspace {
                 mode: palette_mode,
                 source,
             } => self.toggle_palette(*palette_mode, source.clone(), ctx),
-ShowReferralSettingsPage => {
+            ShowReferralSettingsPage => {
                 self.show_settings_with_section(Some(SettingsSection::Referrals), ctx);
             }
             JoinSlack => self.join_slack(ctx),
@@ -8704,7 +8665,7 @@ ShowReferralSettingsPage => {
             InstallCLI => self.install_cli(ctx),
             #[cfg(target_os = "macos")]
             UninstallCLI => self.uninstall_cli(ctx),
-ToggleRecordingMode => self.toggle_recording_mode(ctx),
+            ToggleRecordingMode => self.toggle_recording_mode(ctx),
             ToggleInBandGenerators => self.toggle_in_band_generators(ctx),
             ToggleDebugNetworkStatus => self.toggle_debug_network_status(ctx),
             ToggleShowMemoryStats => self.toggle_show_memory_stats(ctx),
@@ -8723,7 +8684,7 @@ ToggleRecordingMode => self.toggle_recording_mode(ctx),
                 self.finish_tab_rename(ctx);
                 self.current_workspace_state.is_tab_being_dragged = true;
             }
-ToggleLeftPanel => {
+            ToggleLeftPanel => {
                 let active_pane_group = self.active_tab_pane_group().clone();
                 let was_open = active_pane_group.read(ctx, |pg, _| pg.left_panel_open);
 
@@ -8747,7 +8708,7 @@ ToggleLeftPanel => {
                     let _ = file_tree_active;
                 }
             }
-ClosePanel => {
+            ClosePanel => {
                 if self.left_panel_view.is_self_or_child_focused(ctx) {
                     self.close_left_panel(ctx);
                 }
@@ -8758,7 +8719,7 @@ ClosePanel => {
             OpenFilePath { path } => {
                 ctx.open_file_path(path);
             }
-DragTab {
+            DragTab {
                 tab_index,
                 tab_position,
             } => self.on_tab_drag(*tab_index, *tab_position, ctx),
@@ -8770,7 +8731,7 @@ DragTab {
                     .write(ClipboardContent::plain_text(text.to_string()));
             }
             DismissWorkspaceBanner(banner_type) => self.dismiss_workspace_banner(ctx, banner_type),
-Crash => {
+            Crash => {
                 #[cfg(feature = "crash_reporting")]
                 crate::crash_reporting::crash();
             }
@@ -8804,7 +8765,6 @@ Crash => {
                     view.add_ephemeral_toast(new_toast, ctx);
                 });
 
-
                 self.process_updated_sync_state(ctx);
             }
             ToggleSyncTerminalInputsInTab => {
@@ -8832,7 +8792,6 @@ Crash => {
                     let new_toast = DismissibleToast::default(message);
                     view.add_ephemeral_toast(new_toast, ctx);
                 });
-
 
                 self.process_updated_sync_state(ctx);
             }
@@ -8882,7 +8841,7 @@ Crash => {
                     ctx.close_window();
                 }
             }
-RunCommand(code) => {
+            RunCommand(code) => {
                 let command = code.trim().to_string();
                 self.insert_in_input(&command, true, true, false, ctx);
                 ctx.notify();
@@ -8895,7 +8854,7 @@ RunCommand(code) => {
                 self.insert_in_input(content, *replace_buffer, false, *ensure_agent_mode, ctx);
                 ctx.notify();
             }
-#[cfg(all(enable_crash_recovery, target_os = "linux"))]
+            #[cfg(all(enable_crash_recovery, target_os = "linux"))]
             DismissWaylandCrashRecoveryBannerAndOpenLink => {
                 self.dismiss_workspace_banner(ctx, &WorkspaceBanner::WaylandCrashRecovery);
                 ctx.open_url("https://docs.warp.dev/terminal/more-features/linux#native-wayland");
@@ -8918,7 +8877,7 @@ RunCommand(code) => {
             FocusPane(locator) => {
                 self.focus_pane(*locator, ctx);
             }
-ScrollToSettingsWidget { page, widget_id } => {
+            ScrollToSettingsWidget { page, widget_id } => {
                 self.open_settings_pane(Some(*page), None, ctx);
                 self.settings_pane.update(ctx, |settings, ctx| {
                     settings.scroll_to_settings_widget(*page, widget_id, ctx);
@@ -8971,7 +8930,7 @@ ScrollToSettingsWidget { page, widget_id } => {
             }
             #[cfg(debug_assertions)]
             #[cfg(debug_assertions)]
-                    OpenOzLaunchModal => {
+            OpenOzLaunchModal => {
                 // Force open the Oz launch modal for debugging
                 OneTimeModalModel::handle(ctx).update(ctx, |model, ctx| {
                     model.force_open_oz_launch_modal(ctx);
@@ -9591,11 +9550,7 @@ impl View for Workspace {
             stack.add_child(self.session_config_modal.render());
         }
 
-
-        if self.current_workspace_state.is_prompt_editor_open {
-        }
-
-
+        if self.current_workspace_state.is_prompt_editor_open {}
 
         if let Some(lightbox_view) = &self.lightbox_view {
             stack.add_child(ChildView::new(lightbox_view).finish());
@@ -9753,7 +9708,6 @@ impl View for Workspace {
 
         event_handler.finish()
     }
-
 }
 
 fn compute_default_panel_widths(

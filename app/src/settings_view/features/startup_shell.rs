@@ -1,10 +1,4 @@
 use crate::report_if_error;
-use warpui::{
-    elements::{CrossAxisAlignment, Fill, Flex, ParentElement, Shrinkable},
-    presenter::ChildView,
-    ui_components::components::{Coords, UiComponent, UiComponentStyles},
-    Element, Entity, SingletonEntity, TypedActionView, View, ViewContext, ViewHandle,
-};
 use crate::{
     appearance::Appearance,
     editor::{EditorView, Event, SingleLineEditorOptions, TextOptions},
@@ -14,6 +8,12 @@ use crate::{
         session_settings::{SessionSettings, SessionSettingsChangedEvent},
     },
     view_components::{dropdown::TOP_MENU_BAR_HEIGHT, Dropdown, DropdownItem},
+};
+use warpui::{
+    elements::{CrossAxisAlignment, Fill, Flex, ParentElement, Shrinkable},
+    presenter::ChildView,
+    ui_components::components::{Coords, UiComponent, UiComponentStyles},
+    Element, Entity, SingletonEntity, TypedActionView, View, ViewContext, ViewHandle,
 };
 /// A view for configuring the initial shell for new sessions. This can be the
 /// user's login shell, the default installed version of zsh, bash, or fish,

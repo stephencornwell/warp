@@ -89,7 +89,6 @@ impl QuitScope<'_> {
                 .filter(|session| session.window_id() == *window_id)
                 .collect_vec(),
             Self::App => SessionNavigationData::all_sessions(ctx).collect_vec(),
-            
         }
     }
 
@@ -116,10 +115,8 @@ impl QuitScope<'_> {
                 })
                 .unwrap_or_default(),
             Self::App => crate::session_management::num_shared_sessions(ctx),
-            
         }
     }
-
 }
 
 impl UnsavedStateSummary<'static> {
@@ -134,7 +131,6 @@ impl UnsavedStateSummary<'static> {
     pub fn for_tabs(tabs: Vec<WeakViewHandle<PaneGroup>>, ctx: &mut AppContext) -> Self {
         Self::for_scope(QuitScope::Tabs(tabs), ctx)
     }
-
 }
 
 impl<'a> UnsavedStateSummary<'a> {

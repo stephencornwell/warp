@@ -43,6 +43,7 @@ use warpui::{
     AppContext, EntityId, ViewHandle,
 };
 
+use super::ansi::InputBufferValue;
 use super::block::{BlockId, BlockSize, BlockState};
 use super::early_output::EarlyOutput;
 use super::grid::grid_handler::{FragmentBoundary, GridHandler, PossiblePath};
@@ -51,7 +52,6 @@ use super::image_map::StoredImageMetadata;
 use super::kitty::{KittyAction, KittyResponse};
 use super::rich_content::RichContentType;
 use super::secrets::RespectObfuscatedSecrets;
-use super::ansi::InputBufferValue;
 
 use super::selection::ScrollDelta;
 use super::terminal_model::RangeInModel;
@@ -95,10 +95,7 @@ impl RichContentItem {
     }
 
     #[cfg(test)]
-    pub fn new_for_test(
-        content_type: Option<RichContentType>,
-        view_id: EntityId,
-    ) -> Self {
+    pub fn new_for_test(content_type: Option<RichContentType>, view_id: EntityId) -> Self {
         Self::new(content_type, view_id, false)
     }
 }
@@ -315,7 +312,6 @@ pub struct BlockList {
     /// Whether the blocklist is inverted (i.e. the input is pinned to the top). This is
     /// relevant wherever we're traversing the blocklist's sumtree (i.e. in clamp_to_grid_points)
     is_inverted: bool,
-
 
     /// The view ID of a rich content item that should always remain at the bottom
     /// of the blocklist. After any other insertion, this item is automatically
@@ -1555,11 +1551,10 @@ impl BlockList {
         I: IntoIterator<Item = BlockIndex>,
     {
         block_indices.into_iter().find(|index| {
-            self.block_at(*index)
-                        .is_some_and(|block| {
-                            (filter.include_hidden || block.is_visible())
-                                && (filter.include_background || !block.is_background())
-                        })
+            self.block_at(*index).is_some_and(|block| {
+                (filter.include_hidden || block.is_visible())
+                    && (filter.include_background || !block.is_background())
+            })
         })
     }
 
@@ -1739,9 +1734,7 @@ impl BlockList {
                         let block_index = block_heights_cursor.start().block_count;
                         if let Some(block) = self.blocks.get_mut(block_index) {
                             block_update_fn(block);
-                            new_sum_tree.push(BlockHeightItem::Block(
-                                block.height().into(),
-                            ));
+                            new_sum_tree.push(BlockHeightItem::Block(block.height().into()));
                         } else {
                             log::error!("invalid block index in block heights");
                         }
@@ -2208,9 +2201,8 @@ impl BlockList {
             block.hide();
         }
 
-        self.block_heights.push(BlockHeightItem::Block(
-            block.height().into(),
-        ));
+        self.block_heights
+            .push(BlockHeightItem::Block(block.height().into()));
         self.block_id_to_block_index
             .insert(block.id().clone(), block.index());
         self.blocks.push(block);
@@ -2543,7 +2535,6 @@ impl BlockList {
 
         // Set the completed_ts to the saved completed_ts _after_ `finish`ing the block (which would have set its own completed_ts).
         self.active_block_mut().override_completed_ts(completed_ts);
-
     }
 
     /// This is the main function that marks the end of a block, and the beginning of a new block.
@@ -3083,9 +3074,8 @@ impl ansi::Handler for BlockList {
                 self.reset_internal_block_index(BlockIndex::zero());
 
                 if let Some(block) = self.blocks.last() {
-                    self.block_heights = SumTree::from_item(BlockHeightItem::Block(
-                        block.height().into(),
-                    ));
+                    self.block_heights =
+                        SumTree::from_item(BlockHeightItem::Block(block.height().into()));
                 } else {
                     self.block_heights = SumTree::new();
                 }

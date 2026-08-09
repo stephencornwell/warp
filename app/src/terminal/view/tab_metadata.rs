@@ -69,5 +69,4 @@ impl TerminalView {
             .map(|v| v.to_string())
             .filter(|value| !value.trim().is_empty())
     }
-
 }

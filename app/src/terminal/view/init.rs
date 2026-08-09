@@ -1,6 +1,4 @@
-use super::{
-    ContextMenuAction, TerminalAction,
-};
+use super::{ContextMenuAction, TerminalAction};
 
 use crate::settings_view::flags;
 use crate::terminal::input::{
@@ -617,7 +615,6 @@ pub fn init(app: &mut AppContext) {
     )
     .with_context_predicate(id!("Terminal"))]);
 
-
     app.register_editable_bindings([EditableBinding::new(
         "terminal:toggle_session_recording",
         "Toggle PTY Recording for Session",
@@ -625,7 +622,6 @@ pub fn init(app: &mut AppContext) {
     )
     .with_enabled(|| cfg!(feature = "local_fs") && ChannelState::enable_debug_features())
     .with_context_predicate(id!("Terminal"))]);
-
 }
 
 /// Registers bindings related to input modes.
@@ -675,7 +671,7 @@ fn register_input_mode_bindings(app: &mut AppContext) {
         agent_mode_predicate.clone()
             & !id!("Input")
             & !id!(ROOT_CLOUD_MODE_PANE_KEY)
-            & !id!(flags::HAS_PENDING_PROMPT_SUGGESTION)
+            & !id!(flags::HAS_PENDING_PROMPT_SUGGESTION),
     )
     .with_enabled(|| FeatureFlag::AgentView.is_enabled())]);
 

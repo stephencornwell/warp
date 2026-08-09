@@ -1,11 +1,11 @@
-use crate::report_if_error;
-use crate::global_resource_handles::GlobalResourceHandles;
-use crate::themes;
 use crate::default_terminal::DefaultTerminal;
+use crate::global_resource_handles::GlobalResourceHandles;
 use crate::gpu_state::{GPUState, GPUStateEvent};
+use crate::report_if_error;
 use crate::terminal::input::OPEN_COMPLETIONS_KEYBINDING_NAME;
 #[cfg(feature = "local_tty")]
 use crate::terminal::session_settings::WorkingDirectoryConfig;
+use crate::themes;
 
 use lazy_static::lazy_static;
 use warp_core::context_flag::ContextFlag;
@@ -40,19 +40,21 @@ use crate::editor::{
 use crate::search::command_search::settings::{
     CommandSearchSettings, ShowGlobalWorkflowsInUniversalSearch,
 };
-use crate::settings::{ScrollSettingsChangedEvent, ShowChangelogAfterUpdate, UserNativeRedirectPreference};
 use crate::settings::{
     AliasExpansionEnabled, AliasExpansionSettings, AppEditorSettings, AtContextMenuInTerminalMode,
-    AutocompleteSymbols, AutosuggestionKeybindingHint, ChangelogSettings,
-    CodeSettings, CommandCorrections, CompletionsOpenWhileTyping, CopyOnSelect, CtrlTabBehavior,
- EnableSlashCommandsInTerminal, EnableSshWrapper, ErrorUnderliningEnabled,
-    ExtraMetaKeys, GPUSettings, GlobalHotkeyMode, InputSettings, InputSettingsChangedEvent,
+    AutocompleteSymbols, AutosuggestionKeybindingHint, ChangelogSettings, CodeSettings,
+    CommandCorrections, CompletionsOpenWhileTyping, CopyOnSelect, CtrlTabBehavior,
+    EnableSlashCommandsInTerminal, EnableSshWrapper, ErrorUnderliningEnabled, ExtraMetaKeys,
+    GPUSettings, GlobalHotkeyMode, InputSettings, InputSettingsChangedEvent,
     LinuxSelectionClipboard, MiddleClickPasteEnabled, MouseScrollMultiplier,
     OutlineCodebaseSymbolsForAtContextMenu, PreferLowPowerGPU, PreferredGraphicsBackend,
     QuakeModeSettings, ScrollSettings, SelectionSettings, ShowAutosuggestionIgnoreButton,
     ShowTerminalInputMessageBar, SshSettings, SyntaxHighlighting, TabBehavior, VimModeEnabled,
     VimStatusBar, VimUnnamedSystemClipboard, DEFAULT_QUAKE_MODE_SIZE_PERCENTAGES,
     QUAKE_WINDOW_AUTOHIDE_SUPPORTED,
+};
+use crate::settings::{
+    ScrollSettingsChangedEvent, ShowChangelogAfterUpdate, UserNativeRedirectPreference,
 };
 use crate::terminal::alt_screen_reporting::{
     AltScreenReporting, FocusReportingEnabled, MouseReportingEnabled, ScrollReportingEnabled,
@@ -705,7 +707,6 @@ fn to_string(b: bool) -> String {
     format!("{b}")
 }
 
-
 #[derive(Default)]
 struct MouseStateHandles {
     local_only_icon_tooltip_states: RefCell<HashMap<String, MouseStateHandle>>,
@@ -1159,7 +1160,9 @@ impl TypedActionView for FeaturesPageView {
                 });
                 ctx.notify();
             }
-            ToggleAgentInAppNotifications => { ctx.notify(); }
+            ToggleAgentInAppNotifications => {
+                ctx.notify();
+            }
             ToggleCompletionsOpenWhileTyping => {
                 InputSettings::handle(ctx).update(ctx, |input_settings, ctx| {
                     report_if_error!(input_settings
@@ -1933,8 +1936,7 @@ impl FeaturesPageView {
     }
 
     fn build_page(ctx: &mut ViewContext<Self>) -> PageType<Self> {
-        let mut general_widgets: Vec<Box<dyn SettingsWidget<View = Self>>> =
-            vec![];
+        let mut general_widgets: Vec<Box<dyn SettingsWidget<View = Self>>> = vec![];
 
         let native_preference_settings = NativePreferenceSettings::as_ref(ctx);
         if native_preference_settings
@@ -4456,8 +4458,6 @@ impl SettingsWidget for DesktopNotificationsWidget {
             column.add_child(render_group(toggles, appearance));
         }
 
-
-
         column.finish()
     }
 }
@@ -5685,7 +5685,6 @@ impl SettingsWidget for TabKeyBehaviorWidget {
                     .build()
                     .finish(),
             );
-
 
         let main_row = Flex::row()
             .with_cross_axis_alignment(CrossAxisAlignment::Center)

@@ -22,10 +22,7 @@ use warp_editor::render::model::{AutoScrollMode, LineCount, StyleUpdateAction};
 use warp_editor::selection::TextDirection;
 use warpui::units::{IntoPixels, Pixels};
 
-use crate::{
-    appearance::Appearance, editor::InteractionState,
-    themes::theme::AnsiColorIdentifier,
-};
+use crate::{appearance::Appearance, editor::InteractionState, themes::theme::AnsiColorIdentifier};
 
 use itertools::Itertools;
 use languages::{language_by_filename, language_by_name, Language};
@@ -372,7 +369,6 @@ impl CodeEditorModel {
             .with_disable_hidden_navigation()
         });
 
-
         Self {
             render_state,
             diff,
@@ -539,8 +535,6 @@ impl CodeEditorModel {
     pub fn selection(&self) -> &ModelHandle<SelectionModel> {
         &self.selection
     }
-
-
 
     // Set the following line ranges to be hidden in the editor.
     pub fn set_hidden_lines(
@@ -1808,8 +1802,6 @@ impl CodeEditorModel {
             );
         }
     }
-
-
 
     /// Whether the given range is wrapped in the supported bracket pairs of the active language.
     pub fn range_wrapped_in_bracket(&self, range: Range<CharOffset>, ctx: &AppContext) -> bool {
@@ -3321,7 +3313,6 @@ impl CodeEditorModel {
 
         None
     }
-
 }
 
 impl CoreEditorModel for CodeEditorModel {
@@ -3505,11 +3496,7 @@ impl CoreEditorModel for CodeEditorModel {
     }
 }
 
-impl CodeEditorModel {
-
-
-
-}
+impl CodeEditorModel {}
 
 impl PlainTextEditorModel for CodeEditorModel {
     fn enter(&mut self, ctx: &mut ModelContext<Self>) {

@@ -14,19 +14,17 @@ use warpui::EntityId;
 use crate::terminal::available_shells::AvailableShell;
 use crate::terminal::model::completions::ShellCompletion;
 use crate::terminal::view::RichContentSecretTooltipInfo;
-use crate::{
-    terminal::{
-        block_list_element::{
-            BlockHoverAction, BlockListMenuSource, BlockSelectAction, BlockTextSelectAction,
-        },
-        block_list_viewport::OverhangingBlock,
-        model::{
-            index::Point,
-            mouse::MouseState,
-            selection::{SelectAction, SelectionDirection},
-            terminal_model::{BlockIndex, WithinModel},
-            SecretHandle,
-        },
+use crate::terminal::{
+    block_list_element::{
+        BlockHoverAction, BlockListMenuSource, BlockSelectAction, BlockTextSelectAction,
+    },
+    block_list_viewport::OverhangingBlock,
+    model::{
+        index::Point,
+        mouse::MouseState,
+        selection::{SelectAction, SelectionDirection},
+        terminal_model::{BlockIndex, WithinModel},
+        SecretHandle,
     },
 };
 

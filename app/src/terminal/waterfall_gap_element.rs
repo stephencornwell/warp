@@ -59,7 +59,6 @@ pub struct WaterfallGapElement {
     /// Standard element size and origin fields
     origin: Option<warpui::elements::Point>,
     size: Option<Vector2F>,
-
 }
 
 impl WaterfallGapElement {

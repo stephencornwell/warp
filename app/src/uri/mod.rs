@@ -5,15 +5,15 @@ pub mod web_intent_parser;
 #[cfg(target_family = "wasm")]
 pub mod browser_url_handler;
 
-use crate::linear::{LinearAction, LinearIssueWork};
 use crate::launch_configs::launch_config::LaunchConfig;
+use crate::linear::{LinearAction, LinearIssueWork};
 use crate::root_view::open_new_window_get_handles;
 use crate::util::openable_file_type::{
     is_file_openable_in_warp, is_markdown_file, is_runnable_shell_script, starts_with_shebang,
 };
-use crate::workspace::{Workspace, WorkspaceAction, WorkspaceRegistry};
-use crate::workspace::ToastStack;
 use crate::view_components::DismissibleToast;
+use crate::workspace::ToastStack;
+use crate::workspace::{Workspace, WorkspaceAction, WorkspaceRegistry};
 use crate::{features::FeatureFlag, workspace::active_terminal_in_window};
 
 use crate::settings_view::SettingsSection;
@@ -291,7 +291,6 @@ impl WindowActivationFallbackBehavior {
 
 /// Turn the launch config URL into a filename.
 /// "/hello%20world" --> "hello world"
- 
 
 /// Remove file extension, which consists of the last '.' in the filename
 /// and whatever characters follow it.
@@ -463,9 +462,7 @@ impl Action {
     fn window_behavior_hint(&self) -> WindowBehaviorHint {
         use WindowBehaviorHint as W;
         match self {
-            Self::Docker
-            | Self::CreateEnvironment { .. }
-            | Self::OpenRepo => W::default(),
+            Self::Docker | Self::CreateEnvironment { .. } | Self::OpenRepo => W::default(),
             Self::NewTab => W::ShowPrimaryWindow(WindowActivationFallbackBehavior::Notify {
                 title: "New tab created".to_owned(),
                 description: "Go to Warp to see your new tab.".to_owned(),

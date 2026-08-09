@@ -4,8 +4,8 @@ use crate::{
     channel::ChannelState,
     settings::PrivacySettings,
     terminal::safe_mode_settings::{SafeModeEnabled, SafeModeSettings},
-    util::links::PRIVACY_POLICY_URL,
     ui_components::icons::Icon,
+    util::links::PRIVACY_POLICY_URL,
 };
 use std::borrow::Cow;
 use std::cell::RefCell;
@@ -41,15 +41,6 @@ use warpui::{
     UpdateModel, View, ViewContext, ViewHandle,
 };
 
-use crate::settings::{CustomSecretRegex, RegexDisplayInfo};
-use crate::settings_view::privacy::AddRegexModalViewState;
-use crate::settings_view::render_body_item_label;
-use crate::settings_view::settings_page::CONTENT_FONT_SIZE;
-use crate::terminal::safe_mode_settings::{
-    get_effective_secret_display_mode, SecretDisplayMode, SecretDisplayModeSetting,
-};
-use crate::ui_components::buttons::icon_button;
-use crate::view_components::{Dropdown, DropdownItem};
 use super::{
     flags,
     privacy::{AddRegexModal, AddRegexModalEvent},
@@ -60,6 +51,15 @@ use super::{
     settings_page::{LocalOnlyIconState, MatchData, PageType, SettingsWidget, PAGE_PADDING},
     SettingsAction, SettingsSection, ToggleSettingActionPair,
 };
+use crate::settings::{CustomSecretRegex, RegexDisplayInfo};
+use crate::settings_view::privacy::AddRegexModalViewState;
+use crate::settings_view::render_body_item_label;
+use crate::settings_view::settings_page::CONTENT_FONT_SIZE;
+use crate::terminal::safe_mode_settings::{
+    get_effective_secret_display_mode, SecretDisplayMode, SecretDisplayModeSetting,
+};
+use crate::ui_components::buttons::icon_button;
+use crate::view_components::{Dropdown, DropdownItem};
 
 use crate::modal::{Modal, ModalEvent, ModalViewState};
 use warpui::fonts::Weight;

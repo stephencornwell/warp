@@ -594,7 +594,6 @@ impl<T: EventLoopSender> PtyController<T> {
         }
     }
 
-
     /// Writes user input to the PTY.
     ///
     /// This should only be called for non-command input (e.g. input that should be passed through

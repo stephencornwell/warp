@@ -1,13 +1,11 @@
 use std::sync::Arc;
 use warpui::{AppContext, Entity, ModelContext, ModelHandle};
 
-use crate::{
-    terminal::{
-        model::session::SessionsEvent,
-        model_events::{ModelEvent, ModelEventDispatcher},
-        shell::ShellType,
-        ShellLaunchData,
-    },
+use crate::terminal::{
+    model::session::SessionsEvent,
+    model_events::{ModelEvent, ModelEventDispatcher},
+    shell::ShellType,
+    ShellLaunchData,
 };
 
 use super::{Session, SessionType, Sessions};
@@ -82,7 +80,6 @@ impl ActiveSession {
     pub fn current_working_directory(&self) -> Option<&String> {
         self.current_working_directory.as_ref()
     }
-
 }
 
 pub enum ActiveSessionEvent {

@@ -1,9 +1,7 @@
 use crate::appearance::Appearance;
 use crate::features::FeatureFlag;
 use crate::pane_group::SplitPaneState;
-use crate::settings::{
-    DebugSettings, EnforceMinimumContrast, PrivacySettings, TerminalSpacing,
-};
+use crate::settings::{DebugSettings, EnforceMinimumContrast, PrivacySettings, TerminalSpacing};
 use crate::terminal::alt_screen::{should_intercept_mouse, should_intercept_scroll};
 use crate::terminal::block_list_viewport::AutoscrollBehavior;
 use crate::terminal::model::block::{Block, BlockSection};
@@ -708,7 +706,6 @@ pub struct BlockListElement {
     rich_content_elements: HashMap<EntityId, Box<dyn Element>>,
     rich_content_metadata: HashMap<EntityId, RichContentMetadata>,
 
-
     horizontal_clipped_scroll_state: ClippedScrollStateHandle,
 
     /// Information about blocks and AI blocks used to render blocklist AI-specific decoration.
@@ -726,7 +723,6 @@ pub struct BlockListElement {
     /// Voice input toggle key code for CLI agent footer integration.
     #[cfg(feature = "voice_input")]
     voice_input_toggle_key_code: Option<KeyCode>,
-
 }
 
 #[derive(Debug)]
@@ -1102,8 +1098,6 @@ impl BlockListElement {
 
         self
     }
-
-
 
     /// We only want to process control characters here and return `false` for everything else.
     /// That way, we'll receive a `warpui::Event::TypedCharacters` event for printable characters.
@@ -1932,8 +1926,6 @@ impl BlockListElement {
         }
     }
 
-
-
     /// Render a participant's selection when it spans multiple blocks and their blocklist is inverted relative to ours.
     /// Say the participant selected from S to E across 4 blocks on their screen:
     ///
@@ -1959,8 +1951,6 @@ impl BlockListElement {
     ///
     /// Returns Some(()) if the selection was rendered, which will happen as long as the block indices are in bounds.
     #[allow(clippy::too_many_arguments)]
-
-
     #[allow(clippy::too_many_arguments)]
     fn draw_block_background(
         cell_size: Vector2F,
@@ -2291,7 +2281,11 @@ impl BlockListElement {
                     ctx,
                     terminal_view_id,
                     cursor_hint_text,
-                    block_grid_params.grid_render_params.warp_theme.cursor().into(),
+                    block_grid_params
+                        .grid_render_params
+                        .warp_theme
+                        .cursor()
+                        .into(),
                     app,
                 );
             }
@@ -2863,7 +2857,6 @@ impl Element for BlockListElement {
                             }
 
                             let _ = block;
-
                         }
 
                         visible_items.push(VisibleItem::Block {
@@ -3010,7 +3003,6 @@ impl Element for BlockListElement {
                 app,
             );
         }
-
 
         self.visible_blocks = Some(viewport_iter.visible_block_range());
         self.visible_items = Some(Rc::new(visible_items));
@@ -3361,7 +3353,6 @@ impl Element for BlockListElement {
                     if is_top_of_continuous_selection {
                         draw_border_above_block = false;
                     }
-
 
                     // This section draws the subshell flag at the start of the subshell
                     if let Some(flag_element) = self.subshell_flags.get_mut(block_index) {

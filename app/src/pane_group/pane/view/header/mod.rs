@@ -1,4 +1,3 @@
-use std::fmt::Debug;
 use crate::{
     appearance::Appearance,
     menu::{Menu, MenuItem},
@@ -16,6 +15,7 @@ use crate::{
     view_components::{FeaturePopup, NewFeaturePopupEvent, NewFeaturePopupLabel},
     workspace::TabBarLocation,
 };
+use std::fmt::Debug;
 
 use crate::workspace::TabBarDropTargetData;
 

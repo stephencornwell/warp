@@ -3,8 +3,7 @@ use super::{
     SettingsAction, SettingsSection,
 };
 use warpui::{
-    elements::Element,
-    Action, AppContext, Entity, TypedActionView, View, ViewContext, ViewHandle,
+    elements::Element, Action, AppContext, Entity, TypedActionView, View, ViewContext, ViewHandle,
 };
 
 #[derive(Debug, Clone)]

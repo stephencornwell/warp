@@ -1839,7 +1839,6 @@ pub struct EditorView {
     #[cfg(feature = "voice_input")]
     voice_new_feature_popup: ViewHandle<FeaturePopup>,
 
-
     /// Whether this editor should delegate handling of paste events to its parent.
     delegate_paste_handling: bool,
 
@@ -2884,7 +2883,6 @@ impl EditorView {
         Self::new_internal("", options, ctx)
     }
 
-
     /// Creates an [`EditorView`] with the initial text
     /// equal to `base_text` and with behaviour specified by `options`.
     #[cfg(test)]
@@ -3328,7 +3326,6 @@ impl EditorView {
 
         ctx.notify();
     }
-
 
     /// Remove a specific placeholder by prefix.
     pub fn clear_placeholder_text_with_prefix(
@@ -8284,7 +8281,6 @@ impl View for EditorView {
                 context.set.insert("VimNormalMode");
             }
         }
-
 
         // Allow parent views to add additional flags to the context
         if let Some(modifier) = &self.keymap_context_modifier {

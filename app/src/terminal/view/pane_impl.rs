@@ -153,7 +153,7 @@ impl TerminalView {
             // from infinite constraints on flex children.
             center_row.add_child(title_text);
         } else {
-                let title_element = Shrinkable::new(1.0, title_text).finish();
+            let title_element = Shrinkable::new(1.0, title_text).finish();
             center_row.add_child(title_element);
         }
 
@@ -187,7 +187,10 @@ impl TerminalView {
                 None,
             ),
         );
-        (right_row.finish(), header_edge_min_width(show_close_button as u32))
+        (
+            right_row.finish(),
+            header_edge_min_width(show_close_button as u32),
+        )
     }
 
     fn maybe_add_parent_navigation_card(
@@ -479,5 +482,4 @@ impl TerminalView {
         let _ = ctx;
         false
     }
-
 }

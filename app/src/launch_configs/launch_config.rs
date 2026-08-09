@@ -151,8 +151,7 @@ impl TryFrom<PaneNodeSnapshot> for PaneTemplateType {
                 | LeafContents::ExecutionProfileEditor
                 | LeafContents::GetStarted
                 | LeafContents::NetworkLog
-                | LeafContents::Welcome { .. }
-                => {
+                | LeafContents::Welcome { .. } => {
                     // TODO: Handle AIDocument in launch config
                     Err(())
                 }

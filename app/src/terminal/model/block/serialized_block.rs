@@ -1,6 +1,5 @@
 use crate::terminal::model::block::{
-    has_block_failed, Block, BlockState, PromptInfo,
-    MAX_SERIALIZED_STYLIZED_OUTPUT_LINES,
+    has_block_failed, Block, BlockState, PromptInfo, MAX_SERIALIZED_STYLIZED_OUTPUT_LINES,
 };
 use crate::terminal::model::session::SessionId;
 use crate::terminal::model::BlockId;
@@ -10,7 +9,6 @@ use chrono::{DateTime, Local, TimeZone as _};
 use serde::{Deserialize, Serialize};
 use serde_bytes_repr::{ByteFmtDeserializer, ByteFmtSerializer};
 use warp_core::command::ExitCode;
-
 
 #[derive(Clone, Debug, Serialize, Default, Deserialize, PartialEq)]
 pub struct SerializedBlock {
@@ -69,7 +67,6 @@ pub struct SerializedBlock {
     /// Whether this block was created locally (true) or remotely (false)
     #[serde(default)]
     pub is_local: Option<bool>,
-
 }
 
 impl SerializedBlock {

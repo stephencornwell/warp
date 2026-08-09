@@ -76,7 +76,6 @@ mod writeable_pty;
 #[cfg(windows)]
 pub mod wsl;
 
-
 pub use mock_terminal_manager::MockTerminalManager;
 use model_events::{ModelEvent, ModelEventDispatcher};
 pub use terminal_manager::TerminalManager;

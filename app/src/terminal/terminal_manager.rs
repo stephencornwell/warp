@@ -6,9 +6,9 @@ use warpui::{AppContext, SingletonEntity, ViewHandle};
 
 use crate::PrivacySettings;
 use crate::{
-    terminal::model::block::SerializedBlock,
     appearance::Appearance,
     settings::{BlockVisibilitySettings, DebugSettings, InputModeSettings},
+    terminal::model::block::SerializedBlock,
 };
 
 use super::{

@@ -32,7 +32,6 @@ pub struct RichContent {
     /// Optional rich content view-specific metadata to be passed to the `BlocklistElement` for
     /// rendering.
     metadata: Option<RichContentMetadata>,
-
 }
 
 impl RichContent {
@@ -118,11 +117,7 @@ impl TerminalView {
         // Agent view entry blocks, inline agent view headers, and terminal zero state blocks
         // should not be associated with any conversation, as they always belong in the top-level
         // terminal view and should be hidden while agent view is active.
-        let item = RichContentItem::new(
-            content_type,
-            handle.id(),
-            false,
-        );
+        let item = RichContentItem::new(content_type, handle.id(), false);
 
         match position {
             RichContentInsertionPosition::Append {

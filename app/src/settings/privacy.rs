@@ -14,7 +14,6 @@ use settings::{
 
 use serde::{Deserialize, Serialize};
 
-
 pub trait RegexDisplayInfo {
     fn pattern(&self) -> &str;
     fn name(&self) -> Option<&str>;
@@ -218,7 +217,6 @@ impl PrivacySettings {
     /// settings are fetched later via `fetch_or_update_settings`, which is called from
     /// `on_user_fetched` after the user's auth state is established.
     fn new(ctx: &mut ModelContext<Self>) -> Self {
-
         // Initialize from `WarpDrivePrivacySettings`, which is the source of truth for these
         // booleans.
         let warp_drive_privacy = WarpDrivePrivacySettings::as_ref(ctx);
@@ -327,13 +325,9 @@ impl PrivacySettings {
 
     /// Fetch the user's privacy settings from the server if any or update the server settings.
 
-
     /// Initializes state from the [`SyncedUserSettings`] fetched from the server, if any.
     /// If there are no settings from the server, updates the server settings with local settings.
     /// TODO: Make this a server-side db transaction.
-
-
-
 
     /// Constructor for tests only.
     #[cfg(test)]
@@ -527,7 +521,6 @@ impl PrivacySettings {
 
     /// Sends request(s) to update server-side user settings with current local values.
 
-
     /// We wait until warp drive prefs have loaded and then either
     /// 1) use them as the data store for is_telemetry_enabled and is_crash_reporting_enabled, if those
     ///    values are set in warp drive, or
@@ -536,9 +529,6 @@ impl PrivacySettings {
     pub fn maybe_sync_with_warp_drive_prefs(&mut self, ctx: &mut ModelContext<Self>) {
         self.initialize_default_regexes_once(ctx);
     }
-
-
-
 }
 
 /// Events emitted when PrivacySettings is updated.

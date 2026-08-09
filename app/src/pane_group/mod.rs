@@ -1,9 +1,9 @@
-use crate::report_if_error;
 use crate::pane_group::focus_state::PaneGroupFocusEvent;
 use crate::pane_group::pane::get_started_pane::GetStartedPane;
 use crate::pane_group::pane::welcome_pane::WelcomePane;
 use crate::pane_group::pane::ActionOrigin;
 use crate::quit_warning::UnsavedStateSummary;
+use crate::report_if_error;
 use crate::settings::PaneSettings;
 use crate::settings_view::SettingsSection;
 use crate::shell_indicator::ShellIndicatorType;
@@ -62,9 +62,8 @@ use warpui::{
 use warpui::{SingletonEntity, ViewContext};
 
 use crate::app_state::{
-    self, BranchSnapshot, LeafContents,
-    LeafSnapshot, NotebookPaneSnapshot, PaneNodeSnapshot, PaneUuid, SettingsPaneSnapshot,
-    TerminalPaneSnapshot,
+    self, BranchSnapshot, LeafContents, LeafSnapshot, NotebookPaneSnapshot, PaneNodeSnapshot,
+    PaneUuid, SettingsPaneSnapshot, TerminalPaneSnapshot,
 };
 use crate::appearance::Appearance;
 
@@ -72,6 +71,7 @@ use crate::appearance::Appearance;
 type SerializedBlockListItem = crate::terminal::model::block::SerializedBlock;
 use crate::banner::{Banner, BannerEvent, BannerState, BannerTextContent, DismissalType};
 use crate::channel::{Channel, ChannelState};
+use crate::cmd_or_ctrl_shift;
 use crate::features::FeatureFlag;
 use crate::launch_configs::launch_config::{self, PaneMode, PaneTemplateType};
 use crate::persistence::ModelEvent;
@@ -86,11 +86,9 @@ use crate::terminal::model::session::Session;
 use crate::terminal::session_settings::NewSessionSource;
 use crate::terminal::session_settings::SessionSettings;
 use crate::terminal::view::{
-    BlockNotification, ExecuteCommandEvent,
-    LeftPanelTargetView, SyncEvent, TerminalViewState,
+    BlockNotification, ExecuteCommandEvent, LeftPanelTargetView, SyncEvent, TerminalViewState,
 };
 use crate::terminal::{MockTerminalManager, ShellLaunchData, ShellLaunchState};
-use crate::cmd_or_ctrl_shift;
 use session_sharing_protocol::sharer::SessionSourceType;
 use settings::Setting as _;
 
@@ -99,11 +97,9 @@ use crate::util::bindings::{is_binding_pty_compliant, CustomAction};
 
 use crate::palette::PaletteMode;
 use crate::terminal::model::terminal_model::ConversationTranscriptViewerStatus;
+use crate::terminal::{TerminalManager, TerminalModel, TerminalView};
 use crate::workspace::{
     self, CommandSearchOptions, PaletteSource, PaneViewLocator, TabBarLocation, WorkspaceAction,
-};
-use crate::{
-    terminal::{TerminalManager, TerminalModel, TerminalView},
 };
 
 pub mod focus_state;
@@ -625,7 +621,6 @@ pub struct PaneGroup {
     /// Mapping from pane IDs to their contents.
     pane_contents: HashMap<PaneId, Box<dyn AnyPaneContent>>,
 
-
     dragged_border: Option<DraggedBorder>,
     user_default_shell_changed_banner: ViewHandle<Banner<PaneGroupAction>>,
 
@@ -1004,19 +999,21 @@ impl PaneGroup {
                 };
 
                 let (view, terminal_manager) = match pane_mode {
-                    PaneMode::Terminal | PaneMode::Agent | PaneMode::Cloud => PaneGroup::create_session(
-                        // Use cwd from the template iff such path exists, otherwise None
-                        // TODO(CORE-3187): On Windows, support WSL directory restoration.
-                        Some(cwd).filter(|p| p.exists()),
-                        HashMap::new(),
-                        resources,
-                        None,
-                        user_default_shell_unsupported_banner_model_handle,
-                        view_size,
-                        model_event_sender.clone(),
-                        chosen_shell,
-                        ctx,
-                    ),
+                    PaneMode::Terminal | PaneMode::Agent | PaneMode::Cloud => {
+                        PaneGroup::create_session(
+                            // Use cwd from the template iff such path exists, otherwise None
+                            // TODO(CORE-3187): On Windows, support WSL directory restoration.
+                            Some(cwd).filter(|p| p.exists()),
+                            HashMap::new(),
+                            resources,
+                            None,
+                            user_default_shell_unsupported_banner_model_handle,
+                            view_size,
+                            model_event_sender.clone(),
+                            chosen_shell,
+                            ctx,
+                        )
+                    }
                 };
 
                 // Runs saved commands on start (terminal and agent modes only).
@@ -1157,7 +1154,7 @@ impl PaneGroup {
                         view_size,
                         model_event_sender.clone(),
                         deferred_panes,
-                            ) {
+                    ) {
                         Ok((child, child_focus)) => {
                             len += child.len();
                             nodes.push((flex.into(), child.root));
@@ -1464,17 +1461,18 @@ impl PaneGroup {
     pub fn selected_text_from_focused_pane(&self, ctx: &AppContext) -> Option<String> {
         let focused_pane_id = self.focused_pane_id(ctx);
 
-        let text = if let Some(terminal_view) = self.terminal_view_from_pane_id(focused_pane_id, ctx) {
-            // NOTE: We currently don't have a way to track recency of selection events.
-            // In lieu of this, we prefer selections to the input editor over the terminal view.
-            // TODO(vkodithala): Once we have a way to track recency of selection events, we should use that instead.
-            terminal_view
-                .as_ref(ctx)
-                .selected_text_from_input(ctx)
-                .or_else(|| None)
-        } else {
-            None
-        };
+        let text =
+            if let Some(terminal_view) = self.terminal_view_from_pane_id(focused_pane_id, ctx) {
+                // NOTE: We currently don't have a way to track recency of selection events.
+                // In lieu of this, we prefer selections to the input editor over the terminal view.
+                // TODO(vkodithala): Once we have a way to track recency of selection events, we should use that instead.
+                terminal_view
+                    .as_ref(ctx)
+                    .selected_text_from_input(ctx)
+                    .or_else(|| None)
+            } else {
+                None
+            };
 
         text.filter(|text: &String| !text.is_empty())
     }
@@ -1553,11 +1551,10 @@ impl PaneGroup {
         most_recent_state
     }
 
-
     fn new_internal(
         tips_completed: ModelHandle<TipsCompleted>,
         user_default_shell_unsupported_banner_model_handle: ModelHandle<BannerState>,
-            model_event_sender: Option<SyncSender<ModelEvent>>,
+        model_event_sender: Option<SyncSender<ModelEvent>>,
         initial_layout_callback: InitialLayoutCallback,
         ctx: &mut ViewContext<Self>,
     ) -> Self {
@@ -1680,8 +1677,7 @@ impl PaneGroup {
         // discovered via the parent→child index.  Child panes are excluded
         // from snapshots and always rebuilt here on startup.
         let pane_ids: Vec<PaneId> = pane_group.pane_contents.keys().copied().collect();
-        for pane_id in pane_ids {
-        }
+        for pane_id in pane_ids {}
 
         pane_group
     }
@@ -1691,7 +1687,6 @@ impl PaneGroup {
     /// Child panes are excluded from snapshots; children are discovered via the
     /// `children_by_parent` index on the history model and their conversation
     /// data is taken from `RestoredAgentConversations`.
-
 
     fn terminal_pane_data(
         uuid: Vec<u8>,
@@ -1717,9 +1712,6 @@ impl PaneGroup {
     /// Stores the pending ambient agent restorations, triggers async fetches for
     /// their task data, and sets up a single long-lived subscription that will
     /// process each pane as its task data arrives.
-
-
-
 
     fn initial_single_terminal_pane(
         options: NewTerminalOptions,
@@ -1768,7 +1760,7 @@ impl PaneGroup {
     pub fn new_with_panes_layout(
         tips_completed: ModelHandle<TipsCompleted>,
         user_default_shell_unsupported_banner_model_handle: ModelHandle<BannerState>,
-            panes_layout: PanesLayout,
+        panes_layout: PanesLayout,
         block_lists: Arc<HashMap<PaneUuid, Vec<SerializedBlockListItem>>>,
         model_event_sender: Option<SyncSender<ModelEvent>>,
         ctx: &mut ViewContext<Self>,
@@ -1820,7 +1812,6 @@ impl PaneGroup {
                         )
                     });
 
-
                     Self::process_deferred_panes(deferred_panes, result, pane_contents, ctx)
                 }
                 PanesLayout::SingleTerminal(options) => Self::initial_single_terminal_pane(
@@ -1851,7 +1842,7 @@ impl PaneGroup {
         pane: Box<dyn AnyPaneContent>,
         tips_completed: ModelHandle<TipsCompleted>,
         user_default_shell_unsupported_banner_model_handle: ModelHandle<BannerState>,
-            model_event_sender: Option<SyncSender<ModelEvent>>,
+        model_event_sender: Option<SyncSender<ModelEvent>>,
         ctx: &mut ViewContext<Self>,
     ) -> Self {
         let pane_id = pane.as_pane().id();
@@ -2146,8 +2137,7 @@ impl PaneGroup {
         if let Some(terminal_manager) = self
             .terminal_session_by_id(pane_id)
             .map(|session| session.terminal_manager(ctx))
-        {
-        }
+        {}
 
         let summary = UnsavedStateSummary::for_pane(self, pane_id, ctx);
         if summary.should_display_warning(ctx) && ChannelState::channel() != Channel::Integration {
@@ -2276,13 +2266,11 @@ impl PaneGroup {
         (pane_data, view)
     }
 
-
     fn discard_pane(&mut self, pane_id: PaneId, ctx: &mut ViewContext<Self>) {
         if let Some(terminal_view) = self.terminal_view_from_pane_id(pane_id, ctx) {
             let terminal_view_id = terminal_view.id();
 
             // Discard any child agent panes parented by this terminal view.
-
         }
 
         self.cleanup_closed_pane(pane_id, ctx);
@@ -2330,8 +2318,6 @@ impl PaneGroup {
         if !self.pane_contents.contains_key(&pane_id) {
             return;
         }
-
-
 
         if FeatureFlag::UndoClosedPanes.is_enabled() {
             // Don't clase a pane that's already been hidden to allow for undo functionality
@@ -3291,9 +3277,9 @@ impl PaneGroup {
                 display_name: ShellName::blank(),
                 shell_type: ShellType::Zsh,
             },
-                    resources,
-                    None, // No restored blocks
-                    view_bounds_size,
+            resources,
+            None, // No restored blocks
+            view_bounds_size,
             window_id,
             ctx,
         );
@@ -3385,12 +3371,8 @@ impl PaneGroup {
         default_session_mode_behavior: DefaultSessionModeBehavior,
         ctx: &mut ViewContext<Self>,
     ) -> TerminalPaneId {
-        let (pane_data, view) = self.create_terminal_pane_data(
-            startup_directory,
-            HashMap::new(),
-            chosen_shell,
-            ctx,
-        );
+        let (pane_data, view) =
+            self.create_terminal_pane_data(startup_directory, HashMap::new(), chosen_shell, ctx);
         let new_pane_id = pane_data.terminal_pane_id();
 
         let _ = self.add_pane(direction, base_pane_id, Box::new(pane_data), true, ctx);
@@ -4012,7 +3994,6 @@ impl PaneGroup {
     pub fn is_share_session_modal_open(&self) -> bool {
         self.terminal_with_open_share_session_modal.is_some()
     }
-
 }
 
 impl Entity for PaneGroup {

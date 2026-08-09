@@ -54,8 +54,7 @@ impl OneTimeModalModel {
     pub fn is_any_modal_open(&self) -> bool {
         (self.is_oz_launch_modal_open
             || self.is_openwarp_launch_modal_open
-            || self.is_build_plan_migration_modal_open
-            )
+            || self.is_build_plan_migration_modal_open)
             && self.target_window_id.is_some()
     }
 
@@ -126,8 +125,6 @@ impl OneTimeModalModel {
         }
         false
     }
-
-
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

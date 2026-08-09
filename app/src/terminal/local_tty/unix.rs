@@ -2,8 +2,8 @@
 // Apache license; see: crates/warp_terminal/src/model/LICENSE-ALACRITTY.
 
 //! TTY related functionality.
-use crate::terminal::bootstrap::raw_init_shell_script_for_shell;
 use crate::report_if_error;
+use crate::terminal::bootstrap::raw_init_shell_script_for_shell;
 use crate::terminal::local_tty::docker_sandbox::{
     DockerSandboxShellStarter, DOCKER_SANDBOX_HOME_DIR,
 };
@@ -312,7 +312,6 @@ fn build_host_shell_command(
     // We currently don't support bootstrapping recursive SSH sessions so we will only run the SSH
     // logic if this flag is set.
     builder.env("WARP_IS_LOCAL_SHELL_SESSION", "1");
-
 
     if shell_debug_mode {
         builder.env("WARP_SHELL_DEBUG_MODE", "1");

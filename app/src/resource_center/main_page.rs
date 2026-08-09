@@ -15,12 +15,9 @@ use warpui::{
     ViewHandle, WindowId,
 };
 
-use crate::{appearance::Appearance, workspace::WorkspaceAction};
 use crate::settings::Settings;
-use warp_core::{
-    channel::ChannelState,
-    features::FeatureFlag,
-};
+use crate::{appearance::Appearance, workspace::WorkspaceAction};
+use warp_core::{channel::ChannelState, features::FeatureFlag};
 
 use super::{
     section_views::{
@@ -29,8 +26,8 @@ use super::{
         SECTION_SPACING_BOTTOM,
     },
     sections::sections,
-    ContentSectionData, ContentSectionView, FeatureSection,
-    FeatureSectionData, FeatureSectionView, Section, TipsCompleted,
+    ContentSectionData, ContentSectionView, FeatureSection, FeatureSectionData, FeatureSectionView,
+    Section, TipsCompleted,
 };
 
 const SEND_SVG_PATH: &str = "bundled/svg/send.svg";
@@ -60,16 +57,10 @@ pub enum ResourceCenterMainAction {
 }
 
 impl ResourceCenterMainView {
-    pub fn new(
-        ctx: &mut ViewContext<Self>,
-        tips_completed: ModelHandle<TipsCompleted>,
-    ) -> Self {
+    pub fn new(ctx: &mut ViewContext<Self>, tips_completed: ModelHandle<TipsCompleted>) -> Self {
         let action_target = ctx.add_model(|_| ActionTarget::None);
-        let section_views = Self::initialize_section_views(
-            tips_completed.clone(),
-            action_target.clone(),
-            ctx,
-        );
+        let section_views =
+            Self::initialize_section_views(tips_completed.clone(), action_target.clone(), ctx);
         Self {
             button_mouse_states: Default::default(),
             clipped_scroll_state: Default::default(),

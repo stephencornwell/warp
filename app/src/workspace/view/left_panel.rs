@@ -29,10 +29,8 @@ use crate::workspace::view::global_search::view::{
     Event as GlobalSearchViewEvent, GlobalSearchEntryFocus, GlobalSearchView,
 };
 use crate::workspace::view::{
-    LEFT_PANEL_GLOBAL_SEARCH_BINDING_NAME,
-    LEFT_PANEL_PROJECT_EXPLORER_BINDING_NAME,
-    OPEN_GLOBAL_SEARCH_BINDING_NAME,
-    TOGGLE_PROJECT_EXPLORER_BINDING_NAME,
+    LEFT_PANEL_GLOBAL_SEARCH_BINDING_NAME, LEFT_PANEL_PROJECT_EXPLORER_BINDING_NAME,
+    OPEN_GLOBAL_SEARCH_BINDING_NAME, TOGGLE_PROJECT_EXPLORER_BINDING_NAME,
 };
 use crate::{
     appearance::Appearance,
@@ -106,7 +104,6 @@ mod active_view_state {
         left_panel.update_button_active_states();
         ctx.notify();
 
-
         left_panel.update_active_file_tree_subscription_state(ctx);
     }
 }
@@ -174,7 +171,10 @@ impl LeftPanelView {
                 resizable_state_handle(600.0)
             }
         };
-        let active_view = views.first().copied().unwrap_or(ToolPanelView::ProjectExplorer);
+        let active_view = views
+            .first()
+            .copied()
+            .unwrap_or(ToolPanelView::ProjectExplorer);
         let toolbelt_buttons = views
             .iter()
             .map(|view| Self::create_toolbelt_button_config(view, ctx))
@@ -383,8 +383,7 @@ impl LeftPanelView {
         self.active_pane_group = Some(pane_group.downgrade());
 
         if let Some(previous_pane_group_id) = previous_pane_group_id {
-            if previous_pane_group_id != pane_group_id {
-            }
+            if previous_pane_group_id != pane_group_id {}
         }
 
         // Query the current state from the model
@@ -489,7 +488,6 @@ impl LeftPanelView {
             }
         }
     }
-
 }
 
 impl Entity for LeftPanelView {
@@ -648,8 +646,11 @@ impl LeftPanelView {
         }
     }
 
-    pub fn on_left_panel_visibility_changed(&self, _is_now_open: bool, ctx: &mut ViewContext<Self>) {
-
+    pub fn on_left_panel_visibility_changed(
+        &self,
+        _is_now_open: bool,
+        ctx: &mut ViewContext<Self>,
+    ) {
         let _ = ctx;
     }
 
@@ -664,7 +665,6 @@ impl LeftPanelView {
     fn update_active_file_tree_subscription_state(&self, ctx: &mut ViewContext<Self>) {
         let _ = ctx;
     }
-
 }
 
 impl TypedActionView for LeftPanelView {

@@ -18,7 +18,6 @@ use warp_core::features::FeatureFlag;
 use warpui::keymap::BindingId;
 use warpui::{AppContext, Entity, ModelContext, ModelHandle, SingletonEntity};
 
-
 /// Store of all of the [`crate::search::DataSource`]s for the command palette.
 pub struct DataSourceStore {
     actions_data_source: ModelHandle<CommandBindingDataSource>,
@@ -74,7 +73,6 @@ impl DataSourceStore {
                 self.sessions_data_source.clone(),
                 HashSet::from([QueryFilter::Sessions]),
             );
-
 
             mixer.add_sync_source(
                 self.actions_data_source.clone(),

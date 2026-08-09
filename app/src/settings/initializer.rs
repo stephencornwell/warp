@@ -1,6 +1,4 @@
-
 use warpui::{Entity, SingletonEntity};
-
 
 pub struct SettingsInitializer;
 
@@ -14,8 +12,6 @@ impl SettingsInitializer {
     pub fn new() -> Self {
         Self
     }
-
-
 }
 
 impl Entity for SettingsInitializer {

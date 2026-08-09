@@ -24,6 +24,7 @@ use warpui::{
 
 use crate::resource_center::{mark_feature_used_and_write_to_user_defaults, Tip, TipAction};
 use crate::themes::theme::{RespectSystemTheme, ThemeKind, WarpTheme};
+use crate::ui_components::window_focus_dimming::WindowFocusDimming;
 use crate::util::traffic_lights::traffic_light_data;
 use crate::workspace::PANEL_HEADER_HEIGHT;
 use crate::{
@@ -38,7 +39,6 @@ use crate::{
     util::traffic_lights::{TrafficLightData, TrafficLightSide},
     window_settings::WindowSettings,
 };
-use crate::ui_components::window_focus_dimming::WindowFocusDimming;
 use crate::{editor::EditorView, resource_center::TipsCompleted};
 use crate::{
     themes::theme::WarpThemeConfig,

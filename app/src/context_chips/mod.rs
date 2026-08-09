@@ -46,7 +46,11 @@ impl GitLineChanges {
     pub fn parse_from_git_output(output: &str) -> Option<Self> {
         let mut changes = output.split_whitespace().filter_map(|part| {
             let (value, suffix) = part.split_at(part.len().saturating_sub(1));
-            suffix.chars().next().filter(|c| *c == '+' || *c == '-').and_then(|_| value.parse().ok())
+            suffix
+                .chars()
+                .next()
+                .filter(|c| *c == '+' || *c == '-')
+                .and_then(|_| value.parse().ok())
         });
         Some(Self {
             files_changed: changes.next()?,
@@ -600,12 +604,13 @@ pub fn git_line_changes_from_chips(chips: &[ChipResult]) -> Option<GitLineChange
                 // Structured data from GitRepoStatusModel — use directly.
                 ChipValue::GitDiffStats(g) => g.clone(),
                 // Raw shell command output (remote sessions) — parse.
-                ChipValue::Text(raw) => GitLineChanges::parse_from_git_output(raw)
-                    .unwrap_or(GitLineChanges {
+                ChipValue::Text(raw) => {
+                    GitLineChanges::parse_from_git_output(raw).unwrap_or(GitLineChanges {
                         files_changed: 0,
                         lines_added: 0,
                         lines_removed: 0,
-                    }),
+                    })
+                }
             })
         } else {
             None

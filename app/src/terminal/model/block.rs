@@ -18,30 +18,28 @@ pub use super::BlockId;
 use super::{bootstrap::BootstrapStage, find::RegexDFAs};
 use warp_terminal::model::{KeyboardModes, KeyboardModesApplyBehavior};
 
-use crate::{
-    terminal::{
-        block_filter::BlockFilterQuery,
-        block_list_element::GridType,
-        event::{
-            BlockCompletedEvent, BlockLatencyData, BlockMetadataReceivedEvent, BlockType, Event,
-            UserBlockCompleted,
-        },
-        event_listener::ChannelEventListener,
-        model::{
-            ansi::{self, PrecmdValue, PreexecValue, Processor},
-            blockgrid::BlockGrid,
-            grid::grid_handler::TermMode,
-            index::{Point, VisibleRow},
-            iterm_image::ITermImage,
-            secrets::ObfuscateSecrets,
-            session::SessionId,
-            terminal_model::{BlockIndex, WithinBlock},
-            GridStorage,
-        },
-        shell::ShellType,
-        view::WithinBlockBanner,
-        BlockPadding, ShellHost, SizeInfo,
+use crate::terminal::{
+    block_filter::BlockFilterQuery,
+    block_list_element::GridType,
+    event::{
+        BlockCompletedEvent, BlockLatencyData, BlockMetadataReceivedEvent, BlockType, Event,
+        UserBlockCompleted,
     },
+    event_listener::ChannelEventListener,
+    model::{
+        ansi::{self, PrecmdValue, PreexecValue, Processor},
+        blockgrid::BlockGrid,
+        grid::grid_handler::TermMode,
+        index::{Point, VisibleRow},
+        iterm_image::ITermImage,
+        secrets::ObfuscateSecrets,
+        session::SessionId,
+        terminal_model::{BlockIndex, WithinBlock},
+        GridStorage,
+    },
+    shell::ShellType,
+    view::WithinBlockBanner,
+    BlockPadding, ShellHost, SizeInfo,
 };
 
 use chrono::{DateTime, Duration, FixedOffset, Local};
@@ -220,7 +218,6 @@ pub struct Block {
     /// printed by the shell).
     ignore_next_rprompt: bool,
 
-
     /// The home directory the block was executed in.
     home_dir: Option<String>,
 
@@ -256,7 +253,6 @@ pub struct Block {
 
     /// Only set on restored blocks. Indicates whether the block was local or from a remote session.
     restored_block_was_local: Option<bool>,
-
 
     /// Whether natural language detection (NLD) was overridden (i.e., the user had manually locked
     /// the input type) at the time this block's command was submitted.
@@ -409,13 +405,11 @@ impl From<&Block> for BlockType {
                     if matches!(
                         block.prompt_and_command_grid().should_scan_for_secrets,
                         ObfuscateSecrets::No
-                    ) {
-                    }
+                    ) {}
                     if matches!(
                         block.output_grid().should_scan_for_secrets,
                         ObfuscateSecrets::No
-                    ) {
-                    }
+                    ) {}
 
                     BlockType::User(UserBlockCompleted {
                         index: block.block_index,
@@ -1335,13 +1329,11 @@ impl Block {
         if matches!(
             self.prompt_and_command_grid().should_scan_for_secrets(),
             ObfuscateSecrets::No
-        ) {
-        }
+        ) {}
         if matches!(
             self.output_grid().should_scan_for_secrets(),
             ObfuscateSecrets::No
-        ) {
-        }
+        ) {}
 
         (processed_input, processed_output)
     }
@@ -1485,13 +1477,11 @@ impl Block {
         if matches!(
             self.prompt_and_command_grid().should_scan_for_secrets,
             ObfuscateSecrets::No
-        ) {
-        }
+        ) {}
         if matches!(
             self.output_grid().should_scan_for_secrets,
             ObfuscateSecrets::No
-        ) {
-        }
+        ) {}
 
         (command, output)
     }

@@ -192,7 +192,6 @@ impl PaneId {
         Self::new(IPaneType::Terminal, terminal_pane_view)
     }
 
-
     /// Creates a [`PaneId`] from a [`PaneView<SettingsView>`] entity ID.
     pub fn from_settings_pane_view(
         settings_pane_view: &ViewHandle<PaneView<SettingsView>>,
@@ -271,11 +270,7 @@ impl PaneId {
 
     /// Returns true if this pane contains a Warp Drive object (notebook, workflow, etc.).
     pub fn is_warp_drive_object_pane(&self) -> bool {
-        matches!(
-            self.0.pane_type,
-            IPaneType::Notebook
-                | IPaneType::AIFact
-        )
+        matches!(self.0.pane_type, IPaneType::Notebook | IPaneType::AIFact)
     }
 
     /// Renders the child view backing this pane.

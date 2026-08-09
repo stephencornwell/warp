@@ -8,9 +8,7 @@ use warpui::{AppContext, AssetProvider, SingletonEntity};
 use crate::terminal::{session_settings::SessionSettings, shell::ShellType};
 
 #[cfg(feature = "local_fs")]
-use super::{
-    model::session::{BootstrapSessionType, SessionInfo},
-};
+use super::model::session::{BootstrapSessionType, SessionInfo};
 
 lazy_static! {
     /// A memoized cache of the fully-interpolated boostrap script for each
@@ -63,7 +61,8 @@ pub fn should_use_rc_file_bootstrap_method(
                 .is_some_and(|data| matches!(data, ShellLaunchData::MSYS2 { .. }));
             shell_type == ShellType::Fish
                 || shell_type == ShellType::PowerShell
-                || (subshell_initialization_info.is_some() && cfg!(windows)
+                || (subshell_initialization_info.is_some()
+                    && cfg!(windows)
                     && shell_type == ShellType::Zsh)
                 || is_msys2
         }
@@ -192,14 +191,10 @@ pub fn init_shell_script_for_shell(shell_type: ShellType, assets: &dyn AssetProv
 /// If `shell_type` is `Some()`, returns a shell type-specific command (e.g. valid command for
 /// bash, fish, or zsh). Otherwise, returns a shell type-agnostic command that emits the right
 /// `InitShell` hook based on the shell it is evaluated in.
-pub fn init_subshell_command(
-    shell_type: Option<ShellType>,
-    ctx: &AppContext,
-) -> String {
+pub fn init_subshell_command(shell_type: Option<ShellType>, ctx: &AppContext) -> String {
     match shell_type {
         Some(shell_type) => {
-            let subshell_script =
-                init_subshell_script_for_shell(shell_type, &crate::ASSETS, ctx);
+            let subshell_script = init_subshell_script_for_shell(shell_type, &crate::ASSETS, ctx);
             format!(r#" [ -z $WARP_BOOTSTRAPPED ] && eval '{subshell_script}'"#)
         }
         None => init_subshell_script_for_unknown_shell(&crate::ASSETS),

@@ -92,7 +92,6 @@ pub struct Sessions {
 
     /// Select environment variables and their values.
     env_vars: HashMap<SessionId, HashMap<String, String>>,
-
 }
 
 #[derive(Clone, Debug)]

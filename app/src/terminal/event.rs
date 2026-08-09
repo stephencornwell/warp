@@ -211,7 +211,6 @@ pub struct AfterBlockCompletedEvent {
     pub command_finished_to_precmd_delay: Option<Duration>,
     pub block_type: BlockType,
     pub num_secrets_obfuscated: usize,
-
 }
 
 #[derive(Clone)]

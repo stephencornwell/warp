@@ -5,15 +5,23 @@ use warp_util::path::LineAndColumnArg;
 
 #[derive(Debug, Hash, Eq, PartialEq, Clone, Serialize, Deserialize)]
 pub enum CodeSource {
-    New { default_directory: Option<PathBuf> },
+    New {
+        default_directory: Option<PathBuf>,
+    },
     Link {
         path: PathBuf,
         range_start: Option<LineAndColumnArg>,
         range_end: Option<LineAndColumnArg>,
     },
-    ProjectRules { path: PathBuf },
-    FileTree { path: PathBuf },
-    Finder { path: PathBuf },
+    ProjectRules {
+        path: PathBuf,
+    },
+    FileTree {
+        path: PathBuf,
+    },
+    Finder {
+        path: PathBuf,
+    },
 }
 
 impl CodeSource {

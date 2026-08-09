@@ -1,4 +1,3 @@
-use warp_core::report_if_error;
 use super::directory_color_add_picker::{DirectoryColorAddPicker, DirectoryColorAddPickerEvent};
 use super::settings_page::{
     AdditionalInfo, Category, LocalOnlyIconState, MatchData, PageType, SettingsWidget,
@@ -69,6 +68,7 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::rc::Rc;
+use warp_core::report_if_error;
 use warp_core::ui::theme::color::internal_colors;
 use warp_util::path::user_friendly_path;
 use warpui::elements::{

@@ -1,6 +1,6 @@
-use warp_core::report_if_error;
 use std::cell::RefCell;
 use std::collections::HashMap;
+use warp_core::report_if_error;
 
 use ::settings::Setting as _;
 use cfg_if::cfg_if;
@@ -11,7 +11,7 @@ use warp_core::channel::{Channel, ChannelState};
 use warpui::{Entity, ModelContext, SingletonEntity, WindowId};
 use warpui_extras::user_preferences::UserPreferences;
 
-use crate::{settings};
+use crate::settings;
 
 /// Keep in sync with [`warp_cli::AppArgs`].
 pub const RECOVERY_MECHANISM_ARG: &str = "crash-recovery-mechanism";

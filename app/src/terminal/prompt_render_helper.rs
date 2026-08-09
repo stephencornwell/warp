@@ -362,15 +362,13 @@ impl PromptRenderHelper {
             InputSettings::as_ref(app).is_universal_developer_input_enabled(app);
         let render_prompt_on_same_line =
             should_render_prompt_on_same_line(is_universal_input, model, app);
-        let padding_right = if should_render_prompt_using_editor_decorator_elements(
-            is_universal_input,
-            model,
-            app,
-        ) {
-            LPROMPT_RIGHT_PADDING_SAME_LINE_PROMPT
-        } else {
-            *TERMINAL_VIEW_PADDING_LEFT
-        };
+        let padding_right =
+            if should_render_prompt_using_editor_decorator_elements(is_universal_input, model, app)
+            {
+                LPROMPT_RIGHT_PADDING_SAME_LINE_PROMPT
+            } else {
+                *TERMINAL_VIEW_PADDING_LEFT
+            };
         // If the active block hasn't received the precmd message, we're waiting for the next
         // prompt. However, we don't want the UI to flicker so we show the previous prompt
         // until the user changes the editor.
@@ -512,7 +510,8 @@ impl PromptRenderHelper {
             let element = {
                 if model.block_list().is_bootstrapped() {
                     let block = self.prompt_block(model).unwrap_or(active_block);
-                    let mut size_info = app.model(&self.input_render_state_model_handle).size_info();
+                    let mut size_info =
+                        app.model(&self.input_render_state_model_handle).size_info();
                     size_info.padding_x_px = Pixels::zero();
                     Self::prompt_block_grid_to_prompt_and_padding(
                         block.prompt_grid().clone(),
@@ -522,7 +521,8 @@ impl PromptRenderHelper {
                         get_secret_obfuscation_mode(app),
                         size_info,
                         app,
-                    ).element
+                    )
+                    .element
                 } else {
                     PromptAndPaddingElement::Text(Box::new(
                         self.bootstrapping_shell_text(model, appearance, app),
@@ -630,7 +630,9 @@ impl PromptRenderHelper {
     ) -> Box<dyn Element> {
         let element = {
             if model.block_list().is_bootstrapped() {
-                let block = self.prompt_block(model).unwrap_or(model.block_list().active_block());
+                let block = self
+                    .prompt_block(model)
+                    .unwrap_or(model.block_list().active_block());
                 let mut size_info = app.model(&self.input_render_state_model_handle).size_info();
                 size_info.padding_x_px = Pixels::zero();
                 Self::prompt_block_grid_to_prompt_and_padding(
@@ -641,7 +643,8 @@ impl PromptRenderHelper {
                     get_secret_obfuscation_mode(app),
                     size_info,
                     app,
-                ).element
+                )
+                .element
             } else {
                 PromptAndPaddingElement::Text(Box::new(
                     self.bootstrapping_shell_text(model, appearance, app),
@@ -756,5 +759,4 @@ impl PromptRenderHelper {
             rprompt,
         }
     }
-
 }

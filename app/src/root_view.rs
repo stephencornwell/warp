@@ -1,7 +1,7 @@
-use crate::report_if_error;
 use crate::appearance::Appearance;
 use crate::interval_timer::IntervalTimer;
 use crate::launch_configs::launch_config;
+use crate::report_if_error;
 
 use crate::persistence::ModelEvent;
 use crate::settings::QuakeModeSettings;
@@ -19,13 +19,11 @@ use crate::util::traffic_lights::{traffic_light_data, TrafficLightData, TrafficL
 use crate::view_components::DismissibleToast;
 use crate::window_settings::WindowSettings;
 use crate::workspace::WorkspaceAction;
+use crate::workspace::{PaneViewLocator, Workspace};
 use crate::{
     app_state::{AppState, PaneUuid, WindowSnapshot},
     pane_group::{NewTerminalOptions, PanesLayout},
     UpdateQuakeModeEventArg,
-};
-use crate::{
-    workspace::{PaneViewLocator, Workspace},
 };
 use crate::{features::FeatureFlag, ChannelState};
 use crate::{GlobalResourceHandles, GlobalResourceHandlesProvider};
@@ -49,7 +47,6 @@ use warp_core::user_preferences::GetUserPreferences as _;
 use warpui::clipboard::ClipboardContent;
 use warpui::keymap::{EditableBinding, FixedBinding};
 use warpui::windowing::WindowManager;
-
 
 use warpui::elements::{
     Border, ChildAnchor, OffsetPositioning, ParentAnchor, ParentElement, ParentOffsetBounds, Stack,
@@ -452,7 +449,6 @@ fn open_launch_config(arg: &OpenLaunchConfigArg, ctx: &mut AppContext) {
             );
         }
     }
-
 }
 
 fn send_feedback(_: &(), ctx: &mut AppContext) {
@@ -1122,7 +1118,6 @@ fn toggle_quake_mode_window(global_resource_handles: &GlobalResourceHandles, ctx
     let state = get_quake_mode_state(ctx);
     match state {
         None => {
-
             let config = quake_mode_config(
                 &KeysSettings::as_ref(ctx)
                     .quake_mode_settings
@@ -1171,7 +1166,6 @@ fn toggle_quake_mode_window(global_resource_handles: &GlobalResourceHandles, ctx
             });
         }
         Some(state) if matches!(state.window_state, WindowState::Hidden) => {
-
             // If quake mode does not have a set pin screen -- move it to the current active screen.
             if KeysSettings::as_ref(ctx)
                 .quake_mode_settings
@@ -1363,7 +1357,6 @@ impl RootView {
             window_id: ctx.window_id(),
         };
 
-
         root_view
     }
 
@@ -1384,7 +1377,6 @@ impl RootView {
         ctx.notify();
         true
     }
-
 
     fn web_handoff(&mut self, ctx: &mut ViewContext<Self>) {
         let _ = ctx;
@@ -1475,7 +1467,6 @@ impl RootView {
         }
         true
     }
-
 
     pub fn add_file_pane(&mut self, path: &PathBuf, ctx: &mut ViewContext<Self>) -> bool {
         if let AuthOnboardingState::Terminal(handle) = &self.auth_onboarding_state {
@@ -1608,7 +1599,6 @@ impl RootView {
     /// pass. By this point the user is also logged in, so AIExecutionProfile
     /// edits can successfully create cloud objects via `edit_profile_internal`.
 
-
     fn traffic_light_data(&self, ctx: &AppContext) -> Option<TrafficLightData> {
         // The workspace view will handle rendering of the traffic lights (so
         // that they can be hidden when the tab bar is hidden).
@@ -1648,7 +1638,6 @@ impl View for RootView {
 
         let mut stack = Stack::new();
         stack.add_child(child);
-
 
         if let Some(traffic_light_data) = self.traffic_light_data(app) {
             let theme = Appearance::as_ref(app).theme();
@@ -1732,16 +1721,10 @@ impl TypedActionView for RootView {
 impl WorkspaceArgs {
     fn create_workspace(self, ctx: &mut ViewContext<RootView>) -> ViewHandle<Workspace> {
         ctx.add_typed_action_view(|ctx| {
-            Workspace::new(
-                self.global_resource_handles,
-                self.workspace_setting,
-                ctx,
-            )
+            Workspace::new(self.global_resource_handles, self.workspace_setting, ctx)
         })
     }
 }
-
-
 
 #[cfg(test)]
 #[path = "root_view_tests.rs"]

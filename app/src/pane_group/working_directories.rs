@@ -10,7 +10,6 @@ use std::path::{Path, PathBuf};
 use warpui::{AppContext, SingletonEntity as _};
 use warpui::{Entity, EntityId, ModelContext};
 
-
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct WorkingDirectory {
     pub path: PathBuf,
@@ -400,7 +399,6 @@ impl WorkingDirectoriesModel {
             focused_repo,
         });
     }
-
 }
 
 #[cfg(not(feature = "local_fs"))]

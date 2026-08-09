@@ -1,8 +1,5 @@
 use crate::{
-    settings::{
-        InputSettings, InputSettingsChangedEvent,
-        WarpPromptSeparator,
-    },
+    settings::{InputSettings, InputSettingsChangedEvent, WarpPromptSeparator},
     terminal::session_settings::{SessionSettings, SessionSettingsChangedEvent},
 };
 
@@ -286,7 +283,6 @@ impl Prompt {
             ctx.emit(PromptEvent::Changed);
         }
     }
-
 }
 
 impl Entity for Prompt {

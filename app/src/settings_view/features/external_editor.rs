@@ -5,8 +5,10 @@ use crate::{
         render_body_item, render_dropdown_item, AdditionalInfo, LocalOnlyIconState, ToggleState,
     },
     util::file::external_editor::{
-        settings::{EditorChoice, EditorLayout, OpenCodePanelsFileEditor, OpenFileEditor, OpenFileLayout,
-            PreferMarkdownViewer, PreferTabbedEditorView},
+        settings::{
+            EditorChoice, EditorLayout, OpenCodePanelsFileEditor, OpenFileEditor, OpenFileLayout,
+            PreferMarkdownViewer, PreferTabbedEditorView,
+        },
         EditorSettings, SUPPORTED_EDITORS,
     },
     view_components::{Dropdown, DropdownItem},

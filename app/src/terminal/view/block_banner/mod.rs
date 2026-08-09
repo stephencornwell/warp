@@ -24,14 +24,12 @@ const BANNER_H_PADDING: f32 = 8.;
 pub const BLOCK_BANNER_HEIGHT: f32 = CONSTRAINED_BANNER_HEIGHT + BANNER_TOP_MARGIN;
 pub const BLOCK_BANNER_DESCRIPTION_MAX_HEIGHT: f32 = 24.;
 
-pub enum WithinBlockBanner {
-}
+pub enum WithinBlockBanner {}
 
 impl WithinBlockBanner {
     pub fn banner_height(&self) -> f32 {
         match *self {}
     }
-
 }
 
 /// These Elements should be common across all block banners. The specific content for each banner

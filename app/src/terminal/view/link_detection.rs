@@ -2,7 +2,6 @@ use std::ops::Deref;
 
 use serde::{Serialize, Serializer};
 
-use warpui::{platform::Cursor, ViewContext};
 use crate::terminal::{
     model::{
         grid::grid_handler::Link,
@@ -12,6 +11,7 @@ use crate::terminal::{
     },
     TerminalModel,
 };
+use warpui::{platform::Cursor, ViewContext};
 cfg_if::cfg_if! {
     if #[cfg(feature = "local_fs")] {
         use crate::{

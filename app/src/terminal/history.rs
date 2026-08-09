@@ -310,10 +310,7 @@ impl HistoryEntry {
             git_head,
             shell_host: _,
         } = self;
-        pwd.is_some()
-            || start_ts.is_some()
-            || exit_code.is_some()
-            || git_head.is_some()
+        pwd.is_some() || start_ts.is_some() || exit_code.is_some() || git_head.is_some()
     }
 }
 

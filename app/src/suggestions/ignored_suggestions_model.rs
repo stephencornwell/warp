@@ -3,7 +3,6 @@ use std::collections::HashSet;
 use serde::{Deserialize, Serialize};
 use warpui::{Entity, ModelContext, SingletonEntity};
 
-
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Hash)]
 pub enum SuggestionType {
     ShellCommand,
@@ -88,7 +87,6 @@ impl IgnoredSuggestionsModel {
         }
 
         self.ignored_suggestions.remove(&key);
-
     }
 
     pub fn is_ignored(&self, suggestion: &str, suggestion_type: SuggestionType) -> bool {

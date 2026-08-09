@@ -3542,34 +3542,6 @@ impl TerminalView {
         &self.input
     }
 
-    pub fn input_config(&self, app: &AppContext) -> InputConfig {
-        self.ai_input_model.as_ref(app).input_config()
-    }
-
-    /// Applies an input mode update from an external source (e.g., session sharing).
-    /// This bypasses normal event emission to prevent update loops.
-    pub fn apply_external_input_mode_update(
-        &mut self,
-        config: InputConfig,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        self.input.update(ctx, |input, ctx| {
-            input.apply_external_input_config_update(config, ctx);
-        });
-    }
-
-    pub fn ai_controller(&self) -> &ModelHandle<BlocklistAIController> {
-        &self.ai_controller
-    }
-
-    pub fn ai_context_model(&self) -> &ModelHandle<BlocklistAIContextModel> {
-        &self.ai_context_model
-    }
-
-    pub fn ai_input_model(&self) -> &ModelHandle<BlocklistAIInputModel> {
-        &self.ai_input_model
-    }
-
     pub fn active_session(&self) -> &ModelHandle<ActiveSession> {
         &self.active_session
     }
@@ -3598,24 +3570,6 @@ impl TerminalView {
         self.model.lock().is_read_only()
     }
 
-    /// Whether this terminal pane is responsible for uploading a file.
-    pub fn is_ssh_uploader(&self) -> bool {
-        self.is_ssh_file_uploader
-    }
-
-    pub fn set_is_ssh_uploader(&mut self, is_uploader: bool) {
-        self.is_ssh_file_uploader = is_uploader;
-    }
-
-    /// Whether or not this terminal view is actively sharing its session.
-    pub fn is_sharing_session(&self) -> bool {
-        self.model.lock().shared_session_status().is_active_sharer()
-    }
-
-    pub fn is_shared_session_viewer(&self) -> bool {
-        self.model.lock().is_shared_session_viewer()
-    }
-
     fn should_report_focus(&self, ctx: &mut ViewContext<Self>) -> bool {
         let model = self.model.lock();
         let focus_reporting_enabled = *AltScreenReporting::as_ref(ctx)
@@ -3641,34 +3595,6 @@ impl TerminalView {
             .blocks()
             .iter()
             .all(|block| block.restored_block_was_local().unwrap_or(true))
-    }
-
-    // This logic is only needed if the user has disabled AI in remote sessions.
-    // It has potential performance implications if called on every focus change,
-    // so we limit it to only when the user disables AI in remote sessions.
-    fn update_focused_terminal_info(&mut self, ctx: &mut ViewContext<Self>) {
-        if !ctx.is_self_or_child_focused() {
-            return;
-        }
-
-        let is_ai_allowed_in_remote_sessions =
-            UserWorkspaces::as_ref(ctx).is_ai_allowed_in_remote_sessions();
-
-        // Only update the FocusedTerminalInfo model if the user has disabled AI in remote sessions
-        // because it's a potentially expensive operation.
-        if !is_ai_allowed_in_remote_sessions {
-            let contains_remote_blocks = self.any_session_contains_remote_blocks;
-            let contains_restored_remote_blocks = self.any_session_contains_restored_remote_blocks;
-            let updated = FocusedTerminalInfo::handle(ctx).update(
-                ctx,
-                |model: &mut FocusedTerminalInfo, ctx| {
-                    model.update(contains_remote_blocks, contains_restored_remote_blocks, ctx)
-                },
-            );
-            if updated {
-                ctx.notify();
-            }
-        }
     }
 
     fn maybe_report_focus_out(&mut self, ctx: &mut ViewContext<Self>) {
@@ -3819,69 +3745,6 @@ impl TerminalView {
         ctx.notify();
     }
 
-    fn emit_long_running_command_agent_interaction_state_changed(
-        &self,
-        agent_has_control: bool,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        let state = if agent_has_control {
-            LongRunningCommandAgentInteractionState::InControl
-        } else {
-            let is_tagged_in = self
-                .model
-                .lock()
-                .block_list()
-                .active_block()
-                .is_agent_tagged_in();
-            if is_tagged_in {
-                LongRunningCommandAgentInteractionState::TaggedIn
-            } else {
-                LongRunningCommandAgentInteractionState::NotInteracting
-            }
-        };
-        ctx.emit(Event::LongRunningCommandAgentInteractionStateChanged { state });
-    }
-
-    /// Applies a long-running command agent interaction state received from a shared session participant.
-    pub fn apply_long_running_command_agent_interaction_state(
-        &mut self,
-        state: LongRunningCommandAgentInteractionState,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        match state {
-            LongRunningCommandAgentInteractionState::InControl => {
-                self.cli_subagent_controller.update(ctx, |controller, ctx| {
-                    controller.handoff_active_command_control_to_agent(ctx);
-                });
-            }
-            LongRunningCommandAgentInteractionState::TaggedIn => {
-                self.cli_subagent_controller.update(ctx, |controller, ctx| {
-                    controller.switch_control_to_user(UserTakeOverReason::Manual, ctx);
-                });
-                self.tag_agent_in(ctx);
-            }
-            LongRunningCommandAgentInteractionState::NotInteracting => {
-                self.cli_subagent_controller.update(ctx, |controller, ctx| {
-                    controller.switch_control_to_user(UserTakeOverReason::Manual, ctx);
-                });
-                self.tag_agent_out(ctx);
-            }
-        }
-    }
-
-    /// Shows or hides the CLI agent footer from a shared session update.
-    pub fn apply_cli_agent_footer_visibility(&mut self, show: bool, ctx: &mut ViewContext<Self>) {
-        if show {
-            self.maybe_show_use_agent_footer_in_blocklist(ctx);
-        } else {
-            self.hide_use_agent_footer_in_blocklist(ctx);
-        }
-    }
-
-    pub fn has_active_env_var_block(&self, app: &AppContext) -> bool {
-        self.active_env_var_collection_block(app).is_some()
-    }
-
     /// Shuts down the pty and event loop, terminating the shell process.
     /// Also marks this view as manually shut down for telemetry attribution.
     pub fn shutdown_pty(&mut self, ctx: &mut ViewContext<Self>) {
@@ -4003,24 +3866,6 @@ impl TerminalView {
         }
 
         self.ctrl_c_to_active_block(is_long_running, is_agent_in_control_of_command, ctx);
-    }
-
-    /// Focuses the provided AI block if this terminal view (or some part of it)
-    /// are focused. This helps ensure AI block interactions (which are primarily async)
-    /// don't steal focus from the user if they've focused another part of the app
-    /// (e.g. another session).
-    ///
-    /// Warning: this should not be called when focusing the [`TerminalView`]. It could
-    /// lead to a focus cycle because [`AIBlock::try_focus`] conditionally yields focus
-    /// back to the [`TerminalView`].
-    fn focus_ai_block_if_self_focused(
-        &self,
-        block: &ViewHandle<AIBlock>,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        if ctx.is_self_or_child_focused() {
-            block.update(ctx, |block, ctx| block.try_steal_focus(ctx));
-        }
     }
 
     #[cfg(not(windows))]

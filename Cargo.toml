@@ -12,7 +12,6 @@ exclude = [
   "crates/managed_secrets_wasm",
   "crates/remote_server",
   "crates/serve-wasm",
-  "crates/warp_web_event_bus",
 ]
 
 # Include all members except serve-wasm (since it's a helper helper for serving

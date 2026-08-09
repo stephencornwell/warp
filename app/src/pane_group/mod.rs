@@ -431,13 +431,6 @@ pub enum Event {
         /// The session that the path was opened from.
         session: Arc<Session>,
     },
-    /// Tell the workspace to run a workflow in the active tab's active session.
-    RunWorkflow {
-        workflow: Arc<WorkflowType>,
-        workflow_source: WorkflowSource,
-        workflow_selection_source: WorkflowSelectionSource,
-        argument_override: Option<HashMap<String, String>>,
-    },
     CloseSharedSessionPaneRequested {
         pane_id: PaneId,
     },

@@ -8296,35 +8296,9 @@ impl Workspace {
                 );
             });
 
-            CodebaseIndexManager::handle(ctx).update(ctx, |manager, _ctx| {
-                if let Some(working_directory) = working_directory_clone {
-                    manager.handle_active_session_changed(working_directory.as_path());
-                }
-            });
-
-            let is_remote = matches!(is_local, Some(false));
+            let is_remote = false;
             let is_unsupported_session = is_wsl_session;
-
-            // Check whether this remote session has an active remote server
-            // connection (or is in the process of connecting). This is only
-            // true for Auto SSH Warpification (mode 1) sessions where
-            // `connect_session` was called at `InitShell` time.
-            let has_remote_server = is_remote
-                && FeatureFlag::SshRemoteServer.is_enabled()
-                && session_id.is_some_and(|sid| {
-                    RemoteServerManager::as_ref(ctx).is_session_potentially_active(sid)
-                });
-
-            // When the session has a remote server, tell it about the current
-            // directory so it can start indexing and push repo metadata back.
-            #[cfg(feature = "local_fs")]
-            if has_remote_server {
-                if let (Some(sid), Some(cwd)) = (session_id, pwd) {
-                    RemoteServerManager::handle(ctx).update(ctx, |mgr, ctx| {
-                        mgr.navigate_to_directory(sid, cwd, ctx);
-                    });
-                }
-            }
+            let has_remote_server = false;
 
             let enablement = CodingPanelEnablementState::from_session_env(
                 file_tree_and_global_search_are_enabled,

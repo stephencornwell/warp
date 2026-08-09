@@ -51,9 +51,6 @@ use warpui::{
 };
 use warpui::{Entity, ModelAsRef, ModelContext, ModelHandle, SingletonEntity};
 
-#[cfg(test)]
-#[path = "current_prompt_test.rs"]
-mod tests;
 
 const PROMPT_DEBOUNCE_PERIOD: Duration = Duration::from_millis(50);
 const PROMPT_DEBOUNCE_PERIOD_KEY: &str = "PromptDebouncePeriod";

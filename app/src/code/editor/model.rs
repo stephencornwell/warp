@@ -3532,7 +3532,3 @@ impl PlainTextEditorModel for CodeEditorModel {
 impl Entity for CodeEditorModel {
     type Event = CodeEditorModelEvent;
 }
-
-#[cfg(test)]
-#[path = "model_tests.rs"]
-mod tests;

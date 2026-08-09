@@ -7565,25 +7565,15 @@ impl TypedActionView for Input {
             InputAction::CtrlD => self.ctrl_d(ctx),
             InputAction::CtrlR => self.ctrl_r(ctx),
             InputAction::ClearScreen => self.clear_screen(ctx),
-            InputAction::SelectAndRefreshVoltron(feature_name) => {
-                self.select_and_refresh_voltron(*feature_name, ctx);
-            }
             InputAction::MaybeOpenCompletionSuggestions => {
                 self.maybe_open_completion_suggestions(ctx);
             }
-            InputAction::HideWorkflowInfoCard => self.hide_workflows_info_box(ctx),
-            InputAction::ResetWorkflowState => self.reset_workflow_state(ctx),
             InputAction::ToggleClassicCompletionsMode => {
                 InputSettings::handle(ctx).update(ctx, |settings, ctx| {
                     if let Err(e) = settings.classic_completions_mode.toggle_and_save_value(ctx) {
-                        log::warn!(
-                            "Failed to toggle and save classic completions mode setting: {e}."
-                        )
+                        log::warn!("Failed to toggle and save classic completions mode setting: {e}.");
                     }
                 });
-            }
-            InputAction::TryHandlePassiveCodeDiff(action) => {
-                ctx.emit(Event::TryHandlePassiveCodeDiff(action.clone()));
             }
             InputAction::UpdateCompletionsMenuWidth(width) => {
                 InputSettings::handle(ctx).update(ctx, |settings, ctx| {
@@ -7595,34 +7585,10 @@ impl TypedActionView for Input {
                     report_if_error!(settings.completions_menu_height.set_value(*height, ctx));
                 });
             }
-            InputAction::ToggleSlashCommandsMenu => {
-                self.toggle_legacy_slash_commands_menu(ctx);
-            }
-            InputAction::TriggerSlashCommandFromKeybinding(command_name) => {
-                let Some(command) = COMMAND_REGISTRY.get_command_with_name(command_name) else {
-                    return;
-                };
-                self.select_slash_command(command, SlashCommandTrigger::keybinding(), ctx);
-            }
-            InputAction::DismissCloudModeV2SlashCommandsMenu => {
-                if self.suggestions_mode_model.as_ref(ctx).is_slash_commands() {
-                    self.slash_command_model
-                        .update(ctx, |model, ctx| model.disable(ctx));
-                    self.close_slash_commands_menu(ctx);
-                }
-            }
-            InputAction::FigmaAddButtonClicked => {
-                TemplatableMCPServerManager::handle(ctx).update(ctx, |manager, ctx| {
-                    manager.install_figma_from_gallery(ctx);
-                });
-            }
-            InputAction::FigmaEnableButtonClicked => {
-                TemplatableMCPServerManager::handle(ctx).update(ctx, |manager, ctx| {
-                    manager.enable_figma_mcp(ctx);
-                });
-            }
+            _ => {}
         }
     }
+
 }
 
 impl View for Input {

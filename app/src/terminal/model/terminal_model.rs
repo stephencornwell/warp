@@ -553,7 +553,6 @@ pub struct TerminalModel {
 
     /// The source type of the shared session (if this is a shared session).
     /// If it is not a shared session, this will be `None`.
-
     /// Whether this terminal model was created as a cloud mode dummy session
     /// (no local shell process, deferred shared-session viewer backing).
     is_dummy_cloud_mode_session: bool,

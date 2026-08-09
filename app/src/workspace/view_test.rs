@@ -90,7 +90,6 @@ fn mock_workspace(app: &mut App) -> ViewHandle<Workspace> {
 #[cfg(feature = "local_fs")]
 #[cfg(feature = "local_fs")]
 #[cfg(feature = "local_fs")]
-
 /// Disable the warn-before-quit setting. Because we don't fully bootstrap the shell in tests, this
 /// is generally needed in tests that close tabs.
 fn disable_quit_warning(app: &mut AppContext) {
@@ -387,7 +386,6 @@ fn test_set_active_tab_color() {
 }
 
 /// Sets up the workspace with three tabs. The middle tab has two panes, where one is shared.
-
 #[test]
 fn test_set_active_terminal_input_contents_and_focus_app() {
     App::test((), |mut app| async move {

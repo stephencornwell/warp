@@ -61,7 +61,6 @@ impl TerminalManager for TestTerminalManager {
 
 /// Test to verify that blocks created through normal execution
 /// have the correct local status set
-
 #[test]
 fn command_first_word_and_suffix_preserves_leading_whitespace() {
     assert_eq!(
@@ -79,7 +78,6 @@ fn command_first_word_and_suffix_handles_alias_without_args() {
 }
 
 /// Test clearing of session flag state when terminal is cleared
-
 fn assert_block_has_find_match(find_model: &TerminalFindModel, block_index: BlockIndex) {
     assert!(find_model
         .block_list_find_run()

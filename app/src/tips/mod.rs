@@ -6,7 +6,6 @@ pub mod tip_view;
 use crate::util::bindings::trigger_to_keystroke;
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, std::cmp::Eq, Serialize, Deserialize)]
-
 // TODO: Rename and move to resource center
 pub enum WelcomeTipFeature {
     Workflows,

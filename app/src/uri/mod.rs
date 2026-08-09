@@ -289,7 +289,6 @@ impl WindowActivationFallbackBehavior {
 
 /// Turn the launch config URL into a filename.
 /// "/hello%20world" --> "hello world"
-
 /// Remove file extension, which consists of the last '.' in the filename
 /// and whatever characters follow it.
 fn remove_extension(full_path: &str) -> Option<&str> {

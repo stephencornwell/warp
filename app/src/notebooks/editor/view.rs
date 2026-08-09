@@ -77,7 +77,6 @@ use crate::{
 };
 
 #[cfg(feature = "local_fs")]
-
 #[cfg(feature = "local_fs")]
 use warpui::text::word_boundaries::WordBoundariesPolicy;
 

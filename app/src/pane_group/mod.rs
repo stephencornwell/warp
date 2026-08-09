@@ -638,10 +638,8 @@ pub struct PaneGroup {
 
     /// Ambient agent panes whose task data was not yet cached at restoration time.
     /// Entries are removed as each task's data arrives and the pane is replaced.
-
     /// Maps child agent conversation IDs to their hidden pane IDs, so they can
     /// be revealed from the parent's status card.
-
     /// Tab-level custom title set via the rename-tab flow.
     custom_title: Option<String>,
 }
@@ -1677,7 +1675,6 @@ impl PaneGroup {
     /// Child panes are excluded from snapshots; children are discovered via the
     /// `children_by_parent` index on the history model and their conversation
     /// data is taken from `RestoredAgentConversations`.
-
     fn terminal_pane_data(
         uuid: Vec<u8>,
         view: ViewHandle<TerminalView>,
@@ -1702,7 +1699,6 @@ impl PaneGroup {
     /// Stores the pending ambient agent restorations, triggers async fetches for
     /// their task data, and sets up a single long-lived subscription that will
     /// process each pane as its task data arrives.
-
     fn initial_single_terminal_pane(
         options: NewTerminalOptions,
         resources: TerminalViewResources,
@@ -3251,7 +3247,6 @@ impl PaneGroup {
     }
 
     #[allow(clippy::too_many_arguments)]
-
     fn create_loading_terminal_manager_and_view(
         resources: TerminalViewResources,
         view_bounds_size: Vector2F,

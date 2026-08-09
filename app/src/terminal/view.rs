@@ -1690,7 +1690,6 @@ pub struct TerminalView {
 
     /// When true, automatically stop the shared session when the CLI agent session ends.
     /// Set when sharing is started from the remote control entrypoint.
-
     /// The ID of the containing window.
     window_id: WindowId,
 
@@ -1824,7 +1823,6 @@ impl TerminalView {
     /// the state of this terminal. If this terminal view has an active input
     /// editor, other terminals should match those contents.
     /// Otherwise, they should just start syncing.
-
     pub fn create_sync_event_based_on_terminal_state(&self, app_ctx: &AppContext) -> SyncEvent {
         if !matches!(
             self.model.lock().terminal_input_state(),
@@ -2419,21 +2417,17 @@ impl TerminalView {
     /// conversation completed successfully, was cancelled, or encountered an error.
     /// The callback receives the `FinishReason` to allow different handling based on how the
     /// conversation ended.
-
     /// Fully clear the per-repo git status handle, including the input's repo
     /// path. Use this when navigating out of a git repository.
     #[cfg(feature = "local_fs")]
-
     /// Helper to read metadata from the per-repo sub-model.
     #[cfg(feature = "local_fs")]
-
     /// Returns whether this terminal view should subscribe to git status
     /// updates. We subscribe when:
     /// 1. Agent mode is active and its chip list includes `GitDiffStats`, or
     /// 2. Terminal mode with the Warp prompt enabled and the git stats chip
     ///    configured.
     #[cfg(feature = "local_fs")]
-
     /// Re-evaluate whether this terminal view should be subscribed to git
     /// status updates and subscribe/unsubscribe accordingly.
     #[cfg(feature = "local_fs")]
@@ -2444,9 +2438,7 @@ impl TerminalView {
     /// Returns true if conditions are met to auto-open the code review panel:
     /// - Inside a git repository
     /// - Window is wide enough to support the code review panel
-
     #[cfg(feature = "local_fs")]
-
     fn update_context_blocks_and_exchanges(&mut self, ctx: &mut ViewContext<Self>) {
         let _ = ctx;
     }
@@ -2454,7 +2446,6 @@ impl TerminalView {
     /// Gets the DiffMode for the given branch name by fetching the main branch name
     /// for this session and comparing it to the given branch name.
     #[cfg_attr(not(feature = "local_fs"), allow(unused_variables))]
-
     fn handle_windowing_state_update(
         &mut self,
         (current, previous): (&windowing::State, &windowing::State),
@@ -2499,7 +2490,6 @@ impl TerminalView {
 
     /// Returns `None` for local sessions, `Some("user@hostname")` for remote.
     /// Used to key per-host plugin install failure tracking.
-
     /// Returns whether or not the active session is a local session.  Returns
     /// None if there is no active session.
     pub fn active_session_is_local<C: ModelAsRef>(&self, ctx: &C) -> Option<bool> {
@@ -2647,7 +2637,6 @@ impl TerminalView {
 
     /// Give the agent control of the active long running command
     /// (which was started outside of a conversation).
-
     // Take control back from the agent for the active long running command
     // (which was started outside of a conversation).
 
@@ -2764,10 +2753,8 @@ impl TerminalView {
     /// - Agent view is active and can be exited
     /// - No long-running command
     /// - Conversation is not in progress and not blocked
-
     /// Cancels the active agent conversation via the status bar's Ctrl+C handler.
     /// Includes shared session notification if applicable.
-
     /// If there is an active rich content block that is set up to handle ctrl-c
     /// events, allow it to handle the event.
     ///
@@ -3360,7 +3347,6 @@ impl TerminalView {
     }
 
     /// Util method to update the ssh block, with a lock
-
     fn insert_most_recent_command_correction(&mut self, ctx: &mut ViewContext<Self>) {
         if let Some(most_recent_command_correction) = self.most_recent_command_correction.as_ref() {
             self.input.update(ctx, |input, ctx| {
@@ -3506,10 +3492,8 @@ impl TerminalView {
     }
 
     /// Returns the view type for prompt suggestion telemetry based on whether agent view is active.
-
     /// Try clearing agent mode query banner's passive code generation state.
     /// Called when a suggested code diff fails and we need to fall back to prompt suggestions.
-
     fn insert_alias_expansion_banner(
         &mut self,
         aliased_command: AliasedCommand,
@@ -3596,20 +3580,16 @@ impl TerminalView {
     #[cfg(feature = "local_fs")]
     #[cfg(feature = "local_fs")]
     #[cfg(not(feature = "local_fs"))]
-
     /// Runs the AWS login command configured in settings to refresh Bedrock credentials.
     /// Doing this in PTY vs just a subprocess allows the user to see any output/errors
     /// from the command directly in the terminal. Also, `aws login` commands may require
     /// user interaction (e.g. "do you want to override X profile? y/n" is common)
-
     /// Checks if the current model request could be served via AWS Bedrock and the user
     /// isn't already using it. If so, inserts a banner prompting the user to log in.
     ///
     /// The banner is shown when the user could be using AWS Bedrock to save on warp AI spend, but isn't.
-
     /// Checks if the user tried to run an AWS login command and the AWS CLI wasn't installed.
     /// If so, shows a helpful banner explaining the issue.
-
     /// Inserts a banner notifying the user that the shell process has terminated.
     fn insert_shell_process_terminated_banner(
         &mut self,
@@ -3678,7 +3658,6 @@ impl TerminalView {
     }
 
     /// Inserts telemetry policy banner into the blocklist.
-
     /// Redetermine focus in the terminal view -- note that this will not steal focus
     /// from other parts of the app, the find bar, or the block filter editor.
     ///
@@ -3766,7 +3745,6 @@ impl TerminalView {
     ///
     /// For some organizations, we accept a regex list that we run against commands to
     /// further make the determination.
-
     // Abort any pending prompt or code suggestions, which may now be irrelevant.
 
     /// Cleans up and removes the conversation associated with the given AI block.
@@ -3779,12 +3757,9 @@ impl TerminalView {
     /// state (AI blocks rely on conversation state in the history model to render). If there is
     /// more than one AI block corresponding to the same conversation as `passive_block`, does
     /// nothing.
-
     /// Sends telemetry if an AI-requested command caused the shell to exit.
-
     /// Updates the agent view back button's disabled state and tooltip based on whether
     /// the user can exit agent mode, and shows a tooltip explaining when exiting is blocked.
-
     fn handle_terminal_event(&mut self, event: &ModelEvent, ctx: &mut ViewContext<Self>) {
         match event {
             ModelEvent::TerminalClear => {
@@ -4277,42 +4252,31 @@ impl TerminalView {
 
     /// Creates the [`SshRemoteServerChoiceView`] and inserts it as a
     /// rich content block pinned to the bottom of the block list.
-
     /// Returns a clone of the `SshRemoteServerChoiceView` handle for the
     /// first active SSH remote-server choice block, if any.
-
     /// Returns `true` when the pending session has a connecting remote-server setup state
     /// and no failure banner is already shown for that session.
-
     /// Creates and inserts the install-failed banner as rich content.
-
     /// Removes any install-failed banner for the given session.
-
     /// Removes [`SshRemoteServerChoiceView`] with the given `session_id`, if present.
-
     /// Handles an OSC 777 event with the `warp://cli-agent` sentinel title.
     /// On `session_start`, creates a `CLIAgentSessionListener` that subscribes
     /// to subsequent events from this terminal's PTY.
-
     /// Creates and registers a listener for flows without a `SessionStart` event.
-
     /// If the startup auto-open setting is enabled, auto-opens rich input for a
     /// CLI agent session. Called after creating a command-detected session or
     /// registering a listener so rich input is shown immediately.
-
     /// Handles CLI agent session status changes from the singleton model.
     /// Sends a desktop notification when a CLI agent reaches a completed state
     /// (blocked or succeeded) and the user is in a different window.
     /// Also handles auto-show/hide of CLI agent rich input based on the
     /// `auto_toggle_rich_input` setting: closes rich input when blocked
     /// (agent requires keyboard interaction) and opens it when the agent resumes.
-
     /// Handles the initialization of a session within this terminal pane.
     ///
     /// This does not indicate that the session has bootstrapped, but only
     /// that we're aware of the beginning of a session that we will attempt
     /// to bootstrap.
-
     /// Handles a session in this terminal pane completing the bootstrapping
     /// process.
     fn handle_session_bootstrapped(
@@ -4457,20 +4421,15 @@ impl TerminalView {
 
     #[cfg_attr(not(feature = "local_fs"), allow(dead_code))]
     #[cfg_attr(not(feature = "local_fs"), allow(dead_code))]
-
     /// Opens a folder that the user may or may not have opened in the past
-
     // Initialize project for a path and suppress the agent mode setup banner for that path. This also auto-opens
     // the code-review pane after the initialization step completes.
 
     // Show or hide codebase index speedbump depending when a settings change happens.
 
     /// Insert an InitStepBlock for the given step kind
-
     /// Try to focus the most recent init step block that's awaiting user input
-
     /// Check if completed command was `warp environment create` and emit event if successful
-
     #[cfg(feature = "local_fs")]
     fn update_repo_banner_state(&mut self, directory: PathBuf, ctx: &mut ViewContext<Self>) {
         let _ = (directory, ctx);
@@ -4484,9 +4443,7 @@ impl TerminalView {
     #[cfg(feature = "local_fs")]
     #[cfg(feature = "local_fs")]
     #[cfg(not(feature = "local_fs"))]
-
     /// Returns the save position ID for the agent view zero state, if one exists.
-
     /// Gets the selected text from the terminal, if any.
     pub fn selected_text(&self, ctx: &AppContext) -> Option<String> {
         let semantic_selection = SemanticSelection::handle(ctx).as_ref(ctx);
@@ -4527,7 +4484,6 @@ impl TerminalView {
     // (1) resizing right after swapping terminal modes, and
     // (2) the alt-screen app registering its resize handler
     #[cfg(feature = "local_tty")]
-
     async fn fetch_command_corrections(
         block: UserBlockCompleted,
         session: Option<Arc<Session>>,
@@ -4594,30 +4550,23 @@ impl TerminalView {
     }
 
     /// If a command correction exists, generate the command correction banner.
-
     /// Removes hidden AI blocks for passive requests from the sumtree.
     ///
     /// Hidden AI blocks are only generated when generating passive codegen suggestions after a
     /// compiler error.
-
     /// Removes AI blocks from `rich_content_views` that match the given conversation and exchange IDs.
     /// This handles cleanup of the block, removal from the block list model, and notifying the
     /// new last AI block in the conversation so it re-renders with the footer.
-
     #[allow(clippy::too_many_arguments)]
     #[allow(clippy::too_many_arguments)]
-
     /// Generates command corrections, if applicable.
-
     /// Send a desktop notification that agent mode needs attention or has finished,
     /// otherwise insert a callout banner if notifications are unset.
     /// May become separate triggers if we show sub-tasks in the UI.
     /// Note that this does NOT handle agent mode toast notifications in-app.
     /// Those are handled in the workspace view on AgentManagementEvent::ConversationNeedsAttention.
-
     /// Shared logic for sending a desktop notification (or showing a discovery banner)
     /// for any agent status change (both Warp's agent and any CLI agent).
-
     /// Executes a command that was submitted by the user and not yet sent to the shell.
     pub fn execute_pending_command(&mut self, _: (), ctx: &mut ViewContext<Self>) {
         let had_pending = self.input.read(ctx, |input, _| input.has_pending_command());
@@ -4660,11 +4609,9 @@ impl TerminalView {
     /// Marks this terminal to enter agent view once pending setup commands
     /// finish. Called from `pane_tree_from_template_recursive` when the tab
     /// config has both commands and `PaneMode::Agent`.
-
     /// Clears the deferred agent view entry flag. Called by the workspace
     /// during onboarding to keep the session in terminal mode for the
     /// guided tutorial.
-
     #[cfg(not(target_family = "wasm"))]
     pub(super) fn on_pty_spawn_failed(
         &mut self,
@@ -4685,7 +4632,6 @@ impl TerminalView {
     ///
     /// Will send telemetry if the current session is not bootstrapped and will show a banner to
     /// the user if this is the first bootstrap in the session.
-
     pub fn size_info(&self) -> &SizeInfo {
         &self.size_info
     }
@@ -4752,7 +4698,6 @@ impl TerminalView {
     /// If we're a viewer eligible for viewer-driven sizing, report our natural
     /// terminal size to the sharer — but only when the resize was NOT caused by
     /// the sharer (which would create a loop).
-
     /// This handler is called after *every* terminal view layout with the
     /// size of the entire terminal (block_list + input OR alt-grid OR shared session viewer loading) as its
     /// argument.
@@ -5836,7 +5781,6 @@ impl TerminalView {
 
     /// Show the context menu that lists the context blocks or selected text attached to an AI query.
     /// The query is the query in the exchange with the given [`AIAgentExchangeId`].
-
     fn show_context_menu(
         &mut self,
         menu_state: ContextMenuState,
@@ -6179,7 +6123,6 @@ impl TerminalView {
     }
 
     /// Determines if a position in the terminal grid is within an Agent Mode conversation.
-
     fn click_on_grid(
         &mut self,
         position: &WithinModel<Point>,
@@ -6507,7 +6450,6 @@ impl TerminalView {
 
     /// Performs a variant of the "clear buffer" action that is special for the agent view.
     /// Returns true iff the clear was successful.
-
     fn clear_buffer(&mut self, ctx: &mut ViewContext<Self>) {
         self.clear_selected_blocks(ctx);
 
@@ -6808,14 +6750,11 @@ impl TerminalView {
 
     /// Handle AI entrypoints, routing to AI in blocklist when possible and falling back to the AI
     /// Assistant panel.
-
     /// Sets the input mode to AI and locks it. If `query` is `Some`, pre-fills the input box with
     /// the given query and focuses the input box.
-
     /// If the input box is visible, update the AI controller's state and potentially prefill the
     /// terminal input with an AI query (depending on whether the text selection has already been
     /// attached as context). If the input box is not visible, make a new pane and do the same.
-
     fn show_find_bar(&mut self, ctx: &mut ViewContext<Self>) {
         let model = self.model.lock();
         let inverted_blocklist = self.is_inverted_blocklist(ctx);
@@ -9763,7 +9702,6 @@ impl TerminalView {
     }
 
     /// Handles when a user clicks on a block in the list of blocks attached to an AI block.
-
     pub(crate) fn view_id(&self) -> EntityId {
         self.view_id
     }
@@ -9868,10 +9806,8 @@ impl TerminalView {
     }
 
     /// Shows the warpify footer for a detected subshell/SSH command.
-
     /// Starts all enabled LSP servers for the current working directory.
     #[cfg(feature = "local_fs")]
-
     pub(super) fn toggle_file_tree(
         &mut self,
         _cli_agent: Option<impl Sized>,

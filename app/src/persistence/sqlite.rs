@@ -69,7 +69,6 @@ const WARP_SQLITE_FILE_NAME: &str = "warp.sqlite";
 /// When delete a cloud object, this callback is used to delete the cloud
 /// object. It takes the id of the cloud object to delete as a parameter.
 /// The supplied conn has already started a transaction.
-
 /// Runs any migrations and creates the Sqlite database if it doesn't exist.
 /// Reads from the sqlite database to get the app state for session restoration.
 /// Starts a writer thread that listens for ModelEvents and processes them.

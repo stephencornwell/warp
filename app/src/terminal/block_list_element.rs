@@ -704,7 +704,6 @@ pub struct BlockListElement {
     horizontal_clipped_scroll_state: ClippedScrollStateHandle,
 
     /// Information about blocks and AI blocks used to render blocklist AI-specific decoration.
-
     /// The last laid out size of the input view.
     input_size_at_last_frame: Vector2F,
 

@@ -122,7 +122,6 @@ impl ShellHost {
 
 /// Represents the state of the async task for reading the shell's history file for a given session.
 #[derive(Debug)]
-
 enum ReadHistoryFileState {
     InProgress {
         /// Commands that were executed by the user while the history file was being loaded. When

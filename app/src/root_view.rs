@@ -1421,7 +1421,6 @@ impl RootView {
     }
 
     #[allow(clippy::ptr_arg)]
-
     fn add_session_at_path(&mut self, path: &PathBuf, ctx: &mut ViewContext<Self>) -> bool {
         let window_id = ctx.window_id();
         if let AuthOnboardingState::Terminal(handle) = &self.auth_onboarding_state {
@@ -1479,7 +1478,6 @@ impl RootView {
 
     /// Shows the user the settings view of their newly joined team
     /// within the app.
-
     pub fn open_team_settings_page(&mut self, _: &(), ctx: &mut ViewContext<Self>) -> bool {
         let window_id = ctx.window_id();
         if let AuthOnboardingState::Terminal(handle) = &self.auth_onboarding_state {
@@ -1515,7 +1513,6 @@ impl RootView {
     }
 
     /// Opens a new tab with agent view for a Linear issue work deeplink.
-
     pub fn focus(&mut self, ctx: &mut ViewContext<Self>) -> bool {
         if let AuthOnboardingState::Terminal(workspace) = &self.auth_onboarding_state {
             ctx.focus(workspace);
@@ -1533,7 +1530,6 @@ impl RootView {
     /// writes we make here are the last writes and won't be clobbered by that
     /// pass. By this point the user is also logged in, so AIExecutionProfile
     /// edits can successfully create cloud objects via `edit_profile_internal`.
-
     fn traffic_light_data(&self, ctx: &AppContext) -> Option<TrafficLightData> {
         // The workspace view will handle rendering of the traffic lights (so
         // that they can be hidden when the tab bar is hidden).

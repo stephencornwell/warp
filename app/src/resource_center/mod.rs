@@ -126,7 +126,6 @@ impl TipAction {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-
 // Section item that dispatches an action within the app
 pub struct FeatureItem {
     pub title: &'static str,

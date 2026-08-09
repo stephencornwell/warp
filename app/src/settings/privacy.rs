@@ -323,11 +323,9 @@ impl PrivacySettings {
     }
 
     /// Fetch the user's privacy settings from the server if any or update the server settings.
-
     /// Initializes state from the [`SyncedUserSettings`] fetched from the server, if any.
     /// If there are no settings from the server, updates the server settings with local settings.
     /// TODO: Make this a server-side db transaction.
-
     /// Constructor for tests only.
     #[cfg(test)]
     pub fn mock(_ctx: &mut ModelContext<Self>) -> Self {
@@ -519,7 +517,6 @@ impl PrivacySettings {
     }
 
     /// Sends request(s) to update server-side user settings with current local values.
-
     /// We wait until warp drive prefs have loaded and then either
     /// 1) use them as the data store for is_telemetry_enabled and is_crash_reporting_enabled, if those
     ///    values are set in warp drive, or

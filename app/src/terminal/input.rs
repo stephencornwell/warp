@@ -1009,11 +1009,9 @@ pub struct Input {
 
     /// Manages the input state for a shared session.
     /// Is [`Some`] iff this is a viewer in a shared session.
-
     /// Manages presence state for shared session.
     ///
     /// Only [`Some`] if this is a shared session.
-
     /// A cache of the local buffer operations for the latest instance
     /// of the input buffer. Specifically, these only include operations
     /// resulting from local changes to the buffer (not remote changes / operations).
@@ -1047,9 +1045,7 @@ pub struct Input {
     conn: Option<Arc<Mutex<SqliteConnection>>>,
 
     /// Cached hint text to ensure it remains stable during shell initialization hooks
-
     /// Inline repos switcher menu.
-
     /// Cached flag indicating whether the editor buffer is empty, used to track changes between
     /// empty and non-empty states.
     ///

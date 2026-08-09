@@ -11,23 +11,13 @@ use warpui::{
 };
 
 use crate::{
-    app_state::{AmbientAgentPaneSnapshot, LeafContents, TerminalPaneSnapshot},
-    pane_group::child_agent::{
-        create_error_child_agent_conversation, create_hidden_child_agent_conversation,
-        HiddenChildAgentConversation,
-    },
+    app_state::{LeafContents, TerminalPaneSnapshot},
     pane_group::{self, Direction, Event::OpenConversationHistory, PaneGroup},
     persistence::{BlockCompleted, ModelEvent},
     session_management::SessionNavigationData,
-    terminal::cli_agent_sessions::CLIAgentSessionsModel,
     terminal::{
         general_settings::GeneralSettings,
-        shared_session::{
-            join_link,
-            manager::{Manager, ManagerEvent},
-            role_change_modal::RoleChangeOpenSource,
-            SharedSessionStatus,
-        },
+        shared_session::SharedSessionStatus,
         view::Event,
         TerminalManager, TerminalView,
     },
@@ -38,8 +28,6 @@ use crate::{
 
 use warp_core::execution_mode::AppExecutionMode;
 
-#[cfg(not(target_family = "wasm"))]
-use super::local_harness_launch::{prepare_local_harness_child_launch, PreparedLocalHarnessLaunch};
 use super::{
     DetachType, PaneConfiguration, PaneContent, PaneId, PaneStackEvent, PaneView, ShareableLink,
     ShareableLinkError, TerminalPaneId,
@@ -152,7 +140,7 @@ impl TerminalPane {
             view.last_focus_ts(),
             view.is_read_only(),
             window_id,
-            view.model.lock().shared_session_status().clone(),
+            SharedSessionStatus::NotShared,
         )
     }
 
@@ -205,22 +193,6 @@ impl PaneContent for TerminalPane {
             }
         }
 
-        let terminal_view_id = self.terminal_view(ctx).id();
-        let manager_model = Manager::handle(ctx);
-        ctx.subscribe_to_model(&manager_model, move |group, model_handle, event, ctx| {
-            if let ManagerEvent::JoinedSession {
-                session_id: _,
-                view_id,
-            } = event
-            {
-                // only take action if the view id is ours
-                if *view_id == terminal_view_id {
-                    let url = retrieve_shared_session_link(model_handle.as_ref(ctx), view_id);
-                    group.handle_pane_link_updated(terminal_pane_id.into(), url, ctx);
-                }
-            }
-        });
-
         // Store the pane group entity ID on the agent view controller so the
         // message bar can perform pane-group-scoped visibility checks.
         let pane_group_id = ctx.view_id();
@@ -269,28 +241,9 @@ impl PaneContent for TerminalPane {
             ctx.unsubscribe_to_view(&view);
         }
 
-        // Notify the active agent views model that the terminal view has been closed
-        // (and that any active views are no longer active). On a `HiddenForClose` detach,
-        // `attach` will re-register via `register_agent_view_controller` when the tab is
-        // restored, so this is safe to run unconditionally.
-        let terminal_view_id = self.terminal_view(ctx).id();
-        ActiveAgentViewsModel::handle(ctx).update(ctx, |model, ctx| {
-            model.unregister_agent_view_controller(terminal_view_id, ctx);
-        });
-
-        // Clean up any active CLI agent session so its notification is removed.
-        // Skip this for moves — the session is still running and will re-register in the new tab.
-        if !matches!(detach_type, DetachType::Moved) {
-            CLIAgentSessionsModel::handle(ctx).update(ctx, |sessions, ctx| {
-                sessions.remove_session(terminal_view_id, ctx);
-            });
-        }
-
         ctx.unsubscribe_to_model(&pane_stack);
 
         ctx.unsubscribe_to_view(&self.view);
-
-        ctx.unsubscribe_to_model(&Manager::handle(ctx));
 
         #[cfg(feature = "local_fs")]
         {
@@ -413,23 +366,7 @@ impl PaneContent for TerminalPane {
         let the_model = manager.as_ref(ctx).model();
         let lock = the_model.lock();
 
-        // Check for shared session status
-        let session_status = lock.shared_session_status();
-        match session_status {
-            SharedSessionStatus::NotShared => Ok(ShareableLink::Base),
-            SharedSessionStatus::ActiveViewer { role: _ } => {
-                let manager = Manager::as_ref(ctx);
-                let terminal_view_id = self.terminal_view(ctx).id();
-                if let Some(url) = retrieve_shared_session_link(manager, &terminal_view_id) {
-                    Ok(ShareableLink::Pane { url })
-                } else {
-                    Err(ShareableLinkError::Unexpected(String::from(
-                        "Failed to retreive shared session link",
-                    )))
-                }
-            }
-            _ => Err(ShareableLinkError::Expected),
-        }
+        Ok(ShareableLink::Base)
     }
 
     fn pane_configuration(&self) -> ModelHandle<PaneConfiguration> {
@@ -439,17 +376,6 @@ impl PaneContent for TerminalPane {
     fn is_pane_being_dragged(&self, ctx: &AppContext) -> bool {
         self.view.as_ref(ctx).is_being_dragged()
     }
-}
-
-fn retrieve_shared_session_link(manager: &Manager, terminal_view_id: &EntityId) -> Option<Url> {
-    let Some(session_id) = manager.session_id(terminal_view_id) else {
-        log::warn!("Failed to get join link args for updating browser url");
-        return None;
-    };
-    if let Ok(url) = Url::parse(&join_link(&session_id)) {
-        return Some(url);
-    }
-    None
 }
 
 /// Attaches a terminal view to the pane group by subscribing to its events

@@ -1,4 +1,11 @@
 use crate::report_if_error;
+use crate::{
+    appearance::Appearance,
+    channel::ChannelState,
+    settings::PrivacySettings,
+    terminal::safe_mode_settings::SafeModeSettings,
+    ui_components::icons::Icon,
+};
 use std::borrow::Cow;
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};

@@ -3516,14 +3516,7 @@ impl TerminalView {
             self.horizontal_clipped_scroll_state.clone(),
             content_element_size,
             self.input_size_at_last_frame(app).unwrap_or_default(),
-            if BlocklistAIHistoryModel::as_ref(app)
-                .active_conversation(self.view_id)
-                .is_some()
-            {
-                AutoscrollBehavior::WhenScrolledToEnd
-            } else {
-                AutoscrollBehavior::Always
-            },
+            AutoscrollBehavior::Always,
             self.inline_menu_positioner.clone(),
         )
     }
@@ -3534,13 +3527,6 @@ impl TerminalView {
         self.open_grid_link_tool_tip = None;
         self.open_secret_tool_tip = None;
         self.open_rich_content_link_tool_tip = None;
-        for rich_content in self.rich_content_views.iter() {
-            if let Some(ai_metadata) = rich_content.ai_block_metadata() {
-                ai_metadata.ai_block_handle.update(ctx, |ai_block, ctx| {
-                    ai_block.dismiss_ai_tooltips(ctx);
-                });
-            }
-        }
         if was_open {
             ctx.notify();
             // The mouse cursor may have been over the tooltip before it was dismissed. Reset it to

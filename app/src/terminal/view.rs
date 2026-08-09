@@ -9918,6 +9918,7 @@ impl TerminalView {
 
     /// Creates the [`SshRemoteServerChoiceView`] and inserts it as a
     /// rich content block pinned to the bottom of the block list.
+    #[cfg(any())]
     fn show_ssh_remote_server_choice_block(
         &mut self,
         session_id: SessionId,
@@ -9966,6 +9967,7 @@ impl TerminalView {
 
     /// Returns a clone of the `SshRemoteServerChoiceView` handle for the
     /// first active SSH remote-server choice block, if any.
+    #[cfg(any())]
     fn active_ssh_remote_server_choice_block(
         &self,
     ) -> Option<ViewHandle<SshRemoteServerChoiceView>> {
@@ -9982,6 +9984,7 @@ impl TerminalView {
 
     /// Returns `true` when the pending session has a connecting remote-server setup state
     /// and no failure banner is already shown for that session.
+    #[cfg(any())]
     fn show_remote_server_loading_footer(&self, model: &TerminalModel, app: &AppContext) -> bool {
         if !FeatureFlag::SshRemoteServer.is_enabled() {
             return false;
@@ -10012,6 +10015,7 @@ impl TerminalView {
 
 
     /// Creates and inserts the install-failed banner as rich content.
+    #[cfg(any())]
     fn show_ssh_remote_server_failed_banner(
         &mut self,
         session_id: SessionId,
@@ -10052,6 +10056,7 @@ impl TerminalView {
     }
 
     /// Removes any install-failed banner for the given session.
+    #[cfg(any())]
     fn remove_ssh_remote_server_failed_banner(
         &mut self,
         session_id: SessionId,
@@ -10083,6 +10088,7 @@ impl TerminalView {
     }
 
     /// Removes [`SshRemoteServerChoiceView`] with the given `session_id`, if present.
+    #[cfg(any())]
     fn remove_ssh_remote_server_choice_block(
         &mut self,
         session_id: SessionId,
@@ -10116,6 +10122,7 @@ impl TerminalView {
     /// Handles an OSC 777 event with the `warp://cli-agent` sentinel title.
     /// On `session_start`, creates a `CLIAgentSessionListener` that subscribes
     /// to subsequent events from this terminal's PTY.
+    #[cfg(any())]
     fn handle_cli_agent_notification(
         &mut self,
         title: Option<&str>,
@@ -10143,6 +10150,7 @@ impl TerminalView {
         }
     }
 
+    #[cfg(any())]
     fn register_cli_agent_listener_from_event(
         &mut self,
         notification: &CLIAgentEvent,
@@ -10187,6 +10195,7 @@ impl TerminalView {
     }
 
     /// Creates and registers a listener for flows without a `SessionStart` event.
+    #[cfg(any())]
     fn register_cli_agent_listener_without_session_start_event(
         &mut self,
         agent: CLIAgent,
@@ -10220,6 +10229,7 @@ impl TerminalView {
     /// If the startup auto-open setting is enabled, auto-opens rich input for a
     /// CLI agent session. Called after creating a command-detected session or
     /// registering a listener so rich input is shown immediately.
+    #[cfg(any())]
     fn maybe_auto_open_cli_agent_rich_input(&mut self, ctx: &mut ViewContext<Self>) {
         let ai_settings = AISettings::as_ref(ctx);
         if !*ai_settings.auto_open_rich_input_on_cli_agent_start
@@ -10243,6 +10253,7 @@ impl TerminalView {
     /// Also handles auto-show/hide of CLI agent rich input based on the
     /// `auto_toggle_rich_input` setting: closes rich input when blocked
     /// (agent requires keyboard interaction) and opens it when the agent resumes.
+    #[cfg(any())]
     fn handle_cli_agent_sessions_event(
         &mut self,
         event: &CLIAgentSessionsModelEvent,

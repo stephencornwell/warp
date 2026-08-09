@@ -3,7 +3,6 @@ use std::{ops::Range, rc::Rc, sync::MutexGuard};
 use pathfinder_geometry::vector::Vector2F;
 use serde::{Deserialize, Serialize};
 use sum_tree::{Cursor, SeekBias};
-use warp_core::features::FeatureFlag;
 use warpui::{
     elements::ClippedScrollStateHandle,
     units::{IntoLines, IntoPixels, Lines, Pixels},
@@ -11,10 +10,9 @@ use warpui::{
 };
 
 use crate::{
-    ai::blocklist::agent_view::AgentViewDisplayMode,
-    terminal::{input::inline_menu::InlineMenuPositioner, model::index::Point as IndexPoint},
+    terminal::model::index::Point as IndexPoint,
 };
-use crate::{ai::blocklist::agent_view::AgentViewState, terminal::model::blocks::RichContentItem};
+use crate::terminal::model::blocks::RichContentItem;
 
 use super::{
     block_list_element::{
@@ -349,7 +347,6 @@ pub struct ViewportIter<'a> {
 
     /// The current input mode.
     input_mode: InputMode,
-    agent_view_state: &'a AgentViewState,
 
     /// The y-offset of the current block in lines from the viewport origin.
     top_of_current_block: Lines,
@@ -436,7 +433,6 @@ pub struct ViewportState<'a> {
     /// Autoscroll behavior for rich content blocks.
     rich_block_autoscroll_behavior: AutoscrollBehavior,
 
-    inline_menu_positioner: ModelHandle<InlineMenuPositioner>,
 }
 
 impl<'a> ViewportState<'a> {
@@ -452,7 +448,6 @@ impl<'a> ViewportState<'a> {
         blocklist_element_size: Vector2F,
         input_size: Vector2F,
         rich_block_autoscroll_behavior: AutoscrollBehavior,
-        inline_menu_positioner: ModelHandle<InlineMenuPositioner>,
     ) -> Self {
         Self {
             block_list,
@@ -465,7 +460,6 @@ impl<'a> ViewportState<'a> {
             blocklist_element_size,
             input_size,
             rich_block_autoscroll_behavior,
-            inline_menu_positioner,
         }
     }
 
@@ -515,7 +509,6 @@ impl<'a> ViewportState<'a> {
                 ViewportIter {
                     block_heights_iter: Box::new(cursor),
                     input_mode: self.input_mode,
-                    agent_view_state: self.block_list.agent_view_state(),
                     top_of_current_block: top_of_block,
                     bottom_offset,
                     start_block_index: block_index,
@@ -535,7 +528,6 @@ impl<'a> ViewportState<'a> {
                 ViewportIter {
                     block_heights_iter: Box::new(cursor.rev()),
                     input_mode: self.input_mode,
-                    agent_view_state: self.block_list.agent_view_state(),
                     top_of_current_block: top_of_block,
                     bottom_offset,
                     start_block_index: block_index,
@@ -626,13 +618,6 @@ impl<'a> ViewportState<'a> {
             // preserve the current input position.
             //
             // See doc comments on blocklist_top_inset_when_in_waterfall_mode for context.
-            if let Some(blocklist_inset) = self
-                .inline_menu_positioner
-                .as_ref(app)
-                .blocklist_top_inset_when_in_waterfall_mode(app)
-            {
-                adjustment -= blocklist_inset;
-            }
         }
 
         adjustment
@@ -1234,9 +1219,7 @@ impl<'a> ViewportState<'a> {
                             Some(gap.height().to_pixels(self.size_info.cell_height_px())),
                             // See doc comment on `blocklist_top_inset_when_in_waterfall_mode`
                             // for context.
-                            self.inline_menu_positioner
-                                .as_ref(app)
-                                .blocklist_top_inset_when_in_waterfall_mode(app),
+                            None,
                         )
                     } else {
                         (None, None)
@@ -2020,40 +2003,7 @@ impl Iterator for ViewportIter<'_> {
             }
 
             match item {
-                BlockHeightItem::RichContent(RichContentItem {
-                    agent_view_conversation_id: fullscreen_agent_view_conversation_id,
-                    ..
-                }) => match self.agent_view_state {
-                    AgentViewState::Active {
-                        conversation_id,
-                        display_mode: AgentViewDisplayMode::FullScreen,
-                        ..
-                    } => {
-                        // If currently in a fullscreen agent view, only return this item if its
-                        // conversation id matches that of the active agent view.
-                        if fullscreen_agent_view_conversation_id
-                            .is_some_and(|id| id == *conversation_id)
-                        {
-                            return next;
-                        }
-                    }
-                    AgentViewState::Active {
-                        display_mode: AgentViewDisplayMode::Inline,
-                        ..
-                    }
-                    | AgentViewState::Inactive => {
-                        // If not in a fullscreen agent view, return the item only if it 'belongs'
-                        // to the terminal mode (represented as no `ai_conversation_id`).
-                        if fullscreen_agent_view_conversation_id.is_none() {
-                            return next;
-                        }
-                    }
-                },
-                _ => {
-                    if !FeatureFlag::AgentView.is_enabled() || block_height.as_f64() > 0. {
-                        return next;
-                    }
-                }
+                _ => return next,
             }
         }
     }

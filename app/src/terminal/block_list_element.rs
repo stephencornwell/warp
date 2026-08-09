@@ -1001,7 +1001,6 @@ impl BlockListElement {
             } else {
                 AutoscrollBehavior::Always
             },
-            self.inline_menu_positioner.clone(),
         )
     }
 

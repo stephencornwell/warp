@@ -3278,7 +3278,6 @@ impl TerminalView {
             content_element_size,
             self.input_size_at_last_frame(app).unwrap_or_default(),
             AutoscrollBehavior::Always,
-            MenuPositioning::BelowInputBox,
         )
     }
 

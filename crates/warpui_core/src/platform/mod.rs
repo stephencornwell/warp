@@ -4,8 +4,6 @@ pub mod keyboard;
 pub mod menu;
 
 pub mod test;
-#[cfg(target_family = "wasm")]
-pub mod wasm;
 
 pub use app::AppCallbacks;
 use derivative::Derivative;

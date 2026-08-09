@@ -3172,14 +3172,6 @@ impl Element for BlockListElement {
             rich_content.after_layout(ctx, app);
         }
 
-        for cli_subagent_view in self
-            .cli_subagent_views
-            .values_mut()
-            .filter(|e| e.size().is_some())
-        {
-            cli_subagent_view.after_layout(ctx, app);
-        }
-
         let model = self.model.lock();
         let viewport = self.viewport_state_after_layout(model.block_list());
 
@@ -3273,15 +3265,6 @@ impl Element for BlockListElement {
         // the next block to be drawn.
         let mut draw_border_above_block = true;
 
-        struct CLISubagentRenderParams {
-            block_id: BlockId,
-            view_origin: Option<Vector2F>,
-            should_clip_view: bool,
-        }
-
-        let mut cli_subagent_views_to_paint = vec![];
-        let agent_view_state = model.block_list().agent_view_state();
-
         let items = self
             .visible_items
             .as_ref()
@@ -3356,8 +3339,7 @@ impl Element for BlockListElement {
                             is_bottom_of_continuous_selection,
                         );
 
-                        let can_be_ai_context = self.ai_render_context.borrow().is_ai_input_enabled
-                            && block.can_be_ai_context(agent_view_state);
+                        let can_be_ai_context = false;
 
                         ctx.scene
                             .draw_rect_with_hit_recording(RectF::new(
@@ -3609,32 +3591,6 @@ impl Element for BlockListElement {
                         }
                     }
 
-                    // Paint the CLI subagent view on top of everything else for this block
-                    let mut render_params = CLISubagentRenderParams {
-                        block_id: block.id().clone(),
-                        view_origin: None,
-                        should_clip_view: !block.is_agent_blocked(),
-                    };
-
-                    if let Some(cli_subagent_view) = self.cli_subagent_views.get_mut(block.id()) {
-                        // Only paint if the element was laid out; the business logic that decides to render this element is done at layout time.
-                        if let Some(cli_subagent_view_size) = cli_subagent_view.size() {
-                            render_params.view_origin = Some(
-                                vec2f(
-                                    grid_origin.x() + block_grid_params.bounds.width(),
-                                    grid_origin.y(),
-                                ) - vec2f(
-                                    CLI_SUBAGENT_HORIZONTAL_MARGIN,
-                                    CLI_SUBAGENT_VERTICAL_MARGIN,
-                                ) - cli_subagent_view_size,
-                            );
-                        }
-                    }
-
-                    if render_params.view_origin.is_some() {
-                        cli_subagent_views_to_paint.push(render_params);
-                    }
-
                     draw_border_above_block = true;
                     ctx.scene.stop_layer();
 
@@ -3744,17 +3700,7 @@ impl Element for BlockListElement {
                 .iter()
                 .flat_map(|selection| self.segment_blocklist_selection(selection, block_list));
 
-            let text_selection_color = if self
-                .ai_render_context
-                .borrow()
-                .has_pending_context_selected_text
-            {
-                self.warp_theme
-                    .text_selection_as_context_color()
-                    .into_solid()
-            } else {
-                self.warp_theme.text_selection_color().into_solid()
-            };
+            let text_selection_color = self.warp_theme.text_selection_color().into_solid();
 
             for current_range in selection_ranges {
                 self.render_selection(
@@ -3767,30 +3713,6 @@ impl Element for BlockListElement {
                 );
             }
         };
-
-        if !cli_subagent_views_to_paint.is_empty() {
-            for CLISubagentRenderParams {
-                block_id,
-                view_origin,
-                should_clip_view,
-            } in cli_subagent_views_to_paint.into_iter()
-            {
-                if let (Some(cli_subagent_view), Some(view_origin)) =
-                    (self.cli_subagent_views.get_mut(&block_id), view_origin)
-                {
-                    ctx.scene.start_layer(if should_clip_view {
-                        ClipBounds::BoundedBy(
-                            self.bounds
-                                .expect("Bounds were set at beginning of paint()"),
-                        )
-                    } else {
-                        ClipBounds::None
-                    });
-                    cli_subagent_view.paint(view_origin, ctx, app);
-                    ctx.scene.stop_layer();
-                }
-            }
-        }
 
         ctx.scene.stop_layer();
         self.child_max_z_index = Some(ctx.scene.max_active_z_index());
@@ -3826,13 +3748,6 @@ impl Element for BlockListElement {
         );
 
         if events_to_propagate_on {
-            for cli_subagent_view in self.cli_subagent_views.values_mut() {
-                // If the event is handled by the CLI subagent view, do not propagate it down to the blocklist.
-                if cli_subagent_view.dispatch_event(event, ctx, app) {
-                    return true;
-                }
-            }
-
             // The floating buttons are a group of buttons that are on top of the blocklist elements.
             // If the event is handled by any of them, we do not propagate it down to the blocklist.
             // Note that this is in violation of the dispatch_event contract: we are not
@@ -3865,10 +3780,6 @@ impl Element for BlockListElement {
             if let Some(snackbar_toggle_button) = &mut self.snackbar_toggle_button {
                 handled_by_floating_button |=
                     snackbar_toggle_button.dispatch_event(event, ctx, app);
-            }
-
-            for avatar_element in self.presence_avatars.values_mut() {
-                handled_by_floating_button |= avatar_element.dispatch_event(event, ctx, app);
             }
 
             if handled_by_floating_button {

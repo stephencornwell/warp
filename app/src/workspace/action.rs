@@ -44,6 +44,22 @@ pub struct CommandSearchOptions {
     pub init_content: InitContent,
 }
 
+#[derive(Clone, Copy, Debug)]
+pub enum AddTabWithShellSource {
+    CommandPalette,
+    ShellSelectorMenu,
+}
+
+#[derive(Clone, Copy, Debug)]
+pub enum PaletteSource {
+    ContextChip,
+    CtrlTab { query: Option<String> },
+    IntegrationTest,
+    Keybinding,
+    QuitModal,
+    TitleBarSearchBar,
+}
+
 /// Specifies how to restore a conversation when it's not already open in a pane.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize, Default)]
 pub enum RestoreConversationLayout {

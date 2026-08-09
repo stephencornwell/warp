@@ -629,23 +629,7 @@ impl InputSuggestionsMode {
     }
 }
 
-struct SharedSessionInputState {
-    /// History model for viewers in a shared session.
-    // TODO: With this current approach, the shared session history crosses
-    // subshell boundaries, we'll need to make it work with our current history model
-    // to ensure we show the right shell history.
-    history_model: ModelHandle<SharedSessionHistoryModel>,
 
-    // Is [`Some`] iff a command execution was requested by a shared session executor.
-    pending_command_execution_request: Option<ViewerCommandExecutionRequest>,
-}
-
-struct ViewerCommandExecutionRequest {
-    /// Text in buffer when command execution was requested.
-    original_buffer: String,
-}
-
-/// Where a command execution request originates from.
 #[derive(Clone)]
 pub enum CommandExecutionSource {
     /// A non-shared command execution request from Warp AI++.
@@ -1254,7 +1238,6 @@ pub struct Input {
 
     /// Manages the input state for a shared session.
     /// Is [`Some`] iff this is a viewer in a shared session.
-    shared_session_input_state: Option<SharedSessionInputState>,
 
     /// Manages presence state for shared session.
     ///

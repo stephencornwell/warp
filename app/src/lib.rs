@@ -8,7 +8,6 @@ mod app_menus;
 mod app_services;
 mod app_state;
 mod banner;
-mod chip_configurator;
 mod code;
 mod coding_entrypoints;
 mod coding_panel_enablement_state;

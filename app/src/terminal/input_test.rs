@@ -184,10 +184,6 @@ pub async fn add_window_with_bootstrapped_terminal(
     };
     bootstrap_terminal(&terminal, bootstrapped_event, app);
 
-    // Wait until history has been initialized for the session.
-    let mut history_handle = History::handle(app);
-    History::initialized_sessions(&mut history_handle, app, vec![session_id]).await;
-
     let input = terminal.read(app, |terminal, _| terminal.input().clone());
     // Notify the input that the session has bootstrapped
     input.update(app, |input, ctx| {

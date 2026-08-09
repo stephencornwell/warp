@@ -252,50 +252,7 @@ impl CodeView {
         let path = source.path();
         let mut view = Self::new_internal(source, ctx);
         view.open_or_focus_existing(path, line_col, ctx);
-        #[cfg(feature = "local_fs")]
-        {
-            view.update_markdown_mode_segmented_control(ctx);
-        }
         view
-    }
-
-    #[cfg(feature = "local_fs")]
-    fn update_markdown_mode_segmented_control(&mut self, ctx: &mut ViewContext<Self>) {
-        let path = self
-            .local_path(ctx)
-            .or_else(|| {
-                self.tab_at(self.active_tab_index)
-                    .and_then(|t| t.path.clone())
-            })
-            .or_else(|| self.source.path());
-
-        let is_markdown = path.as_ref().map(is_markdown_file).unwrap_or(false);
-
-        if !is_markdown {
-            self.markdown_mode_segmented_control = None;
-            ctx.notify();
-            return;
-        }
-
-        if self.markdown_mode_segmented_control.is_none() {
-            let handle = ctx.add_typed_action_view(|ctx| {
-                MarkdownToggleView::new(MarkdownDisplayMode::Raw, ctx)
-            });
-
-            ctx.subscribe_to_view(&handle, |view, _, event, ctx| {
-                let MarkdownToggleEvent::ModeSelected(mode) = event;
-                match mode {
-                    MarkdownDisplayMode::Rendered => {
-                        view.handle_action(&CodeViewAction::RenderMarkdown, ctx);
-                    }
-                    MarkdownDisplayMode::Raw => {}
-                }
-            });
-
-            self.markdown_mode_segmented_control = Some(handle);
-        }
-
-        ctx.notify();
     }
 
     /// Create a new "preview" code view for when a user is exploring the file tree.
@@ -308,7 +265,6 @@ impl CodeView {
             view.open_in_preview_or_promote(path, ctx);
             #[cfg(feature = "local_fs")]
             {
-                view.update_markdown_mode_segmented_control(ctx);
             }
         } else {
             log::warn!("Preview CodeView constructed with no path");
@@ -1177,7 +1133,6 @@ impl CodeView {
 
         #[cfg(feature = "local_fs")]
         {
-            self.update_markdown_mode_segmented_control(ctx);
         }
 
         ctx.notify();
@@ -1873,13 +1828,6 @@ impl CodeView {
                     .into_item(),
             ]);
 
-            if is_markdown_file(&path) {
-                items.push(
-                    MenuItemFields::new("View Markdown preview")
-                        .with_on_select_action(CodeViewAction::RenderMarkdown)
-                        .into_item(),
-                );
-            }
         }
 
         items

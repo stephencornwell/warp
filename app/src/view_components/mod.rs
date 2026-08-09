@@ -3,7 +3,6 @@
 pub mod action_button;
 mod agent_toast;
 pub mod callout_bubble;
-mod clickable_text_input;
 pub mod compactible_action_button;
 pub mod compactible_split_action_button;
 pub mod copyable_text_field;

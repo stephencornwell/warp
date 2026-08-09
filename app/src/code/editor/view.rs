@@ -21,7 +21,6 @@ use crate::{
     appearance::Appearance,
     editor::InteractionState,
     features::FeatureFlag,
-    notebooks::editor::rich_text_styles,
     settings::{AppEditorSettings, FontSettings},
     view_components::find::FindDirection,
 };

@@ -98,7 +98,6 @@ pub enum ConversationTranscriptViewerStatus {
     Loading,
     /// Viewing a local conversation (not from ambient agent).
     ViewingLocalConversation,
-    /// Viewing an ambient agent conversation with the associated task ID.
 }
 
 #[derive(Debug, Clone, Default)]

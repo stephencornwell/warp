@@ -2124,7 +2124,6 @@ impl TerminalView {
                 resources.server_api.clone(),
                 sessions.clone(),
                 size_info,
-                menu_positioning_provider,
                 current_prompt.clone(),
                 terminal_view_id,
                 None, // current_repo_path - will be set when CWD is determined
@@ -4513,22 +4512,6 @@ impl TerminalView {
                                 },
                                 |_, _| {},
                             ));
-                    }
-                } else {
-                    if !has_ai_metadata {
-                        if let Some(ssh_host) =
-                            parse_interactive_ssh_command(warpify_command).map(|cmd| cmd.host)
-                        {
-                            if !self.model.lock().tmux_control_mode_active() {
-                                self.warpify_state
-                                    .set_pending_ssh_host(warpify_command.to_string(), ssh_host);
-                                self.model.lock().start_notify_on_end_of_ssh_login();
-                                ctx.emit(Event::TerminalViewStateChanged);
-                            }
-                        } else {
-                            self.warpify_state.clear_pending_ssh_host();
-
-                        }
                     }
                 }
                     self.maybe_insert_setup_command_blocks(block_id, ctx);

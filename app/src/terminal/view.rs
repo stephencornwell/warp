@@ -4644,7 +4644,7 @@ impl TerminalView {
 
     #[cfg(feature = "local_fs")]
     fn update_repo_banner_state(&mut self, directory: PathBuf, ctx: &mut ViewContext<Self>) {
-        self.update_agent_mode_setup_speedbump_banner(directory, ctx);
+        let _ = (directory, ctx);
     }
 
     #[cfg(not(feature = "local_fs"))]
@@ -4837,11 +4837,7 @@ impl TerminalView {
 
     #[cfg(not(target_family = "wasm"))]
     pub(super) fn on_shell_determined(&self, ctx: &mut ViewContext<Self>) {
-        if !self.model.lock().shared_session_status().is_viewer() {
-            // Start a timer for the initial session bootstrapping, so that we can log and show a
-            // banner to the user if the bootstrapping takes too long
-            self.start_bootstrap_timer(BOOTSTRAP_FAILED_DURATION, ctx);
-        }
+        self.start_bootstrap_timer(BOOTSTRAP_FAILED_DURATION, ctx);
     }
 
     pub fn is_login_shell_bootstrapped(&self) -> bool {
@@ -4863,21 +4859,13 @@ impl TerminalView {
         ctx: &mut ViewContext<Self>,
     ) {
         self.pty_spawn_failed = true;
-        self.insert_shell_process_terminated_banner(
-            shell_terminated_banner::TerminationType::PtySpawnFailure { pty_spawn_error },
-            ctx,
-        );
+        let _ = pty_spawn_error;
         ctx.notify();
     }
 
     /// Start a timer so that we can detect when a session does not bootstrap in a timely manner
     fn start_bootstrap_timer(&self, duration: Duration, ctx: &mut ViewContext<Self>) {
-        let _ = ctx.spawn(
-            async move {
-                warpui::r#async::Timer::after(duration).await;
-            },
-            Self::on_bootstrap_failed_timer_complete,
-        );
+        let _ = (duration, ctx);
     }
 
     /// Called once the bootstrap timer completes
@@ -4914,8 +4902,6 @@ impl TerminalView {
         // This runs before the early-return so the initial report on viewer join
         // fires even when the pane size hasn't changed yet.
         // The resize-reason check prevents loops (SharerSizeChanged is never re-reported).
-        self.maybe_report_viewer_terminal_size(&size_update, ctx);
-
         // If this isn't an actionable resize, there's nothing to do.
         if !(size_update.anything_changed() || size_update.is_refresh()) {
             return;
@@ -5142,8 +5128,7 @@ impl TerminalView {
             )
         };
 
-        let is_cli_agent_paste =
-            !should_paste_in_input && !middle_click && self.has_active_cli_agent_session(ctx);
+        let is_cli_agent_paste = false;
 
         // If we're pasting into a CLI coding agent (e.g. Claude Code) that has its own native
         // handling for pasted file paths and images, skip shell-escaping and let the agent
@@ -5205,27 +5190,6 @@ impl TerminalView {
     }
 
     fn copy(&mut self, ctx: &mut ViewContext<Self>) {
-        // First check if there's selected text in the CLI subagent views
-        for subagent_view in self.cli_subagent_views.values() {
-            if let Some(selected_text) = subagent_view.as_ref(ctx).selected_text(ctx) {
-                ctx.clipboard()
-                    .write(ClipboardContent::plain_text(selected_text));
-                return;
-            }
-        }
-
-        // Then check if there's selected text in the cloud mode error screen
-        let error_selected_text = self
-            .ambient_agent_view_model
-            .as_ref()
-            .map(|model| model.as_ref(ctx).ui_state.error_selected_text.clone());
-        if let Some(error_selected_text) = error_selected_text {
-            if let Some(text) = error_selected_text.read().clone().filter(|t| !t.is_empty()) {
-                ctx.clipboard().write(ClipboardContent::plain_text(text));
-                return;
-            }
-        }
-
         let semantic_selection = SemanticSelection::as_ref(ctx);
         if let Some(selected) = self.model.lock().selection_to_string(
             semantic_selection,

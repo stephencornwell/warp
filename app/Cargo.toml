@@ -572,13 +572,6 @@ tab_close_button_on_left = []
 team_features_override = []
 team_workflows = ["team_features_override"]
 toggle_bootstrap_block = []
-# Feature enabled only when app is compiled for integration tests.
-integration_tests = [
-    "warp_cli/integration_tests",
-    "warpui/integration_tests",
-    "warpui/test-util",
-    "warp_core/integration_tests",
-]
 traces = []
 viewing_shared_sessions = []
 workflow_aliases = []

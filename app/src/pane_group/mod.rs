@@ -98,7 +98,7 @@ use crate::util::bindings::{is_binding_pty_compliant, CustomAction};
 use crate::palette::PaletteMode;
 use crate::terminal::model::terminal_model::ConversationTranscriptViewerStatus;
 use crate::workspace::{
-    self, CommandSearchOptions, PaneViewLocator, TabBarLocation, WorkspaceAction,
+    self, CommandSearchOptions, PaletteSource, PaneViewLocator, TabBarLocation, WorkspaceAction,
 };
 use crate::{
     terminal::{TerminalManager, TerminalModel, TerminalView},

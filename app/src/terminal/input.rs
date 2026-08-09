@@ -95,7 +95,7 @@ use crate::{
         VoltronFeatureViewMeta, VoltronItem, VoltronMetadata,
     },
     workspace::{
-        sync_inputs::SyncedInputState, CommandSearchOptions,
+        sync_inputs::SyncedInputState, CommandSearchOptions, PaletteSource,
         ForkedConversationDestination, InitContent, RestoreConversationLayout, ToastStack,
         WorkspaceAction,
     },

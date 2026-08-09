@@ -4063,17 +4063,6 @@ impl TerminalView {
                 }
                 self.did_notify_long_running = false;
 
-                // Snapshot the prompt state as of when the command began executing.
-                // Commands may themselves affect the prompt (if running `git checkout`), for
-                // example, so we want the saved prompt state to match what the user saw when
-                // they entered the command.
-                let prompt_snapshot = self.current_prompt.as_ref(ctx).snapshot(ctx);
-                self.model
-                    .lock()
-                    .block_list_mut()
-                    .active_block_mut()
-                    .set_prompt_snapshot(prompt_snapshot);
-
                 // Clear any previously active AM query suggestion banners and hidden blocks.
                 // If the first word of the command is a shell alias, expand it
                 // for subshell/SSH detection. This enables warpification for
@@ -7004,12 +6993,7 @@ impl TerminalView {
                     .latest_chip_value(kind, ctx)
                     .map(|v| v.to_string())
                     .unwrap_or_default(),
-                PromptPosition::Block(_) => position
-                    .block(&self.model.lock())
-                    .and_then(Block::prompt_snapshot)
-                    .and_then(|snapshot| snapshot.chip_value(kind))
-                    .map(|v| v.to_string())
-                    .unwrap_or_default(),
+                PromptPosition::Block(_) => String::new(),
             },
         };
         ctx.clipboard().write(ClipboardContent::plain_text(to_copy));
@@ -8692,15 +8676,6 @@ impl TerminalView {
 
         let mut prompt = if block.honor_ps1() {
             block.prompt_contents_to_string(false)
-        } else if block.prompt_snapshot().is_some() {
-            // Note that we're checking not only for the flag being enabled but also ensuring the
-            // prompt_snapshot is defined. This is because some historical blocks from the restored
-            // session may not have yet their prompt_snapshot value, and we stil want to show them
-            // nicely.
-            block
-                .prompt_snapshot()
-                .map(|prompt| prompt.to_string())
-                .unwrap_or_default()
         } else {
             let session = block
                 .session_id()

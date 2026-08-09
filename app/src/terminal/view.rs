@@ -4395,15 +4395,6 @@ impl TerminalView {
                     self.redetermine_global_focus(ctx);
                 }
 
-                // Update agent view back button state when alt screen becomes active/inactive
-                if FeatureFlag::AgentView.is_enabled()
-                    && self.agent_view_controller.as_ref(ctx).is_fullscreen()
-                {
-                    self.update_agent_view_back_button_state(ctx);
-                }
-            }
-            ModelEvent::TmuxControlModeReady { .. } => {
-                self.trigger_subshell_bootstrap(None, false, ctx);
             }
             ModelEvent::ExecutedInBandCommand(event) => {
                 // TODO(vorporeal): Figure out a way to not need the terminal view involved
@@ -4424,26 +4415,9 @@ impl TerminalView {
             ModelEvent::Typeahead => {
                 self.handle_typeahead_event(ctx);
             }
-            ModelEvent::Handler(AnsiHandlerEvent::InitShell {
-                pending_session_info,
-            }) => {
-                // The remote confirmed a subshell bootstrap is starting. Hide the
-                // original long-running block now so the user doesn't see the
-                // bootstrap payload echoed into it.
-                if pending_session_info.subshell_info.is_some() {
-                    let show_debug_block = BlockVisibilitySettings::as_ref(ctx)
-                        .should_show_ssh_block
-                        .value();
-                    if !show_debug_block {
-                        self.update_long_running_ssh_block_with_lock(|block| block.hide());
-                    }
-                }
-            }
+            ModelEvent::Handler(AnsiHandlerEvent::InitShell { .. }) => {}
             ModelEvent::Handler(_) => {}
             ModelEvent::FinishUpdate(_) => {}
-            ModelEvent::SelectedTextChanged => {
-                ctx.emit(Event::SelectedTextChanged);
-            }
             ModelEvent::ShellSpawned(shell_type) => {
                 ctx.emit(Event::ShellSpawned(*shell_type));
                 ctx.notify();
@@ -4467,14 +4441,6 @@ impl TerminalView {
             }
             ModelEvent::BootstrapPrecmdDone => {
                 self.execute_pending_command((), ctx);
-            }
-            ModelEvent::AgentTaggedInChanged { is_tagged_in } => {
-                let state = if *is_tagged_in {
-                    LongRunningCommandAgentInteractionState::TaggedIn
-                } else {
-                    LongRunningCommandAgentInteractionState::NotInteracting
-                };
-                ctx.emit(Event::LongRunningCommandAgentInteractionStateChanged { state });
             }
             ModelEvent::PluggableNotification { title, body } => {
                 if self.is_navigated_away_from_window(ctx) {
@@ -4559,19 +4525,8 @@ impl TerminalView {
 
         self.update_incompatible_configuration_banner(session.shell().plugins(), ctx);
 
-        if let Some(subshell_info) = session.subshell_info() {
-            self.warpify_state
-                .add_subshell_separator(subshell_info, self.model.clone(), ctx);
-        }
-
         self.is_login_shell_bootstrapped = true;
         self.hide_slow_bootstrap_banner(ctx);
-
-        if self.auth_state.is_anonymous_or_logged_out()
-            && !FeatureFlag::OpenWarpNewSettingsModes.is_enabled()
-        {
-            self.insert_anonymous_user_ai_sign_up_banner(ctx);
-        }
 
         if self.should_display_vim_banner(&session, ctx) {
             self.insert_vim_mode_banner(ctx);
@@ -4594,16 +4549,6 @@ impl TerminalView {
                 me.refresh_warp_prompt(ctx);
             },
         );
-
-        // If we were waiting for a successful warpification, it's come. Stop the timeout.
-        self.warpify_state.abort_ssh_warpify_timeout();
-
-        if bootstrap_event.subshell_info.is_some() {
-            self.add_bootstrap_success_block(bootstrap_event, ctx);
-        }
-        self.any_session_contains_restored_remote_blocks = self.contains_restored_remote_blocks();
-        self.any_session_contains_remote_blocks |= self.active_block_is_considered_remote(ctx);
-        self.update_focused_terminal_info(ctx);
 
         // At the end of bootstrapping, set the title to the title of
         // the selected conversation. If there is no selected conversation,

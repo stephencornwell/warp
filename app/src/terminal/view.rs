@@ -768,22 +768,6 @@ pub enum InlineBannerType {
 }
 
 impl InlineBannerType {
-    /// Returns whether this banner type should be visible when agent view is active.
-    /// Exhaustive match ensures new banner types must define their visibility.
-    pub fn is_visible_in_agent_view(&self) -> bool {
-        match self {
-            Self::PromptSuggestions
-            | Self::NotificationsDiscovery
-            | Self::NotificationsError
-            | Self::Ssh
-            | Self::AliasExpansion
-            | Self::SharedSessionStart
-            | Self::SharedSessionEnd
-            | Self::ShellProcessTerminated
-            | Self::OpenInWarp
-            | Self::VimMode => false,
-        }
-    }
 }
 
 /// An inline banner with its unique ID and type metadata.
@@ -1201,7 +1185,6 @@ impl IndicatorPositionArg {
     }
 }
 
-#[derive(Clone)]
 #[derive(Clone)]
 pub struct ExecuteCommandEvent {
     pub command: String,
@@ -2415,26 +2398,7 @@ impl TerminalView {
                 me.check_codebase_index_speedbump_on_settings_changed(ctx);
             });
 
-            // Check whether or not to show the codebase index speedbump when AI settings change.
-            ctx.subscribe_to_model(&AISettings::handle(ctx), |me, _, ai_settings_event, ctx| {
-                match ai_settings_event {
-                    AISettingsChangedEvent::IsAnyAIEnabled { .. }
-                    | AISettingsChangedEvent::AgentModeCodingPermissions { .. }
-                    | AISettingsChangedEvent::AgentModeCodingFileReadAllowlist { .. } => {
-                        me.check_codebase_index_speedbump_on_settings_changed(ctx);
-                    }
-                    _ => {}
-                }
-            });
         }
-
-        ctx.subscribe_to_model(&AISettings::handle(ctx), |me, _, ai_settings_event, ctx| {
-            if let AISettingsChangedEvent::AwsBedrockCredentialsEnabled { .. } = ai_settings_event {
-                if !UserWorkspaces::as_ref(ctx).is_aws_bedrock_credentials_enabled(ctx) {
-                    me.remove_aws_bedrock_login_banner(ctx);
-                }
-            }
-        });
 
         let window_id = ctx.window_id();
         let mut terminal_view = Self {

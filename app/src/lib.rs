@@ -8,7 +8,6 @@ mod app_menus;
 mod app_services;
 mod app_state;
 mod banner;
-mod changelog_model;
 mod chip_configurator;
 mod code;
 mod coding_entrypoints;
@@ -119,8 +118,6 @@ use crate::uri::web_intent_parser::maybe_rewrite_web_url_to_intent;
 use code::editor_management::CodeManager;
 use code::opened_files::OpenedFilesModel;
 use quit_warning::UnsavedStateSummary;
-use server::network_log_pane_manager::NetworkLogPaneManager;
-use server::network_logging::NetworkLogModel;
 #[cfg(feature = "local_fs")]
 use settings::import::model::ImportedConfigModel;
 use warp_cli::GlobalOptions;
@@ -1015,7 +1012,6 @@ fn initialize_app(
 
     timer.mark_interval_end("AUTH_MANAGER_SET_USER");
 
-    ctx.add_singleton_model(|_ctx| NetworkLogModel::default());
 
     ctx.add_singleton_model(|_ctx| GPUState::new());
 
@@ -1148,7 +1144,6 @@ fn initialize_app(
     App::record_last_active_timestamp();
 
     ctx.add_singleton_model(|_| SettingsPaneManager::new());
-    ctx.add_singleton_model(|_| NetworkLogPaneManager::default());
     ctx.add_singleton_model(|_| pricing::PricingInfoModel::new());
 
     #[cfg(target_os = "macos")]

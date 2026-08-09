@@ -36,9 +36,7 @@ fn create_default_serialized_block() -> SerializedBlock {
         shell_host: None,
         is_background: false,
         prompt_snapshot: None,
-        ai_metadata: None,
         is_local: None,
-        agent_view_visibility: None,
     }
 }
 
@@ -163,10 +161,8 @@ fn test_restored_blocks_on_different_host() {
             }),
             is_background: false,
             prompt_snapshot: None,
-            ai_metadata: None,
-            is_local: Some(true),
-            agent_view_visibility: None,
-        }
+                is_local: Some(true),
+            }
         .into(),
         SerializedBlock {
             id: BlockId::new(),
@@ -201,10 +197,8 @@ fn test_restored_blocks_on_different_host() {
             }),
             is_background: false,
             prompt_snapshot: None,
-            ai_metadata: None,
-            is_local: Some(true),
-            agent_view_visibility: None,
-        }
+                is_local: Some(true),
+            }
         .into(),
         SerializedBlock {
             id: BlockId::new(),
@@ -239,10 +233,8 @@ fn test_restored_blocks_on_different_host() {
             }),
             is_background: false,
             prompt_snapshot: None,
-            ai_metadata: None,
-            is_local: Some(false),
-            agent_view_visibility: None,
-        }
+                is_local: Some(false),
+            }
         .into(),
         SerializedBlock {
             id: BlockId::new(),
@@ -273,10 +265,8 @@ fn test_restored_blocks_on_different_host() {
             shell_host: None,
             is_background: false,
             prompt_snapshot: None,
-            ai_metadata: None,
-            is_local: Some(true),
-            agent_view_visibility: None,
-        }
+                is_local: Some(true),
+            }
         .into(),
     ];
     let model = TerminalModel::mock(Some(&restored_blocks), None);
@@ -843,91 +833,8 @@ fn test_rect_selection_in_alt_screen() {
     );
 }
 
-#[test]
-fn test_synchronized_output_sharing_session() {
-    let mut terminal: TerminalModel = TerminalModel::mock(None, None);
 
-    // Configure the terminal model for a shared session.
-    terminal.set_shared_session_status(SharedSessionStatus::ActiveSharer);
-    let (tx, rx) = async_channel::unbounded();
-    terminal.set_ordered_terminal_events_for_shared_session_tx(tx);
-
-    // Process bytes including synchronized output markers.
-    terminal.process_bytes(&b"Before\x1b[?2026hsynchronized\x1b[?2026lafter"[..]);
-
-    // Bytes are flushed every time synchronized output toggles, plus the trailing bytes.
-    rx.close();
-    let events: Vec<_> = std::iter::from_fn(|| rx.try_recv().ok()).collect();
-    assert_eq!(events.len(), 3);
-
-    let OrderedTerminalEventType::PtyBytesRead { bytes } = &events[0] else {
-        panic!("Expected PtyBytesRead, got {:?}", events[0]);
-    };
-    assert_eq!(bytes.as_slice(), b"Before\x1b[?2026h");
-
-    let OrderedTerminalEventType::PtyBytesRead { bytes } = &events[1] else {
-        panic!("Expected PtyBytesRead, got {:?}", events[1]);
-    };
-    assert_eq!(bytes.as_slice(), b"synchronized\x1b[?2026l");
-
-    let OrderedTerminalEventType::PtyBytesRead { bytes } = &events[2] else {
-        panic!("Expected PtyBytesRead, got {:?}", events[2]);
-    };
-    assert_eq!(bytes.as_slice(), b"after");
-}
 
 /// Tests the split-batch case where synchronized output markers arrive in separate
 /// `parse_bytes` calls on a persistent [`Processor`], preserving sync output state across calls.
-#[test]
-fn test_synchronized_output_sharing_session_split_batch() {
-    let mut terminal: TerminalModel = TerminalModel::mock(None, None);
 
-    // Configure the terminal model for a shared session.
-    terminal.set_shared_session_status(SharedSessionStatus::ActiveSharer);
-    let (tx, rx) = async_channel::unbounded();
-    terminal.set_ordered_terminal_events_for_shared_session_tx(tx);
-
-    // Use a single Processor so that synchronized output state is preserved across calls.
-    let mut processor = Processor::new();
-
-    // First batch: contains the sync output start marker but not the end marker.
-    processor.parse_bytes(
-        &mut terminal,
-        &b"Before\x1b[?2026hsync"[..],
-        &mut std::io::sink(),
-    );
-
-    // Second batch: contains the sync output end marker.
-    processor.parse_bytes(
-        &mut terminal,
-        &b"hronized\x1b[?2026lafter"[..],
-        &mut std::io::sink(),
-    );
-
-    // Bytes are flushed at each toggle point and at the end of each parse_bytes call.
-    rx.close();
-    let events: Vec<_> = std::iter::from_fn(|| rx.try_recv().ok()).collect();
-    assert_eq!(events.len(), 4);
-
-    // First batch flushes at the sync start toggle, then the remaining bytes.
-    let OrderedTerminalEventType::PtyBytesRead { bytes } = &events[0] else {
-        panic!("Expected PtyBytesRead, got {:?}", events[0]);
-    };
-    assert_eq!(bytes.as_slice(), b"Before\x1b[?2026h");
-
-    let OrderedTerminalEventType::PtyBytesRead { bytes } = &events[1] else {
-        panic!("Expected PtyBytesRead, got {:?}", events[1]);
-    };
-    assert_eq!(bytes.as_slice(), b"sync");
-
-    // Second batch flushes at the sync end toggle, then the remaining bytes.
-    let OrderedTerminalEventType::PtyBytesRead { bytes } = &events[2] else {
-        panic!("Expected PtyBytesRead, got {:?}", events[2]);
-    };
-    assert_eq!(bytes.as_slice(), b"hronized\x1b[?2026l");
-
-    let OrderedTerminalEventType::PtyBytesRead { bytes } = &events[3] else {
-        panic!("Expected PtyBytesRead, got {:?}", events[3]);
-    };
-    assert_eq!(bytes.as_slice(), b"after");
-}

@@ -513,12 +513,6 @@ pub enum Event {
         path: PathBuf,
     },
     RepoChanged,
-    AttachPathAsContext {
-        path: PathBuf,
-    },
-    AttachPlanAsContext {
-        ai_document_id: AIDocumentId,
-    },
     CDToDirectory {
         path: PathBuf,
     },

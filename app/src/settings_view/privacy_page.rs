@@ -966,8 +966,7 @@ impl SecretRedactionWidget {
         }
 
         // Get a list of regexes that are recommended but not currently in use
-        let enterprise_regex_list_with_titles =
-            workspaces.get_enterprise_secret_redaction_regex_list();
+        let enterprise_regex_list_with_titles: Vec<RegexDisplayInfo> = Vec::new();
         let current_patterns: Vec<&str> = enterprise_regex_list_with_titles
             .iter()
             .map(|r| r.pattern.as_str())

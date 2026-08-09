@@ -228,11 +228,7 @@ impl PaneContent for TerminalPane {
             is_active: view.is_active_session(app),
             is_read_only: view.model.lock().is_read_only(),
             shell_launch_data: view.shell_launch_data_if_local(app),
-            input_config: Some(view.input_config(app)),
-            llm_model_override: None,
             active_profile_id: None,
-            conversation_ids_to_restore: vec![],
-            active_conversation_id: None,
         })
     }
 
@@ -416,20 +412,6 @@ fn handle_terminal_view_event(
                 ctx.emit(pane_group::Event::OpenFileInWarp {
                     path: path.clone(),
                     session: session.clone(),
-                });
-            }
-            #[cfg(feature = "local_fs")]
-            Event::PreviewCodeInWarp { source } => {
-                ctx.emit(pane_group::Event::PreviewCodeInWarp {
-                    source: source.clone(),
-                });
-            }
-            #[cfg(feature = "local_fs")]
-            Event::OpenCodeInWarp { source, layout } => {
-                ctx.emit(pane_group::Event::OpenCodeInWarp {
-                    source: source.clone(),
-                    layout: *layout,
-                    line_col: None,
                 });
             }
             #[cfg(feature = "local_fs")]

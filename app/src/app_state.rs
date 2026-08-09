@@ -102,7 +102,6 @@ pub struct LeafSnapshot {
 pub enum LeafContents {
     Terminal(TerminalPaneSnapshot),
     Notebook(NotebookPaneSnapshot),
-    EnvVarCollection(EnvVarCollectionPaneSnapshot),
     EnvironmentManagement(EnvironmentManagementPaneSnapshot),
     Workflow(WorkflowPaneSnapshot),
     Settings(SettingsPaneSnapshot),
@@ -141,7 +140,6 @@ impl LeafContents {
             | LeafContents::EnvironmentManagement(_) => false,
             LeafContents::Terminal(_)
             | LeafContents::Notebook(_)
-            | LeafContents::EnvVarCollection(_)
             | LeafContents::Workflow(_)
             | LeafContents::Settings(_)
             | LeafContents::ExecutionProfileEditor
@@ -190,15 +188,6 @@ pub enum WorkflowPaneSnapshot {
         workflow_id: Option<SyncId>,
         // Settings for the workflow pane when it's opened (such as a folder to focus upon opening)
         settings: OpenWarpDriveObjectSettings,
-    },
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub enum EnvVarCollectionPaneSnapshot {
-    // CloudEnvVarCollection snapshots operate under the same heuristics
-    // as NotebookPaneSnapshot::CloudNotebook
-    CloudEnvVarCollection {
-        env_var_collection_id: Option<SyncId>,
     },
 }
 

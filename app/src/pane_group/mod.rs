@@ -1,7 +1,6 @@
 #[cfg(feature = "local_fs")]
 use crate::code::editor_management::CodeSource;
 use crate::code::view::CodeViewAction;
-use crate::env_vars::EnvVarCollectionType;
 use crate::notebooks::file::FileNotebookView;
 use crate::pane_group::focus_state::PaneGroupFocusEvent;
 use crate::pane_group::pane::get_started_pane::GetStartedPane;
@@ -67,7 +66,7 @@ use warpui::{
 use warpui::{SingletonEntity, ViewContext};
 
 use crate::app_state::{
-    self, BranchSnapshot, EnvVarCollectionPaneSnapshot, LeafContents,
+    self, BranchSnapshot, LeafContents,
     LeafSnapshot, NotebookPaneSnapshot, PaneNodeSnapshot, PaneUuid, SettingsPaneSnapshot,
     TerminalPaneSnapshot, WorkflowPaneSnapshot,
 };
@@ -126,7 +125,6 @@ use focus_state::PaneGroupFocusState;
 #[path = "mod_tests.rs"]
 mod tests;
 
-pub use pane::env_var_collection_pane::EnvVarCollectionPane;
 pub use pane::network_log_pane::NetworkLogPane;
 pub use pane::settings_pane::SettingsPane;
 pub use pane::terminal_pane::TerminalPane;
@@ -484,11 +482,6 @@ pub enum Event {
         workflow_source: WorkflowSource,
         workflow_selection_source: WorkflowSelectionSource,
         argument_override: Option<HashMap<String, String>>,
-    },
-    /// Invoke env var from pane
-    InvokeEnvVarCollection {
-        env_var_collection: Arc<EnvVarCollectionType>,
-        in_subshell: bool,
     },
     CloseSharedSessionPaneRequested {
         pane_id: PaneId,
@@ -1572,22 +1565,6 @@ impl PaneGroup {
                 Ok((PaneData::new(pane_id), focus))
             }
             LeafContents::Code(_) => Err(anyhow::anyhow!("Skipping removed code pane")),
-            LeafContents::EnvVarCollection(snapshot) => {
-                let pane: Box<dyn AnyPaneContent + 'static> = match snapshot {
-                    EnvVarCollectionPaneSnapshot::CloudEnvVarCollection {
-                        env_var_collection_id,
-                    } => Box::new(EnvVarCollectionPane::restore(env_var_collection_id, ctx)?),
-                };
-
-                let pane_id = pane.as_pane().id();
-                pane_contents.insert(pane_id, pane);
-                let focus = InitialFocus {
-                    focused_pane: leaf.is_focused.then_some(pane_id),
-                    active_session: None,
-                };
-
-                Ok((PaneData::new(pane_id), focus))
-            }
             LeafContents::Workflow(snapshot) => {
                 let pane: Box<dyn AnyPaneContent + 'static> = match snapshot {
                     WorkflowPaneSnapshot::CloudWorkflow {
@@ -3801,13 +3778,6 @@ impl PaneGroup {
     }
 
     pub fn notebook_pane_by_pane_id(&self, pane_id: Option<PaneId>) -> Option<&NotebookPane> {
-        self.downcast_pane_by_id(pane_id?)
-    }
-
-    pub fn env_var_collection_pane_by_pane_id(
-        &self,
-        pane_id: Option<PaneId>,
-    ) -> Option<&EnvVarCollectionPane> {
         self.downcast_pane_by_id(pane_id?)
     }
 

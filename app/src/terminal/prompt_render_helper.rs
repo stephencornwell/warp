@@ -1,5 +1,3 @@
-use crate::ai::blocklist::BlocklistAIInputModel;
-use crate::context_chips::display::PromptDisplay;
 use crate::context_chips::spacing;
 use crate::features::FeatureFlag;
 use crate::settings::InputSettings;
@@ -19,7 +17,7 @@ use warpui::{
     elements::{Container, Element, EventHandler, SavePosition, SelectableArea, Text},
     fonts::{Properties, Weight},
     presenter::ChildView,
-    AppContext, EntityId, ModelHandle, SingletonEntity, ViewHandle,
+    AppContext, EntityId, ModelHandle, SingletonEntity,
 };
 
 use super::input::InputRenderStateModel;
@@ -106,19 +104,14 @@ pub fn should_render_prompt_on_same_line(
     }
 }
 
-/// Returns `true` if the shell or AI prompt should be rendered using the editors
+/// Returns `true` if the shell prompt should be rendered using the editor's
 /// `EditorDecoratorElements` API.
-///
-/// The AI prompt is unconditionally rendered above the input.
 pub fn should_render_prompt_using_editor_decorator_elements(
     is_universal_developer_input: bool,
-    ai_input_model: &ModelHandle<BlocklistAIInputModel>,
     model: &TerminalModel,
     app: &AppContext,
 ) -> bool {
     should_render_prompt_on_same_line(is_universal_developer_input, model, app)
-        && (!ai_input_model.as_ref(app).is_ai_input_enabled()
-            || FeatureFlag::AgentView.is_enabled())
 }
 
 pub(in crate::terminal) struct PromptAndPadding {
@@ -134,7 +127,6 @@ pub(in crate::terminal) enum PromptAndPaddingElement {
     // This is boxed because `BlockGridElement` is large, and without boxing, it
     // bloats the size of the `PromptAndPaddingElement` enum.
     BlockGrid(Box<BlockGridElement>),
-    ContextChips(ViewHandle<PromptDisplay>),
 }
 
 impl PromptAndPaddingElement {
@@ -142,7 +134,6 @@ impl PromptAndPaddingElement {
         match self {
             Self::Text(text_element) => text_element.text().to_owned(),
             Self::BlockGrid(block_grid_element) => block_grid_element.text(),
-            Self::ContextChips(view) => view.as_ref(ctx).text(ctx),
         }
     }
 
@@ -150,7 +141,6 @@ impl PromptAndPaddingElement {
         match self {
             Self::Text(text_element) => text_element.finish(),
             Self::BlockGrid(block_grid_element) => block_grid_element.finish(),
-            Self::ContextChips(view) => ChildView::new(&view).finish(),
         }
     }
 }
@@ -175,11 +165,8 @@ pub struct PromptRenderHelper {
     sessions: ModelHandle<Sessions>,
     prompt_parent_view_id: EntityId,
 
-    prompt_view: ViewHandle<PromptDisplay>,
     prompt_selection_state_handle: SelectionHandle,
     input_render_state_model_handle: ModelHandle<InputRenderStateModel>,
-
-    ai_input_model: ModelHandle<BlocklistAIInputModel>,
 }
 
 #[derive(Clone, Copy)]
@@ -200,24 +187,16 @@ impl fmt::Display for PromptSide {
 impl PromptRenderHelper {
     pub(in crate::terminal) fn new(
         sessions: ModelHandle<Sessions>,
-        prompt_view_handle: ViewHandle<PromptDisplay>,
         prompt_selection_state_handle: SelectionHandle,
         parent_view_id: EntityId,
         input_render_state_model_handle: ModelHandle<InputRenderStateModel>,
-        ai_input_model: ModelHandle<BlocklistAIInputModel>,
     ) -> Self {
         Self {
             sessions,
-            prompt_view: prompt_view_handle,
             prompt_selection_state_handle,
             prompt_parent_view_id: parent_view_id,
             input_render_state_model_handle,
-            ai_input_model,
         }
-    }
-
-    pub fn prompt_view(&self) -> &ViewHandle<PromptDisplay> {
-        &self.prompt_view
     }
 
     /// Returns the block from which we should be retrieving prompt-related data.
@@ -239,10 +218,6 @@ impl PromptRenderHelper {
         } else {
             self.bootstrapping_shell_message(model, sessions)
         }
-    }
-
-    pub fn has_open_chip_menu(&self, app: &AppContext) -> bool {
-        self.prompt_view.as_ref(app).has_open_chip_menu(app)
     }
 
     fn bootstrapping_shell_message(&self, model: &TerminalModel, sessions: &Sessions) -> String {
@@ -389,7 +364,6 @@ impl PromptRenderHelper {
             should_render_prompt_on_same_line(is_universal_input, model, app);
         let padding_right = if should_render_prompt_using_editor_decorator_elements(
             is_universal_input,
-            &self.ai_input_model,
             model,
             app,
         ) {
@@ -537,7 +511,18 @@ impl PromptRenderHelper {
         } else {
             let element = {
                 if model.block_list().is_bootstrapped() {
-                    PromptAndPaddingElement::ContextChips(self.prompt_view.clone())
+                    let block = self.prompt_block(model).unwrap_or(active_block);
+                    let mut size_info = app.model(&self.input_render_state_model_handle).size_info();
+                    size_info.padding_x_px = Pixels::zero();
+                    Self::prompt_block_grid_to_prompt_and_padding(
+                        block.prompt_grid().clone(),
+                        0.,
+                        padding_right,
+                        appearance,
+                        get_secret_obfuscation_mode(app),
+                        size_info,
+                        app,
+                    ).element
                 } else {
                     PromptAndPaddingElement::Text(Box::new(
                         self.bootstrapping_shell_text(model, appearance, app),
@@ -572,7 +557,6 @@ impl PromptRenderHelper {
         let should_render_prompt_using_editor_decorator_elements =
             should_render_prompt_using_editor_decorator_elements(
                 is_universal_input,
-                &self.ai_input_model,
                 terminal_model,
                 app,
             );
@@ -646,7 +630,18 @@ impl PromptRenderHelper {
     ) -> Box<dyn Element> {
         let element = {
             if model.block_list().is_bootstrapped() {
-                PromptAndPaddingElement::ContextChips(self.prompt_view.clone())
+                let block = self.prompt_block(model).unwrap_or(model.block_list().active_block());
+                let mut size_info = app.model(&self.input_render_state_model_handle).size_info();
+                size_info.padding_x_px = Pixels::zero();
+                Self::prompt_block_grid_to_prompt_and_padding(
+                    block.prompt_grid().clone(),
+                    0.,
+                    0.,
+                    appearance,
+                    get_secret_obfuscation_mode(app),
+                    size_info,
+                    app,
+                ).element
             } else {
                 PromptAndPaddingElement::Text(Box::new(
                     self.bootstrapping_shell_text(model, appearance, app),
@@ -762,9 +757,4 @@ impl PromptRenderHelper {
         }
     }
 
-    #[cfg(feature = "integration_tests")]
-    pub fn git_branch(&self, ctx: &AppContext) -> Option<String> {
-        self.prompt_view
-            .read(ctx, |prompt_display, ctx| prompt_display.git_branch(ctx))
-    }
 }

@@ -1504,6 +1504,13 @@ impl Input {
             ctx.add_model(|_| InputRenderStateModel::new(false, size_info));
 
 
+        let prompt_render_helper = PromptRenderHelper::new(
+            sessions.clone(),
+            prompt_selection_state_handle,
+            view_id,
+            input_render_state_model_handle.clone(),
+        );
+
         let editor = {
             // Clones used in render_decorator_elements closure below.
             let model_clone = model.clone();
@@ -1644,6 +1651,7 @@ impl Input {
             latest_buffer_operations: Vec::new(),
             deferred_remote_operations,
             last_user_block_completed: None,
+            prompt_render_helper,
             hoverable_handle: Default::default(),
             #[cfg(feature = "local_fs")]
             conn: None,
@@ -4511,49 +4519,15 @@ impl Input {
         }
         self.active_block_metadata = Some(active_block_metadata);
 
-        // If needed, update the prompt display with the now-available session
-        // context. In-band commands don't meaningfully change block metadata,
-        // so only update prompt display chips if the previous block was not an
-        // in-band command (i.e.: was probably a user-executed block).
-        //
-        // If we update the prompt display chips here, we can get into infinite
-        // loops where we run an in-band command to compute an updated value for
-        // a chip (e.g.: listing the files in the current directory), which
-        // triggers another in-band command, etc. etc.
-        if !is_after_in_band_command {
-            self.update_prompt_display_chips(ctx);
-        }
+        let _ = is_after_in_band_command;
     }
 
     pub fn update_prompt_display_chips(&mut self, ctx: &mut ViewContext<Self>) {
-        let session_context = self.completion_session_context(ctx);
-
-        self.prompt_render_helper
-            .prompt_view()
-            .update(ctx, |prompt, prompt_ctx| {
-                prompt.update_session_context(session_context.clone(), prompt_ctx);
-            });
-
-        self.agent_input_footer.update(ctx, |footer, footer_ctx| {
-            footer.update_session_context(session_context, footer_ctx);
-        });
+        let _ = ctx;
     }
 
     pub fn update_repo_path(&mut self, repo_path: Option<PathBuf>, ctx: &mut ViewContext<Self>) {
-        self.prompt_render_helper
-            .prompt_view()
-            .update(ctx, |prompt, prompt_ctx| {
-                prompt.update_repo_path(repo_path.clone(), prompt_ctx);
-            });
-
-        self.agent_input_footer.update(ctx, |footer, footer_ctx| {
-            footer.set_current_repo_path(repo_path.clone(), footer_ctx);
-        });
-
-        self.slash_command_data_source
-            .update(ctx, |data_source, ctx| {
-                data_source.set_active_repo_root(repo_path, ctx);
-            });
+        let _ = (repo_path, ctx);
     }
 
     fn active_session_path_if_local(&self, ctx: &ViewContext<Self>) -> Option<&Path> {
@@ -4813,12 +4787,6 @@ impl View for Input {
         if focus_ctx.is_self_focused() {
             if self.is_voltron_open {
                 ctx.focus(&self.editor);
-            } else if self.prompt_render_helper.has_open_chip_menu(ctx) {
-                // Focus the PromptDisplay, which will in turn focus any open chip menu
-                ctx.focus(self.prompt_render_helper.prompt_view());
-            } else if self.agent_input_footer.as_ref(ctx).has_open_chip_menu(ctx) {
-                // Focus the AgentInputFooter, which will in turn focus any open chip menu
-                ctx.focus(&self.agent_input_footer);
             } else {
                 self.close_voltron(ctx);
                 ctx.focus(&self.editor);

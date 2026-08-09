@@ -2295,25 +2295,6 @@ impl Input {
             .active_block()
             .has_received_precmd()
         {
-            // Skip any empty blocks created by the user. Keep the last zero-state autosuggestion
-            // until the user executes a command.
-            if !command.is_empty() {
-                if let Some(ZeroStateSuggestionInfo {
-                    response,
-                    is_from_ai,
-                    history_based_autosuggestion_state,
-                    request_duration_ms,
-                }) = zerostate_next_command_suggestion_info
-                {
-                    self.last_intelligent_autosuggestion_result =
-                        Some(IntelligentAutosuggestionResult {
-                            was_suggestion_accepted: self.was_intelligent_autosuggestion_accepted,
-                            is_from_ai,
-                            predicted_command: response.most_likely_action.clone(),
-                        });
-
-                }
-            }
             // Reset state for whether the user accepted the intelligent autosuggestion.
             self.was_intelligent_autosuggestion_accepted = false;
 

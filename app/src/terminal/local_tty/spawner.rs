@@ -193,13 +193,6 @@ impl PtySpawner {
             }
         }
 
-        let mode = if is_fallback {
-            PtySpawnMode::FallbackToDirect
-        } else {
-            PtySpawnMode::Direct
-        };
-        ();
-
         Self::spawn_pty_directly(
             options,
             #[cfg(windows)]
@@ -217,7 +210,7 @@ impl PtySpawner {
     ) -> Result<(PtySpawnResult, Box<dyn PtyHandle>)> {
         let pty_spawn_info =
             invoke_without_crash_reporting(is_crash_reporting_enabled, move || {
-                local_tty::spawn(
+                super::spawn(
                     options,
                     #[cfg(windows)]
                     event_loop_tx,

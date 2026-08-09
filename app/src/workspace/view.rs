@@ -6145,7 +6145,7 @@ impl Workspace {
                 query,
             } => {
                 let _ = query;
-                self.open_palette(*mode, *source, ctx);
+                self.open_palette(*mode, source.clone(), ctx);
             }
             pane_group::Event::ShowToast {
                 message,
@@ -6171,7 +6171,7 @@ impl Workspace {
                 self.show_theme_chooser_for_custom_theme(ctx);
             }
             pane_group::Event::OpenFilesPalette { source } => {
-                self.open_palette(PaletteMode::Files, *source, ctx);
+                self.open_palette(PaletteMode::Files, source.clone(), ctx);
             }
             pane_group::Event::ToggleLeftPanel {
                 target_view,

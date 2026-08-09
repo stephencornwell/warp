@@ -813,9 +813,6 @@ pub enum InputAction {
     /// Generate a new Next Command suggestion.
     CycleNextCommandSuggestion,
 
-    /// Inserts a zero state prompt suggestion into the input buffer and executes the query for Agent Mode.
-    InsertZeroStatePromptSuggestion(ZeroStatePromptSuggestionType),
-
     /// A passive code diff action.
     TryHandlePassiveCodeDiff(CodeDiffAction),
 
@@ -933,46 +930,6 @@ impl MenuPositioningProvider for MenuPositioning {
     }
 }
 
-struct WorkflowsState {
-    selected_workflow_state: Option<SelectedWorkflowState>,
-}
-
-/// State when a workflow is selected.
-#[derive(Clone)]
-struct SelectedWorkflowState {
-    /// A handle to the WorkflowsMoreInfoView shown for the selected workflow.
-    ///
-    /// Note that this is unconditionally constructed, even when `should_show_more_info_view` is
-    /// `false`, because the `WorkflowsMoreInfoView` itself contains business logic for the state
-    /// of the input editor when editing workflow arguments with the shift-tab UX. This isn't
-    /// ideal, and more of a symptom of retrofitting a `WorkflowsMoreInfoView`-less version of the
-    /// shift-tab UX specifically for up-arrow history.
-    more_info_view: ViewHandle<WorkflowsMoreInfoView>,
-
-    /// Map of arguments to the corresponding index of highlights. This is necessary so that we can
-    /// select all instances of an argument when a user changes the selected argument.
-    argument_index_to_highlight_index: HashMap<WorkflowArgumentIndex, Vec<usize>>,
-
-    /// Map of arguments with enum variants to those variants, which are used as suggested inputs to the argument.
-    argument_index_to_enum_variants: HashMap<WorkflowArgumentIndex, EnumVariants>,
-
-    workflow_source: WorkflowSource,
-    workflow_type: WorkflowType,
-    workflow_selection_source: WorkflowSelectionSource,
-
-    /// `true` if the WorkflowsMoreInfoView should be shown for the selected workflow. This is true
-    /// in all cases except when a workflow-linked history command is selected from up-arrow
-    /// history.
-    should_show_more_info_view: bool,
-}
-
-/// Helper struct for differentiating the cases when the command is able to be
-/// parsed into the workflow it originates from versus when it's been edited to
-/// the point of us not being able to determine where the arguments are.
-pub enum CommandMatchesWorkflowTemplate {
-    Yes(WorkflowDisplayData),
-    No,
-}
 
 /// Helper struct for performing alias expansion.
 struct ExpansionInfo {
@@ -1211,7 +1168,6 @@ pub struct Input {
     terminal_view_id: EntityId,
     view_id: EntityId,
     input_render_state_model_handle: ModelHandle<InputRenderStateModel>,
-    workflows_state: WorkflowsState,
     voltron_view: ViewHandle<Voltron>,
     is_voltron_open: bool,
     command_x_ray_description: Option<Arc<Description>>,
@@ -4643,45 +4599,6 @@ impl Input {
             && !input.any_selections_span_entire_buffer(ctx)
     }
 
-    /// Returns the index of the argument our cursor is currently on, if there is one,
-    /// as well as any style runs computed for reuse in `highlight_selected_workflow_argument`
-    fn get_current_argument(
-        &self,
-        ctx: &ViewContext<Self>,
-    ) -> (Option<WorkflowArgumentIndex>, Vec<Range<ByteOffset>>) {
-        // If we aren't in a workflow, return
-        let Some(workflow_state) = &self.workflows_state.selected_workflow_state else {
-            log::error!(
-                "Tried to get the current argument when no workflow is loaded into the input",
-            );
-            return (None, Vec::new());
-        };
-
-        let cursor_position = self
-            .editor
-            .as_ref(ctx)
-            .end_byte_index_of_last_selection(ctx);
-
-        // Get the highlighted text style ranges, which are used to determine where the workflow arguments are
-        let text_style_ranges = self.get_text_style_ranges_for_workflow(ctx);
-
-        // Find a text range that contains the cursor position
-        let highlight_index = text_style_ranges
-            .iter()
-            .position(|range| range.contains(&cursor_position));
-
-        // Find the argument that corresponds with this highlight index
-        let arg_index = highlight_index.and_then(|index| {
-            workflow_state
-                .argument_index_to_highlight_index
-                .iter()
-                .find(|(_, highlight)| highlight.contains(&index))
-                .map(|(arg_index, _)| *arg_index)
-        });
-
-        (arg_index, text_style_ranges)
-    }
-
     fn input_shift_tab(&mut self, ctx: &mut ViewContext<Self>) {
         match self.suggestions_mode_model.as_ref(ctx).mode() {
             // If the model selector is open and has multiple tabs,
@@ -4727,48 +4644,7 @@ impl Input {
             _ => {}
         }
 
-        if let Some(workflows_info_view) = &self
-            .workflows_state
-            .selected_workflow_state
-            .as_ref()
-            .map(|state| &state.more_info_view)
-        {
-            // Get the index of the argument we are currently selecting, if it exists
-            let (current_argument, text_style_ranges) = self.get_current_argument(ctx);
-
-            workflows_info_view.update(ctx, |info_view, ctx| {
-                // If we are selecting an argument, open that one
-                if let Some(index) = current_argument {
-                    info_view.selected_workflow_state.set_argument_index(index);
-                }
-                // If we were in history suggestion mode, select the first argument
-                else if matches!(
-                    self.suggestions_mode_model.as_ref(ctx).mode(),
-                    InputSuggestionsMode::HistoryUp { .. }
-                ) {
-                    info_view
-                        .selected_workflow_state
-                        .set_argument_index(0.into());
-                }
-                // Otherwise, continue to cycle arguments
-                else {
-                    info_view.selected_workflow_state.increment_argument_index();
-                }
-
-                ctx.notify();
-            });
-
-            self.highlight_selected_workflow_argument(text_style_ranges, ctx);
-
-            if let Some(a11y_text) = self.selected_workflow_a11y_text(ctx) {
-                ctx.emit_a11y_content(AccessibilityContent::new_without_help(
-                    a11y_text,
-                    WarpA11yRole::UserAction,
-                ));
-            }
-        } else {
-            self.editor.update(ctx, |input, ctx| input.unindent(ctx));
-        }
+        self.editor.update(ctx, |input, ctx| input.unindent(ctx));
     }
 
     pub fn completion_session_context(&self, ctx: &AppContext) -> Option<SessionContext> {

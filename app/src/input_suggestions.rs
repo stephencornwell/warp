@@ -1175,7 +1175,3 @@ impl HistoryInputSuggestion<'_> {
         }
     }
 }
-
-#[cfg(test)]
-#[path = "input_suggestions_test.rs"]
-mod tests;

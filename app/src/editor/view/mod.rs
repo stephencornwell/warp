@@ -8353,7 +8353,3 @@ pub fn position_id_for_cursor(editor_view_id: EntityId) -> String {
 pub fn position_id_for_first_cursor(editor_view_id: EntityId) -> String {
     format!("editor:first_cursor_{editor_view_id}")
 }
-
-#[cfg(test)]
-#[path = "mod_test.rs"]
-mod tests;

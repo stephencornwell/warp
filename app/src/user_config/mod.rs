@@ -179,7 +179,7 @@ pub fn themes_dir() -> PathBuf {
 /// Returns the path to the directory containing the user's custom workflows.
 #[cfg_attr(target_family = "wasm", expect(dead_code))]
 pub fn workflows_dir() -> PathBuf {
-    crate::workflows::local_workflows::workflows_dir(base_dir())
+    base_dir().join("workflows")
 }
 
 /// Returns the path to the directory containing the user's launch

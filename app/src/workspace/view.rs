@@ -109,7 +109,6 @@ use crate::env_vars::{
 };
 
 use crate::appearance::{Appearance, AppearanceManager};
-use crate::auth::AuthStateProvider;
 use crate::autoupdate::{
     is_incoming_version_past_current, AutoupdateState, AutoupdateStateEvent, RelaunchModel,
 };
@@ -126,7 +125,7 @@ use crate::network::{NetworkStatus, NetworkStatusEvent};
 #[cfg(feature = "local_fs")]
 use crate::pane_group::FilePane;
 use crate::pane_group::{
-    self, AnyPaneContent, CodeDiffPane, CodePane, Direction, NewTerminalOptions, PanesLayout,
+    self, AnyPaneContent, Direction, NewTerminalOptions, PanesLayout,
     TabBarHoverIndex,
 };
 use crate::terminal::keys_settings::KeysSettings;
@@ -175,13 +174,10 @@ use crate::terminal::session_settings::{
 };
 use crate::terminal::settings::{SpacingMode, TerminalSettings};
 use crate::terminal::shell::ShellType;
-#[cfg(feature = "local_tty")]
-use crate::terminal::view::docker_sandbox::DEFAULT_DOCKER_SANDBOX_BASE_IMAGE;
 use crate::terminal::{self, SizeInfo, TerminalView};
 #[cfg(target_os = "macos")]
 use crate::workspace::cli_install;
-use crate::workspaces::user_workspaces::UserWorkspaces;
-use crate::{report_if_error, AgentNotificationsModel};
+use crate::report_if_error;
 use ::settings::{Setting, ToggleableSetting};
 use warp_core::features::FeatureFlag;
 
@@ -219,25 +215,13 @@ use crate::view_components::{
     AgentToast, AgentToastStack, DismissibleToast, DismissibleToastStack, ToastLink,
 };
 use crate::window_settings::{WindowSettings, WindowSettingsChangedEvent, ZoomLevel};
-use crate::workflows::{
-    manager::WorkflowOpenSource, AIWorkflowOrigin, CloudWorkflow, WorkflowSelectionSource,
-    WorkflowSource, WorkflowType, WorkflowViewMode,
-};
 use crate::workspace::action::CommandSearchOptions;
 use crate::workspace::one_time_modal_model::OneTimeModalModel;
 use crate::workspace::sync_inputs::SyncedInputState;
 use crate::workspace::toast_stack::{
     ToastStack as WorkspaceToastStack, ToastStackEvent as WorkspaceToastStackEvent,
 };
-use crate::{
-    ai_assistant::{
-        panel::{AIAssistantPanelEvent, AIAssistantPanelView},
-        AskAIType, AI_ASSISTANT_FEATURE_NAME, AI_ASSISTANT_LOGO_COLOR,
-    },
-    settings,
-    ui_components::blended_colors,
-};
-use crate::{send_telemetry_from_ctx, GlobalResourceHandles};
+use crate::ui_components::blended_colors;
 
 use futures::Future;
 use itertools::Itertools;
@@ -269,7 +253,6 @@ use warpui::{elements::MouseStateHandle, fonts::Properties};
 
 use crate::{autoupdate, channel::ChannelState};
 
-use crate::ai::blocklist::{BlocklistAIHistoryEvent, PendingQueryState, SerializedBlockListItem};
 use crate::editor::{
     EditorView, Event as EditorEvent, PropagateAndNoOpNavigationKeys, SingleLineEditorOptions,
     TextOptions,
@@ -294,7 +277,6 @@ use super::util::{
     PaneViewLocator, TabMovement, TerminalSessionFallbackBehavior, WelcomeTipsViewState,
     WorkspaceMouseStates, WorkspaceState,
 };
-use crate::cloud_object::model::persistence::CloudModel;
 use crate::launch_configs::save_modal::{LaunchConfigModalEvent, LaunchConfigSaveModal};
 use crate::tab_configs::action_sidecar::SidecarItemKind;
 use crate::tab_configs::remove_confirmation_dialog::{
@@ -313,14 +295,11 @@ use crate::tab_configs::{
 use crate::code::editor::{add_color, remove_color};
 use crate::palette::PaletteMode;
 use crate::search::command_palette::view::{Event as CommandPaletteEvent, View as CommandPalette};
-use crate::server::telemetry::{NotificationsTurnedOnSource, PaletteSource, TabRenameEvent};
 use crate::tab::{
     tab_position_id, NewSessionMenuItem, SelectedTabColor, TabBarState, TabComponent, TabData,
     TabTelemetryAction, TAB_BAR_BORDER_HEIGHT,
 };
-use crate::terminal::view::ssh_file_upload::FileUploadId;
 use crate::ui_components::icons;
-use crate::TelemetryEvent;
 use autoupdate::AutoupdateStage;
 #[cfg(target_os = "macos")]
 use command::blocking::Command;

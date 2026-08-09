@@ -24,11 +24,6 @@ enum QuitScope<'a> {
     Tabs(Vec<WeakViewHandle<PaneGroup>>),
     Window(WindowId),
     App,
-    #[allow(dead_code)]
-    EditorTab {
-        file_name: Option<String>,
-        editor_status: Vec<CodeEditorStatus>,
-    }, // TODO: Include the "log out" confirmation modal too.
 }
 
 /// Summary of unsaved data and running processes to show the user before they quit.
@@ -95,63 +90,7 @@ impl QuitScope<'_> {
                 .filter(|session| session.window_id() == *window_id)
                 .collect_vec(),
             Self::App => SessionNavigationData::all_sessions(ctx).collect_vec(),
-            Self::EditorTab { .. } => Vec::new(),
-        }
-    }
-
-    /// All code editors in this scope.
-    fn code_editors(&self, ctx: &AppContext) -> Vec<CodeEditorStatus> {
-        match self {
-            Self::Pane {
-                pane_group,
-                pane_id,
-                ..
-            } => pane_group
-                .downcast_pane_by_id::<CodePane>(*pane_id)
-                .map(|code_pane| code_pane.editor_status(ctx))
-                .into_iter()
-                .collect(),
-            Self::Tabs(ref tabs) => tabs
-                .iter()
-                .filter_map(|tab| tab.upgrade(ctx))
-                .flat_map(|pane_group| CodeEditorStatus::editors_in_tab(&pane_group, ctx))
-                .collect_vec(),
-            Self::Window(window_id) => {
-                CodeEditorStatus::editors_in_window(*window_id, ctx).collect_vec()
-            }
-            Self::App => CodeEditorStatus::all_editors(ctx).collect_vec(),
-            Self::EditorTab { editor_status, .. } => editor_status.clone(),
-        }
-    }
-
-    /// All code review views in this scope (from the panel, not panes).
-    fn code_review_views(&self, ctx: &AppContext) -> Vec<CodeEditorStatus> {
-        match self {
-            Self::Pane { .. } => {
-                vec![] // There cannot be a code review view in a pane.
-            }
-            Self::Tabs(ref tabs) => {
-                let window_ids: Vec<_> = tabs
-                    .iter()
-                    .filter_map(|tab| tab.upgrade(ctx))
-                    .map(|pane_group| pane_group.window_id(ctx))
-                    .unique()
-                    .collect();
-                window_ids
-                    .into_iter()
-                    .flat_map(|window_id| {
-                        CodeEditorStatus::code_review_views_in_window(window_id, ctx)
-                    })
-                    .collect_vec()
-            }
-            Self::Window(window_id) => {
-                CodeEditorStatus::code_review_views_in_window(*window_id, ctx).collect_vec()
-            }
-            Self::App => ctx
-                .window_ids()
-                .flat_map(|window_id| CodeEditorStatus::code_review_views_in_window(window_id, ctx))
-                .collect_vec(),
-            Self::EditorTab { .. } => vec![],
+            
         }
     }
 
@@ -182,19 +121,10 @@ impl QuitScope<'_> {
                 })
                 .unwrap_or_default(),
             Self::App => crate::session_management::num_shared_sessions(ctx),
-            Self::EditorTab { .. } => 0,
+            
         }
     }
 
-    fn close_target(&self) -> CloseTarget {
-        match self {
-            Self::Pane { .. } => CloseTarget::Pane,
-            Self::Tabs(_) => CloseTarget::Tab,
-            Self::Window(_) => CloseTarget::Window,
-            Self::App => CloseTarget::App,
-            Self::EditorTab { .. } => CloseTarget::EditorTab,
-        }
-    }
 }
 
 impl UnsavedStateSummary<'static> {
@@ -210,20 +140,6 @@ impl UnsavedStateSummary<'static> {
         Self::for_scope(QuitScope::Tabs(tabs), ctx)
     }
 
-    #[allow(dead_code)]
-    pub fn for_editor_tab(
-        file_name: Option<String>,
-        editor_status: Vec<CodeEditorStatus>,
-        ctx: &mut AppContext,
-    ) -> Self {
-        Self::for_scope(
-            QuitScope::EditorTab {
-                file_name,
-                editor_status,
-            },
-            ctx,
-        )
-    }
 }
 
 impl<'a> UnsavedStateSummary<'a> {
@@ -247,12 +163,6 @@ impl<'a> UnsavedStateSummary<'a> {
         let sessions = scope.sessions(ctx);
         let sessions_summary = RunningSessionSummary::new(&sessions);
 
-        let code_editors = scope.code_editors(ctx);
-        let code_editor_summary = CodeEditorSummary::new(&code_editors);
-
-        let code_review_views = scope.code_review_views(ctx);
-        let code_review_summary = CodeEditorSummary::new(&code_review_views);
-
         let num_shared_sessions = scope.shared_sessions(ctx);
 
         UnsavedStateSummary {
@@ -262,8 +172,7 @@ impl<'a> UnsavedStateSummary<'a> {
             tabs_with_long_running_commands: sessions_summary.tabs_running().len(),
             terminal_sessions: sessions,
             shared_sessions: num_shared_sessions,
-            unsaved_code_changes: !code_editor_summary.unsaved_changes.is_empty()
-                || !code_review_summary.unsaved_changes.is_empty(),
+            unsaved_code_changes: false,
         }
     }
 

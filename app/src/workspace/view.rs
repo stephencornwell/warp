@@ -28,7 +28,6 @@ use crate::terminal::session_settings::SessionSettings;
 use crate::ui_components::red_notification_dot::RedNotificationDot;
 #[cfg(feature = "local_fs")]
 use crate::util::file::external_editor::settings::OpenConversationPreference;
-use crate::workspace::bonus_grant_notification_model::BonusGrantNotificationEvent;
 use crate::workspace::toast_stack::ToastStack;
 use crate::workspace::view::global_search::view::GlobalSearchEntryFocus;
 use crate::workspace::view::left_panel::{
@@ -2582,19 +2581,6 @@ impl Workspace {
             }
             ctx.notify();
         });
-
-        ctx.subscribe_to_model(
-            &crate::workspace::bonus_grant_notification_model::BonusGrantNotificationModel::handle(
-                ctx,
-            ),
-            |me, _, event, ctx| {
-                let BonusGrantNotificationEvent::ShowNotification { message, .. } = event;
-                me.toast_stack.update(ctx, |toast_stack, ctx| {
-                    toast_stack
-                        .add_persistent_toast(DismissibleToast::success(message.clone()), ctx);
-                });
-            },
-        );
 
         let mut ws = Self {
             tabs: Vec::new(),

@@ -1265,9 +1265,6 @@ fn initialize_app(
     ctx.add_singleton_model(UndoCloseStack::new);
     ctx.add_singleton_model(|_| ToastStack);
     ctx.add_singleton_model(workspace::OneTimeModalModel::new);
-    ctx.add_singleton_model(
-        workspace::bonus_grant_notification_model::BonusGrantNotificationModel::new,
-    );
     #[cfg(feature = "local_fs")]
     ctx.add_singleton_model(FileModel::new);
     ctx.add_singleton_model(GlobalBufferModel::new);

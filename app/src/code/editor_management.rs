@@ -3,15 +3,11 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use crate::ai::skills::SkillOpenOrigin;
-use ai::skills::SkillReference;
 use serde::{Deserialize, Serialize};
 use warp_util::path::LineAndColumnArg;
 use warpui::{AppContext, Entity, EntityId, ModelContext, SingletonEntity, ViewHandle, WindowId};
 
 use crate::{
-    ai::agent::AIAgentActionId,
-    code_review::code_review_view::CodeReviewView,
     pane_group::{PaneGroup, PaneId},
     workspace::PaneViewLocator,
 };
@@ -80,25 +76,6 @@ impl CodeEditorStatus {
         })
     }
 
-    pub fn status_for_code_review(review: &ViewHandle<CodeReviewView>, app: &AppContext) -> Self {
-        review.read(app, |review_view, ctx| Self {
-            unsaved_changes: review_view.has_unsaved_changes(ctx),
-        })
-    }
-
-    /// Fetches all code review views in a given window (including panel views).
-    pub fn code_review_views_in_window(
-        window_id: WindowId,
-        app: &AppContext,
-    ) -> impl Iterator<Item = Self> + '_ {
-        app.views_of_type::<CodeReviewView>(window_id)
-            .into_iter()
-            .flat_map(move |editors| {
-                editors
-                    .into_iter()
-                    .map(move |editor| Self::status_for_code_review(&editor, app))
-            })
-    }
 }
 
 #[derive(Debug, Hash, Eq, PartialEq, Clone, Serialize, Deserialize)]
@@ -114,20 +91,12 @@ pub enum CodeSource {
         range_start: Option<LineAndColumnArg>,
         range_end: Option<LineAndColumnArg>,
     },
-    /// Opened from an active AI agent conversation.
-    AIAction { id: AIAgentActionId },
     /// Opened from project rules (WARP.md) file.
     ProjectRules { path: PathBuf },
     /// Opened from file tree.
     FileTree { path: PathBuf },
     /// Opened from macOS Finder via "Open With".
     Finder { path: PathBuf },
-    /// Opened from a skill.
-    Skill {
-        reference: SkillReference,
-        path: PathBuf,
-        origin: SkillOpenOrigin,
-    },
 }
 
 impl CodeSource {
@@ -137,34 +106,20 @@ impl CodeSource {
                 default_directory, ..
             } => default_directory.as_ref(),
             Self::Link { .. }
-            | Self::AIAction { .. }
             | Self::ProjectRules { .. }
             | Self::FileTree { .. }
-            | Self::Finder { .. }
-            | Self::Skill { .. } => None,
+            | Self::Finder { .. } => None,
         }
     }
 
     pub fn path(&self) -> Option<PathBuf> {
         match self {
-            Self::New { .. } | Self::AIAction { .. } => None,
+            Self::New { .. } => None,
             Self::Link { path, .. }
             | Self::ProjectRules { path }
             | Self::FileTree { path }
-            | Self::Finder { path }
-            | Self::Skill { path, .. } => Some(path.clone()),
+            | Self::Finder { path } => Some(path.clone()),
         }
-    }
-
-    /// Returns true if this is a bundled skill that should be read-only.
-    pub fn is_bundled_skill(&self) -> bool {
-        matches!(
-            self,
-            Self::Skill {
-                reference: SkillReference::BundledSkillId(_),
-                ..
-            }
-        )
     }
 
     pub fn omit_line_col(&self) -> CodeSource {

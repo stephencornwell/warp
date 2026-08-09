@@ -105,9 +105,6 @@ use crate::wasm_nux_dialog::WasmNUXDialog;
 
 
 use crate::appearance::{Appearance, AppearanceManager};
-use crate::autoupdate::{
-    is_incoming_version_past_current, AutoupdateState, AutoupdateStateEvent, RelaunchModel,
-};
 use crate::banner::BannerState;
 use crate::changelog_model::{ChangelogModel, ChangelogRequestType, Event as ChangelogEvent};
 use crate::channel::Channel;
@@ -247,7 +244,7 @@ use warpui::elements::{CacheOption, DispatchEventResult, DropTarget, EventHandle
 use warpui::ui_components::button::{Button, ButtonVariant};
 use warpui::{elements::MouseStateHandle, fonts::Properties};
 
-use crate::{autoupdate, channel::ChannelState};
+use crate::channel::ChannelState;
 
 use crate::editor::{
     EditorView, Event as EditorEvent, PropagateAndNoOpNavigationKeys, SingleLineEditorOptions,
@@ -296,7 +293,6 @@ use crate::tab::{
     TabTelemetryAction, TAB_BAR_BORDER_HEIGHT,
 };
 use crate::ui_components::icons;
-use autoupdate::AutoupdateStage;
 #[cfg(target_os = "macos")]
 use command::blocking::Command;
 use lazy_static::lazy_static;
@@ -2238,10 +2234,6 @@ impl Workspace {
             me.handle_window_state_change(event, ctx);
         });
 
-        ctx.observe(&RelaunchModel::handle(ctx), |_, _, ctx| {
-            ctx.notify();
-        });
-
         let changelog_model = ChangelogModel::handle(ctx);
         ctx.subscribe_to_model(&changelog_model, |me, _, event, ctx| {
             me.handle_changelog_event(event, ctx);
@@ -2398,13 +2390,6 @@ impl Workspace {
             Self::build_ai_assistant_panel_view(ctx, server_api.clone(), ai_client.clone());
 
         ctx.observe(&tips_completed, Workspace::on_tips_model_changed);
-
-        let autoupdate_handle = AutoupdateState::handle(ctx);
-        ctx.subscribe_to_model(&autoupdate_handle, |_view, _handle, evt, ctx| {
-            if let AutoupdateStateEvent::UpdateAvailable = evt {
-                ctx.notify();
-            }
-        });
 
         ctx.subscribe_to_model(
             &BlocklistAIHistoryModel::handle(ctx),

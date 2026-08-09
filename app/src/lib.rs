@@ -138,7 +138,6 @@ use warpui::modals::{AlertDialogWithCallbacks, AppModalCallback};
 use warpui::platform::app::ApproveTerminateResult;
 use window_settings::WindowSettings;
 
-use crate::code::global_buffer_model::GlobalBufferModel;
 use crate::context_chips::prompt::Prompt;
 use crate::default_terminal::DefaultTerminal;
 use crate::gpu_state::GPUState;
@@ -1183,7 +1182,6 @@ fn initialize_app(
     ctx.add_singleton_model(workspace::OneTimeModalModel::new);
     #[cfg(feature = "local_fs")]
     ctx.add_singleton_model(FileModel::new);
-    ctx.add_singleton_model(GlobalBufferModel::new);
     #[cfg(windows)]
     ctx.add_singleton_model(util::traffic_lights::windows::RendererState::new);
 

@@ -1,6 +1,4 @@
 pub mod editor_management;
-pub mod global_buffer_model;
-pub mod lsp_logs;
 
 mod icon;
 

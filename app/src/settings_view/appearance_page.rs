@@ -1338,10 +1338,6 @@ impl AppearanceSettingsPageView {
         }
         tab_settings_widgets.push(Box::new(PreserveActiveTabColorWidget::default()));
 
-        if FeatureFlag::ConfigurableToolbar.is_enabled() {
-            tab_settings_widgets.push(Box::new(EditToolbarWidget));
-        }
-
         if FeatureFlag::DirectoryTabColors.is_enabled() {
             let add_picker = ctx.add_typed_action_view(DirectoryColorAddPicker::new);
             ctx.subscribe_to_view(&add_picker, |me, _, event, ctx| {

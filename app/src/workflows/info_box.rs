@@ -603,7 +603,6 @@ impl WorkflowsMoreInfoView {
                             // Create envvars in personal drive for max extensibility (can be moved
                             // to any team/workspace)
                             ctx.dispatch_typed_action(
-                                WorkspaceAction::CreatePersonalEnvVarCollection,
                             )
                         })
                         .finish(),

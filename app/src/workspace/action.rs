@@ -209,8 +209,6 @@ pub enum WorkspaceAction {
     CreateTeamWorkflow,
     CreatePersonalFolder,
     CreateTeamFolder,
-    CreateTeamEnvVarCollection,
-    CreatePersonalEnvVarCollection,
     CreatePersonalAIPrompt,
     CreateTeamAIPrompt,
     ToggleMouseReporting,
@@ -275,7 +273,6 @@ pub enum WorkspaceAction {
     /// An action to force terminal input syncing off
     DisableTerminalInputSync,
     HandleConflictingWorkflow(SyncId),
-    HandleConflictingEnvVarCollection(SyncId),
     OpenPromptEditor {
         open_source: PromptEditorOpenSource,
     },
@@ -625,7 +622,6 @@ impl From<&WorkspaceAction> for LoginGatedFeature {
             CreateTeamNotebook => "Creating a team notebook",
             CreateTeamWorkflow => "Creating a team workflow",
             CreateTeamFolder => "Creating a team folder",
-            CreateTeamEnvVarCollection => "Creating a team environment variable collection",
             CreateTeamAIPrompt => "Creating a team prompt",
             OpenShareSessionModal(_) => "Sharing a session",
             _ => "Unknown reason",
@@ -642,7 +638,6 @@ impl WorkspaceAction {
                 | CreateTeamNotebook
                 | CreateTeamWorkflow
                 | CreateTeamFolder
-                | CreateTeamEnvVarCollection
                 | CreateTeamAIPrompt
                 | OpenShareSessionModal(_)
         )
@@ -766,8 +761,6 @@ impl WorkspaceAction {
             | CreateTeamWorkflow
             | CreatePersonalFolder
             | CreateTeamFolder
-            | CreateTeamEnvVarCollection
-            | CreatePersonalEnvVarCollection
             | CreatePersonalAIPrompt
             | CreateTeamAIPrompt
             | OpenInExplorer { .. }
@@ -802,7 +795,6 @@ impl WorkspaceAction {
             | ToggleSyncTerminalInputsInTab
             | DisableTerminalInputSync
             | HandleConflictingWorkflow(_)
-            | HandleConflictingEnvVarCollection(_)
             | OpenPromptEditor { .. }
             | OpenAgentToolbarEditor
             | OpenCLIAgentToolbarEditor

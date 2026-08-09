@@ -9,13 +9,8 @@ use std::rc::Rc;
 use std::sync::mpsc::{SendError, SyncSender};
 use std::{collections::HashMap, ffi::OsString, path::PathBuf, sync::Arc, thread::JoinHandle};
 
-use session_sharing_protocol::sharer::{
-    AddGuestsResponse, FailedToInitializeSessionReason, Lifetime, LinkAccessLevelUpdateResponse,
-    QuotaType, RemoveGuestResponse, SessionEndedReason, SessionSourceType,
-    TeamAccessLevelUpdateResponse, UpdatePendingUserRoleResponse,
-};
 
-use crate::network::{NetworkStatusEvent, NetworkStatusKind};
+use crate::network::{ NetworkStatusKind};
 use crate::terminal::available_shells::{AvailableShell, AvailableShells};
 use crate::terminal::ShellLaunchData;
 use crate::terminal::ShellLaunchState;
@@ -23,11 +18,6 @@ use crate::terminal::ShellLaunchState;
 use parking_lot::{FairMutex, Mutex};
 use pathfinder_geometry::vector::Vector2F;
 
-use session_sharing_protocol::common::{
-    ActivePrompt, AgentPromptFailureReason, CLIAgentSessionState, CommandExecutionFailureReason,
-    ControlAction, ControlActionFailureReason, SelectedAgentModel,
-    UniversalDeveloperInputContextUpdate, WriteToPtyFailureReason,
-};
 #[cfg(not(any(test, feature = "integration_tests")))]
 use session_sharing_protocol::common::{
     LongRunningCommandAgentInteractionState, SelectedConversation, UniversalDeveloperInputContext,
@@ -47,7 +37,7 @@ use crate::settings::{PrivacySettings, SshSettings};
 use crate::terminal::model::session::Sessions;
 
 use crate::terminal::model_events::ModelEventDispatcher;
-use crate::terminal::session_settings::{SessionSettings, SessionSettingsChangedEvent};
+use crate::terminal::session_settings::{SessionSettings};
 use crate::terminal::view::Event as TerminalViewEvent;
 use crate::terminal::writeable_pty::pty_controller::{EventLoopSendError, EventLoopSender};
 use crate::terminal::writeable_pty::terminal_manager_util::{

@@ -6,8 +6,7 @@ use sum_tree::{Cursor, SeekBias};
 use warpui::{
     elements::ClippedScrollStateHandle,
     units::{IntoLines, IntoPixels, Lines, Pixels},
-    AppContext, ModelHandle,
-};
+    AppContext };
 
 use crate::terminal::model::index::Point as IndexPoint;
 

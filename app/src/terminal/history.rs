@@ -7,25 +7,16 @@ use std::{
 };
 
 use warp_core::command::ExitCode;
-use warpui::{AppContext, Entity, ModelContext, SingletonEntity};
+use warpui::{ Entity, ModelContext, SingletonEntity};
 
 use super::{
     model::block::{Block, SerializedBlock},
     shell::ShellType,
 };
 use crate::{
-    sync_ids::{ClientId, HashableId as _, SyncId},
+    sync_ids::{  SyncId},
     terminal::model::session::{Session, SessionId},
-    util::dedupe_from_last,
-};
-
-mod up_arrow;
-pub(crate) use up_arrow::UpArrowHistoryConfig;
-
-/// Data model for a history command persisted to sqlite, used as an intermediate representation
-/// between the sqlite schema (sqlite::model::Command) and the [`History`] model.
-#[derive(Debug)]
-pub struct PersistedCommand {
+    util::dedupe_from_last };
     pub id: i32,
     pub command: String,
     pub exit_code: Option<ExitCode>,

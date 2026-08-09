@@ -165,7 +165,7 @@ use crate::workspace::{ActiveSession, OneTimeModalModel, ToastStack};
 #[cfg(feature = "local_tty")]
 use anyhow::Context;
 use anyhow::{anyhow, Result};
-use appearance::{Appearance, AppearanceManager};
+use appearance::{ AppearanceManager};
 use channel::ChannelState;
 use interval_timer::IntervalTimer;
 use itertools::Itertools;

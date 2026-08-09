@@ -7,8 +7,7 @@ use warp_terminal::model::grid::CellType;
 use warpui::{
     text::{IsRect, SelectionType},
     units::{IntoLines as _, Lines},
-    AppContext, EntityId, ViewAsRef as _,
-};
+    AppContext, EntityId };
 
 use crate::terminal::{
     event::Event as TerminalEvent,

@@ -6,7 +6,7 @@ use pathfinder_geometry::vector::Vector2F;
 
 use crate::search::mixer::AddAsyncSourceOptions;
 use lazy_static::lazy_static;
-use std::{collections::HashSet, ops::Range, sync::Arc, time::Duration};
+use std::{collections::HashSet, ops::Range, time::Duration};
 use warpui::{
     accessibility::{AccessibilityContent, WarpA11yRole},
     elements::{

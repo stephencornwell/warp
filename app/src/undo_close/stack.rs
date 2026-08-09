@@ -7,8 +7,7 @@ use crate::{
 use uuid::Uuid;
 use warpui::{
     r#async::SpawnedFutureHandle, AppContext, ClosedWindowData, Entity, EntityId, ModelContext,
-    ModelHandle, SingletonEntity, ViewHandle, WeakViewHandle, WindowId,
-};
+SingletonEntity, ViewHandle, WeakViewHandle, WindowId };
 
 /// A unique identifier for an item in the undo close stack.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]

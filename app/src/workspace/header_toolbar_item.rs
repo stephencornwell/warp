@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::ui_components::icons::Icon;
 
-use warpui::{AppContext, SingletonEntity};
+use warpui::{AppContext};
 
 /// A configurable item in the vertical tabs header toolbar.
 ///

@@ -1,10 +1,9 @@
 use crate::report_if_error;
 use crate::{
-    pane_group::{PaneGroup, PaneId, TerminalPane},
+    pane_group::{PaneGroup, PaneId},
     session_management::{RunningSessionSummary, SessionNavigationData},
     terminal::general_settings::GeneralSettings,
-    workspace::Workspace,
-};
+    workspace::Workspace };
 use itertools::Itertools;
 use settings::ToggleableSetting as _;
 use std::fmt::Write;

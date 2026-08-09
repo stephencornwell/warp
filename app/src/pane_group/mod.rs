@@ -18,7 +18,7 @@ use crate::view_components::ToastFlavor;
 use warp_terminal::shell::{ShellName, ShellType};
 
 use std::any::Any;
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap};
 use std::ffi::OsString;
 use std::path::PathBuf;
 use std::sync::{mpsc::SyncSender, Arc};
@@ -31,9 +31,6 @@ use parking_lot::FairMutex;
 use pathfinder_geometry::rect::RectF;
 use pathfinder_geometry::vector::{vec2f, Vector2F};
 use serde::{Deserialize, Serialize};
-use session_sharing_protocol::common::{
-    ParticipantId, Role, RoleRequestId, RoleRequestRejectedReason, RoleRequestResponse, SessionId,
-};
 use typed_path::TypedPath;
 use url::Url;
 use uuid::Uuid;
@@ -43,9 +40,8 @@ use warp_util::path::convert_wsl_to_windows_host_path;
 #[cfg(feature = "local_fs")]
 use warp_util::path::LineAndColumnArg;
 use warpui::elements::{
-    Clipped, CrossAxisAlignment, DispatchEventResult, EventHandler, Flex, MainAxisSize, Shrinkable,
-    Stack,
-};
+CrossAxisAlignment, DispatchEventResult, EventHandler, Flex, MainAxisSize, Shrinkable,
+    Stack };
 use warpui::keymap::{Context, EditableBinding, FixedBinding};
 use warpui::notification::NotificationSendError;
 
@@ -57,9 +53,8 @@ use warpui::{
 use warpui::{SingletonEntity, ViewContext};
 
 use crate::app_state::{
-    self, BranchSnapshot, LeafContents, LeafSnapshot, NotebookPaneSnapshot, PaneNodeSnapshot,
-    PaneUuid, SettingsPaneSnapshot, TerminalPaneSnapshot,
-};
+    self, BranchSnapshot, LeafContents, LeafSnapshot, PaneNodeSnapshot,
+    PaneUuid, SettingsPaneSnapshot, TerminalPaneSnapshot };
 use crate::appearance::Appearance;
 
 // Local terminal block snapshots remain persisted across workspace versions.
@@ -93,8 +88,7 @@ use crate::palette::PaletteMode;
 use crate::terminal::model::terminal_model::ConversationTranscriptViewerStatus;
 use crate::terminal::{TerminalManager, TerminalModel, TerminalView};
 use crate::workspace::{
-    self, CommandSearchOptions, PaletteSource, PaneViewLocator, TabBarLocation, WorkspaceAction,
-};
+    self, CommandSearchOptions, PaletteSource, PaneViewLocator, TabBarLocation };
 
 pub mod focus_state;
 pub mod pane;

@@ -22,7 +22,7 @@ use std::ops::Deref as _;
 pub use crate::terminal::view::rich_content::{
     RichContent, RichContentInsertionPosition, RichContentMetadata,
 };
-use crate::view_components::action_button::{ActionButton, ButtonSize, KeystrokeSource};
+use crate::view_components::action_button::{  KeystrokeSource};
 
 #[cfg(feature = "local_fs")]
 use crate::util::file::external_editor::{settings::EditorLayout, EditorSettings};
@@ -41,9 +41,9 @@ pub use init::{
 pub use inline_banner::{NotificationsDiscoveryBannerAction, NotificationsErrorBannerAction};
 #[cfg(feature = "local_fs")]
 use repo_metadata::repositories::{DetectedRepositories, RepoDetectionSource};
-use session_sharing_protocol::sharer::{RoleUpdateReason, SessionEndedReason, SessionSourceType};
+use session_sharing_protocol::sharer::{  SessionSourceType};
 use warp_core::channel::ChannelState;
-use warpui::elements::{shimmering_text::ShimmeringTextStateHandle, Border, ChildView};
+use warpui::elements::{shimmering_text::ShimmeringTextStateHandle, ChildView};
 use warpui::fonts::Properties;
 use warpui::{ViewHandle, WeakModelHandle};
 
@@ -53,10 +53,10 @@ use crate::context_chips::prompt::Prompt;
 use crate::context_chips::prompt_type::PromptType;
 use crate::context_chips::ContextChipKind;
 use crate::pane_group::focus_state::PaneFocusHandle;
-use crate::persistence::{self, FinishedCommandMetadata};
+use crate::persistence::{self};
 use crate::safe_warn;
 #[cfg(feature = "local_fs")]
-use crate::settings::import::view::{SettingsImportEvent, SettingsImportView};
+use crate::settings::import::view::{ SettingsImportView};
 use crate::settings::{
     AliasExpansionSettings, AppEditorSettings, BlockVisibilitySettings,
     BlockVisibilitySettingsChangedEvent, DebugSettings, DebugSettingsChangedEvent,
@@ -67,8 +67,8 @@ use crate::settings::{
 use crate::settings_view::keybindings::KeybindingChangedNotifier;
 use crate::settings_view::SettingsSection;
 use crate::shell_indicator::ShellIndicatorType;
-use crate::sync_ids::{ObjectUid, SyncId};
-use crate::terminal::alias::{check_for_alias_async, AliasedCommand};
+use crate::sync_ids::{ SyncId};
+use crate::terminal::alias::{ AliasedCommand};
 use crate::terminal::alt_screen_reporting::{AltScreenReporting, AltScreenReportingChangedEvent};
 use crate::terminal::block_filter::{
     filter_button_position_id, BlockFilterEditor, BlockFilterEditorEvent, BlockFilterQuery,
@@ -80,7 +80,7 @@ use crate::terminal::block_list_viewport::ScrollState;
 use crate::terminal::general_settings::GeneralSettings;
 use crate::terminal::grid_size_util::grid_cell_dimensions;
 use crate::terminal::input::decorations::InputBackgroundJobOptions;
-use crate::terminal::input::{CommandExecutionSource, InputAction, InputEmptyStateChangeReason};
+use crate::terminal::input::{CommandExecutionSource, InputAction};
 use crate::terminal::ligature_settings::{should_use_ligature_rendering, LigatureSettings};
 #[cfg(feature = "local_tty")]
 #[cfg(feature = "local_tty")]
@@ -96,8 +96,7 @@ use crate::terminal::session_settings::{
     NotificationsMode, NotificationsSettings, SessionSettings,
 };
 use crate::terminal::session_settings::{
-    SessionSettingsChangedEvent, DEFAULT_THRESHOLD_FOR_LONG_RUNNING_NOTIFICATION,
-};
+    SessionSettingsChangedEvent };
 use crate::terminal::settings::{TerminalSettings, TerminalSettingsChangedEvent};
 use crate::terminal::ShellLaunchData;
 use crate::terminal::{element_size_at_last_frame, HistoryEntry};
@@ -132,11 +131,6 @@ use parking_lot::FairMutex;
 use pathfinder_color::ColorU;
 use regex::Regex;
 use serde::Serialize;
-use session_sharing_protocol::common::{
-    AgentAttachment, ParticipantId, Role, RoleRequestId, RoleRequestResponse,
-    ServerConversationToken as SessionSharingServerConversationToken,
-    WindowSize as SessionSharingWindowSize,
-};
 use std::any::Any;
 use std::borrow::Cow;
 use std::collections::hash_map::Entry;
@@ -144,7 +138,7 @@ use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::hash::Hash;
 use std::ops::Range;
-use std::path::{Path, PathBuf};
+use std::path::{ PathBuf};
 use std::rc::Rc;
 use std::sync::mpsc::SyncSender;
 use std::sync::Arc;
@@ -161,12 +155,11 @@ use warpui::elements::new_scrollable::{
     ScrollableAppearance, SingleAxisConfig,
 };
 use warpui::elements::{
-    get_rich_content_position_id, ChildAnchor, ClippedScrollStateHandle, Container,
-    CrossAxisAlignment, DispatchEventResult, DropTarget, DropTargetData, Empty, EventHandler,
-    Expanded, Flex, NewScrollable, OffsetPositioning, ParentAnchor, ParentElement,
-    ParentOffsetBounds, PositionedElementAnchor, PositionedElementOffsetBounds, Radius,
-    ScrollableElement, ScrollbarWidth, Shrinkable, Text,
-};
+ChildAnchor, ClippedScrollStateHandle, Container,
+DispatchEventResult, DropTarget, DropTargetData, Empty, EventHandler,
+Flex, NewScrollable, OffsetPositioning, ParentAnchor, ParentElement,
+    ParentOffsetBounds, Radius,
+    ScrollableElement, ScrollbarWidth, Shrinkable, Text };
 use warpui::event::ModifiersState;
 use warpui::keymap::Keystroke;
 use warpui::notification::{NotificationSendError, RequestPermissionsOutcome, UserNotification};
@@ -183,34 +176,20 @@ use warpui::{
     elements::SavePosition,
     elements::{
         Align, Clipped, ConstrainedBox, CornerRadius, Fill, Hoverable, Icon, MouseStateHandle,
-        Rect, ScrollStateHandle, Scrollable,
-    },
+        Rect, ScrollStateHandle, Scrollable },
     fonts::{Cache as FontCache, FamilyId},
     ui_components::components::UiComponent,
     AccessibilityData, AppContext, BlurContext, Element, Entity, FocusContext, ModelHandle,
-    TypedActionView, UpdateView, View, ViewAsRef, ViewContext, WeakViewHandle,
-};
-use warpui::{
-    elements::Stack,
-    end_trace_after_next,
-    geometry::vector::{vec2f, Vector2F},
-    record_trace_event, WindowId,
-};
-
-use warpui::{windowing, CursorInfo, EntityId, EventContext, ModelAsRef, SingletonEntity, Tracked};
-
-use crate::appearance::{Appearance, AppearanceEvent};
-use crate::banner::{
+    TypedActionView, UpdateView, View, ViewContext, WeakViewHandle };
     Banner, BannerAction, BannerEvent, BannerState, BannerTextButton, BannerTextContent,
     DismissalType,
 };
 use crate::debounce::debounce;
-use crate::editor::{AutosuggestionType, CrdtOperation, EditorAction};
+use crate::editor::{  EditorAction};
 use crate::features::FeatureFlag;
 use crate::pane_group::SplitPaneState;
 use crate::pane_group::{
-    PaneConfiguration, PaneEvent, PaneGroupAction, PaneHeaderAction, TerminalViewResources,
-};
+    PaneConfiguration, PaneEvent, PaneGroupAction, TerminalViewResources };
 use crate::resource_center::{
     mark_feature_used_and_write_to_user_defaults, Tip, TipHint, TipsCompleted,
 };
@@ -226,17 +205,17 @@ use crate::terminal::block_list_viewport::{InputMode, ScrollPosition, ViewportSt
 use crate::terminal::event::TerminalMode;
 use crate::terminal::event::UserBlockCompleted;
 use crate::terminal::find::{BlockGridMatch, BlockListMatch, TerminalFindModel};
-use crate::terminal::input::{InputState, MenuPositioning, MenuPositioningProvider};
+use crate::terminal::input::{InputState, MenuPositioning};
 use crate::terminal::model::block::BlockMetadata;
 use crate::terminal::model::block::{Block, BlockId};
 use crate::terminal::model::blocks::{BlockFilter, BlockList};
-use crate::terminal::model::blocks::{BlockHeight, BlockHeightItem, BlockHeightSummary, Gap};
+use crate::terminal::model::blocks::{ Gap};
 use crate::terminal::model::escape_sequences::{self, EscCodes, ToEscapeSequence, C1};
 use crate::terminal::model::grid::grid_handler::{FragmentBoundary, TermMode};
 use crate::terminal::model::index::{Point, Side};
 use crate::terminal::model::mouse::MouseState;
 use crate::terminal::model::selection::{SelectAction, SelectionDirection};
-use crate::terminal::model::session::{BootstrapSessionType, SessionType, Sessions, SessionsEvent};
+use crate::terminal::model::session::{ SessionType, Sessions, SessionsEvent};
 use crate::terminal::model::terminal_model::{BlockIndex, TerminalInputState};
 use crate::terminal::model::terminal_model::{
     BlockSelectionCardinality, SelectedBlocks, WithinModel,
@@ -269,28 +248,27 @@ use self::link_detection::HighlightedLinkOption;
 use super::available_shells::AvailableShell;
 use super::block_list_viewport::FindMatchScrollLocation;
 use super::find::FindOptions;
-use super::model::ansi::{SystemDetails, WarpificationUnavailableReason};
+use super::model::ansi::{ WarpificationUnavailableReason};
 use super::model::block::{
-    BlockSection, BlocklistEnvVarMetadata, LONG_RUNNING_COMMAND_DURATION_MS,
-};
+    BlockSection };
 use super::model::completions::ShellCompletion;
 use super::model::secrets::RichContentSecretTooltipInfo;
 use super::model::selection::ExpandedSelectionRange;
 use super::model::session::SessionBootstrappedEvent;
 use super::settings::AltScreenPaddingMode;
-use super::{GridType, HistoryEvent};
+use super::{GridType};
 use crate::menu::{Event as MenuEvent, Menu, MenuItem, MenuItemFields};
 use crate::terminal::links::should_directly_open_link;
 use crate::terminal::model_events::{AnsiHandlerEvent, ModelEvent, ModelEventDispatcher};
 use crate::terminal::{block_list_element::BlockListMenuSource, prompt};
-use crate::terminal::{color, History, SizeInfo};
+use crate::terminal::{color, SizeInfo};
 use crate::terminal::{color::List, model::block::LONG_RUNNING_BOTTOM_PADDING_LINES};
-use crate::terminal::{event::AfterBlockCompletedEvent, event::BlockLatencyData, event::BlockType};
+use crate::terminal::{  event::BlockType};
 use crate::throttle::throttle;
 use crate::util::color::darken;
 use bookmarks::render_floating_block_snapshot;
 use command_corrections::rules::generic::history::History as CommandCorrectionsHistoryRule;
-use init::{INPUT_BOX_VISIBLE_KEY, TOGGLE_BLOCK_FILTER_KEYBINDING};
+use init::{ TOGGLE_BLOCK_FILTER_KEYBINDING};
 use inline_banner::{
     render_alias_expansion_banner, render_inline_notifications_discovery_banner,
     render_inline_notifications_error_banner, render_open_in_warp_banner,

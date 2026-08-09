@@ -23,18 +23,16 @@ use settings::Setting as _;
 use warp_core::context_flag::ContextFlag;
 use warp_core::ui::theme::WarpTheme;
 use warpui::elements::{
-    Align, ChildAnchor, ChildView, ConstrainedBox, Container, CornerRadius, CrossAxisAlignment,
+    Align, ChildView, ConstrainedBox, Container, CornerRadius, CrossAxisAlignment,
     Empty, Expanded, Flex, Hoverable, MainAxisAlignment, MainAxisSize, MouseStateHandle,
-    OffsetPositioning, ParentAnchor, ParentElement, ParentOffsetBounds, Radius, Rect, Shrinkable,
-    Stack, Text,
-};
+ParentElement, Radius, Rect, Shrinkable,
+Text };
 use warpui::keymap::ContextPredicate;
 use warpui::platform::Cursor;
 use warpui::ui_components::button::{ButtonVariant, TextAndIcon, TextAndIconAlignment};
 use warpui::ui_components::{
     components::{Coords, UiComponent, UiComponentStyles},
-    switch::{SwitchStateHandle, TooltipConfig},
-};
+    switch::{SwitchStateHandle} };
 use warpui::{
     Action, AppContext, Element, Entity, ModelHandle, SingletonEntity, TypedActionView,
     UpdateModel, View, ViewContext, ViewHandle,

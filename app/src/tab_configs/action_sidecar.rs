@@ -2,15 +2,12 @@ use warp_util::path::user_friendly_path;
 use warpui::{
     elements::{
         Border, ConstrainedBox, Container, CornerRadius, CrossAxisAlignment, Flex, MainAxisSize,
-        MouseStateHandle, ParentElement, Radius, Text,
-    },
+        MouseStateHandle, ParentElement, Radius, Text },
     platform::Cursor,
     ui_components::{
-        button::{ButtonTooltipPosition, ButtonVariant},
-        components::{UiComponent, UiComponentStyles},
-    },
-    AppContext, Element, SingletonEntity,
-};
+        button::{ ButtonVariant},
+        components::{UiComponent, UiComponentStyles} },
+    AppContext, Element, SingletonEntity };
 
 use crate::{
     appearance::Appearance, tab_configs::TabConfig, terminal::available_shells::AvailableShell,

@@ -2,11 +2,9 @@ use std::collections::HashMap;
 
 use super::{
     settings_page::{
-        render_sub_header, LocalOnlyIconState, MatchData, PageType, SettingsPageMeta,
-        SettingsPageViewHandle, SettingsWidget,
-    },
-    SettingsSection,
-};
+        render_sub_header, MatchData, PageType, SettingsPageMeta,
+        SettingsPageViewHandle, SettingsWidget },
+    SettingsSection };
 use crate::search_bar::SearchBar;
 use crate::util::bindings::{
     filter_bindings_including_keystroke, reset_keybinding_to_default, set_custom_keybinding,

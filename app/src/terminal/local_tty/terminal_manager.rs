@@ -476,17 +476,6 @@ impl TerminalManager {
             }
         });
 
-        let agent_view_controller = view.as_ref(ctx).agent_view_controller().clone();
-        let active_session = view.as_ref(ctx).active_session().clone();
-        ActiveAgentViewsModel::handle(ctx).update(ctx, |model, ctx| {
-            model.register_agent_view_controller(
-                &agent_view_controller,
-                &active_session,
-                terminal_view_id,
-                ctx,
-            );
-        });
-
         let ai_context_model = view.as_ref(ctx).ai_context_model().clone();
 
         // Send selected conversation updates during session sharing.

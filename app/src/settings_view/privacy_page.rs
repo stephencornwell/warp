@@ -3,7 +3,8 @@ use crate::{
     appearance::Appearance,
     channel::ChannelState,
     settings::PrivacySettings,
-    terminal::safe_mode_settings::SafeModeSettings,
+    terminal::safe_mode_settings::{SafeModeEnabled, SafeModeSettings},
+    util::links::PRIVACY_POLICY_URL,
     ui_components::icons::Icon,
 };
 use std::borrow::Cow;

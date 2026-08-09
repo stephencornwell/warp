@@ -6303,7 +6303,6 @@ impl Workspace {
                             ctx.notify();
                         });
                     }
-                    _ => {}
                 }
             }
             Resize => {
@@ -6781,7 +6780,6 @@ impl Workspace {
                 {
                     ToolPanelView::ProjectExplorer => "Project explorer",
                     ToolPanelView::GlobalSearch { .. } => "Global search",
-                    ToolPanelView::ProjectExplorer => "Warp Drive",
                 }
             } else {
                 "Tools panel"
@@ -8824,22 +8822,6 @@ impl TypedActionView for Workspace {
             OpenRepository { path } => {
                 self.open_repository(path.as_deref(), ctx);
             }
-            #[cfg(not(target_family = "wasm"))]
-            _InsertForkSlashCommand => {
-                self.active_tab_pane_group().update(ctx, |pane_group, ctx| {
-                    if let Some(terminal_view) = pane_group.active_session_view(ctx) {
-                        terminal_view.update(ctx, |terminal, ctx| {
-                            terminal.input().update(ctx, |input, ctx| {
-                                input.replace_buffer_content(
-                                    &format!("{} ", commands::FORK.name),
-                                    ctx,
-                                );
-                                ctx.focus_self();
-                            });
-                        });
-                    }
-                });
-            }
             #[cfg(feature = "local_fs")]
             #[cfg(debug_assertions)]
             OpenBuildPlanMigrationModal => {
@@ -8864,15 +8846,6 @@ impl TypedActionView for Workspace {
                     }
                 });
                 log::info!("Build plan migration modal dismissed state has been reset");
-            }
-            #[cfg(debug_assertions)]
-            #[cfg(debug_assertions)]
-            _OpenOzLaunchModal => {
-                // Force open the Oz launch modal for debugging
-                OneTimeModalModel::handle(ctx).update(ctx, |model, ctx| {
-                    model.force_open_oz_launch_modal(ctx);
-                });
-                ctx.notify();
             }
             #[cfg(debug_assertions)]
             OpenOpenWarpLaunchModal => {

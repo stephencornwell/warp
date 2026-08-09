@@ -1202,50 +1202,7 @@ fn read_node(conn: &mut SqliteConnection, node: model::PaneNode) -> Result<Optio
                         active_conversation_id: None,
                     })
                 }
-                NOTEBOOK_PANE_KIND => {
-                    let notebook_pane = schema::notebook_panes::dsl::notebook_panes
-                        .find(node.id)
-                        .select(model::NotebookPane::as_select())
-                        .first(conn)?;
-
-                    let notebook_id = notebook_pane.notebook_id.and_then(|id| {
-                        ClientId::from_hash(&id).map(SyncId::ClientId).or_else(|| {
-                            NotebookId::from_hash(&id).map(|id| SyncId::ServerId(id.into()))
-                        })
-                    });
-
-                    let local_path = notebook_pane.local_path.map(decode_path);
-
-                    // In the database schema, both the `notebook_id` and `local_path` are
-                    // nullable. It's possible for either a file pane or a notebook pane to be open
-                    // to an uneditable notebook. In that case, bias towards cloud notebooks. If
-                    // both are null, it's more likely that the pane was a new, empty cloud
-                    // notebook than an unreadable local file.
-                    LeafContents::Notebook(match local_path {
-                        Some(path) => NotebookPaneSnapshot::LocalFileNotebook { path: Some(path) },
-                        None => NotebookPaneSnapshot::CloudNotebook {
-                            notebook_id,
-                            settings: OpenWarpDriveObjectSettings::default(),
-                        },
-                    })
-                }
-                WORKFLOW_PANE_KIND => {
-                    let workflow_pane = schema::workflow_panes::dsl::workflow_panes
-                        .find(node.id)
-                        .select(model::WorkflowPane::as_select())
-                        .first(conn)?;
-
-                    let workflow_id = workflow_pane.workflow_id.and_then(|id| {
-                        ClientId::from_hash(&id).map(SyncId::ClientId).or_else(|| {
-                            WorkflowId::from_hash(&id).map(|id| SyncId::ServerId(id.into()))
-                        })
-                    });
-
-                    LeafContents::Workflow(WorkflowPaneSnapshot::CloudWorkflow {
-                        workflow_id,
-                        settings: OpenWarpDriveObjectSettings::default(),
-                    })
-                }
+                NOTEBOOK_PANE_KIND | WORKFLOW_PANE_KIND => return Ok(None),
                 CODE_PANE_KIND => return Ok(None),
                 SETTINGS_PANE_KIND => {
                     let settings_pane = schema::settings_panes::dsl::settings_panes

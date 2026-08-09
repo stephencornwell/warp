@@ -470,95 +470,6 @@ impl CommandSearchView {
             .finish()
     }
 
-    fn render_error_header_with_upgrade_link(
-        &self,
-        app: &AppContext,
-        appearance: &Appearance,
-        team_uid: Option<ServerId>,
-        user_id: UserUid,
-    ) -> Box<dyn Element> {
-        let mut row = Flex::row()
-            .with_main_axis_size(warpui::elements::MainAxisSize::Max)
-            .with_cross_axis_alignment(CrossAxisAlignment::Center);
-
-        let upgrade_link = team_uid
-            .map(UserWorkspaces::upgrade_link_for_team)
-            .unwrap_or_else(|| UserWorkspaces::upgrade_link(user_id));
-
-        let link = if AuthStateProvider::as_ref(app)
-            .get()
-            .is_anonymous_or_logged_out()
-        {
-            appearance
-                .ui_builder()
-                .link(
-                    "Upgrade".into(),
-                    None,
-                    Some(Box::new(move |ctx| {
-                        ctx.dispatch_typed_action(CommandSearchAction::AttemptLoginGatedUpgrade);
-                    })),
-                    self.upgrade_link.clone(),
-                )
-                .soft_wrap(false)
-        } else {
-            appearance
-                .ui_builder()
-                .link(
-                    "Upgrade".into(),
-                    None,
-                    Some(Box::new(move |ctx| {
-                        ctx.dispatch_typed_action(CommandSearchAction::OpenUpgradeLink(
-                            upgrade_link.clone(),
-                        ));
-                    })),
-                    self.upgrade_link.clone(),
-                )
-                .soft_wrap(false)
-        };
-
-        row.add_child(
-            appearance
-                .ui_builder()
-                .span("Looks like you're out of credits. ")
-                .with_style(UiComponentStyles {
-                    font_size: Some(appearance.monospace_font_size()),
-                    font_family_id: Some(appearance.ui_font_family()),
-                    font_color: Some(appearance.theme().nonactive_ui_text_color().into()),
-                    ..Default::default()
-                })
-                .build()
-                .finish(),
-        );
-        row.add_child(
-            link.with_style(UiComponentStyles {
-                font_size: Some(appearance.monospace_font_size()),
-                font_family_id: Some(appearance.ui_font_family()),
-                ..Default::default()
-            })
-            .build()
-            .finish(),
-        );
-        row.add_child(
-            appearance
-                .ui_builder()
-                .span(" for more credits.")
-                .with_style(UiComponentStyles {
-                    font_size: Some(appearance.monospace_font_size()),
-                    font_family_id: Some(appearance.ui_font_family()),
-                    font_color: Some(appearance.theme().nonactive_ui_text_color().into()),
-                    ..Default::default()
-                })
-                .build()
-                .finish(),
-        );
-
-        Container::new(row.finish())
-            .with_horizontal_padding(16.)
-            .with_padding_bottom(10.)
-            .with_padding_top(4.)
-            .finish()
-    }
-
     /// Renders the results pane.
     fn render_results(&self, appearance: &Appearance, app: &AppContext) -> Box<dyn Element> {
         let query_result_renderers = self.search_bar_state.as_ref(app).query_result_renderers();
@@ -636,30 +547,6 @@ impl CommandSearchView {
                 };
 
                 let mut column = Flex::column();
-                if let Some(error) = self
-                    .mixer
-                    .as_ref(app)
-                    .first_data_source_error()
-                    .map(|(.., e)| e)
-                {
-                    let is_ratelimit_error = error
-                        .as_any()
-                        .downcast_ref::<GenerateCommandsFromNaturalLanguageError>()
-                        .map(|generate_commands_error| {
-                            matches!(
-                                generate_commands_error,
-                                GenerateCommandsFromNaturalLanguageError::RateLimited
-                            )
-                        })
-                        .unwrap_or(false);
-                    column.add_child(self.render_error_header(
-                        app,
-                        error.user_facing_error(),
-                        is_ratelimit_error,
-                        appearance,
-                    ));
-                }
-
                 let scrollable_results = Scrollable::vertical(
                     self.state.scroll_state.clone(),
                     UniformList::new(
@@ -782,18 +669,6 @@ impl TypedActionView for CommandSearchView {
                 result_action,
             } => self.handle_result_selected(*result_index, *result_action.clone(), ctx),
             Resize => ctx.emit(CommandSearchEvent::Resize),
-            OpenUpgradeLink(upgrade_link) => {
-                ctx.open_url(upgrade_link);
-            }
-            AttemptLoginGatedUpgrade => {
-                AuthManager::handle(ctx).update(ctx, |auth_manager, ctx| {
-                    auth_manager.attempt_login_gated_feature(
-                        "Upgrade AI Usage",
-                        AuthViewVariant::RequireLoginCloseable,
-                        ctx,
-                    )
-                });
-            }
         }
     }
 }

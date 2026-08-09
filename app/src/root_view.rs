@@ -327,19 +327,6 @@ pub fn init(app: &mut AppContext) {
         );
     }
 
-    app.add_global_action("root_view:create_environment", create_environment);
-    app.add_global_action(
-        "root_view:create_environment_and_run",
-        create_environment_and_run,
-    );
-    app.add_action(
-        "root_view:create_environment_in_existing_window",
-        RootView::create_environment_in_existing_window,
-    );
-    app.add_action(
-        "root_view:create_environment_in_existing_window_and_run",
-        RootView::create_environment_in_existing_window_and_run,
-    );
     app.add_global_action(
         "root_view:open_drive_object_new_window",
         open_warp_drive_object,
@@ -894,6 +881,7 @@ fn open_conversation_viewer(conversation_id: &ServerConversationToken, ctx: &mut
 }
 
 /// Opens a new window and starts the guided `/create-environment` setup flow.
+#[cfg(any())]
 fn create_environment(arg: &CreateEnvironmentArg, ctx: &mut AppContext) {
     let repos = arg.repos.clone();
     let (window_id, root_handle) = open_new_with_workspace_source(
@@ -927,6 +915,7 @@ fn create_environment(arg: &CreateEnvironmentArg, ctx: &mut AppContext) {
 }
 
 /// Opens a new window and starts the guided `/create-environment` setup flow immediately.
+#[cfg(any())]
 fn create_environment_and_run(arg: &CreateEnvironmentArg, ctx: &mut AppContext) {
     let repos = arg.repos.clone();
     let (window_id, root_handle) = open_new_with_workspace_source(
@@ -2394,6 +2383,7 @@ impl RootView {
     }
 
     /// Adds a tab and starts the guided `/create-environment` setup flow.
+    #[cfg(any())]
     fn create_environment_in_existing_window(
         &mut self,
         arg: &CreateEnvironmentArg,
@@ -2435,6 +2425,7 @@ impl RootView {
     }
 
     /// Adds a tab and starts the guided `/create-environment` setup flow immediately.
+    #[cfg(any())]
     fn create_environment_in_existing_window_and_run(
         &mut self,
         arg: &CreateEnvironmentArg,

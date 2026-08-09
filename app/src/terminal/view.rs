@@ -5,7 +5,6 @@ mod bookmarks;
 pub mod init;
 pub mod inline_banner;
 // TODO(advait): if we align on prompt suggestions banner in Input, move code out of inline_banner mod.
-pub(crate) mod init_environment;
 use crate::global_resource_handles::GlobalResourceHandlesProvider;
 mod link_detection;
 mod open_in_warp;
@@ -60,12 +59,6 @@ use crate::code::editor_management::CodeSource;
 use crate::context_chips::prompt::Prompt;
 use crate::context_chips::prompt_type::PromptType;
 use crate::context_chips::ContextChipKind;
-use crate::terminal::view::init_environment::{
-    mode_selector::{
-        EnvironmentSetupMode, EnvironmentSetupModeSelector, EnvironmentSetupModeSelectorEvent,
-    },
-    InitEnvironmentBlock, InitEnvironmentBlockEvent,
-};
 use crate::env_vars::{
     env_var_collection_block::{EnvVarCollectionBlock, EnvVarCollectionBlockEvent},
     CloudEnvVarCollection, EnvVar,
@@ -1303,9 +1296,6 @@ pub enum Event {
     TerminalViewStateChanged,
     ShowCommandSearch(CommandSearchOptions),
     OpenPromptEditor,
-    EnvironmentSetupModeSelectorToggled {
-        is_open: bool,
-    },
     CtrlD,
     ShutdownPty,
     // TODO: break this event down into higer-level events that hide the
@@ -2104,11 +2094,6 @@ pub struct TerminalView {
     ignore_next_set_title_event: bool,
 
 
-    /// Environment setup mode selector modal for /create-environment command.
-    environment_setup_mode_selector: ViewHandle<EnvironmentSetupModeSelector>,
-
-    /// Whether the environment setup mode selector is currently visible.
-    is_environment_setup_mode_selector_open: bool,
 
     /// Weak handle to the [`PaneStack`] this view is part of, allowing push/pop operations.
     pane_stack: Option<WeakModelHandle<crate::pane_group::pane::PaneStack<Self>>>,
@@ -2512,11 +2497,6 @@ impl TerminalView {
                         }
 
                         match rich_content.metadata() {
-                            Some(RichContentMetadata::InitEnvironment { block_handle })
-                                if !block_handle.as_ref(ctx).completed() =>
-                            {
-                                block_handle.update(ctx, |block, ctx| block.handle_ctrl_c(ctx));
-                            }
                             Some(RichContentMetadata::EnvVarCollectionBlock {
                                 env_var_collection_block_handle,
                             }) if !env_var_collection_block_handle
@@ -3274,13 +3254,6 @@ impl TerminalView {
             }
         });
 
-        let environment_setup_mode_selector =
-            ctx.add_typed_action_view(EnvironmentSetupModeSelector::new);
-
-        ctx.subscribe_to_view(&environment_setup_mode_selector, |me, _, event, ctx| {
-            me.handle_environment_setup_mode_selector_event(event, ctx);
-        });
-
         if FeatureFlag::CodebaseIndexSpeedbump.is_enabled() {
             // Check whether or not to show the codebase index speedbump when the codebase indexing settings change.
             ctx.subscribe_to_model(&CodeSettings::handle(ctx), |me, _, _, ctx| {
@@ -3422,8 +3395,6 @@ impl TerminalView {
             active_init_project_model: None,
             is_pending_aws_login: false,
             manual_pty_shutdown_requested: false,
-            environment_setup_mode_selector,
-            is_environment_setup_mode_selector_open: false,
             pane_stack: None,
             pending_cloud_mode_start_callback: None,
             pending_cloud_mode_start_abort_handle: None,
@@ -5879,12 +5850,6 @@ impl TerminalView {
             return false;
         }
 
-        if FeatureFlag::CreateEnvironmentSlashCommand.is_enabled()
-            && self.active_init_environment_block(app).is_some()
-        {
-            return false;
-        }
-
         if self.active_env_var_collection_block(app).is_some() {
             return false;
         }
@@ -6334,10 +6299,6 @@ impl TerminalView {
             if let Some(model) = &self.active_init_project_model {
                 model.update(ctx, |m, ctx| m.cancel(ctx));
             }
-        } else if let Some(active_init_env_block) = self.active_init_environment_block(ctx) {
-            active_init_env_block.update(ctx, |init_env_block, ctx| {
-                init_env_block.handle_ctrl_c(ctx);
-            });
         } else if self
             .passive_suggestions_models
             .legacy
@@ -11496,6 +11457,7 @@ impl TerminalView {
         }
     }
 
+    #[cfg(any())]
     fn enter_environment_setup_selector(&mut self, args: Vec<String>, ctx: &mut ViewContext<Self>) {
         // If arguments are provided (repo paths/URLs), skip the mode selector and go directly
         // to the local agent flow
@@ -11526,6 +11488,7 @@ impl TerminalView {
         ctx.focus(&self.environment_setup_mode_selector);
     }
 
+    #[cfg(any())]
     fn setup_cloud_environment(&mut self, args: Vec<String>, ctx: &mut ViewContext<Self>) {
         if FeatureFlag::AgentView.is_enabled()
             && !self.agent_view_controller.as_ref(ctx).is_active()
@@ -11574,35 +11537,10 @@ impl TerminalView {
             }
         };
 
-        let init_env_block = ctx.add_typed_action_view(move |ctx| {
-            InitEnvironmentBlock::new(button_label, repos, use_current_dir, ctx)
-        });
-        ctx.subscribe_to_view(&init_env_block, move |me, block, event, ctx| match event {
-            InitEnvironmentBlockEvent::StartSetup(repos, use_current_dir) => {
-                log::info!("TerminalView: received StartSetup event from InitEnvironmentBlock");
-                me.model
-                    .lock()
-                    .block_list_mut()
-                    .remove_rich_content(block.id());
-                me.start_cloud_environment_setup(repos.to_vec(), *use_current_dir, ctx);
-            }
-        });
-
-        self.insert_rich_content(
-            None,
-            init_env_block.clone(),
-            Some(RichContentMetadata::InitEnvironment {
-                block_handle: init_env_block,
-            }),
-            RichContentInsertionPosition::Append {
-                insert_below_long_running_block: true,
-            },
-            ctx,
-        );
-
         self.redetermine_global_focus(ctx);
     }
 
+    #[cfg(any())]
     fn handle_environment_setup_mode_selector_event(
         &mut self,
         event: &EnvironmentSetupModeSelectorEvent,
@@ -11636,6 +11574,7 @@ impl TerminalView {
         }
     }
 
+    #[cfg(any())]
     fn setup_cloud_environment_and_start(
         &mut self,
         args: Vec<String>,
@@ -11670,6 +11609,7 @@ impl TerminalView {
         self.start_cloud_environment_setup(repos, use_current_dir, ctx);
     }
 
+    #[cfg(any())]
     fn start_cloud_environment_setup(
         &mut self,
         repos: Vec<String>,
@@ -14275,13 +14215,13 @@ impl TerminalView {
         self.close_context_menu(ctx, false);
         self.close_block_filter_editor(ctx);
         self.close_find_bar(ctx);
-        self.close_environment_setup_mode_selector(ctx);
 
         self.input.update(ctx, |input, ctx| {
             input.close_overlays(true, ctx);
         });
     }
 
+    #[cfg(any())]
     fn close_environment_setup_mode_selector(&mut self, ctx: &mut ViewContext<Self>) {
         if self.is_environment_setup_mode_selector_open {
             self.is_environment_setup_mode_selector_open = false;
@@ -17641,6 +17581,7 @@ impl TerminalView {
         last_visible_block.is_some_and(|rc| rc.is_init_step())
     }
 
+    #[cfg(any())]
     fn active_init_environment_block(
         &self,
         ctx: &AppContext,
@@ -18571,9 +18512,6 @@ impl TerminalView {
             }
             InputEvent::ScrollToExchange { exchange_id } => {
                 self.scroll_to_exchange(*exchange_id, ctx);
-            }
-            InputEvent::TriggerEnvironmentSetup { repos } => {
-                self.enter_environment_setup_selector(repos.clone(), ctx);
             }
             InputEvent::RegisterPluginListener(agent) => {
                 self.register_cli_agent_listener_without_session_start_event(*agent, ctx);
@@ -19510,6 +19448,7 @@ impl TerminalView {
     }
 
     /// Returns the environment setup mode selector view handle for tab-level rendering.
+    #[cfg(any())]
     pub fn environment_setup_mode_selector_handle(
         &self,
     ) -> Option<&ViewHandle<EnvironmentSetupModeSelector>> {
@@ -22617,10 +22556,6 @@ impl TypedActionView for TerminalView {
             | CodebaseIndexSpeedbumpBanner(_)
             | AgentModeSetupSpeedbumpBanner(_)
             | AnonymousUserAISignUpBanner(_)
-            | SetupCloudEnvironment(_)
-            | SetupCloudEnvironmentAndStart(_)
-            | TriggerEnvironmentSetupSelection(_)
-            | OpenEnvironmentManagementPane
             | DismissCodeToolbeltTooltip
             | SummarizeConversation
             | ToggleLongRunningCommandControl
@@ -23361,18 +23296,6 @@ impl TypedActionView for TerminalView {
                 }));
             }
             InitProject => self.init_project(false, ctx),
-            SetupCloudEnvironment(repos) => {
-                self.setup_cloud_environment(repos.clone(), ctx);
-            }
-            SetupCloudEnvironmentAndStart(repos) => {
-                self.setup_cloud_environment_and_start(repos.clone(), ctx);
-            }
-            TriggerEnvironmentSetupSelection(repos) => {
-                self.enter_environment_setup_selector(repos.clone(), ctx);
-            }
-            OpenEnvironmentManagementPane => {
-                self.open_environment_management_pane(ctx);
-            }
             SummarizeConversation => self.summarize_conversation(ctx),
             IndexProjectSpeedbump => {
                 let codebase_context_enabled =

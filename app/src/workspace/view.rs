@@ -568,7 +568,6 @@ enum SimplifiedWasmTabBarContent {
     ConversationTranscript { task_id: Option<AmbientAgentTaskId> },
 }
 
-type RemoteUploadId = (TerminalPaneId, FileUploadId);
 type WorkspaceMenuHandles = (
     ViewHandle<Menu<WorkspaceAction>>,
     ViewHandle<Menu<WorkspaceAction>>,
@@ -578,16 +577,6 @@ type WorkspaceMenuHandles = (
 #[derive(Clone, Debug, PartialEq, Eq)]
 enum NewSessionSidecarSelection {
     OpenWorktreeRepo { repo_path: String },
-}
-
-#[derive(Debug, Default)]
-struct FileUploadSessions {
-    /// Maps a local session pane handling a file upload
-    /// to the remote session pane through which the upload was initiated.
-    local_to_remote_map: HashMap<TerminalPaneId, TerminalPaneId>,
-    /// Maps a local pane to the ID of the file upload it is responsible for.
-    local_to_upload_id_map: HashMap<TerminalPaneId, RemoteUploadId>,
-    upload_id_to_local_map: HashMap<RemoteUploadId, TerminalPaneId>,
 }
 
 /// Controls the color palette used for a workspace banner.

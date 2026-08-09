@@ -333,9 +333,6 @@ fn handle_terminal_view_event(
 
                 group.close_pane(pane_id, ctx);
             }
-            Event::CloseRequested => {
-                group.close_pane_with_confirmation(pane_id, ctx);
-            }
             Event::Pane(pane_event) => group.handle_pane_event(pane_id, pane_event, ctx),
             Event::BlockListCleared => {
                 // Capture CMD-K to clear blocks here so we could remove
@@ -343,17 +340,6 @@ fn handle_terminal_view_event(
                 if let Some(terminal_pane) = group.terminal_session_by_id(pane_id) {
                     terminal_pane.delete_blocks(ctx);
                 }
-            }
-            Event::ShareModalOpened(block_id) => {
-                group.terminal_with_open_share_block_modal = Some(terminal_pane_id);
-                group.share_block_modal.update(ctx, |share_modal, ctx| {
-                    if let Some(session) = group.terminal_view_from_pane_id(pane_id, ctx) {
-                        let model = session.read(ctx, |view, _| view.model.clone());
-                        share_modal.open_with_model_update(model, *block_id, ctx);
-                        ctx.notify();
-                    }
-                });
-                ctx.notify();
             }
             Event::SendNotification(notification) => {
                 ctx.emit(pane_group::Event::SendNotification {
@@ -413,18 +399,6 @@ fn handle_terminal_view_event(
             Event::OpenSettings(section) => {
                 ctx.emit(pane_group::Event::OpenSettings(*section));
             }
-            Event::OpenAutoReloadModal { purchased_credits } => {
-                ctx.emit(pane_group::Event::OpenAutoReloadModal {
-                    purchased_credits: *purchased_credits,
-                });
-            }
-            #[cfg(not(target_family = "wasm"))]
-            Event::OpenPluginInstructionsPane(agent, kind) => {
-                ctx.emit(pane_group::Event::OpenPluginInstructionsPane(*agent, *kind));
-            }
-            Event::AskAIAssistant(ask_type) => {
-                ctx.emit(pane_group::Event::AskAIAssistant(ask_type.to_owned()))
-            }
             Event::SyncInput(sync_event) => {
                 if SyncedInputState::as_ref(ctx)
                     .should_sync_this_pane_group(ctx.view_id(), ctx.window_id())
@@ -437,26 +411,6 @@ fn handle_terminal_view_event(
             }
             Event::TerminalViewStateChanged => {
                 ctx.emit(pane_group::Event::TerminalViewStateChanged);
-            }
-            Event::OnboardingTutorialCompleted => {
-                ctx.emit(pane_group::Event::OnboardingTutorialCompleted);
-            }
-            Event::OpenWorkflowModalWithCommand(command) => {
-                ctx.emit(pane_group::Event::OpenWorkflowModalWithCommand(
-                    command.clone(),
-                ));
-            }
-            Event::OpenWorkflowModalWithCloudWorkflow(workflow_id) => {
-                ctx.emit(pane_group::Event::OpenCloudWorkflowForEdit(*workflow_id));
-            }
-            Event::OpenPromptEditor => {
-                ctx.emit(pane_group::Event::OpenPromptEditor);
-            }
-            Event::OpenAgentToolbarEditor => {
-                ctx.emit(pane_group::Event::OpenAgentToolbarEditor);
-            }
-            Event::OpenCLIAgentToolbarEditor => {
-                ctx.emit(pane_group::Event::OpenCLIAgentToolbarEditor);
             }
             Event::OpenFileInWarp { path, session } => {
                 ctx.emit(pane_group::Event::OpenFileInWarp {
@@ -478,44 +432,6 @@ fn handle_terminal_view_event(
                     line_col: None,
                 });
             }
-            Event::OpenCodeDiff { view } => {
-                ctx.emit(pane_group::Event::OpenCodeDiff { view: view.clone() });
-            }
-            Event::OpenShareSessionModal { open_source } => {
-                group.open_share_session_modal(terminal_pane_id, *open_source, ctx)
-            }
-            Event::OpenShareSessionDeniedModal => {
-                group.open_share_session_denied_modal(terminal_pane_id, ctx);
-            }
-            Event::FocusSession => {
-                group.focus_pane(terminal_pane_id.into(), true, ctx);
-                ctx.emit(pane_group::Event::FocusPaneGroup);
-            }
-            Event::OpenWarpDriveObjectInPane(uid) => {
-                ctx.emit(pane_group::Event::OpenWarpDriveObjectInPane(uid.clone()));
-            }
-            Event::OpenSuggestedAgentModeWorkflowModal { workflow_and_id } => {
-                ctx.emit(pane_group::Event::OpenSuggestedAgentModeWorkflowModal {
-                    workflow_and_id: workflow_and_id.clone(),
-                });
-            }
-            Event::OpenSuggestedRuleDialog { rule_and_id } => {
-                ctx.emit(pane_group::Event::OpenSuggestedRuleModal {
-                    rule_and_id: rule_and_id.clone(),
-                });
-            }
-            Event::OpenAIFactCollection { sync_id } => {
-                ctx.emit(pane_group::Event::OpenAIFactCollection { sync_id: *sync_id });
-            }
-            Event::SummarizationCancelDialogToggled { is_open } => {
-                group.terminal_with_open_summarization_dialog = is_open.then_some(terminal_pane_id);
-                ctx.notify();
-            }
-            Event::EnvironmentSetupModeSelectorToggled { is_open } => {
-                group.pane_with_open_environment_setup_mode_selector = is_open.then_some(pane_id);
-                ctx.notify();
-            }
-            Event::AnonymousUserSignup => ctx.emit(pane_group::Event::AnonymousUserSignup),
             #[cfg(feature = "local_fs")]
             Event::OpenFileWithTarget {
                 path,
@@ -528,83 +444,8 @@ fn handle_terminal_view_event(
                     line_col: *line_col,
                 });
             }
-            Event::CopyFileToRemote { command, upload_id } => {
-                let new_pane_id = group.insert_terminal_pane(
-                    Direction::Right,
-                    pane_id,
-                    None, /*chosen_shell*/
-                    ctx,
-                );
-
-                group.hide_pane_for_job(new_pane_id.into(), ctx);
-
-                let new_terminal_view = group
-                    .active_session_view(ctx)
-                    .expect("should have new terminal view");
-                new_terminal_view.update(ctx, |terminal_view, ctx| {
-                    terminal_view.set_pending_command(command, ctx);
-                    terminal_view.set_is_ssh_uploader(true);
-                });
-
-                ctx.emit(pane_group::Event::FileUploadCommand {
-                    upload_id: *upload_id,
-                    command: command.to_owned(),
-                    remote_pane_id: terminal_pane_id,
-                    local_pane_id: new_pane_id,
-                });
-
-                group.focus_pane(pane_id, true, ctx);
-            }
-            Event::FileUploadPasswordPending => {
-                ctx.emit(pane_group::Event::FileUploadPasswordPending {
-                    local_pane_id: terminal_pane_id,
-                });
-            }
-            Event::OpenConversationHistory => {
-                ctx.emit(OpenConversationHistory);
-            }
-            Event::FileUploadFinished(exit_code) => {
-                ctx.emit(pane_group::Event::FileUploadFinished {
-                    local_pane_id: terminal_pane_id,
-                    exit_code: *exit_code,
-                });
-
-                // Each upload spawns its own new terminal pane. Once an upload
-                // has finished, we know that its terminal session will no
-                // longer be responsible for any UI-based uploads.
-                if let Some(uploader_terminal_view) =
-                    group.terminal_view_from_pane_id(terminal_pane_id, ctx)
-                {
-                    uploader_terminal_view.update(ctx, |terminal_view, _ctx| {
-                        terminal_view.set_is_ssh_uploader(false);
-                    });
-                }
-            }
-            Event::OpenFileUploadSession(upload_id) => {
-                ctx.emit(pane_group::Event::OpenFileUploadSession {
-                    remote_pane_id: terminal_pane_id,
-                    upload_id: *upload_id,
-                })
-            }
-            Event::TerminateFileUploadSession(upload_id) => {
-                ctx.emit(pane_group::Event::TerminateFileUploadSession {
-                    remote_pane_id: terminal_pane_id,
-                    upload_id: *upload_id,
-                })
-            }
-            Event::SignupAnonymousUser { entrypoint } => {
-                ctx.emit(pane_group::Event::SignupAnonymousUser {
-                    entrypoint: *entrypoint,
-                });
-            }
             Event::OpenThemeChooser => {
                 ctx.emit(pane_group::Event::OpenThemeChooser);
-            }
-            Event::OpenMCPSettingsPage { page } => {
-                ctx.emit(pane_group::Event::OpenMCPSettingsPage { page: *page });
-            }
-            Event::OpenFilesPalette { source } => {
-                ctx.emit(pane_group::Event::OpenFilesPalette { source: *source })
             }
             #[cfg(feature = "local_fs")]
             Event::FileRenamed { old_path, new_path } => {

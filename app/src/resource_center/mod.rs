@@ -182,7 +182,6 @@ pub struct ContentItem {
 pub enum Section {
     Feature(FeatureSectionData),
     Content(ContentSectionData),
-    Changelog(),
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]

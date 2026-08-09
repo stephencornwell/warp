@@ -297,6 +297,7 @@ impl PaneId {
             IPaneType::DeferredPlaceholder => warpui::elements::Empty::new().finish(),
             #[cfg(test)]
             IPaneType::Dummy => warpui::elements::Empty::new().finish(),
+            _ => warpui::elements::Empty::new().finish(),
         };
         if *PaneSettings::as_ref(app).focus_panes_on_hover {
             element = EventHandler::new(element)

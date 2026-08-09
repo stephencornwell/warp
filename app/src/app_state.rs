@@ -131,10 +131,7 @@ impl LeafContents {
             // Network log: the backing log is an in-memory ring buffer that
             // starts empty on launch; persisting would also regress back to
             // an on-disk log via the app-state database.
-            LeafContents::NetworkLog
-            // Environment management panes are opened on-demand via workspace
-            // actions and have no persistable state.
-            | LeafContents::EnvironmentManagement(_) => false,
+            LeafContents::NetworkLog => false,
             LeafContents::Terminal(_)
             | LeafContents::Notebook(_)
             | LeafContents::Workflow(_)

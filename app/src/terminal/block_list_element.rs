@@ -1974,7 +1974,7 @@ impl BlockListElement {
         ctx: &mut PaintContext,
         app: &AppContext,
     ) {
-        let block_height = block.height(None).as_f64() as f32 * cell_size.y();
+        let block_height = block.height().as_f64() as f32 * cell_size.y();
         if block.is_restored() {
             ctx.scene
                 .draw_rect_with_hit_recording(RectF::new(

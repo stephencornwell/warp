@@ -34,7 +34,10 @@ use warpui::ui_components::components::UiComponent;
 #[cfg(not(target_arch = "wasm32"))]
 use warpui::ui_components::components::UiComponentStyles;
 use warpui::WeakModelHandle;
-use warpui::{AppContext, Element, ModelHandle, SingletonEntity, TypedActionView, ViewContext};
+use warpui::{
+    elements::MouseStateHandle, AppContext, Element, ModelHandle, SingletonEntity, TypedActionView,
+    ViewContext,
+};
 
 impl TerminalView {
     /// Returns a reference to the focus handle if one has been set.

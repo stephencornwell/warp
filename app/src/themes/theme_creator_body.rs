@@ -1,6 +1,6 @@
 use crate::appearance::{Appearance, AppearanceManager};
 use crate::editor::{EditorView, Event as EditorEvent};
-use crate::themes::theme::{InMemoryThemeOptions, ThemeKind};
+use crate::themes::theme::{CustomTheme, InMemoryThemeOptions, ThemeKind};
 use crate::user_config;
 #[cfg(feature = "local_fs")]
 use pathfinder_color::ColorU;

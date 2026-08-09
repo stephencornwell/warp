@@ -24,7 +24,6 @@ mod debug_dump;
 mod default_terminal;
 #[cfg(windows)]
 mod dynamic_libraries;
-mod external_secrets;
 #[cfg(target_family = "wasm")]
 mod font_fallback;
 mod global_resource_handles;

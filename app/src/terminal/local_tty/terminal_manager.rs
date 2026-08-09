@@ -398,41 +398,6 @@ impl TerminalManager {
             }
         });
 
-        let sharer_remote_update_guard = RemoteUpdateGuard::new();
-
-        // Send model selection updates during session sharing
-        let session_sharer_for_models = session_sharer.clone();
-        let terminal_view_id = view.id();
-        let model_remote_update_guard = sharer_remote_update_guard.clone();
-        ctx.subscribe_to_model(&LLMPreferences::handle(ctx), move |_prefs, event, ctx| {
-            // Only react to agent mode LLM changes
-            if !matches!(event, LLMPreferencesEvent::UpdatedActiveAgentModeLLM) {
-                return;
-            }
-
-            if !model_remote_update_guard.should_broadcast() {
-                return;
-            }
-
-            if let Some(network) = session_sharer_for_models.borrow().as_ref() {
-                let llm_prefs = LLMPreferences::as_ref(ctx);
-                let selected_model_id: String = llm_prefs
-                    .get_active_base_model(ctx, Some(terminal_view_id))
-                    .id
-                    .clone()
-                    .into();
-
-                // The send method will check if it actually changed and skip if not
-                network.update(ctx, |network, _| {
-                    network.send_universal_developer_input_context_update(
-                        UniversalDeveloperInputContextUpdate {
-                            selected_model: Some(SelectedAgentModel::new(selected_model_id)),
-                            ..Default::default()
-                        },
-                    )
-                });
-            }
-        });
 
         // Send input mode updates during session sharing.
         // When AgentView is enabled, we only send updates when in an active agent view.

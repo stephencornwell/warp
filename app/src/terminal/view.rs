@@ -1360,7 +1360,6 @@ pub enum Event {
         /// The initial prompt body content.
         initial_content: Option<String>,
     },
-    OpenEnvironmentManagementPane,
     OpenFilesPalette,
     #[cfg(feature = "local_fs")]
     OpenFileWithTarget {
@@ -11720,11 +11719,6 @@ impl TerminalView {
         }
     }
 
-    /// Open the Environment Management pane.
-    fn open_environment_management_pane(&mut self, ctx: &mut ViewContext<Self>) {
-        ctx.emit(Event::OpenEnvironmentManagementPane);
-    }
-
     /// Check if completed command was `warp environment create` and emit event if successful
     fn maybe_handle_environment_create_command(
         &mut self,
@@ -18995,9 +18989,6 @@ impl TerminalView {
             }
             InputEvent::OpenAddMCPPane => {
                 self.handle_action(&TerminalAction::OpenAddMCPPane, ctx);
-            }
-            InputEvent::OpenEnvironmentManagementPane => {
-                self.open_environment_management_pane(ctx);
             }
             InputEvent::OpenFilesPalette { source } => {
                 ctx.emit(Event::OpenFilesPalette { source: *source })

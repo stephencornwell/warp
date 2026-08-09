@@ -381,8 +381,6 @@ pub enum TerminalAction {
     SetupCloudEnvironmentAndStart(Vec<String>),
     /// Show the environment setup mode selector to choose between remote GitHub or local agent flow.
     TriggerEnvironmentSetupSelection(Vec<String>),
-    /// Open the Environment Management pane.
-    OpenEnvironmentManagementPane,
     ToggleLongRunningCommandControl,
     ToggleHideCliResponses,
     ExitAgentView,

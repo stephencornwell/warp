@@ -8,7 +8,7 @@ use warpui::AppContext;
 
 use crate::root_view::quake_mode_window_id;
 use crate::server::ids::SyncId;
-use crate::settings_view::{environments_page::EnvironmentsPage, SettingsSection};
+use crate::settings_view::SettingsSection;
 use crate::tab::SelectedTabColor;
 use crate::terminal::ShellLaunchData;
 use crate::themes::theme::AnsiColorIdentifier;
@@ -100,7 +100,6 @@ pub struct LeafSnapshot {
 pub enum LeafContents {
     Terminal(TerminalPaneSnapshot),
     Notebook(NotebookPaneSnapshot),
-    EnvironmentManagement(EnvironmentManagementPaneSnapshot),
     Workflow(WorkflowPaneSnapshot),
     Settings(SettingsPaneSnapshot),
     ExecutionProfileEditor,
@@ -188,10 +187,6 @@ pub enum WorkflowPaneSnapshot {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct EnvironmentManagementPaneSnapshot {
-    pub mode: EnvironmentsPage,
-}
-
 #[derive(Clone, Debug, PartialEq)]
 pub enum SettingsPaneSnapshot {
     Local {

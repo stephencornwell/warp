@@ -765,7 +765,6 @@ pub enum Event {
     OpenViewMCPPane,
     OpenAddMCPPane,
     OpenProjectRulesPane,
-    OpenEnvironmentManagementPane,
     ShowToast {
         message: String,
         flavor: ToastFlavor,

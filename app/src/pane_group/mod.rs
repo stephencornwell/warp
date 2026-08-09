@@ -587,7 +587,6 @@ pub enum Event {
         initial_content: Option<String>,
     },
     OpenAddRulePane,
-    OpenEnvironmentManagementPane,
     OpenFilesPalette {
         source: PaletteSource,
     },
@@ -6452,44 +6451,6 @@ impl View for PaneGroup {
                 }) {
                     stack.add_child(ChildView::new(&dialog_handle).finish());
                 }
-            }
-        }
-
-        // Render environment setup mode selector at tab level when open.
-        if let Some(pane_id) = self.pane_with_open_environment_setup_mode_selector {
-            let selector_handle = self
-                .terminal_view_from_pane_id(pane_id, app)
-                .and_then(|tv| {
-                    tv.as_ref(app)
-                        .environment_setup_mode_selector_handle()
-                        .cloned()
-                })
-                .or_else(|| {
-                    self.downcast_pane_by_id::<EnvironmentManagementPane>(pane_id)
-                        .and_then(|emp| {
-                            emp.environments_page_view(app)
-                                .as_ref(app)
-                                .environment_setup_mode_selector_handle()
-                                .cloned()
-                        })
-                });
-            if let Some(handle) = selector_handle {
-                stack.add_child(ChildView::new(&handle).finish());
-            }
-        }
-
-        // Render agent-assisted environment modal at tab level when open.
-        if let Some(pane_id) = self.pane_with_open_agent_assisted_environment_modal {
-            if let Some(handle) = self
-                .downcast_pane_by_id::<EnvironmentManagementPane>(pane_id)
-                .and_then(|emp| {
-                    emp.environments_page_view(app)
-                        .as_ref(app)
-                        .agent_assisted_environment_modal_handle(app)
-                        .cloned()
-                })
-            {
-                stack.add_child(ChildView::new(&handle).finish());
             }
         }
 

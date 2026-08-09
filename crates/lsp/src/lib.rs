@@ -51,7 +51,6 @@ impl std::fmt::Display for LspServerLogLevel {
 }
 
 use anyhow::Result;
-#[cfg(not(target_arch = "wasm32"))]
 use simple_logger::SimpleLogger;
 use std::sync::Arc;
 use warpui::r#async::executor::Background;
@@ -66,7 +65,6 @@ pub struct LspServiceInitializationResult {
 ///
 /// If `logger` is provided, stderr output from the LSP server will be written
 /// to its file for debugging purposes.
-#[cfg(not(target_arch = "wasm32"))]
 pub async fn spawn_lsp_service(
     config: LspServerConfig,
     executor: Arc<Background>,
@@ -118,15 +116,6 @@ pub async fn spawn_lsp_service(
         service,
         channel: notify_rx,
     })
-}
-
-#[cfg(target_arch = "wasm32")]
-pub async fn spawn_lsp_service(
-    _config: LspServerConfig,
-    _executor: Arc<Background>,
-    _logger: Option<()>,
-) -> Result<LspServiceInitializationResult> {
-    Err(anyhow::anyhow!("LSP is not supported in WASM environments"))
 }
 
 pub fn init(app: &mut AppContext) {

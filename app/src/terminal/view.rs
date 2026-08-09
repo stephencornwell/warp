@@ -9461,10 +9461,6 @@ impl TerminalView {
             element = element.with_ligature_rendering();
         }
 
-        if self.should_hide_cli_agent_cursor_cell(app) {
-            element = element.with_hide_cursor_cell();
-        }
-
         // Pass voice input toggle key if the CLI agent footer should be rendered
         #[cfg(feature = "voice_input")]
         if self.should_render_use_agent_footer(model, app)
@@ -10085,11 +10081,7 @@ impl TerminalView {
     }
 
     pub fn cancel_env_var_block(&mut self, ctx: &mut ViewContext<Self>) {
-        if let Some(block) = self.active_env_var_collection_block(ctx) {
-            block.update(ctx, |view, ctx| {
-                view.cancel(ctx);
-            });
-        }
+        let _ = ctx;
     }
 
     pub fn active_filter_editor_block_index(&self) -> Option<BlockIndex> {
@@ -10129,17 +10121,7 @@ impl TerminalView {
             // Check for image file paths to be auto-attached
             let num_images = image_filepaths.len();
 
-            // If we have image file paths, try to process them for attachment
-            if num_images > 0 {
-                let num_attached = self.input.update(ctx, |input, ctx| {
-                    input.handle_pasted_or_dragdropped_image_filepaths(image_filepaths, ctx)
-                });
-
-                // If dropped only image file paths, we are done
-                if num_attached == paths.len() {
-                    return; // Return early, don't insert file paths
-                }
-            }
+            let _ = (num_images, image_filepaths);
         }
 
         let Some(session) = self
@@ -10575,7 +10557,7 @@ impl TypedActionView for TerminalView {
                 };
                 self.copy_prompt(&prompt_position, &PromptPart::GitBranch, ctx)
             }
-            OpenShareModal => self.open_share_block_modal(ctx),
+            OpenShareModal => {}
             ReinputCommands => self.reinput_commands(false, ctx),
             ReinputCommandsWithSudo => self.reinput_commands(true, ctx),
             ClearBuffer => self.clear_buffer(ctx),
@@ -10748,11 +10730,7 @@ impl TypedActionView for TerminalView {
             }
             VimModeBanner(action) => self.handle_vim_banner_action(*action, ctx),
             ImportSettings => {
-                #[cfg(feature = "local_fs")]
-                {
-                    self.add_settings_import_block(ctx);
-                    ();
-                }
+                let _ = ctx;
             }
             ToggleSnackbarInActivePane => self.toggle_snackbar_in_active_pane(ctx),
             MiddleClickOnGrid { position } => self.middle_click_on_grid(position, ctx),
@@ -10801,8 +10779,8 @@ impl TypedActionView for TerminalView {
                 selected_range,
             } => self.set_marked_text_on_terminal(marked_text, selected_range, ctx),
             ClearMarkedText => self.clear_marked_text_on_terminal(ctx),
-            ShowInitializationBlock => self.show_initialization_block(),
-            InitProject => self.init_project(false, ctx),
+            ShowInitializationBlock => {}
+            InitProject => {}
             AddProjectAtCurrentDirectory => {
                 // Get the current working directory and add it as a project
                 if let Some(current_dir) = self.pwd() {

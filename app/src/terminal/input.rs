@@ -3978,60 +3978,6 @@ impl Input {
     /// current input text may not have been correctly classified as natural language.
     /// For users opted in to the analytics experiment, we collect the input buffer text whenever the input type is toggled
     /// in either direction.
-    fn maybe_send_autodetection_telemetry_on_manual_toggle(
-        &self,
-        new_input_type: InputType,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        let input_buffer_text = self.buffer_text(ctx);
-        let buffer_length = input_buffer_text.len();
-
-        let ai_input_model = self.ai_input_model.as_ref(ctx);
-        if matches!(new_input_type, InputType::Shell) && !ai_input_model.is_input_type_locked() {
-            let current_input_text = self.buffer_text(ctx);
-            if !current_input_text.is_empty() {
-                let event_payload = if ChannelState::channel().is_dogfood() {
-                    AgentModeAutoDetectionFalsePositivePayload::InternalDogfoodUsers {
-                        input_text: current_input_text,
-                    }
-                } else {
-                    AgentModeAutoDetectionFalsePositivePayload::ExternalUsers
-                };
-            }
-        }
-    }
-
-    /// Takes the current collpased/expanded state of the info box and saves it to the user's settings so that last value can be
-    /// reused the next time the user opens a workflow.
-    fn update_workflows_info_box_expanded_setting(
-        &mut self,
-        ctx: &mut ViewContext<Self>,
-        selected_workflow_state: &SelectedWorkflowState,
-    ) {
-        let info_box_expanded = selected_workflow_state
-            .more_info_view
-            .as_ref(ctx)
-            .info_box_expanded;
-
-        InputSettings::handle(ctx).update(ctx, |input_settings, ctx| {
-            report_if_error!(input_settings
-                .workflows_box_expanded
-                .set_value(info_box_expanded, ctx));
-        });
-    }
-
-    fn clear_current_workflow(&mut self, ctx: &mut ViewContext<Input>) {
-        // Whenever we clear the workflow we also want to clear the env vars
-        self.clear_selected_env_var_collection();
-
-        if let Some(state) = self.workflows_state.selected_workflow_state.take() {
-            self.update_workflows_info_box_expanded_setting(ctx, &state);
-        }
-        self.editor
-            .update(ctx, |editor, ctx| editor.clear_text_style_runs(ctx));
-        ctx.notify();
-    }
-
     fn editor_down(&mut self, ctx: &mut ViewContext<Self>) {
         // For some input suggestion modes, the menu handles its own actions.
         let handled = match self.suggestions_mode_model.as_ref(ctx).mode() {

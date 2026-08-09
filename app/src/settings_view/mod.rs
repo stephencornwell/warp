@@ -70,7 +70,6 @@ mod privacy;
 mod privacy_page;
 mod settings_file_footer;
 pub(crate) mod settings_page;
-mod telemetry;
 
 pub use features_page::FeaturesPageAction;
 pub use main_page::handle_experiment_change;

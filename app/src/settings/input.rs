@@ -4,7 +4,6 @@ use settings::{define_settings_group, RespectUserSyncSetting, SupportedPlatforms
 use std::collections::HashMap;
 use warpui::{AppContext, SingletonEntity};
 
-use crate::terminal::input::inline_menu::InlineMenuType;
 use crate::terminal::session_settings::SessionSettings;
 use settings::Setting as _;
 
@@ -174,13 +173,6 @@ define_settings_group!(InputSettings,
             description: "Whether the terminal input message bar is shown.",
         },
         // Per-menu custom content heights set by drag-to-resize. Not user-visible.
-        inline_menu_custom_content_heights: InlineMenuCustomContentHeights {
-            type: HashMap<InlineMenuType, f32>,
-            default: HashMap::default(),
-            supported_platforms: SupportedPlatforms::ALL,
-            sync_to_cloud: SyncToCloud::Never,
-            private: true,
-        },
     ]
 );
 

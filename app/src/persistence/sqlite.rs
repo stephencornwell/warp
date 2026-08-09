@@ -871,45 +871,8 @@ fn save_pane_state(
                 .values(terminal)
                 .execute(conn)?;
         }
-        LeafContents::Notebook(notebook_snapshot) => {
-            let (notebook_id, local_path) = match notebook_snapshot {
-                NotebookPaneSnapshot::CloudNotebook {
-                    notebook_id,
-                    settings: _,
-                } => (
-                    notebook_id.map(|id| id.sqlite_uid_hash(ObjectIdType::Notebook)),
-                    None,
-                ),
-                NotebookPaneSnapshot::LocalFileNotebook { path } => {
-                    (None, path.clone().map(encode_path))
-                }
-            };
-
-            let notebook = model::NewNotebookPane {
-                id,
-                notebook_id,
-                local_path,
-            };
-
-            diesel::insert_into(schema::notebook_panes::dsl::notebook_panes)
-                .values(notebook)
-                .execute(conn)?;
-        }
+        LeafContents::Notebook(_) | LeafContents::Workflow(_) | LeafContents::CodeReview(_) => {}
         LeafContents::Code(_) => {}
-        LeafContents::Workflow(workflow_pane_snapshot) => {
-            let workflow_id = match workflow_pane_snapshot {
-                WorkflowPaneSnapshot::CloudWorkflow {
-                    workflow_id,
-                    settings: _,
-                } => workflow_id.map(|id| id.sqlite_uid_hash(ObjectIdType::Workflow)),
-            };
-
-            let workflow = model::NewWorkflowPane { id, workflow_id };
-
-            diesel::insert_into(schema::workflow_panes::dsl::workflow_panes)
-                .values(workflow)
-                .execute(conn)?;
-        }
         LeafContents::EnvironmentManagement(_) => {
             // Unreachable: filtered by `is_persisted` in `save_app_state`.
         }
@@ -1218,27 +1181,7 @@ fn read_node(conn: &mut SqliteConnection, node: model::PaneNode) -> Result<Optio
                     // Legacy MCP server panes are no longer supported.
                     bail!("Legacy MCP server panes are no longer supported")
                 }
-                CODE_REVIEW_PANE_KIND => {
-                    let code_review_pane = schema::code_review_panes::dsl::code_review_panes
-                        .find(node.id)
-                        .select(model::CodeReviewPane::as_select())
-                        .first(conn)
-                        .ok();
-
-                    match code_review_pane {
-                        Some(pane) => LeafContents::CodeReview(CodeReviewPaneSnapshot::Local {
-                            terminal_uuid: pane.terminal_uuid,
-                            repo_path: PathBuf::from(pane.repo_path),
-                        }),
-                        None => {
-                            // Return empty fields; will be skipped during restoration
-                            LeafContents::CodeReview(CodeReviewPaneSnapshot::Local {
-                                terminal_uuid: Vec::new(),
-                                repo_path: PathBuf::from(""),
-                            })
-                        }
-                    }
-                }
+                CODE_REVIEW_PANE_KIND => return Ok(None),
                 GET_STARTED_PANE_KIND => LeafContents::GetStarted,
                 WELCOME_PANE_KIND => {
                     let welcome_pane = schema::welcome_panes::dsl::welcome_panes

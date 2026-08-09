@@ -6083,60 +6083,11 @@ impl Input {
         ctx.notify();
     }
 
-    pub fn on_session_share_joined(
-        &mut self,
-        replica_id: ReplicaId,
-        presence_manager: ModelHandle<PresenceManager>,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        // Shared session history model should only be set if we are a viewer
-        debug_assert!(self.model.lock().shared_session_status().is_viewer());
-        self.set_shared_session_presence_manager(presence_manager);
-
-        // Set the history model which is only available for a shared session viewer.
-        let history_model = ctx.add_model(|_| SharedSessionHistoryModel::new());
-        self.shared_session_input_state = Some(SharedSessionInputState {
-            history_model,
-            pending_command_execution_request: None,
-        });
-
-        // Set the server-assigned replica ID on the input buffer.
-        self.editor().update(ctx, |editor, ctx| {
-            editor.reinitialize_buffer(Some(replica_id), ctx);
-        });
-    }
-
-    /// Returns a collection of history entries that are shell commands from
-    /// the shared session (run on the sharer's machine).
-    fn shared_session_history<'b>(
-        &'b self,
-        ctx: &'b ViewContext<Self>,
-    ) -> Vec<HistoryInputSuggestion<'b>> {
-        let Some(history_model) = self
-            .shared_session_input_state
-            .as_ref()
-            .map(|state| state.history_model.clone())
-        else {
-            return Vec::new();
-        };
-
-        let commands = history_model
-            .as_ref(ctx)
-            .entries()
-            .map(|entry| HistoryInputSuggestion::Command { entry })
-            .collect();
-        // TODO: append viewer's local shell history
-        commands
-    }
-
-    /// Returns a collection of history entries that are user AI queries or shell commands in order
-    /// from oldest to most recent.
     fn collate_ai_and_command_history<'a>(
         &'a self,
         ctx: &'a ViewContext<Self>,
     ) -> Vec<HistoryInputSuggestion<'a>> {
-        let input_config = self.ai_input_model.as_ref(ctx).input_config();
-        let config = UpArrowHistoryConfig::for_input_config(&input_config);
+        let config = UpArrowHistoryConfig::for_input_config(&InputConfig::default());
 
         History::as_ref(ctx).up_arrow_suggestions_for_terminal_view(
             self.terminal_view_id,

@@ -4956,14 +4956,7 @@ impl Workspace {
                 let Some(path) = paths.into_iter().next() else {
                     return;
                 };
-                // Register the chosen directory as a workspace so it appears in
-                // PersistedWorkspace (which is the data source for the repo picker
-                // and also triggers codebase indexing / project rules scanning).
                 let path_buf: PathBuf = path.clone().into();
-                PersistedWorkspace::handle(ctx).update(ctx, |persisted, ctx| {
-                    persisted.user_added_workspace(path_buf.clone(), ctx);
-                });
-                // Refresh the repo picker and pre-select the new path.
                 modal_view.update(ctx, |modal, ctx| {
                     modal.body().update(ctx, |body, ctx| {
                         body.on_new_repo_selected(path_buf, param_index, ctx);
@@ -5154,9 +5147,6 @@ impl Workspace {
                     return;
                 };
                 let path_buf: PathBuf = path.clone().into();
-                PersistedWorkspace::handle(ctx).update(ctx, |persisted, ctx| {
-                    persisted.user_added_workspace(path_buf.clone(), ctx);
-                });
                 modal_view.update(ctx, |modal, ctx| {
                     modal.body().update(ctx, |body, ctx| {
                         body.on_new_repo_selected(path_buf, ctx);
@@ -5190,14 +5180,7 @@ impl Workspace {
             .map(|name| name.to_string_lossy().to_string())
             .unwrap_or_else(|| repo_path.clone());
         let config_name = format!("Worktree: {repo_display_name}");
-        // Use the user's default session mode to decide pane type.
-        let pane_type = if AISettings::as_ref(ctx).is_any_ai_enabled(ctx)
-            && AISettings::as_ref(ctx).default_session_mode(ctx) == DefaultSessionMode::Agent
-        {
-            "agent"
-        } else {
-            "terminal"
-        };
+        let pane_type = "terminal";
         log::info!(
             "Materializing default worktree config: repo_path={repo_path:?}, branch_name={branch_name:?}, pane_type={pane_type}"
         );

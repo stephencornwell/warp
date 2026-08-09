@@ -8,7 +8,6 @@
 //! The [`PaneContent`] interface requires implementers to maintain a [`PaneId`] for their pane.
 //! The [`PaneId`] must be created via a [`PaneView<BackingView>`]. The [`PaneId`] is consequently
 //! used to render a [`PaneView`] which internally renders the pane, including the [`BackingView`].
-pub(super) mod env_var_collection_pane;
 pub(super) mod get_started_pane;
 pub(super) mod get_started_view;
 pub(super) mod network_log_pane;
@@ -27,7 +26,6 @@ use crate::view_components::action_button::ActionButton;
 use crate::{
     code::view::CodeView,
     drive::sharing::ShareableObject,
-    env_vars::view::env_var_collection::EnvVarCollectionView,
     menu::MenuItem,
     server::network_log_view::NetworkLogView,
     server::telemetry::SharingDialogSource,

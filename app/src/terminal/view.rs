@@ -33,7 +33,6 @@ use crate::util::file::external_editor::{settings::EditorLayout, EditorSettings}
 use crate::util::truncation::truncate_from_end;
 
 use crate::projects::ProjectManagementModel;
-use crate::settings_view::mcp_servers_page::MCPServersSettingsPage;
 use crate::terminal::view::init_environment::{
     mode_selector::{
         EnvironmentSetupMode, EnvironmentSetupModeSelector, EnvironmentSetupModeSelectorEvent,
@@ -1356,9 +1355,6 @@ pub enum Event {
         results_tx: async_channel::Sender<Vec<ShellCompletion>>,
     },
     OpenThemeChooser,
-    OpenMCPSettingsPage {
-        page: Option<MCPServersSettingsPage>,
-    },
     OpenAddRulePane,
     OpenRulesPane,
     OpenAddPromptPane {
@@ -24000,16 +23996,6 @@ impl TypedActionView for TerminalView {
                             .value(),
                     });
                 }
-            }
-            OpenViewMCPPane => {
-                ctx.emit(Event::OpenMCPSettingsPage {
-                    page: Some(MCPServersSettingsPage::List),
-                });
-            }
-            OpenAddMCPPane => {
-                ctx.emit(Event::OpenMCPSettingsPage {
-                    page: Some(MCPServersSettingsPage::Edit { item_id: None }),
-                });
             }
             OpenBillingAndUsagePane => {
                 ctx.emit(Event::OpenSettings(SettingsSection::BillingAndUsage));

@@ -12,7 +12,7 @@ use crate::pane_group::pane::view::header::components::{
     CenteredHeaderEdgeWidth,
 };
 use crate::pane_group::pane::view::header::render_pane_header_draggable;
-use crate::pane_group::{CodePane, PaneConfigurationEvent, PaneDragDropLocation};
+use crate::pane_group::{PaneConfigurationEvent, PaneDragDropLocation};
 use crate::quit_warning::UnsavedStateSummary;
 use crate::terminal::cli_agent::{
     build_selection_line_range_prompt, build_selection_substring_prompt,
@@ -1144,22 +1144,6 @@ impl CodeView {
             model.remove_deallocated_buffers(ctx);
         });
         self.set_active_tab_index_after_remove(index, ctx);
-    }
-
-    pub fn remove_tab_for_move(
-        &mut self,
-        index: usize,
-        ctx: &mut ViewContext<Self>,
-    ) -> Option<CodePane> {
-        self.tab_at(index).and_then(|t| t.path()).map(|path| {
-            let source = CodeSource::Link {
-                path,
-                range_start: None,
-                range_end: None,
-            };
-            self.remove_tab_data_index(index, ctx);
-            CodePane::new(source, None, ctx)
-        })
     }
 
     fn remove_tab_with_intent(

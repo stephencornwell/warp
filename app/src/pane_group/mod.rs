@@ -1,7 +1,4 @@
 use crate::report_if_error;
-#[cfg(feature = "local_fs")]
-use crate::code::editor_management::CodeSource;
-use crate::code::view::CodeViewAction;
 use crate::pane_group::focus_state::PaneGroupFocusEvent;
 use crate::pane_group::pane::get_started_pane::GetStartedPane;
 use crate::pane_group::pane::welcome_pane::WelcomePane;
@@ -72,7 +69,6 @@ use crate::app_state::{
 use crate::appearance::Appearance;
 use crate::banner::{Banner, BannerEvent, BannerState, BannerTextContent, DismissalType};
 use crate::channel::{Channel, ChannelState};
-use crate::code::view::CodeView;
 use crate::drive::items::WarpDriveItemId;
 use crate::features::FeatureFlag;
 use crate::launch_configs::launch_config::{self, PaneMode, PaneTemplateType};
@@ -918,20 +914,6 @@ impl PaneGroup {
         }
     }
 
-    /// Executes the provided callback for each CodeView contained within
-    /// this pane group.
-    pub fn for_all_code_panes(
-        &mut self,
-        mut callback: impl FnMut(&mut CodeView, &mut ViewContext<CodeView>),
-        ctx: &mut ViewContext<Self>,
-    ) {
-        for pane_id in self.pane_contents.keys() {
-            if let Some(code_view) = self.code_view_from_pane_id(*pane_id, ctx) {
-                code_view.update(ctx, &mut callback);
-            }
-        }
-    }
-
     pub fn terminal_pane_ids(&self) -> impl Iterator<Item = PaneId> + '_ {
         self.pane_contents.keys().filter_map(|pane_id| {
             if pane_id.is_terminal_pane() {
@@ -947,13 +929,6 @@ impl PaneGroup {
         self.pane_contents
             .keys()
             .any(|pane_id| pane_id.is_terminal_pane())
-    }
-
-    /// Returns true if this pane group contains any code panes.
-    pub fn has_code_panes(&self) -> bool {
-        self.pane_contents
-            .keys()
-            .any(|pane_id| pane_id.is_code_pane())
     }
 
     pub fn active_file_model(&self) -> &ModelHandle<ActiveFileModel> {
@@ -1862,52 +1837,15 @@ impl PaneGroup {
         self.panes_of::<TerminalPane>()
             .any(|pane| pane.terminal_view(ctx).id() == terminal_view_id)
     }
-    /// Iterate over the code editors in this pane group.
-    pub fn code_panes<'a>(
-        &'a self,
-        app: &'a AppContext,
-    ) -> impl Iterator<Item = (PaneId, ViewHandle<CodeView>)> + 'a {
-        self.panes_of::<CodePane>()
-            .map(move |pane| (pane.id(), pane.file_view(app)))
-    }
-
     fn close_panes(&mut self, pane_ids: Vec<PaneId>, ctx: &mut ViewContext<Self>) {
         for pane_id in pane_ids {
             self.close_pane(pane_id, ctx);
         }
     }
 
-    pub fn has_active_code_pane_with_unsaved_changes(&self, ctx: &AppContext) -> bool {
-        self.focused_pane_id(ctx).is_code_pane()
-            && self
-                .pane_contents
-                .get(&self.focused_pane_id(ctx))
-                .and_then(|content| content.as_any().downcast_ref::<CodePane>())
-                .map(|pane| {
-                    pane.file_view(ctx)
-                        .as_ref(ctx)
-                        .active_tab_has_unsaved_changes(ctx)
-                })
-                .unwrap_or(false)
-    }
-
     /// Returns the selected text from the focused pane, or `None` if there is no selection or the selection is empty.
     pub fn selected_text_from_focused_pane(&self, ctx: &AppContext) -> Option<String> {
         let focused_pane_id = self.focused_pane_id(ctx);
-
-        #[cfg(feature = "local_fs")]
-        {
-            // If the focused pane is a code pane, return the selected text from the code view.
-            if focused_pane_id.is_code_pane() {
-                let text = self
-                    .downcast_pane_by_id::<CodePane>(focused_pane_id)
-                    .and_then(|pane| pane.file_view(ctx).as_ref(ctx).selected_text(ctx));
-                // If the text is not empty and does not contain a newline, return early.
-                if text.as_ref().is_some_and(|t| !t.is_empty()) {
-                    return text;
-                }
-            }
-        }
 
         // Finds the active pane type outof (NotebookPane, AIDocumentPane, TerminalPane)
         // and extracts selected text from it.
@@ -3700,27 +3638,6 @@ impl PaneGroup {
         self.downcast_pane_by_id(pane_id?)
     }
 
-    pub fn code_pane_by_id(&self, pane_id: PaneId) -> Option<&CodePane> {
-        self.downcast_pane_by_id(pane_id)
-    }
-
-    /// Removes an editor tab from a code pane for moving to another location.
-    /// Returns the removed tab as a CodePane if the operation succeeds.
-    pub fn remove_editor_tab_for_move(
-        &mut self,
-        pane_id: PaneId,
-        editor_tab_index: usize,
-        ctx: &mut ViewContext<Self>,
-    ) -> Option<Box<dyn AnyPaneContent>> {
-        self.code_pane_by_id(pane_id)
-            .and_then(|pane| {
-                pane.file_view(ctx).update(ctx, |file_view, ctx| {
-                    file_view.remove_tab_for_move(editor_tab_index, ctx)
-                })
-            })
-            .map(|p| Box::new(p) as Box<dyn AnyPaneContent>)
-    }
-
     /// The generic pane at `index`, if it exists.
     pub fn pane_by_index(&self, index: usize) -> Option<&dyn PaneContent> {
         self.content_by_pane_index(index).map(|pane| pane.as_pane())
@@ -4105,32 +4022,6 @@ impl PaneGroup {
         original_pane_id
     }
 
-    #[cfg(feature = "local_fs")]
-    fn replace_file_pane_with_code_pane(
-        &mut self,
-        file_pane_id: PaneId,
-        path: std::path::PathBuf,
-        source: Option<crate::code::editor_management::CodeSource>,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        use crate::code::editor_management::CodeSource;
-        use crate::pane_group::CodePane;
-
-        // Use the provided source if available.
-        let source = source.unwrap_or(CodeSource::Link {
-            path,
-            range_start: None,
-            range_end: None,
-        });
-
-        let code_pane = CodePane::new(source, None, ctx);
-        let success = self.replace_pane(file_pane_id, code_pane, false, ctx);
-
-        if !success {
-            log::error!("Failed to replace file pane {file_pane_id:?} with code pane");
-        }
-    }
-
     /// Handle a common pane event, such as splitting off another pane.
     fn handle_pane_event(
         &mut self,
@@ -4174,10 +4065,6 @@ impl PaneGroup {
                 self.add_terminal_pane_in_agent_mode(initial_query.as_deref(), None, ctx)
             }
             PaneEvent::ClearHoveredTabIndex => ctx.emit(Event::ClearHoveredTabIndex),
-            #[cfg(feature = "local_fs")]
-            PaneEvent::ReplaceWithCodePane { path, source } => {
-                self.replace_file_pane_with_code_pane(pane_id, path.clone(), source.clone(), ctx);
-            }
             PaneEvent::RepoChanged => {
                 ctx.emit(Event::RepoChanged);
             }
@@ -4243,19 +4130,7 @@ impl PaneGroup {
     }
 
     fn close_active_pane_with_confirmation(&mut self, ctx: &mut ViewContext<Self>) {
-        if self.focused_pane_id(ctx).is_code_pane() {
-            // If focused on a CodePane, close its active editor tab (optionally, the entire pane if it only has 1 tab).
-            if let Some(code_view) = self.code_view_from_pane_id(self.focused_pane_id(ctx), ctx) {
-                code_view.update(ctx, |view, ctx| {
-                    let index = view.active_tab_index();
-                    view.handle_action(&CodeViewAction::RemoveTabAtIndex { index }, ctx);
-                });
-            } else {
-                self.close_pane_with_confirmation(self.focused_pane_id(ctx), ctx);
-            }
-        } else {
-            self.close_pane_with_confirmation(self.focused_pane_id(ctx), ctx);
-        }
+        self.close_pane_with_confirmation(self.focused_pane_id(ctx), ctx);
     }
 
     pub fn add_pane_as_hidden(
@@ -5726,18 +5601,6 @@ impl PaneGroup {
             .map(|session| session.terminal_view(ctx))
     }
 
-    /// Given a pane ID, retrieve its backing code view, if the pane is a code pane.
-    pub fn code_view_from_pane_id(
-        &self,
-        pane_id: impl Into<PaneId>,
-        ctx: &AppContext,
-    ) -> Option<ViewHandle<CodeView>> {
-        self.pane_contents
-            .get(&pane_id.into())
-            .and_then(|contents| contents.as_any().downcast_ref::<CodePane>())
-            .map(|pane| pane.file_view(ctx))
-    }
-
     fn update_pane_history(&mut self, new_pane: PaneId) {
         self.pane_history.retain(|&x| x != new_pane);
         self.pane_history.push(new_pane);
@@ -5954,12 +5817,6 @@ impl PaneGroup {
             .collect()
     }
 
-    pub fn code_views(&self, ctx: &AppContext) -> Vec<ViewHandle<CodeView>> {
-        self.panes_of::<CodePane>()
-            .map(|p| p.file_view(ctx))
-            .collect()
-    }
-
     pub fn code_diff_views(&self, ctx: &AppContext) -> Vec<ViewHandle<CodeDiffView>> {
         self.panes_of::<CodeDiffPane>()
             .map(|p| p.diff_view(ctx))
@@ -5976,22 +5833,6 @@ impl PaneGroup {
             let terminal_id = terminal_view.id();
             let cwd = terminal_view.as_ref(ctx).pwd_if_local(ctx);
             (terminal_id, cwd)
-        })
-    }
-
-    /// Get all code CWDs for this pane group.
-    /// This is used by the Workspace to refresh the active directories model.
-    pub fn code_view_local_paths<'a>(
-        &'a self,
-        ctx: &'a AppContext,
-    ) -> impl Iterator<Item = (EntityId, Option<String>)> + 'a {
-        self.code_views(ctx).into_iter().map(move |code_view| {
-            let id = code_view.id();
-            let local_path = code_view
-                .as_ref(ctx)
-                .local_path(ctx)
-                .map(|p| p.display().to_string());
-            (id, local_path)
         })
     }
 
@@ -6132,13 +5973,6 @@ impl PaneGroup {
         self.for_all_terminal_panes(
             |terminal_view, ctx| {
                 terminal_view.close_overlays(ctx);
-            },
-            ctx,
-        );
-
-        self.for_all_code_panes(
-            |code_view, ctx| {
-                code_view.close_overlays(ctx);
             },
             ctx,
         );

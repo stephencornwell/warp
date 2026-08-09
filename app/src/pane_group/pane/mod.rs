@@ -982,9 +982,4 @@ pub enum PaneEvent {
         initial_query: Option<String>,
     },
     ClearHoveredTabIndex,
-    #[cfg(feature = "local_fs")]
-    ReplaceWithCodePane {
-        path: std::path::PathBuf,
-        source: Option<crate::code::editor_management::CodeSource>,
-    },
 }

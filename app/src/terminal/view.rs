@@ -6246,13 +6246,7 @@ impl TerminalView {
                     // of knowing whether the user just clicked on a rich content block. To allow
                     // users to attach blocks as context and submit queries quickly, we only divert
                     // the focus away from the input box when we're not in Agent Mode.
-                    if !self.ai_input_model.as_ref(ctx).is_ai_input_enabled() {
-                        self.focus_terminal(ctx);
-                    }
-                    // As part of Code Mode V2, we're introducing left and right panels which might be focused
-                    // but we want to allow users to click to refocus to a terminal session
-                    // so if the terminal isn't focused and a user clicks into the terminal, we want to force focusing the input
-                    else if !ctx.is_self_or_child_focused() {
+                    if !ctx.is_self_or_child_focused() {
                         self.focus_input_box(ctx);
                     }
                 }
@@ -6324,11 +6318,6 @@ impl TerminalView {
                             self.reset_selection_to_single_block(*block_index, ctx);
                         }
 
-                        if !self.ai_input_model.as_ref(ctx).is_ai_input_enabled() {
-                            ();
-                        } else if !self.selected_blocks.is_empty() {
-                            ();
-                        }
                         self.tips_completed.update(ctx, |tips, ctx| {
                             mark_feature_used_and_write_to_user_defaults(
                                 Tip::Hint(TipHint::BlockSelect),
@@ -7258,14 +7247,7 @@ impl TerminalView {
             ctx.notify();
         });
 
-        // In Agent Mode, block selection is used to attach blocks as context. To allow users to
-        // submit queries quickly, we don't want to divert the focus away from the input box. With
-        // AgentView enabled, blocks can be attached as context in terminal mode too.
-        if !self.ai_input_model.as_ref(ctx).is_ai_input_enabled()
-            && !FeatureFlag::AgentView.is_enabled()
-        {
-            self.focus_terminal(ctx);
-        }
+        self.focus_terminal(ctx);
 
         self.scroll_to_if_not_visible(last_block_index, ctx);
 
@@ -10685,9 +10667,6 @@ impl TypedActionView for TerminalView {
                     }
                 }
 
-                if is_first_selection && self.ai_input_model.as_ref(ctx).is_ai_input_enabled() {
-                    ();
-                }
             }
             SelectNextBlock => {
                 match input_mode {

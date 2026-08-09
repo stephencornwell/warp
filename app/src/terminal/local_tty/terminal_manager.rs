@@ -223,11 +223,6 @@ impl TerminalManager {
         let model_events =
             ctx.add_model(|ctx| ModelEventDispatcher::new(events_rx, sessions.clone(), ctx));
 
-        // Have ApiKeyManager subscribe to block completion events for AWS credential refresh
-        ai::api_keys::ApiKeyManager::handle(ctx).update(ctx, |manager, ctx| {
-            manager.register_model_event_dispatcher(&model_events, ctx);
-        });
-
         let preferred_shell = chosen_shell.unwrap_or_else(|| {
             AvailableShells::handle(ctx)
                 .read(ctx, |shells, ctx| shells.get_user_preferred_shell(ctx))
@@ -1883,16 +1878,6 @@ impl TerminalManager {
 
                     // Reject the prompt if AI is disabled on the sharer's machine.
                     // TODO(APP-2894): We should create a failure variant that better matches the error.
-                    if !crate::settings::ai::AISettings::as_ref(ctx).is_any_ai_enabled(ctx) {
-                        network.update(ctx, |network, _ctx| {
-                            network.send_agent_prompt_rejection(
-                                id.clone(),
-                                participant_id.clone(),
-                                AgentPromptFailureReason::InvalidConversation,
-                            );
-                        });
-                        return;
-                    }
                 }
 
                 // If a third-party CLI harness (e.g. Claude Code) is running, write

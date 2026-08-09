@@ -326,25 +326,6 @@ impl TerminalView {
                     .finish(),
                 )
             }
-        } else if self.is_using_conversation_for_pane_header_title
-            || (self.is_long_running()
-                && self
-                    .ai_context_model
-                    .as_ref(app)
-                    .selected_conversation(app)
-                    .is_some())
-        {
-            self.ai_context_model
-                .as_ref(app)
-                .selected_conversation(app)
-                .map(|conversation| {
-                    self.render_agent_indicator(
-                        conversation.id(),
-                        conversation.status().clone(),
-                        self.is_long_running(),
-                        app,
-                    )
-                })
         } else {
             self.render_terminal_mode_indicator(app)
         };
@@ -805,7 +786,7 @@ impl TerminalView {
             .finish()
     }
 
-    /// Render the agent indicator icon for when a conversation is selected.
+    #[cfg(any())]
     fn render_agent_indicator(
         &self,
         conversation_id: crate::ai::agent::conversation::AIConversationId,

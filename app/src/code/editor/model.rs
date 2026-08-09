@@ -1663,16 +1663,6 @@ impl CodeEditorModel {
         self.begin_selection(offset, SelectionMode::Line, !multiselect, ctx);
     }
 
-    // TODO(CLD-1593)
-    pub fn forward_word(&mut self, select: bool, ctx: &mut ModelContext<Self>) {
-        self.forward_word_with_unit(select, word_unit(ctx), ctx)
-    }
-
-    // TODO(CLD-1593)
-    pub fn backward_word(&mut self, select: bool, ctx: &mut ModelContext<Self>) {
-        self.backward_word_with_unit(select, word_unit(ctx), ctx)
-    }
-
     /// Returns the word under or immediately after the primary cursor on the current line,
     /// if one exists. The search does not cross line boundaries.
     /// This is used to populate the find bar for vim's `search_word_at_cursor` (`*` and `#`)

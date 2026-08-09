@@ -165,65 +165,12 @@ impl TerminalView {
         app: &AppContext,
     ) -> (Box<dyn Element>, f32) {
         let appearance = Appearance::as_ref(app);
-        let is_fullscreen_agent_view = FeatureFlag::AgentView.is_enabled()
-            && self.agent_view_controller.as_ref(app).is_fullscreen();
         let icon_color = Some(
             appearance
                 .theme()
                 .sub_text_color(appearance.theme().background()),
         );
-        let button_size = if is_fullscreen_agent_view {
-            Some(24.0)
-        } else {
-            None
-        };
-
-        let mut left_of_overflow = self.render_shared_session_header_content(app);
-
-        let mut icon_button_count: u32 = 0;
-
-        if FeatureFlag::CloudMode.is_enabled() {
-            let is_waiting_for_session = self
-                .ambient_agent_view_model
-                .as_ref()
-                .is_some_and(|model| model.as_ref(app).is_waiting_for_session());
-            let button_element = if is_waiting_for_session {
-                Some(self.render_ambient_agent_cancel_button(app))
-            } else if self.can_show_cloud_mode_details_ui(app) {
-                #[cfg(not(target_arch = "wasm32"))]
-                {
-                    Some(self.render_cloud_mode_details_toggle_button(app))
-                }
-                #[cfg(target_arch = "wasm32")]
-                {
-                    None
-                }
-            } else {
-                None
-            };
-
-            if let Some(button) = button_element {
-                icon_button_count += 1;
-                if let Some(existing) = left_of_overflow {
-                    left_of_overflow =
-                        Some(Flex::row().with_child(existing).with_child(button).finish());
-                } else {
-                    left_of_overflow = Some(button);
-                }
-            }
-        }
-
-        let mut right_row = Flex::row()
-            .with_cross_axis_alignment(CrossAxisAlignment::Center)
-            .with_main_axis_size(MainAxisSize::Min);
-        if let Some(content) = left_of_overflow {
-            right_row.add_child(content);
-        }
-        let sharing_element = header_ctx.sharing_controls(app, icon_color, button_size);
-        let has_sharing_element = sharing_element.is_some();
-        if let Some(sharing) = sharing_element {
-            right_row.add_child(sharing);
-        }
+        let mut right_row = Flex::row().with_main_axis_size(MainAxisSize::Min);
         let show_close_button = self
             .focus_handle
             .as_ref()
@@ -234,15 +181,10 @@ impl TerminalView {
                 appearance,
                 show_close_button,
                 icon_color,
-                button_size,
+                None,
             ),
         );
-        icon_button_count += show_close_button as u32
-            + header_ctx.has_overflow_items as u32
-            + has_sharing_element as u32;
-
-        let min_width = header_edge_min_width(icon_button_count);
-        (right_row.finish(), min_width)
+        (right_row.finish(), header_edge_min_width(show_close_button as u32))
     }
 
     fn maybe_add_parent_navigation_card(

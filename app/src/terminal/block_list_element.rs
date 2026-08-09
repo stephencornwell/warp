@@ -596,9 +596,6 @@ pub struct BlockListElement {
     scroll_position: ScrollPosition,
     is_terminal_focused: bool,
     is_terminal_selecting: bool,
-    /// This map contains the IDs of sessions that were subshells as keys. Their corresponding
-    /// values are the command that spawned the subshell, which is needed to paint the "flag"
-    subshell_sessions: HashMap<SessionId, SubshellSource>,
     size: Option<Vector2F>,
     /// These are the bounds the UI framework paints in, which are NOT necessarily the same as the visible bounds of the blocklist element.
     /// If we have a horizontal scroll bar (see horizontal_clipped_scroll_state), the UI bounds can go beyond the actually visible bounds.
@@ -892,7 +889,6 @@ impl BlockListElement {
             scroll_position: terminal_view_render_context.scroll_position,
             is_terminal_focused: terminal_view_render_context.is_terminal_focused,
             is_terminal_selecting: terminal_view_render_context.is_terminal_selecting,
-            subshell_sessions: terminal_view_render_context.spawning_command_for_subshell_sessions,
             subshell_flags: HashMap::new(),
             size: None,
             bounds: None,
@@ -2898,48 +2894,7 @@ impl Element for BlockListElement {
                                 block_indices_with_label_elements.push(block_index);
                             }
 
-                            // Check if the current block belongs to a subshell session. We'll add
-                            // a stripe during paint if it does.
-                            if let Some(session_id) = block.session_id() {
-                                if let Some(command) = self.subshell_sessions.get(&session_id) {
-                                    subshell_session_id = Some(session_id);
-
-                                    // Check if this block is the first in this viewport to belong
-                                    // to this subshell, and lay out a flag Element for it. Don't
-                                    // do this in compact mode though (in which case
-                                    // subshell_separator_height will be > 0), or
-                                    // if this is a background block.
-                                    if (prev_block_subshell_session_id.is_none()
-                                        || prev_block_subshell_session_id != Some(session_id))
-                                        && self.subshell_separator_height == 0.
-                                        && !block.is_background()
-                                    {
-                                        let command = if let SubshellSource::Command(cmd) = command
-                                        {
-                                            cmd.split_whitespace()
-                                                .next()
-                                                .map(|exec| {
-                                                    SubshellSource::Command(exec.to_owned())
-                                                })
-                                                .unwrap_or_else(|| command.clone())
-                                        } else {
-                                            command.clone()
-                                        };
-
-                                        let mut flag_element = render_subshell_flag(
-                                            command,
-                                            self.font_family,
-                                            self.font_size,
-                                            &self.warp_theme,
-                                        );
-                                        flag_element.layout(constraint, ctx, app);
-                                        subshell_flags.insert(block_index, flag_element);
-                                    }
-                                    prev_block_subshell_session_id = Some(session_id);
-                                } else {
-                                    prev_block_subshell_session_id = None;
-                                }
-                            }
+                            let _ = block;
 
                             if let Some(cli_subagent_view) =
                                 self.cli_subagent_views.get_mut(block.id())
@@ -3485,97 +3440,6 @@ impl Element for BlockListElement {
                         draw_border_above_block = false;
                     }
 
-                    // Current block is selected by ourselves or by another shared session participant
-                    let mut is_current_block_selected_by_anyone = is_current_block_selected;
-                    let mut participant_ids_for_avatar_render = vec![];
-                    if let Some(presence_manager) = &self.presence_manager {
-                        let is_self_reconnecting = presence_manager.as_ref(app).is_reconnecting();
-                        // Sort participants by reverse participant ID so we construct participant_ids_for_avatar_render in an ordering that's consistent with the pane header (avatars get rendered from right to left below).
-                        // Sorting here before rendering borders also ensures that the border color that gets rendered is always the color of participant on the furthest left,
-                        // since that is the color that gets rendered last.
-                        for participant in presence_manager
-                            .as_ref(app)
-                            .get_participants_at_selected_block(*block_index, block_list)
-                            .into_iter()
-                            .sorted_by(|a, b| b.participant.info.id.cmp(&a.participant.info.id))
-                        {
-                            if participant.should_show_avatar {
-                                participant_ids_for_avatar_render
-                                    .push(participant.participant.info.id.clone());
-                            }
-                            // Don't render any shared session participant background or border if we're rendering our own selection background and border.
-                            if is_current_block_selected {
-                                continue;
-                            }
-                            let color: Fill = if is_self_reconnecting {
-                                MUTED_PARTICIPANT_COLOR
-                            } else {
-                                participant.participant.color
-                            }
-                            .into();
-                            ctx.scene
-                                .draw_rect_with_hit_recording(RectF::new(
-                                    header_origin,
-                                    Vector2F::new(
-                                        self.bounds
-                                            .expect("bounds must be set at paint time")
-                                            .width(),
-                                        selection_height,
-                                    ),
-                                ))
-                                .with_background(color.with_opacity(10))
-                                .with_border(
-                                    Border::new(SHARED_SESSION_PARTICIPANT_SELECTION_BORDER_WIDTH)
-                                        .with_sides(
-                                            participant.is_top_of_continuous_selection,
-                                            true,
-                                            participant.is_bottom_of_continuous_selection,
-                                            true,
-                                        )
-                                        .with_border_fill(color),
-                                );
-                            // If we drew a colored top border here due to a participant's selection, don't also draw a gray border at the top.
-                            if participant.is_top_of_continuous_selection {
-                                draw_border_above_block = false;
-                            }
-                            is_current_block_selected_by_anyone = true;
-                        }
-                    }
-                    // Render their avatar in the top right of the block.
-                    let mut avatar_origin = vec2f(
-                        header_origin.x()
-                            + self.size_info.pane_width_px().as_f32()
-                            + self.horizontal_clipped_scroll_state.scroll_start().as_f32()
-                            - SELECTED_BLOCK_AVATAR_EDGE_OFFSET
-                            - SHARED_SESSION_AVATAR_DIAMETER,
-                        header_origin.y() - SHARED_SESSION_AVATAR_DIAMETER / 2.,
-                    );
-                    // participant_ids_for_avatar_render is already sorted in reverse order,
-                    // so the ordering will be consistent with the pane header as we go right to left.
-                    for participant_id in participant_ids_for_avatar_render {
-                        if let Some(avatar_element) = self.presence_avatars.get_mut(&participant_id)
-                        {
-                            avatar_element.paint(avatar_origin, ctx, app);
-                            avatar_origin.set_x(
-                                avatar_origin.x()
-                                    - SHARED_SESSION_AVATAR_DIAMETER
-                                    - SPACE_BETWEEN_SELECTED_BLOCK_AVATARS,
-                            );
-                        } else {
-                            log::warn!("Should show avatar for shared session participant at selected block but avatar element was not found")
-                        }
-                    }
-
-                    // Check if this block is in a subshell. If it is, draw a gray stripe on the
-                    // left-hand side.
-                    if subshell_session_id.is_some() {
-                        draw_flag_pole(
-                            header_origin.min(grid_origin),
-                            block_pixel_height,
-                            self.warp_theme.subshell_background(),
-                            ctx,
-                        );
-                    }
 
                     // This section draws the subshell flag at the start of the subshell
                     if let Some(flag_element) = self.subshell_flags.get_mut(block_index) {
@@ -3632,7 +3496,7 @@ impl Element for BlockListElement {
                         self.block_footer_elements.get_mut(block_index),
                         *block_index,
                         self.block_borders_enabled,
-                        is_current_block_selected_by_anyone,
+                        is_current_block_selected,
                         &block_grid_params,
                         &snackbar_header,
                         self.terminal_view_id,
@@ -3901,22 +3765,6 @@ impl Element for BlockListElement {
                     let block_origin = grid_origin;
                     if let Some(rich_content) = self.rich_content_elements.get_mut(view_id) {
                         rich_content.paint(grid_origin, ctx, app);
-                    }
-
-                    if !FeatureFlag::AgentView.is_enabled() {
-                        let ai_render_context = self.ai_render_context.borrow();
-                        if let Some(ai_context_color) = self
-                            .rich_content_metadata
-                            .get(view_id)
-                            .and_then(|metadata| {
-                                ai_render_context
-                                    .context_color_for_rich_content(metadata, &self.warp_theme)
-                            })
-                        {
-                            ctx.scene.start_layer(ClipBounds::ActiveLayer);
-                            draw_flag_pole(block_origin, *height_px, ai_context_color, ctx);
-                            ctx.scene.stop_layer();
-                        }
                     }
 
                     draw_border_above_block = true;

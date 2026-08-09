@@ -811,12 +811,6 @@ struct InlineBannersState {
     notifications_discovery_banner: NotificationsDiscoveryBanner,
     notifications_error_banner: NotificationsErrorBanner,
 
-    /// A mapping from banner ID to state information for all SSH banners in
-    /// this view.
-    ssh_banners: HashMap<InlineBannerId, SSHBannerState>,
-
-    prompt_suggestions_banner: Option<PromptSuggestionBannerState>,
-
     alias_expansion_banner: AliasExpansionBanner,
 
     shared_session_banner_state: SharedSessionBanners,
@@ -967,29 +961,7 @@ impl SizeUpdateBuilder {
                 // of our own size and the sharer's size.
                 // However, if the viewer is actively reporting its size to the sharer
                 // (viewer-driven sizing), skip the MAX — the PTY is already at our size.
-                if let Some(Viewer {
-                    sharer_size,
-                    last_reported_natural_size,
-                    ..
-                }) = view.shared_session_viewer()
-                {
-                    if last_reported_natural_size.is_some() {
-                        // Viewer-driven sizing is active; use our own natural size.
-                        new_size
-                    } else if let Some(size) = sharer_size {
-                        let rows = size.num_rows.max(new_size.rows);
-                        let cols = size.num_cols.max(new_size.columns);
-                        new_size.with_rows_and_columns(rows, cols)
-                    } else {
-                        new_size
-                    }
-                } else if let Some((viewer_rows, viewer_cols)) = view.active_viewer_driven_size {
-                    // Sharer honoring a viewer's reported size: use the viewer's
-                    // dimensions so AfterLayout doesn't override back to the sharer's natural size.
-                    new_size.with_rows_and_columns(viewer_rows.max(1), viewer_cols.max(1))
-                } else {
-                    new_size
-                }
+                new_size
             }
         };
 
@@ -1230,12 +1202,6 @@ impl IndicatorPositionArg {
 }
 
 #[derive(Clone)]
-pub struct ExecuteAIRequestedCommandEvent {
-    pub requested_command_id: AIAgentActionId,
-    pub command: String,
-    pub shell_type: ShellType,
-}
-
 #[derive(Clone)]
 pub struct ExecuteCommandEvent {
     pub command: String,
@@ -1290,10 +1256,6 @@ pub enum Event {
     WriteBytesToPty {
         bytes: Cow<'static, [u8]>,
     },
-    WriteAgentInputToPty {
-        bytes: Cow<'static, [u8]>,
-        mode: AIAgentPtyWriteMode,
-    },
     Resize {
         size_update: SizeUpdate,
     },
@@ -1315,9 +1277,6 @@ pub enum Event {
     #[cfg(feature = "local_fs")]
     PreviewCodeInWarp {
         source: CodeSource,
-    },
-    OpenCodeDiff {
-        view: ViewHandle<CodeDiffView>,
     },
     /// Emitted when a pending command (e.g. tab config setup commands) has
     /// been submitted and its block has completed.
@@ -1653,8 +1612,6 @@ pub struct TerminalView {
     /// The input area at the bottom of the viewport.
     input: ViewHandle<Input>,
 
-    inline_menu_positioner: ModelHandle<InlineMenuPositioner>,
-
     /// Colors used for rendering.
     colors: color::List,
 
@@ -1715,9 +1672,6 @@ pub struct TerminalView {
     mouse_down_block_index: Option<BlockIndex>,
 
     mouse_states: TerminalViewMouseStates,
-
-    server_api: Arc<ServerApi>,
-    auth_state: Arc<AuthState>,
 
     /// A sender used to handle messages for whenever the entire terminal view
     /// changes size.  Note that this size contains not just the content element
@@ -1849,18 +1803,6 @@ pub struct TerminalView {
     show_snackbar: bool,
     hover_near_snackbar_area: bool,
 
-    passive_suggestions_models: PassiveSuggestionsModels,
-
-
-    // TODO(suraj): consider flattening this to the [`SharedSessionKind`]
-    // and adding a `Unshared` variant to it. This would require [`SharedSessionKind::Sharer`]
-    // and [`SharedSessionKind::Viewer`] to store some common struct for common fields.
-    shared_session: Option<SharedSessionAdapter>,
-
-    /// Stashed source from `attempt_to_share_session` so `on_session_share_started`
-    /// can decide whether to auto-copy the link vs open the sharing dialog.
-    pending_share_source: Option<SharedSessionActionSource>,
-
     /// When true, automatically stop the shared session when the CLI agent session ends.
     /// Set when sharing is started from the remote control entrypoint.
 
@@ -1891,8 +1833,6 @@ pub struct TerminalView {
 
     find_model: ModelHandle<TerminalFindModel>,
 
-    warpify_state: WarpifyState,
-
     /// The keystroke bound to canceling a command.
     ///
     /// This is cached on the view because the UI framework APIs needed to lookup keystroke for an
@@ -1901,10 +1841,6 @@ pub struct TerminalView {
 
     /// Whether the terminal view is currently a drop target for a file. If it is, we render an overlay.
     is_file_drop_target: bool,
-
-    /// Whether this terminal pane is taking care of uploading a file over SSH.
-    is_ssh_file_uploader: bool,
-
 
     /// The type of the shell that this terminal pane is running, derived and
     /// cached on the view from [`ShellLaunchdata`]. Used to render an indicator
@@ -1927,20 +1863,7 @@ pub struct TerminalView {
 
     model_events_handle: ModelHandle<ModelEventDispatcher>,
 
-    is_todo_popup_visible: bool,
-
-    agent_todos_popup: ViewHandle<AgentTodosPopupView>,
-
     /// Per-repo git status model for the current repository, if any.
-    #[cfg(feature = "local_fs")]
-    git_repo_status: Option<ModelHandle<GitRepoStatusModel>>,
-
-    /// Deferred code review open request, stashed when [`GitDeltaPreference::OnlyDirty`] is
-    /// requested but git status metadata has not loaded yet. Consumed in
-    /// [`Self::handle_git_repo_status_event`].
-    #[cfg(feature = "local_fs")]
-    deferred_code_review_open: Option<DeferredCodeReviewOpen>,
-
     /// A list of callbacks to run on the next [`ModelEvent::AfterBlockCompleted`] received.
     block_completed_callbacks: Vec<TerminalViewCallback>,
 
@@ -1969,9 +1892,6 @@ pub struct TerminalView {
     pending_cloud_mode_start_callback: Option<TerminalViewCallback>,
     pending_cloud_mode_start_abort_handle: Option<SpawnedFutureHandle>,
 
-    /// Active /init flow model, if any. Cleared when cancelled or completed.
-    active_init_project_model: Option<ModelHandle<InitProjectModel>>,
-
     /// Whether we're waiting for the result of an AWS CLI login command.
     /// Used to detect "command not found" errors when AWS CLI isn't installed.
     /// TODO: In the future, when we support GCP/Azure cloud CLIs, this should be
@@ -1985,8 +1905,6 @@ pub struct TerminalView {
     /// (tab close, update relaunch, etc.) are not attributed to agent commands.
     manual_pty_shutdown_requested: bool,
 
-    ephemeral_message_model: ModelHandle<EphemeralMessageModel>,
-
     /// Tracks the view ID of an inserted pending user query block, if any.
     /// Used to remove the block when summarization completes or is cancelled.
     pending_user_query_view_id: Option<EntityId>,
@@ -1998,12 +1916,6 @@ pub struct TerminalView {
 
     /// Per-session PTY recorder for writing PTY bytes to a file.
     pty_recorder: ModelHandle<PtyRecorder>,
-
-    /// When viewer-driven sizing is active on the sharer, this stores the
-    /// viewer's last reported (rows, cols).
-    /// Used by `SizeUpdateBuilder::build()` to prevent `AfterLayout` from
-    /// overriding the viewer-reported size back to the sharer's natural pane size.
-    active_viewer_driven_size: Option<(usize, usize)>,
 
     /// State handle for the shimmering text animation in the remote server loading footer.
     /// Persisted across renders so the animation doesn't restart.
@@ -2175,7 +2087,6 @@ impl TerminalView {
         let active_session = ctx.add_model(|ctx| {
             ActiveSession::new(sessions.clone(), model_events_handle.clone(), ctx)
         });
-        let ephemeral_message_model = ctx.add_model(|_| EphemeralMessageModel::new());
 
         ctx.subscribe_to_model(&agent_view_controller, |me, _, event, ctx| {
             match event {
@@ -2547,10 +2458,6 @@ impl TerminalView {
             &legacy_passive_suggestions_model,
             Self::handle_legacy_passive_suggestions_event,
         );
-        let passive_suggestions_models = PassiveSuggestionsModels {
-            maa: maa_passive_suggestions_model,
-            legacy: legacy_passive_suggestions_model,
-        };
 
         let find_model = ctx.add_model(|_| TerminalFindModel::new(model.clone()));
 
@@ -3058,13 +2965,10 @@ impl TerminalView {
             }
         });
 
-        let agent_todos_popup = Self::build_agent_todos_popup(ai_context_model.clone(), ctx);
-
         let window_id = ctx.window_id();
         let mut terminal_view = Self {
             model,
             input,
-            inline_menu_positioner,
             view_handle: ctx.handle(),
             size_info: size_info.into(),
             snackbar_header_state: Default::default(),
@@ -3089,8 +2993,6 @@ impl TerminalView {
             mouse_states: Default::default(),
             open_grid_link_tool_tip: None,
             open_rich_content_link_tool_tip: None,
-            server_api: resources.server_api.clone(),
-            auth_state: AuthStateProvider::as_ref(ctx).get().clone(),
             find_bar,
             resize_tx,
             find_link_tx,
@@ -3135,18 +3037,13 @@ impl TerminalView {
             pending_auto_bootstrap_shell_type: None,
             show_snackbar: true,
             hover_near_snackbar_area: false,
-            passive_suggestions_models,
-            shared_session: None,
-            pending_share_source: None,
             window_id,
             content_element_position_id: terminal_content_element_position_id,
             input_position_id,
             input_hoverable_handle: Default::default(),
             find_model,
-            warpify_state: Default::default(),
             cancel_command_keystroke: keybinding_name_to_keystroke(CANCEL_COMMAND_KEYBINDING, ctx),
             is_file_drop_target: false,
-            is_ssh_file_uploader: false,
             most_recent_command_correction: None,
             shell_indicator_type: None,
             shell_detail: None,
@@ -3155,29 +3052,20 @@ impl TerminalView {
             active_session,
             pty_spawn_failed: false,
             model_events_handle,
-            is_todo_popup_visible: false,
-            agent_todos_popup,
-            #[cfg(feature = "local_fs")]
-            git_repo_status: None,
-            #[cfg(feature = "local_fs")]
-            deferred_code_review_open: None,
             block_completed_callbacks: Default::default(),
             conversation_completed_callbacks: Default::default(),
             current_repo_path: None,
             terminal_title: Default::default(),
             ignore_next_set_title_event: false,
-            active_init_project_model: None,
             is_pending_aws_login: false,
             manual_pty_shutdown_requested: false,
             pane_stack: None,
             pending_cloud_mode_start_callback: None,
             pending_cloud_mode_start_abort_handle: None,
-            ephemeral_message_model,
             pending_user_query_view_id: None,
             queued_prompt_callback: None,
             pty_recorder: ctx
                 .add_model(|ctx| PtyRecorder::new(inactive_pty_reads_rx, window_id, ctx)),
-            active_viewer_driven_size: None,
         };
         terminal_view.register_subscriptions_for_use_agent_footer(ctx);
 

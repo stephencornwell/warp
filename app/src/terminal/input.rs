@@ -1712,30 +1712,12 @@ impl Input {
                     ..Default::default()
                 };
                 EditorView::new(options, ctx)
-                    .with_next_command_model(next_command_model.clone())
-                    .with_context_model(ai_context_model.clone())
             })
         };
 
         let buffer_model = ctx.add_model(|ctx| InputBufferModel::new(&editor, ctx));
         let suggestions_mode_model =
             ctx.add_model(|_| InputSuggestionsModeModel::new(buffer_model.clone()));
-
-        let terminal_content_element_position_id =
-            format!("terminal_content_element_{terminal_view_id}");
-        let input_save_position_id = format!("status_free_input_{}", ctx.view_id());
-        let window_id = ctx.window_id();
-        let inline_terminal_menu_positioner = ctx.add_model(|ctx| {
-            InlineMenuPositioner::new(
-                &suggestions_mode_model,
-                &agent_view_controller,
-                terminal_content_element_position_id,
-                input_save_position_id,
-                size_info,
-                window_id,
-                ctx,
-            )
-        });
 
         let terminal_input_message_bar = ctx.add_view(|ctx| {
             TerminalInputMessageBar::new(
@@ -1747,13 +1729,6 @@ impl Input {
                 None,
                 ctx,
             )
-        });
-
-        let agent_shortcut_view_model = ctx.add_model(|ctx| {
-            AgentShortcutViewModel::new(buffer_model.clone(), agent_view_controller.clone(), ctx)
-        });
-        ctx.subscribe_to_model(&agent_shortcut_view_model, |_, _, _, ctx| {
-            ctx.notify();
         });
 
         current_prompt.update(ctx, |prompt_type, ctx| {
@@ -1793,15 +1768,6 @@ impl Input {
             |_me, _ctx| {},
         );
 
-        let voltron_features = Vec1::new(VoltronFeatureView::new(
-            VoltronItem::Workflows,
-            VoltronFeatureViewHandle::Workflows(workflows_search_view.clone()),
-        ));
-        let voltron_view = { ctx.add_typed_action_view(|ctx| Voltron::new(voltron_features, ctx)) };
-        ctx.subscribe_to_view(&voltron_view, move |me, _, event, ctx| {
-            me.handle_voltron_event(event, ctx);
-        });
-
         ctx.subscribe_to_model(&SessionSettings::handle(ctx), move |me, _, evt, ctx| {
             me.handle_session_settings_event(evt, ctx);
         });
@@ -1813,10 +1779,6 @@ impl Input {
         );
 
         ctx.subscribe_to_model(&LigatureSettings::handle(ctx), |_, _, _, ctx| ctx.notify());
-
-        let workflows_state = WorkflowsState {
-            selected_workflow_state: None,
-        };
 
         let last_word_insertion = LastWordInsertion {
             insert_command_from_history_index: 0,

@@ -6285,41 +6285,6 @@ impl Input {
         })
     }
 
-    pub(crate) fn initiate_create_new_project(
-        &mut self,
-        ai_query: String,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        if FeatureFlag::AgentView.is_enabled()
-            && !self.agent_view_controller.as_ref(ctx).is_active()
-        {
-            self.agent_view_controller.update(ctx, |controller, ctx| {
-                let _ =
-                    controller.try_enter_agent_view(None, AgentViewEntryOrigin::ProjectEntry, ctx);
-            });
-        }
-        self.ai_controller.update(ctx, move |controller, ctx| {
-            controller.send_slash_command_request(
-                SlashCommandRequest::CreateNewProject { query: ai_query },
-                ctx,
-            )
-        });
-    }
-
-    pub(crate) fn initiate_clone_repository(&mut self, url: String, ctx: &mut ViewContext<Self>) {
-        if FeatureFlag::AgentView.is_enabled()
-            && !self.agent_view_controller.as_ref(ctx).is_active()
-        {
-            self.agent_view_controller.update(ctx, |controller, ctx| {
-                let _ =
-                    controller.try_enter_agent_view(None, AgentViewEntryOrigin::ProjectEntry, ctx);
-            });
-        }
-        self.ai_controller.update(ctx, move |controller, ctx| {
-            controller.send_slash_command_request(SlashCommandRequest::CloneRepository { url }, ctx)
-        });
-    }
-
     /// Handles the user's 'Enter' keypress.
     ///
     /// Depending on input state, this method may either execute a command, accept an input

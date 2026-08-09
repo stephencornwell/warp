@@ -18,8 +18,6 @@ pub mod ai_fact_collection;
 pub mod env_var_collection;
 pub mod folder;
 pub mod item;
-pub mod mcp_server;
-pub mod mcp_server_collection;
 pub mod notebook;
 pub mod space;
 pub mod workflow;
@@ -62,7 +60,6 @@ impl WarpDriveItemId {
     pub fn drive_row_position_id(&self) -> String {
         match self {
             Self::AIFactCollection => "AI_fact_collection".to_string(),
-            Self::MCPServerCollection => "MCP_server_collection".to_string(),
             Self::Object(object_id) => object_id.drive_row_position_id(),
             Self::Space(space) => {
                 warp_drive_section_header_position_id(&DriveIndexSection::Space(*space))
@@ -76,7 +73,6 @@ impl WarpDriveItemId {
 #[derive(Debug, Clone, PartialEq, Eq, Copy)]
 pub enum WarpDriveItemId {
     AIFactCollection,
-    MCPServerCollection,
     Object(CloudObjectTypeAndId),
     Space(Space),
     Trash,

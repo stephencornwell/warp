@@ -2081,10 +2081,6 @@ impl Workspace {
                     });
 
                 if self.tab_count() == 0 {
-                    if self.should_trigger_get_started_onboarding(ctx) {
-                        self.trigger_get_started_onboarding(ctx);
-                        return;
-                    }
                     // If we still haven't created any tabs after attempting to restore, create a new tab
                     // with sensible defaults.
                     self.add_new_session_tab_with_default_mode(
@@ -2100,11 +2096,9 @@ impl Workspace {
                 }
 
                 self.activate_tab_internal(active_tab_index, ctx);
-                self.check_and_trigger_onboarding(ctx);
             }
             NewWorkspaceSource::FromTemplate { window_template } => {
                 self.open_launch_config_window(window_template, ctx);
-                self.check_and_trigger_onboarding(ctx);
             }
             NewWorkspaceSource::Session { options } => {
                 self.add_tab_with_pane_layout(
@@ -2114,34 +2108,6 @@ impl Workspace {
                     ctx,
                 );
                 self.check_and_trigger_onboarding(ctx);
-            }
-            NewWorkspaceSource::SharedSessionAsViewer { session_id } => {
-                self.add_tab_for_joining_shared_session(session_id, ctx);
-            }
-            NewWorkspaceSource::AgentSession {
-                options,
-                initial_query,
-            } => {
-                self.add_tab_with_pane_layout(
-                    PanesLayout::SingleTerminal(options),
-                    Arc::new(HashMap::new()),
-                    None,
-                    ctx,
-                );
-                // Enter agent mode with the environment creation query.
-                self.active_tab_pane_group().update(ctx, |pane_group, ctx| {
-                    pane_group.start_agent_mode_in_new_pane(initial_query.as_deref(), None, ctx);
-                });
-                self.check_and_trigger_onboarding(ctx);
-            }
-            NewWorkspaceSource::NotebookFromFilePath { file_path } => {
-                self.add_tab_for_file_notebook(file_path, ctx);
-            }
-            NewWorkspaceSource::NotebookById { id, settings } => {
-                self.add_tab_for_cloud_notebook(id, &settings, ctx);
-            }
-            NewWorkspaceSource::WorkflowById { id, settings } => {
-                self.open_workflow_from_intent(id, &settings, ctx);
             }
             #[cfg(feature = "local_fs")]
             NewWorkspaceSource::TransferredTab {
@@ -2261,7 +2227,6 @@ impl Workspace {
                 false,
                 ctx,
             );
-            self.check_and_trigger_onboarding(ctx);
         }
     }
 

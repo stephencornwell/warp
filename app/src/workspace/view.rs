@@ -10081,23 +10081,6 @@ ToggleLeftPanel => {
                     }
                 }
             }
-ToggleAgentManagementView => {
-                if AISettings::as_ref(ctx).is_any_ai_enabled(ctx)
-                    && FeatureFlag::AgentManagementView.is_enabled()
-                {
-                    let is_open = !self.current_workspace_state.is_agent_management_view_open;
-                    self.set_is_agent_management_view_open(is_open, ctx);
-
-
-                    if is_open {
-                        ctx.focus(&self.agent_management_view);
-                    } else {
-                        self.focus_active_tab(ctx);
-                    }
-
-                    ctx.notify();
-                }
-            }
 ClosePanel => {
                 if self.left_panel_view.is_self_or_child_focused(ctx) {
                     self.close_left_panel(ctx);
@@ -10289,20 +10272,6 @@ RunCommand(code) => {
             }
             FocusPane(locator) => {
                 self.focus_pane(*locator, ctx);
-            }
-=> {
-                Self::set_pending_query_state_for_terminal_view(
-                    *terminal_view_id,
-                    PendingQueryState::default(),
-                    ctx,
-                );
-
-                self.handle_action(
-                    &WorkspaceAction::FocusTerminalViewInWorkspace {
-                        terminal_view_id: *terminal_view_id,
-                    },
-                    ctx,
-                );
             }
 ScrollToSettingsWidget { page, widget_id } => {
                 self.open_settings_pane(Some(*page), None, ctx);

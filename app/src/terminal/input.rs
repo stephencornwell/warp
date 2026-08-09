@@ -99,7 +99,6 @@ use crate::{
         ForkedConversationDestination, InitContent, RestoreConversationLayout, ToastStack,
         WorkspaceAction,
     },
-    ServerApiProvider,
 };
 
 use base64::Engine as _;

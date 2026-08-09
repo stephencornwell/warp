@@ -35,13 +35,34 @@ use self::{
     renderer::RendererStyles,
 };
 
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct GitLineChanges {
+    pub files_changed: usize,
+    pub lines_added: usize,
+    pub lines_removed: usize,
+}
+
+impl GitLineChanges {
+    pub fn parse_from_git_output(output: &str) -> Option<Self> {
+        let mut changes = output.split_whitespace().filter_map(|part| {
+            let (value, suffix) = part.split_at(part.len().saturating_sub(1));
+            suffix.chars().next().filter(|c| *c == '+' || *c == '-').and_then(|_| value.parse().ok())
+        });
+        Some(Self {
+            files_changed: changes.next()?,
+            lines_added: changes.next()?,
+            lines_removed: changes.next()?,
+        })
+    }
+}
+
 /// The value of a context chip. Most chips produce plain text, but some
 /// (like `GitDiffStats`) carry structured data to avoid string round-trips.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum ChipValue {
     Text(String),
-    GitDiffStats(display_chip::GitLineChanges),
+    GitDiffStats(GitLineChanges),
 }
 
 impl ChipValue {
@@ -54,7 +75,7 @@ impl ChipValue {
     }
 
     /// Returns the `GitLineChanges` payload, if this is the `GitDiffStats` variant.
-    pub fn as_git_diff_stats(&self) -> Option<&display_chip::GitLineChanges> {
+    pub fn as_git_diff_stats(&self) -> Option<&GitLineChanges> {
         match self {
             ChipValue::GitDiffStats(g) => Some(g),
             ChipValue::Text(_) => None,
@@ -572,15 +593,15 @@ pub fn available_chips() -> Vec<ContextChipKind> {
 ///
 /// Used as a fallback when `GitRepoStatusModel` is unavailable (e.g. remote sessions,
 /// local subshells).
-pub fn git_line_changes_from_chips(chips: &[ChipResult]) -> Option<display_chip::GitLineChanges> {
+pub fn git_line_changes_from_chips(chips: &[ChipResult]) -> Option<GitLineChanges> {
     chips.iter().find_map(|chip| {
         if matches!(chip.kind(), ContextChipKind::GitDiffStats) {
             chip.value().map(|value| match value {
                 // Structured data from GitRepoStatusModel — use directly.
                 ChipValue::GitDiffStats(g) => g.clone(),
                 // Raw shell command output (remote sessions) — parse.
-                ChipValue::Text(raw) => display_chip::GitLineChanges::parse_from_git_output(raw)
-                    .unwrap_or(display_chip::GitLineChanges {
+                ChipValue::Text(raw) => GitLineChanges::parse_from_git_output(raw)
+                    .unwrap_or(GitLineChanges {
                         files_changed: 0,
                         lines_added: 0,
                         lines_removed: 0,

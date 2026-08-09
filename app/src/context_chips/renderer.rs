@@ -19,7 +19,6 @@ use crate::appearance::Appearance;
 use crate::ui_components::icons;
 
 use super::context_chip::ContextChip;
-use super::display_chip::{chip_container, udi_font_size};
 use super::spacing;
 use super::{ChipAvailability, ChipValue, ContextChipKind};
 use pathfinder_geometry::vector::vec2f;

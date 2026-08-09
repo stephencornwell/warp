@@ -14924,7 +14924,6 @@ impl TerminalView {
         workflow: Workflow,
         ctx: &mut ViewContext<Self>,
     ) {
-        ctx.emit(Event::OpenWorkflowModalWithTemporary(Box::new(workflow)));
 
         send_telemetry_from_ctx!(
             TelemetryEvent::SaveAsWorkflowModal {

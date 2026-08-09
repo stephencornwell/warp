@@ -663,9 +663,6 @@ pub enum CommandExecutionSource {
     /// A normal command execution request.
     User,
 
-    EnvVarCollection {
-        metadata: BlocklistEnvVarMetadata,
-    },
 }
 
 impl CommandExecutionSource {
@@ -944,10 +941,6 @@ struct WorkflowsState {
     selected_workflow_state: Option<SelectedWorkflowState>,
 }
 
-struct EnvVarCollectionState {
-    selected_env_vars: Option<SyncId>,
-}
-
 /// State when a workflow is selected.
 #[derive(Clone)]
 struct SelectedWorkflowState {
@@ -1223,7 +1216,6 @@ pub struct Input {
     view_id: EntityId,
     input_render_state_model_handle: ModelHandle<InputRenderStateModel>,
     workflows_state: WorkflowsState,
-    env_var_collection_state: EnvVarCollectionState,
     voltron_view: ViewHandle<Voltron>,
     is_voltron_open: bool,
     command_x_ray_description: Option<Arc<Description>>,
@@ -2069,10 +2061,6 @@ impl Input {
             selected_workflow_state: None,
         };
 
-        let env_var_collection_state = EnvVarCollectionState {
-            selected_env_vars: None,
-        };
-
         let last_word_insertion = LastWordInsertion {
             insert_command_from_history_index: 0,
             is_latest_editor_event: false,
@@ -2563,7 +2551,6 @@ impl Input {
             view_id,
             input_render_state_model_handle,
             workflows_state,
-            env_var_collection_state,
             voltron_view,
             is_voltron_open: false,
             command_x_ray_description: None,
@@ -5061,13 +5048,6 @@ impl Input {
             .active_block_mut()
             .set_home_dir(home_dir);
 
-        let env_var_collection_id = self.env_var_collection_state.selected_env_vars;
-        self.model
-            .lock()
-            .block_list_mut()
-            .active_block_mut()
-            .set_cloud_env_var_state(env_var_collection_id);
-
         // Record whether NLD was overridden (input type manually locked) at submission time.
         let nld_overridden = self.ai_input_model.as_ref(ctx).is_input_type_locked();
         self.model
@@ -5243,15 +5223,9 @@ impl Input {
         }
     }
 
-    fn clear_selected_env_var_collection(&mut self) {
-        self.env_var_collection_state.selected_env_vars = None;
-    }
-
     /// Closes the workflows panel.
     fn clear_selected_workflow(&mut self, ctx: &mut ViewContext<Self>) {
         // Clear the env var state if we had one.
-        self.clear_selected_env_var_collection();
-
         // `take()` closes the Workflows panel because the panel is only
         // rendered if `selected_workflow_state` is Some(..).
         if let Some(state) = self.workflows_state.selected_workflow_state.take() {
@@ -5384,14 +5358,12 @@ impl Input {
     ) {
         // Should not show workflows info box for read-only viewers
         let should_show_more_info_view = !self.model.lock().shared_session_status().is_reader();
-        let env_vars = workflow_type.as_workflow().default_env_vars();
         self.insert_workflow_into_input(
             workflow_type,
             workflow_source,
             workflow_selection_source,
             argument_override,
             None,
-            env_vars,
             should_show_more_info_view,
             ctx,
         );
@@ -5407,14 +5379,12 @@ impl Input {
     ) {
         // Should not show workflows info box for read-only viewers
         let should_show_more_info_view = !self.model.lock().shared_session_status().is_reader();
-        let env_vars = workflow_type.as_workflow().default_env_vars();
         self.insert_workflow_into_input(
             workflow_type,
             workflow_source,
             workflow_selection_source,
             None,
             Some(history_command),
-            env_vars,
             should_show_more_info_view,
             ctx,
         );
@@ -5457,7 +5427,6 @@ impl Input {
         workflow_selection_source: WorkflowSelectionSource,
         argument_overrides: Option<HashMap<String, String>>,
         history_command: Option<&str>,
-        selected_env_vars: Option<SyncId>,
         should_show_more_info_view: bool,
         ctx: &mut ViewContext<Input>,
     ) {
@@ -5477,19 +5446,6 @@ impl Input {
         self.editor.update(ctx, |editor, ctx| {
             editor.clear_buffer(ctx);
         });
-
-        if let Some(env_vars_command) = selected_env_vars
-            .as_ref()
-            .and_then(|id| self.env_vars_command_prefix(id, ctx))
-        {
-            self.editor.update(ctx, |editor, ctx| {
-                editor.system_insert(
-                    &env_vars_command,
-                    PlainTextEditorViewAction::SystemInsert,
-                    ctx,
-                )
-            });
-        }
 
         // The workflow may or may not come from a history command. If it does, the history command may or may not match
         // the template of the original workflow. If it does match, we have extra display data to show (such as the indices in
@@ -5603,20 +5559,6 @@ impl Input {
             }
         };
 
-        self.env_var_collection_state.selected_env_vars = selected_env_vars;
-
-        // Ensure the env var selector dropdown is consistent with the selected env vars.
-        if let Some(more_info_view) = self
-            .workflows_state
-            .selected_workflow_state
-            .as_ref()
-            .map(|state| &state.more_info_view)
-        {
-            more_info_view.update(ctx, |info_view, ctx| {
-                info_view.set_environment_variables_selection(selected_env_vars, ctx);
-            })
-        }
-
         // Emit the a11y content as the last step so that it overwrites any of the a11y content
         // emitted by the editor (if multiple `AccessibilityContent`s are emitted within the same
         // event loop, the last one wins).
@@ -5641,28 +5583,6 @@ impl Input {
             );
         }
         self.focus_input_box(ctx);
-    }
-
-    /// Builds a prefix for applying env vars to a command in the current session.
-    fn env_vars_command_prefix(&self, env_vars_id: &SyncId, ctx: &AppContext) -> Option<String> {
-        let shell_type = self.active_session(ctx)?.shell().shell_type();
-        let env_vars = &CloudModel::as_ref(ctx)
-            .get_env_var_collection(env_vars_id)?
-            .model()
-            .string_model;
-
-        if shell_type == ShellType::Fish {
-            // Warp currently doesn't support newlines in Fish, just prepend the vars
-            let mut command = env_vars.export_variables_for_shell(ShellType::Fish);
-            command.push(' ');
-            Some(command)
-        } else {
-            // Add newlines at the end to separate the vars from the comment/command
-            Some(format!(
-                "# Environment variables\n{}\n\n",
-                env_vars.export_variables(" ", shell_type.into())
-            ))
-        }
     }
 
     fn create_workflows_info_view(
@@ -5693,15 +5613,7 @@ impl Input {
         ctx: &mut ViewContext<Self>,
     ) {
         match event {
-            WorkflowsInfoBoxViewEvent::PrefixCommandWithEnvironmentVariables(env_vars) => {
-                self.reset_workflow_state(*env_vars, ctx);
-
-                // The ID may be `None` if the user is *clearing* environment variables.
-                if let Some(env_vars_id) = env_vars {
-                    let env_vars_object =
-                        CloudModel::as_ref(ctx).get_env_var_collection(env_vars_id);
-                }
-            }
+            WorkflowsInfoBoxViewEvent::PrefixCommandWithEnvironmentVariables(_) => {}
         }
     }
 
@@ -5967,16 +5879,12 @@ impl Input {
                                 linked_workflow_data.linked_workflow(ctx)
                             })
                         {
-                            // TODO(ben): We should include the chosen env vars in the history
-                            // entry.
-                            let env_vars = workflow_type.as_workflow().default_env_vars();
                             self.insert_workflow_into_input(
                                 workflow_type,
                                 workflow_source,
                                 WorkflowSelectionSource::UpArrowHistory,
                                 None,
                                 Some(selected_item.text()),
-                                env_vars,
                                 /*should_show_more_info_view=*/ false,
                                 ctx,
                             );
@@ -6107,10 +6015,7 @@ impl Input {
 
     /// Resets the SelectedWorkflowState back to the original workflow, with its original arguments. This
     /// is useful when the command does not match the original workflow.
-    fn reset_workflow_state(&mut self, env_vars: Option<SyncId>, ctx: &mut ViewContext<Input>) {
-        // We want to also initially clear the stored selected env var.
-        self.clear_selected_env_var_collection();
-
+    fn reset_workflow_state(&mut self, ctx: &mut ViewContext<Input>) {
         if let Some(state) = self.workflows_state.selected_workflow_state.take() {
             self.insert_workflow_into_input(
                 state.workflow_type,
@@ -6118,7 +6023,6 @@ impl Input {
                 state.workflow_selection_source,
                 None,
                 None,
-                env_vars,
                 true,
                 ctx,
             )
@@ -10728,15 +10632,12 @@ impl Input {
                         let owner = workflow.clone().permissions.owner.into();
 
                         let workflow_type = WorkflowType::Cloud(Box::new(workflow.clone()));
-                        let env_vars = alias.env_vars.or(workflow.model().data.default_env_vars());
-
                         self.insert_workflow_into_input(
                             workflow_type,
                             owner,
                             WorkflowSelectionSource::Alias,
                             alias.arguments,
                             None,
-                            env_vars,
                             true,
                             ctx,
                         );
@@ -12556,7 +12457,7 @@ impl TypedActionView for Input {
                 self.maybe_open_completion_suggestions(ctx);
             }
             InputAction::HideWorkflowInfoCard => self.hide_workflows_info_box(ctx),
-            InputAction::ResetWorkflowState => self.reset_workflow_state(None, ctx),
+            InputAction::ResetWorkflowState => self.reset_workflow_state(ctx),
             InputAction::ToggleClassicCompletionsMode => {
                 InputSettings::handle(ctx).update(ctx, |settings, ctx| {
                     if let Err(e) = settings.classic_completions_mode.toggle_and_save_value(ctx) {

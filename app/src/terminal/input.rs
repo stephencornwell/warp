@@ -1680,24 +1680,9 @@ impl Input {
             let model_clone = model.clone();
             // Clone used in keymap_context_modifier closure below.
             let terminal_model_for_keymap_context = model.clone();
-            let has_prompt_suggestion_banner_for_keymap = has_prompt_suggestion_banner.clone();
             let input_render_state_model_handle_clone = input_render_state_model_handle.clone();
 
-            let ai_context_model_clone = ai_context_model.clone();
-            let ai_input_model = ai_input_model.clone();
 
-            ctx.subscribe_to_model(&ai_input_model, |me, _, _, ctx| {
-                #[cfg(feature = "voice_input")]
-                me.update_voice_transcription_options(ctx);
-                me.update_image_context_options(ctx);
-                me.update_ai_context_menu(ctx);
-                me.check_slash_menu_disabled_state(ctx);
-            });
-
-            let ai_input_model_clone = ai_input_model.clone();
-            let ai_follow_up_icon_mouse_state_clone = ai_follow_up_icon_mouse_state.clone();
-            let agent_view_controller_clone = agent_view_controller.clone();
-            let other_agent_view_controller_clone = agent_view_controller.clone();
 
             ctx.add_typed_action_view(|ctx| {
                 let options = EditorOptions {
@@ -1711,105 +1696,8 @@ impl Input {
                     soft_wrap: true,
                     supports_vim_mode: true,
                     use_settings_line_height_ratio: true,
-                    render_decorator_elements: Some(Box::new(
-                        move |app| -> EditorDecoratorElements {
-                            let terminal_model = model_clone.lock();
-                            let active_block = terminal_model.block_list().active_block();
 
-                            let mut editor_decorator_elements = EditorDecoratorElements::default();
 
-                            let is_universal_developer_input_enabled = InputSettings::as_ref(app)
-                                .is_universal_developer_input_enabled(app);
-
-                            if (!FeatureFlag::AgentView.is_enabled()
-                                || !agent_view_controller_clone.as_ref(app).is_active())
-                                && should_render_prompt_using_editor_decorator_elements(
-                                    is_universal_developer_input_enabled,
-                                    &ai_input_model,
-                                    &terminal_model,
-                                    app,
-                                )
-                            {
-                                let SameLinePromptElements {
-                                    lprompt_top,
-                                    lprompt_bottom,
-                                    rprompt,
-                                } = prompt_render_helper_clone.render_same_line_prompt_areas(
-                                    &terminal_model,
-                                    Appearance::as_ref(app),
-                                    app,
-                                );
-
-                                editor_decorator_elements.top_section = lprompt_top;
-                                editor_decorator_elements.left_notch = lprompt_bottom;
-                                editor_decorator_elements.right_notch = rprompt;
-                                editor_decorator_elements.right_notch_offset_px = Some(
-                                    active_block.rprompt_render_offset(
-                                        &input_render_state_model_handle_clone
-                                            .as_ref(app)
-                                            .size_info,
-                                    ),
-                                )
-                            }
-
-                            // Render the AI mode indicator to the left of the editor if we're in AI mode or the AI suggested a command.
-                            // Also renders the reply icon when following up in an existing conversation.
-                            if let Some(ai_input_indicator) = maybe_render_ai_input_indicators(
-                                &ai_input_model,
-                                &ai_context_model_clone,
-                                &agent_view_controller_clone,
-                                ai_follow_up_icon_mouse_state_clone.clone(),
-                                terminal_view_id,
-                                app,
-                            ) {
-                                editor_decorator_elements.left_notch =
-                                    match editor_decorator_elements.left_notch {
-                                        Some(left_notch) => {
-                                            // If there is already a left notch, place the  to
-                                            // the right of the notch to keep the pill immediately
-                                            // to the left of the editor.
-                                            Some(
-                                                Flex::row()
-                                                    .with_child(left_notch)
-                                                    .with_child(ai_input_indicator)
-                                                    .finish(),
-                                            )
-                                        }
-                                        None => Some(ai_input_indicator),
-                                    }
-                            }
-
-                            editor_decorator_elements
-                        },
-                    )),
-                    cursor_colors_fn: Box::new(move |app| {
-                        let is_ai_input_enabled =
-                            ai_input_model_clone.as_ref(app).is_ai_input_enabled();
-                        let appearance = Appearance::as_ref(app);
-                        if is_ai_input_enabled {
-                            let color_identifier = if FeatureFlag::AgentView.is_enabled() {
-                                AnsiColorIdentifier::Magenta
-                            } else {
-                                AnsiColorIdentifier::Yellow
-                            };
-                            let cursor_color = color_identifier
-                                .to_ansi_color(&appearance.theme().terminal_colors().normal);
-                            let selection_color = ColorU::new(
-                                cursor_color.r,
-                                cursor_color.g,
-                                cursor_color.b,
-                                // Text selection color tones down the alpha to 40%.
-                                (0.4 * 255.) as u8,
-                            );
-
-                            CursorColors {
-                                cursor: cursor_color.into(),
-                                selection: selection_color.into(),
-                            }
-                        } else {
-                            default_cursor_colors(app)
-                        }
-                    }),
                     baseline_position_computation_method: BaselinePositionComputationMethod::Grid,
                     // We implement middle-click paste at the [`TerminalView`] level,
                     // and we don't want to double-paste.
@@ -1820,37 +1708,7 @@ impl Input {
                     #[cfg(target_family = "wasm")]
                     include_ai_context_menu: false,
                     delegate_paste_handling: true,
-                    keymap_context_modifier: Some(Box::new(move |context, app| {
-                        // When ctrl-enter is bound to accepting prompt suggestions and there's
-                        // a pending passive code diff, suggested prompt, or prompt suggestion
-                        // banner, set a flag so the editor's ctrl-enter binding doesn't match
-                        // (allowing the terminal-level binding to handle it).
-                        if is_accept_prompt_suggestion_bound_to_ctrl_enter(app)
-                            && (has_pending_code_or_unit_test_prompt_suggestion(
-                                &terminal_model_for_keymap_context.lock(),
-                                app,
-                            ) || has_prompt_suggestion_banner_for_keymap
-                                .load(Ordering::Relaxed))
-                        {
-                            context
-                                .set
-                                .insert(flags::CTRL_ENTER_ACCEPTS_PROMPT_SUGGESTION);
-                        }
 
-                        if FeatureFlag::AgentView.is_enabled() {
-                            context.set.insert(flags::AGENT_VIEW_ENABLED);
-                        }
-
-                        if !other_agent_view_controller_clone.as_ref(app).is_active()
-                            && !cfg!(target_os = "macos")
-                        {
-                            context.set.insert(flags::CTRL_ENTER_ENTERS_AGENT_VIEW);
-                        }
-
-                        if CLIAgentSessionsModel::as_ref(app).is_input_open(terminal_view_id) {
-                            context.set.insert(flags::CLI_AGENT_RICH_INPUT_OPEN);
-                        }
-                    })),
                     ..Default::default()
                 };
                 EditorView::new(options, ctx)

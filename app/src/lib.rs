@@ -22,7 +22,6 @@ mod crash_reporting;
 mod debounce;
 mod debug_dump;
 mod default_terminal;
-mod download_method;
 #[cfg(windows)]
 mod dynamic_libraries;
 mod external_secrets;

@@ -1,27 +1,6 @@
 use std::collections::HashSet;
 
 use super::*;
-use crate::ai::active_agent_views_model::ActiveAgentViewsModel;
-use crate::ai::agent_conversations_model::AgentConversationsModel;
-use crate::ai::blocklist::{AIQueryHistory, BlocklistAIPermissions};
-use crate::ai::execution_profiles::profiles::AIExecutionProfilesModel;
-use crate::ai::llms::LLMPreferences;
-use crate::ai::mcp::gallery::MCPGalleryManager;
-use crate::ai::mcp::templatable_manager::TemplatableMCPServerManager;
-use crate::ai::outline::RepoOutlines;
-use crate::ai::persisted_workspace::PersistedWorkspace;
-use crate::ai::restored_conversations::RestoredAgentConversations;
-use crate::ai::skills::SkillManager;
-use crate::ai::AIRequestUsageModel;
-use crate::auth::auth_manager::AuthManager;
-use crate::auth::AuthStateProvider;
-use crate::changelog_model::ChangelogModel;
-use crate::cloud_object::model::persistence::CloudModel;
-use crate::pricing::PricingInfoModel;
-use crate::search::files::model::FileSearchModel;
-use crate::terminal::cli_agent_sessions::CLIAgentSessionsModel;
-use crate::terminal::input::slash_command_model::SlashCommandEntryState;
-use crate::terminal::input::slash_commands::SlashCommandsEvent;
 use crate::warp_managed_paths_watcher::WarpManagedPathsWatcher;
 use repo_metadata::repositories::DetectedRepositories;
 use repo_metadata::watcher::DirectoryWatcher;
@@ -31,10 +10,7 @@ use watcher::HomeDirectoryWatcher;
 use crate::editor::{EditorAction, TextStyleOperation};
 use crate::input_suggestions::{HistoryOrder, Item};
 use crate::network::NetworkStatus;
-use crate::server::cloud_objects::{listener::Listener, update_manager::UpdateManager};
-use crate::server::server_api::ServerApiProvider;
-use crate::server::sync_queue::SyncQueue;
-use crate::settings::{AliasExpansionSettings, AppEditorSettings, InputBoxType, PrivacySettings};
+use crate::settings::{AliasExpansionSettings, AppEditorSettings, InputBoxType};
 use crate::settings_view::keybindings::KeybindingChangedNotifier;
 #[cfg(windows)]
 use crate::system::SystemInfo;
@@ -43,11 +19,6 @@ use crate::terminal::alt_screen_reporting::AltScreenReporting;
 use crate::terminal::event::BootstrappedEvent;
 use crate::terminal::keys::TerminalKeybindings;
 use crate::terminal::local_shell::LocalShellState;
-use crate::terminal::shared_session::permissions_manager::SessionPermissionsManager;
-use crate::workspaces::team_tester::TeamTesterStatus;
-use crate::workspaces::update_manager::TeamUpdateManager;
-use crate::workspaces::user_workspaces::UserWorkspaces;
-
 use crate::terminal::local_tty::shell::ShellStarter;
 use crate::terminal::model::ansi::{Handler, PrecmdValue};
 use crate::terminal::model::block::SerializedBlock;
@@ -56,7 +27,6 @@ use crate::terminal::model::grid::Dimensions as _;
 use crate::terminal::model::index::Side;
 use crate::terminal::model::session::{BootstrapSessionType, SessionInfo};
 use crate::terminal::model::terminal_model::BlockIndex;
-use ai::index::full_source_code_embedding::manager::CodebaseIndexManager;
 use chrono::Local;
 use warpui::text::SelectionType;
 
@@ -68,7 +38,6 @@ use crate::{
     editor::{DisplayPoint, Point},
     terminal::TerminalView,
 };
-use crate::{experiments, AgentNotificationsModel};
 use fuzzy_match::FuzzyMatchResult;
 use session_sharing_protocol::common::Role;
 use smol_str::SmolStr;
@@ -80,20 +49,12 @@ use warp_completer::meta::Span;
 
 use unindent::Unindent;
 
-#[cfg(feature = "voice_input")]
-use voice_input::VoiceInputToggledFrom;
 use warpui::platform::WindowStyle;
 use warpui::{App, ReadModel, UpdateView};
 
-use crate::terminal::universal_developer_input::UniversalDeveloperInputButtonBarEvent;
-
 use warp_util::user_input::UserInput;
-use workflows::workflow::{Argument, ArgumentType, Workflow};
-
-use crate::context_chips::prompt::Prompt;
 use crate::terminal::general_settings::UserDefaultShellUnsupportedBannerState;
 use crate::terminal::resizable_data::ResizableData;
-use crate::terminal::view::inline_banner::ByoLlmAuthBannerSessionState;
 use crate::terminal::writeable_pty::command_history::update_command_history;
 use crate::{GlobalResourceHandles, GlobalResourceHandlesProvider, ReferralThemeStatus};
 

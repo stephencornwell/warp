@@ -10143,7 +10143,6 @@ impl TypedActionView for TerminalView {
             | OpenModelSelector
             | OpenCLIAgentRichInput
             | ToggleSessionRecording => Empty,
-            _ => ActionAccessibilityContent::from_debug(),
         }
     }
 

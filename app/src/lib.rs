@@ -1184,7 +1184,6 @@ fn initialize_app(
     reward_view::init(ctx);
     crate::view_components::find::init(ctx);
     undo_close::init(ctx);
-    tab_configs::new_worktree_modal::init(ctx);
     tab_configs::params_modal::init(ctx);
     context_chips::node_version_popup::init(ctx);
     coding_entrypoints::project_buttons::init(ctx);

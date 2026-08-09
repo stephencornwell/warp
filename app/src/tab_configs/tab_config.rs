@@ -68,10 +68,6 @@ pub enum TabConfigParamType {
     /// A plain single-line text editor (the default).
     #[default]
     Text,
-    /// A dropdown populated with local git branches from the active terminal's repo.
-    Branch,
-    /// A dropdown populated with known repos (from the project list), with an option to add a new one.
-    Repo,
 }
 
 /// A single parameter declared in a tab config file.

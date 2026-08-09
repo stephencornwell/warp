@@ -396,11 +396,6 @@ pub enum WorkspaceAction {
     OpenRepository {
         path: Option<String>,
     },
-    /// Open the native folder picker for a repo param in the tab-config modal after the
-    /// current interaction cycle finishes.
-    OpenTabConfigRepoPicker {
-        param_index: usize,
-    },
     /// Open a new blank code file in the current tab
     NewCodeFile,
     NavigatePrevPaneOrPanel,
@@ -455,18 +450,6 @@ pub enum WorkspaceAction {
     },
     ShowSessionConfigModal,
     DismissSessionConfigTabConfigChip,
-    /// Open the "New worktree" modal for creating a reusable worktree tab config.
-    OpenNewWorktreeModal,
-    /// Open the native folder picker for the repo field in the new-worktree modal.
-    OpenNewWorktreeRepoPicker,
-    /// Create a new worktree in the given repo using the default worktree tab config.
-    /// The branch name is auto-generated.
-    OpenWorktreeInRepo {
-        repo_path: String,
-    },
-    /// Open a folder picker to add a new repo to PersistedWorkspace (from the
-    /// "New worktree config" submenu's "+ Add new repo..." item).
-    OpenWorktreeAddRepoPicker,
     SaveCurrentTabAsNewConfig(usize),
     SyncTrafficLights,
     /// Opens a tab config file in the editor and dismisses the associated error toast.
@@ -619,11 +602,6 @@ impl WorkspaceAction {
             | ToggleWelcomeTips
             | CopyTextToClipboard(_)
             | CopyAccessTokenToClipboard
-            | OpenTabConfigRepoPicker { .. }
-            | OpenNewWorktreeModal
-            | OpenNewWorktreeRepoPicker
-            | OpenWorktreeInRepo { .. }
-            | OpenWorktreeAddRepoPicker
             | Crash
             | Panic
             | DumpHeapProfile

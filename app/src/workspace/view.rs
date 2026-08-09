@@ -263,9 +263,7 @@ use crate::tab_configs::remove_confirmation_dialog::{
     RemoveTabConfigConfirmationDialog, RemoveTabConfigConfirmationEvent,
 };
 use crate::tab_configs::session_config_modal::{SessionConfigModal, SessionConfigModalEvent};
-use crate::tab_configs::{
-    NewWorktreeModal, NewWorktreeModalEvent, TabConfigParamsModal, TabConfigParamsModalEvent,
-};
+use crate::tab_configs::{TabConfigParamsModal, TabConfigParamsModalEvent};
 
 use crate::code::editor::{add_color, remove_color};
 use crate::palette::PaletteMode;
@@ -682,7 +680,6 @@ pub struct Workspace {
     /// config modal is closed (submitted or dismissed).
     pending_session_config_tab_config_chip: bool,
     show_session_config_tab_config_chip: bool,
-    new_worktree_modal: ModalViewState<Modal<NewWorktreeModal>>,
     close_session_confirmation_dialog: ViewHandle<CloseSessionConfirmationDialog>,
     command_search_view: ViewHandle<CommandSearchView>,
     autoupdate_unable_to_update_banner_dismissed: bool,
@@ -1221,41 +1218,6 @@ impl Workspace {
         ModalViewState::new(modal)
     }
 
-    fn build_new_worktree_modal(
-        ctx: &mut ViewContext<Self>,
-    ) -> ModalViewState<Modal<NewWorktreeModal>> {
-        let body = ctx.add_typed_action_view(NewWorktreeModal::new);
-        ctx.subscribe_to_view(&body, |me, _, event, ctx| {
-            me.handle_new_worktree_modal_body_event(event, ctx);
-        });
-        let modal = ctx.add_typed_action_view(|ctx| {
-            // We intentionally pass `None` for the title so the Modal renders
-            // no built-in header — the body view renders its own header to
-            // match the Figma mock exactly (bold title + X close + ESC badge).
-            Modal::new(None, body, ctx)
-                .with_modal_style(UiComponentStyles {
-                    width: Some(460.),
-                    height: Some(480.),
-                    ..Default::default()
-                })
-                .with_body_style(UiComponentStyles {
-                    padding: Some(Coords {
-                        top: 0.,
-                        bottom: 0.,
-                        left: 0.,
-                        right: 0.,
-                    }),
-                    height: Some(480.),
-                    background: Some(ElementFill::None),
-                    ..Default::default()
-                })
-        });
-        ctx.subscribe_to_view(&modal, |me, _, event, ctx| {
-            me.handle_new_worktree_modal_event(event, ctx);
-        });
-        ModalViewState::new(modal)
-    }
-
     fn build_remove_tab_config_confirmation_dialog(
         ctx: &mut ViewContext<Self>,
     ) -> ViewHandle<RemoveTabConfigConfirmationDialog> {
@@ -1622,7 +1584,6 @@ impl Workspace {
         let launch_config_save_modal = Self::build_launch_config_save_modal(ctx);
 
         let tab_config_params_modal = Self::build_tab_config_params_modal(ctx);
-        let new_worktree_modal = Self::build_new_worktree_modal(ctx);
 
         let session_config_modal = Self::build_session_config_modal(ctx);
 
@@ -1772,7 +1733,6 @@ impl Workspace {
             pending_session_config_replacement: None,
             pending_session_config_tab_config_chip: false,
             show_session_config_tab_config_chip: false,
-            new_worktree_modal,
             close_session_confirmation_dialog,
             command_search_view,
             autoupdate_unable_to_update_banner_dismissed: false,
@@ -3392,17 +3352,11 @@ impl Workspace {
                 ctx,
             );
         } else {
-            // Pass the active terminal's cwd to seed the branch picker's git lookup.
-            let cwd = self
-                .active_session_view(ctx)
-                .and_then(|view| view.as_ref(ctx).pwd())
-                .map(PathBuf::from);
-
             let modal_title = format!("Open: {}", tab_config.name);
             self.tab_config_params_modal.view.update(ctx, |modal, ctx| {
                 modal.body().update(ctx, |body, ctx| {
                     body.set_title(modal_title);
-                    body.on_open(tab_config, cwd, ctx);
+                    body.on_open(tab_config, ctx);
                 });
             });
             self.tab_config_params_modal.open();
@@ -4121,11 +4075,6 @@ impl Workspace {
             TabConfigParamsModalEvent::Close => {
                 self.cancel_tab_config_params_modal(ctx);
             }
-            TabConfigParamsModalEvent::PickNewRepo { param_index } => {
-                ctx.dispatch_typed_action_deferred(WorkspaceAction::OpenTabConfigRepoPicker {
-                    param_index: *param_index,
-                });
-            }
         }
     }
 
@@ -4187,44 +4136,6 @@ impl Workspace {
         self.current_workspace_state.is_tab_config_params_modal_open = false;
         self.tab_config_params_modal.close();
         self.tab_config_params_modal.view.update(ctx, |modal, ctx| {
-            modal.body().update(ctx, |body, ctx| {
-                body.on_close(ctx);
-            });
-        });
-        ctx.notify();
-    }
-
-    fn handle_new_worktree_modal_event(&mut self, event: &ModalEvent, ctx: &mut ViewContext<Self>) {
-        match event {
-            ModalEvent::Close => self.close_new_worktree_modal(ctx),
-        }
-    }
-
-    fn handle_new_worktree_modal_body_event(
-        &mut self,
-        event: &NewWorktreeModalEvent,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        match event {
-            NewWorktreeModalEvent::Close => self.close_new_worktree_modal(ctx),
-            NewWorktreeModalEvent::Submit {
-                repo,
-                branch,
-                worktree_branch_name,
-            } => {
-                self.handle_new_worktree_submit(repo, branch, worktree_branch_name.as_deref(), ctx);
-                self.close_new_worktree_modal(ctx);
-            }
-            NewWorktreeModalEvent::PickNewRepo => {
-                ctx.dispatch_typed_action_deferred(WorkspaceAction::OpenNewWorktreeRepoPicker);
-            }
-        }
-    }
-
-    fn close_new_worktree_modal(&mut self, ctx: &mut ViewContext<Self>) {
-        self.current_workspace_state.is_new_worktree_modal_open = false;
-        self.new_worktree_modal.close();
-        self.new_worktree_modal.view.update(ctx, |modal, ctx| {
             modal.body().update(ctx, |body, ctx| {
                 body.on_close(ctx);
             });
@@ -4347,25 +4258,6 @@ impl Workspace {
         _worktree_branch_name: Option<&str>,
         _ctx: &mut ViewContext<Self>,
     ) {
-    }
-
-    fn open_repo_picker_for_new_worktree_modal(&mut self, ctx: &mut ViewContext<Self>) {
-        let modal_view = self.new_worktree_modal.view.clone();
-        ctx.open_file_picker(
-            move |result, ctx| {
-                let Ok(paths) = result else { return };
-                let Some(path) = paths.into_iter().next() else {
-                    return;
-                };
-                let path_buf: PathBuf = path.clone().into();
-                modal_view.update(ctx, |modal, ctx| {
-                    modal.body().update(ctx, |body, ctx| {
-                        body.on_new_repo_selected(path_buf, ctx);
-                    });
-                });
-            },
-            warpui::platform::FilePickerConfiguration::new().folders_only(),
-        );
     }
 
     /// Opens a worktree in the given repo using the default worktree tab config,
@@ -8757,23 +8649,6 @@ impl TypedActionView for Workspace {
             SelectTabConfig(tab_config) => {
                 self.open_tab_config(tab_config.clone(), ctx);
             }
-            OpenNewWorktreeModal => {
-                let cwd = self
-                    .active_session_view(ctx)
-                    .and_then(|view| view.as_ref(ctx).pwd())
-                    .map(PathBuf::from);
-                self.new_worktree_modal.view.update(ctx, |modal, ctx| {
-                    modal.body().update(ctx, |body, ctx| {
-                        body.on_open(cwd, ctx);
-                    });
-                });
-                self.new_worktree_modal.open();
-                self.current_workspace_state.is_new_worktree_modal_open = true;
-                ctx.notify();
-            }
-            OpenNewWorktreeRepoPicker => {
-                self.open_repo_picker_for_new_worktree_modal(ctx);
-            }
             OpenTabConfigErrorFile {
                 #[cfg_attr(not(feature = "local_fs"), allow(unused_variables))]
                 path,
@@ -8847,12 +8722,6 @@ impl TypedActionView for Workspace {
                 self.show_settings(ctx);
             }
             FixSettingsWithOz { .. } => {}
-            OpenWorktreeInRepo { repo_path } => {
-                self.open_worktree_in_repo(repo_path.clone(), ctx);
-            }
-            OpenWorktreeAddRepoPicker => {
-                self.close_new_session_dropdown_menu(ctx);
-            }
             ApplyUpdate => self.apply_update(ctx),
             CopyVersion(version) => self.copy_version(version, ctx),
             DownloadNewVersion => self.download_new_version(ctx),
@@ -9128,9 +8997,6 @@ ScrollToSettingsWidget { page, widget_id } => {
             }
             OpenRepository { path } => {
                 self.open_repository(path.as_deref(), ctx);
-            }
-            OpenTabConfigRepoPicker { param_index } => {
-                self.open_repo_picker_for_tab_config_modal(*param_index, ctx);
             }
             #[cfg(not(target_family = "wasm"))]
             InsertForkSlashCommand => {
@@ -9795,9 +9661,6 @@ impl View for Workspace {
             stack.add_child(self.session_config_modal.render());
         }
 
-        if self.new_worktree_modal.is_open() {
-            stack.add_child(self.new_worktree_modal.render());
-        }
 
         if self.current_workspace_state.is_prompt_editor_open {
         }

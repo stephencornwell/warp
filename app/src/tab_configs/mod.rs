@@ -1,12 +1,3 @@
-pub mod branch_picker;
-pub mod new_worktree_modal;
-pub mod repo_picker;
-pub use new_worktree_modal::{NewWorktreeModal, NewWorktreeModalEvent};
-/// Optional visual overrides for BranchPicker / RepoPicker dropdowns.
-pub struct PickerStyle {
-    pub width: f32,
-    pub background: Option<Fill>,
-}
 pub(crate) mod action_sidecar;
 pub mod params_modal;
 pub(crate) mod remove_confirmation_dialog;

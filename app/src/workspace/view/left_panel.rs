@@ -403,7 +403,7 @@ impl LeftPanelView {
         let _ = pane_group_id;
 
         let left_panel_open = pane_group.as_ref(ctx).left_panel_open;
-        let _ = (active_directories, ctx);
+        let _ = active_directories;
 
         self.on_left_panel_visibility_changed(left_panel_open, ctx);
 

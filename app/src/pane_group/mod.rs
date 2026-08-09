@@ -1011,9 +1011,6 @@ impl PaneGroup {
                 };
 
                 let (view, terminal_manager) = match pane_mode {
-                    PaneMode::Cloud => {
-                        Self::create_ambient_agent_terminal(resources, view_size, ctx)
-                    }
                     PaneMode::Terminal | PaneMode::Agent => PaneGroup::create_session(
                         // Use cwd from the template iff such path exists, otherwise None
                         // TODO(CORE-3187): On Windows, support WSL directory restoration.
@@ -1033,32 +1030,11 @@ impl PaneGroup {
                 };
 
                 // Runs saved commands on start (terminal and agent modes only).
-                if !commands.is_empty() && !matches!(pane_mode, PaneMode::Cloud) {
+                if !commands.is_empty() {
                     let exec = commands.iter().map(|cmd| &cmd.exec).join(" && ");
                     view.update(ctx, |terminal, ctx| {
                         terminal.set_pending_command(exec.as_str(), ctx);
                     });
-                }
-
-                // Agent mode: enter the agent view. When setup commands are
-                // pending (e.g. worktree creation), defer entry until they
-                // complete so they run in terminal mode.
-                if matches!(pane_mode, PaneMode::Agent) {
-                    if commands.is_empty() {
-                        view.update(ctx, |terminal_view, ctx| {
-                            terminal_view.enter_agent_view_for_new_conversation(
-                                None,
-                                AgentViewEntryOrigin::Input {
-                                    was_prompt_autodetected: false,
-                                },
-                                ctx,
-                            );
-                        });
-                    } else {
-                        view.update(ctx, |terminal_view, _| {
-                            terminal_view.set_enter_agent_view_after_pending_commands();
-                        });
-                    }
                 }
 
                 let pane_data = TerminalPane::new(
@@ -2328,7 +2304,7 @@ impl PaneGroup {
         default_session_mode_behavior: DefaultSessionModeBehavior,
         ctx: &mut ViewContext<Self>,
     ) -> TerminalPaneId {
-        let startup_directory = startup_directory_from_conversation.or_else(|| {
+        let startup_directory = ({
             let ignore_custom_startup_directory =
                 self.should_ignore_custom_startup_directory(&chosen_shell, ctx);
 

@@ -86,7 +86,6 @@ mod show_blocks_view;
 mod tab_menu;
 mod telemetry;
 mod transfer_ownership_confirmation_modal;
-pub mod update_environment_form;
 mod warp_drive_page;
 
 pub use code_page::CodeSettingsPageView;

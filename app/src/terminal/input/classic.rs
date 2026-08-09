@@ -1,6 +1,5 @@
 use crate::{
     appearance::Appearance,
-    context_chips::spacing,
     features::FeatureFlag,
     settings::{AppEditorSettings, InputModeSettings},
     terminal::{
@@ -21,9 +20,8 @@ use crate::{
 use settings::Setting;
 use warpui::{
     elements::{
-        Border, ChildAnchor, ChildView, Clipped, Container, DropTarget, Element, Empty, Flex,
-        Hoverable, OffsetPositioning, ParentAnchor, ParentElement, ParentOffsetBounds,
-        SavePosition, Stack,
+        Border, ChildAnchor, Container, DropTarget, Element, Empty, Flex, Hoverable,
+        OffsetPositioning, ParentAnchor, ParentElement, ParentOffsetBounds, SavePosition, Stack,
     },
     AppContext, SingletonEntity,
 };

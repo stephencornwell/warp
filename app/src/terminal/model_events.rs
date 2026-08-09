@@ -164,11 +164,12 @@ impl ModelEventDispatcher {
                 {
                     if let Some(TmuxControlModeContext::WarpInitiatedForSsh(control_mode)) = context
                     {
-                        let duration_ms = Instant::now()
+                        let _duration_ms = Instant::now()
                             .duration_since(control_mode.start_time)
                             .as_millis()
                             // Clip large durations to u64::MAX
-                            .min(u64::MAX as u128) as u64;
+                            .min(u64::MAX as u128)
+                            as u64;
                         ();
                     }
                 }

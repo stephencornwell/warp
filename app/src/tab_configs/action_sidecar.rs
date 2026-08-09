@@ -6,7 +6,7 @@ use warpui::{
     },
     platform::Cursor,
     ui_components::{
-        button::{ButtonTooltipPosition, ButtonVariant},
+        button::ButtonVariant,
         components::{UiComponent, UiComponentStyles},
     },
     AppContext, Element, SingletonEntity,
@@ -44,7 +44,7 @@ pub(crate) struct SidecarMouseStates {
 pub(crate) fn render_action_sidecar(
     item: &SidecarItemKind,
     mouse_states: &SidecarMouseStates,
-    is_already_default: bool,
+    _is_already_default: bool,
     app: &AppContext,
 ) -> Box<dyn Element> {
     let appearance = Appearance::as_ref(app);

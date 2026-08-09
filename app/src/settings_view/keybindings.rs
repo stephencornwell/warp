@@ -2,8 +2,8 @@ use std::collections::HashMap;
 
 use super::{
     settings_page::{
-        render_sub_header, LocalOnlyIconState, MatchData, PageType, SettingsPageMeta,
-        SettingsPageViewHandle, SettingsWidget,
+        render_sub_header, MatchData, PageType, SettingsPageMeta, SettingsPageViewHandle,
+        SettingsWidget,
     },
     SettingsSection,
 };
@@ -1092,7 +1092,7 @@ impl SettingsWidget for KeybindingsWidget {
         &self,
         view: &Self::View,
         appearance: &Appearance,
-        app: &AppContext,
+        _app: &AppContext,
     ) -> Box<dyn Element> {
         let local_only_icon_state = None;
 

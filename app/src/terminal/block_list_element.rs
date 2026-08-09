@@ -1,7 +1,7 @@
 use crate::appearance::Appearance;
 use crate::features::FeatureFlag;
 use crate::pane_group::SplitPaneState;
-use crate::settings::{DebugSettings, EnforceMinimumContrast, PrivacySettings, TerminalSpacing};
+use crate::settings::{DebugSettings, EnforceMinimumContrast, TerminalSpacing};
 use crate::terminal::alt_screen::{should_intercept_mouse, should_intercept_scroll};
 use crate::terminal::block_list_viewport::AutoscrollBehavior;
 use crate::terminal::model::block::{Block, BlockSection};
@@ -13,8 +13,8 @@ use crate::terminal::model::selection::{SelectAction, SelectionPoint};
 use crate::terminal::safe_mode_settings::get_secret_obfuscation_mode;
 use crate::terminal::view::TerminalAction;
 use crate::terminal::{grid_renderer, SizeInfo};
-use crate::themes::theme::{Fill, WarpTheme};
-use crate::ui_components::{self, icons as UIIcon};
+use crate::themes::theme::WarpTheme;
+use crate::ui_components::icons as UIIcon;
 use crate::util::color::Opacity;
 use enum_iterator::Sequence;
 use parking_lot::FairMutex;
@@ -1002,9 +1002,9 @@ impl BlockListElement {
     pub fn with_hovered_index(
         mut self,
         block_index: BlockIndex,
-        model: &TerminalModel,
-        should_render_tooltip_below_button: bool,
-        app: &AppContext,
+        _model: &TerminalModel,
+        _should_render_tooltip_below_button: bool,
+        _app: &AppContext,
     ) -> Self {
         self.hovered_block_index = Some(block_index);
         let icon_color = self
@@ -1331,7 +1331,7 @@ impl BlockListElement {
 
         if self.is_mouse_position_within_bounds(position) {
             ctx.dispatch_typed_action(TerminalAction::CloseContextMenu);
-            let mut should_redetermine_focus = true;
+            let should_redetermine_focus = true;
 
             match self.coord_to_point(
                 SnackbarPoint::within_snackbar(position),
@@ -1439,7 +1439,9 @@ impl BlockListElement {
                         }
                         // While rich content blocks can't be selected like command blocks,
                         // text selections can still originate in them (i.e. with AI blocks)
-                        Some(BlockHeightItem::RichContent(RichContentItem { view_id, .. })) => {
+                        Some(BlockHeightItem::RichContent(RichContentItem {
+                            view_id: _, ..
+                        })) => {
                             let bounds = self
                                 .bounds
                                 .expect("Bounds should be set before event dispatching");
@@ -1944,7 +1946,7 @@ impl BlockListElement {
         block_borders_enabled: bool,
         snackbar_header: &Option<SnackbarHeader>,
         ctx: &mut PaintContext,
-        app: &AppContext,
+        _app: &AppContext,
     ) {
         let block_height = block.height().as_f64() as f32 * cell_size.y();
         if block.is_restored() {
@@ -2720,12 +2722,12 @@ impl Element for BlockListElement {
         // Collect all the necessary subshell flags here. Usually there will only be one in the
         // viewport, but it's possible the user might start a subshell, exit, and start another
         // one within the same viewport. They might also start a nested subshell.
-        let mut subshell_flags = HashMap::new();
+        let subshell_flags = HashMap::new();
 
         // Keep track of whether the previous block in this loop was part of a subshell, and if so
         // what was the session_id. We need this to determine if the current block needs to have a
         // subshell flag on it.
-        let mut prev_block_subshell_session_id: Option<SessionId> = None;
+        let _prev_block_subshell_session_id: Option<SessionId> = None;
 
         if let Some(banner) = &mut self.block_banner {
             banner.layout(constraint, ctx, app);
@@ -2801,7 +2803,7 @@ impl Element for BlockListElement {
                 BlockHeightItem::Block(height) => {
                     if height.as_f64() > 0. {
                         let block_index = viewport_item.block_index.expect("block index defined");
-                        let mut subshell_session_id = None;
+                        let subshell_session_id = None;
 
                         if let Some(block) = model.block_list().block_at(block_index) {
                             if !(block.honor_ps1() || block.is_background() || block.is_static()) {
@@ -3601,7 +3603,7 @@ impl Element for BlockListElement {
                 VisibleItem::RichContent {
                     view_id, height_px, ..
                 } => {
-                    let block_origin = grid_origin;
+                    let _block_origin = grid_origin;
                     if let Some(rich_content) = self.rich_content_elements.get_mut(view_id) {
                         rich_content.paint(grid_origin, ctx, app);
                     }

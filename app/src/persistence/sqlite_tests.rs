@@ -1,4 +1,4 @@
-use std::{path::PathBuf, sync::Arc};
+use std::path::PathBuf;
 
 use crate::{
     app_state::{
@@ -7,7 +7,6 @@ use crate::{
     },
     persistence::{BlockCompleted, ModelEvent},
     tab::SelectedTabColor,
-    terminal::model::block::SerializedBlock,
     terminal::ShellLaunchData,
 };
 

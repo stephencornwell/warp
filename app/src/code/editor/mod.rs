@@ -8,6 +8,3 @@ mod line_iterator;
 pub mod model;
 mod nav_bar;
 pub mod scroll;
-
-pub(crate) use diff::{add_color, remove_color};
-pub use nav_bar::NavBarBehavior;

@@ -440,13 +440,13 @@ impl fmt::Debug for TerminalAction {
                 selected_range,
             } => write!(f, "SetMarkedText {{{marked_text:?}, {selected_range:?}}}"),
             ClearMarkedText => write!(f, "ClearMarkedText"),
-            ResumeConversation => write!(f, "ResumeConversation"),
-            ForkConversationFromLastKnownGoodState => {
+            _ResumeConversation => write!(f, "ResumeConversation"),
+            _ForkConversationFromLastKnownGoodState => {
                 write!(f, "ForkConversationFromLastKnownGoodState")
             }
-            ToggleAIDocumentPane => write!(f, "ToggleAIDocumentPane"),
-            ToggleTodoPopup => write!(f, "ToggleTodoPopup"),
-            CloseTodoPopup => write!(f, "CloseTodoPopup"),
+            _ToggleAIDocumentPane => write!(f, "ToggleAIDocumentPane"),
+            _ToggleTodoPopup => write!(f, "ToggleTodoPopup"),
+            _CloseTodoPopup => write!(f, "CloseTodoPopup"),
             InitProject => write!(f, "InitProject"),
             IndexProjectSpeedbump => write!(f, "IndexProject"),
             AddProjectAtCurrentDirectory => write!(f, "AddProjectAtCurrentDirectory"),

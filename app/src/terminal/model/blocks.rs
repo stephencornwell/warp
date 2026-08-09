@@ -39,7 +39,7 @@ use warpui::record_trace_event;
 use std::collections::{HashMap, HashSet};
 use warpui::{
     units::{IntoLines, IntoPixels, Lines},
-    AppContext, EntityId, ViewHandle,
+    EntityId,
 };
 
 use super::ansi::InputBufferValue;
@@ -1768,7 +1768,7 @@ impl BlockList {
                         last_laid_out_height,
                         ..
                     }) => {
-                        let should_hide = RichContentItem {
+                        let _should_hide = RichContentItem {
                             content_type: *content_type,
                             view_id: *view_id,
                             last_laid_out_height: *last_laid_out_height,

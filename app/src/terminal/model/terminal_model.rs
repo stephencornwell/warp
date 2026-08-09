@@ -2,7 +2,7 @@ use crate::terminal::available_shells::AvailableShell;
 use crate::terminal::block_list_element::GridType;
 use crate::terminal::event::{
     BootstrappedEvent, Event, ExecutedExecutorCommandEvent, InitSshEvent, InitSubshellEvent,
-    SourcedRcFileInSubshellEvent, SshLoginStatus, TerminalMode,
+    SourcedRcFileInSubshellEvent, TerminalMode,
 };
 use crate::terminal::event_listener::ChannelEventListener;
 use crate::terminal::model::ansi;
@@ -65,9 +65,6 @@ use hex::FromHexError;
 use instant::Instant;
 use itertools::{Either, Itertools};
 use serde::Serialize;
-use session_sharing_protocol::common::{
-    AICommandMetadata, OrderedTerminalEventType, ParticipantId,
-};
 use std::cmp::{max, min};
 use std::collections::HashMap;
 use std::num::ParseIntError;
@@ -1210,7 +1207,7 @@ impl TerminalModel {
         honor_ps1: bool,
         is_inverted: bool,
         obfuscate_secrets: ObfuscateSecrets,
-        is_dummy_cloud_mode_session: bool,
+        _is_dummy_cloud_mode_session: bool,
     ) -> Self {
         Self::new_internal(
             None,

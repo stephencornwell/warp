@@ -197,10 +197,10 @@ impl TabData {
 
     fn session_sharing_menu_items(
         &self,
-        index: usize,
-        ctx: &AppContext,
+        _index: usize,
+        _ctx: &AppContext,
     ) -> Vec<MenuItem<WorkspaceAction>> {
-        let mut menu_items = vec![];
+        let menu_items = vec![];
 
         menu_items
     }
@@ -660,7 +660,7 @@ impl<'a> TabComponent<'a> {
 
     /// Get the tooltip message for tabs - handles both agent tasks and regular tab titles
     fn get_tooltip_message(
-        indicator: &Indicator,
+        _indicator: &Indicator,
         tab: &TabData,
         ctx: &AppContext,
     ) -> Option<String> {

@@ -48,7 +48,6 @@ use crate::channel::{Channel, ChannelState};
 use crate::editor::accept_autosuggestion_keybinding_view::AcceptAutosuggestionKeybinding;
 use crate::editor::autosuggestion_ignore_view::{AutosuggestionIgnore, AutosuggestionIgnoreEvent};
 use crate::settings_view::flags;
-use crate::suggestions::ignored_suggestions_model::{IgnoredSuggestionsModel, SuggestionType};
 use crate::ui_components::buttons::icon_button;
 use crate::ui_components::icons;
 use crate::view_components::DismissibleToast;
@@ -105,8 +104,8 @@ use warp_editor::editor::NavigationKey;
 use warpui::actions::StandardAction;
 use warpui::clipboard::ClipboardContent;
 use warpui::elements::{
-    ChildView, Container, CornerRadius, CrossAxisAlignment, Flex, Hoverable, MainAxisSize,
-    ParentElement, Shrinkable, DEFAULT_UI_LINE_HEIGHT_RATIO,
+    Container, CornerRadius, CrossAxisAlignment, Flex, Hoverable, MainAxisSize, ParentElement,
+    Shrinkable, DEFAULT_UI_LINE_HEIGHT_RATIO,
 };
 use warpui::elements::{MouseStateHandle, Radius};
 use warpui::fonts::{FamilyId, Properties, Weight};
@@ -4051,7 +4050,7 @@ impl EditorView {
             return;
         }
 
-        let terminal_view = ctx
+        let _terminal_view = ctx
             .windows()
             .active_window()
             .and_then(|active_window| {
@@ -4921,13 +4920,13 @@ impl EditorView {
             return;
         }
 
-        let is_udi_enabled = InputSettings::as_ref(ctx).is_universal_developer_input_enabled(ctx);
+        let _is_udi_enabled = InputSettings::as_ref(ctx).is_universal_developer_input_enabled(ctx);
 
         ();
 
         self.process_attached_images_future_handle = Some(ctx.spawn(
             async move {
-                let mut processed_pending_images: Vec<AttachedImage> = vec![];
+                let processed_pending_images: Vec<AttachedImage> = vec![];
                 let mut num_oversized_images: usize = 0;
                 let mut num_unprocessed_images: usize = 0;
 
@@ -7782,8 +7781,8 @@ impl EditorView {
             }
         }
         let input_settings = InputSettings::as_ref(ctx);
-        let is_universal_input_enabled = input_settings.is_universal_developer_input_enabled(ctx);
-        let is_any_ai_enabled = false;
+        let _is_universal_input_enabled = input_settings.is_universal_developer_input_enabled(ctx);
+        let _is_any_ai_enabled = false;
         let should_show_image = false;
         let should_show_at_context_menu = false;
 

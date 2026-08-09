@@ -12,9 +12,9 @@ use crate::util::openable_file_type::{
     is_file_openable_in_warp, is_markdown_file, is_runnable_shell_script, starts_with_shebang,
 };
 use crate::view_components::DismissibleToast;
+use crate::workspace::active_terminal_in_window;
 use crate::workspace::ToastStack;
-use crate::workspace::{Workspace, WorkspaceAction, WorkspaceRegistry};
-use crate::{features::FeatureFlag, workspace::active_terminal_in_window};
+use crate::workspace::{Workspace, WorkspaceAction};
 
 use crate::settings_view::SettingsSection;
 use crate::{quake_mode_window_id, quake_mode_window_is_open, safe_info, ChannelState, OpenPath};

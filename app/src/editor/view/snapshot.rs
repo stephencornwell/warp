@@ -10,7 +10,7 @@ use crate::editor::soft_wrap::FrameLayouts;
 use crate::terminal::grid_size_util::grid_compute_baseline_position_fn;
 
 use parking_lot::Mutex;
-use pathfinder_geometry::vector::{vec2f, Vector2F};
+use pathfinder_geometry::vector::Vector2F;
 
 use anyhow::Result;
 use core::f32;

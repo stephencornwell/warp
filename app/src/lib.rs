@@ -165,7 +165,7 @@ use crate::workspace::{ActiveSession, OneTimeModalModel, ToastStack};
 #[cfg(feature = "local_tty")]
 use anyhow::Context;
 use anyhow::{anyhow, Result};
-use appearance::{Appearance, AppearanceManager};
+use appearance::AppearanceManager;
 use channel::ChannelState;
 use interval_timer::IntervalTimer;
 use itertools::Itertools;
@@ -975,7 +975,7 @@ fn initialize_app(
         LaunchMode::App { api_key, .. } if ChannelState::channel().is_dogfood() => api_key.clone(),
         _ => None,
     };
-    let api_key = if FeatureFlag::APIKeyAuthentication.is_enabled() {
+    let _api_key = if FeatureFlag::APIKeyAuthentication.is_enabled() {
         api_key
     } else {
         None
@@ -1005,7 +1005,7 @@ fn initialize_app(
     // in `initialize_cloud_preferences_syncer`; InvalidSettings means TOML
     // parsed but individual values were wrong, which doesn't mean local
     // state is unusable.
-    let startup_toml_parse_error_for_syncer = user_defaults_on_startup
+    let _startup_toml_parse_error_for_syncer = user_defaults_on_startup
         .settings_file_error
         .as_ref()
         .and_then(|err| match err {
@@ -1039,7 +1039,7 @@ fn initialize_app(
         if #[cfg(feature = "crash_reporting")] {
             let is_crash_reporting_enabled = crash_reporting::init(ctx);
         } else {
-            let is_crash_reporting_enabled = false;
+            let _is_crash_reporting_enabled = false;
         }
     }
     // Send buffered pre-init errors to Sentry now that the client is ready.
@@ -1192,12 +1192,12 @@ fn initialize_app(
 
     ctx.add_singleton_model(|_| AudibleBell::new());
 
-    let toml_file_path = settings::user_preferences_toml_file_path();
+    let _toml_file_path = settings::user_preferences_toml_file_path();
 
     // LogManager must be registered before any subsystem (e.g. MCP, LSP) that creates file-based loggers.
     ctx.add_singleton_model(|_| simple_logger::manager::LogManager::new());
 
-    let running_mcp_servers = app_state
+    let _running_mcp_servers = app_state
         .as_ref()
         .map(|app_state| app_state.running_mcp_servers.as_slice())
         .unwrap_or(&[]);
@@ -1258,7 +1258,7 @@ fn app_callbacks(is_integration_test: bool) -> warpui::platform::AppCallbacks {
             NetworkStatus::handle(ctx)
                 .update(ctx, move |me, ctx| me.reachability_changed(reachable, ctx));
         })),
-        on_become_active: Some(Box::new(move |ctx| {})),
+        on_become_active: Some(Box::new(move |_ctx| {})),
         on_screen_changed: Some(Box::new(move |ctx| {
             ctx.dispatch_global_action(
                 "root_view:move_quake_mode_window_from_screen_change",

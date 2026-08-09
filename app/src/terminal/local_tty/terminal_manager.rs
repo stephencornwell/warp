@@ -9,13 +9,6 @@ use std::rc::Rc;
 use std::sync::mpsc::{SendError, SyncSender};
 use std::{collections::HashMap, ffi::OsString, path::PathBuf, sync::Arc, thread::JoinHandle};
 
-use session_sharing_protocol::sharer::{
-    AddGuestsResponse, FailedToInitializeSessionReason, Lifetime, LinkAccessLevelUpdateResponse,
-    QuotaType, RemoveGuestResponse, SessionEndedReason, SessionSourceType,
-    TeamAccessLevelUpdateResponse, UpdatePendingUserRoleResponse,
-};
-
-use crate::network::{NetworkStatusEvent, NetworkStatusKind};
 use crate::terminal::available_shells::{AvailableShell, AvailableShells};
 use crate::terminal::ShellLaunchData;
 use crate::terminal::ShellLaunchState;
@@ -23,15 +16,6 @@ use crate::terminal::ShellLaunchState;
 use parking_lot::{FairMutex, Mutex};
 use pathfinder_geometry::vector::Vector2F;
 
-use session_sharing_protocol::common::{
-    ActivePrompt, AgentPromptFailureReason, CLIAgentSessionState, CommandExecutionFailureReason,
-    ControlAction, ControlActionFailureReason, SelectedAgentModel,
-    UniversalDeveloperInputContextUpdate, WriteToPtyFailureReason,
-};
-#[cfg(not(any(test, feature = "integration_tests")))]
-use session_sharing_protocol::common::{
-    LongRunningCommandAgentInteractionState, SelectedConversation, UniversalDeveloperInputContext,
-};
 use settings::Setting as _;
 use warpui::r#async::executor::Background;
 use warpui::{AppContext, ModelContext, ModelHandle, SingletonEntity, ViewHandle, WindowId};
@@ -47,7 +31,7 @@ use crate::settings::{PrivacySettings, SshSettings};
 use crate::terminal::model::session::Sessions;
 
 use crate::terminal::model_events::ModelEventDispatcher;
-use crate::terminal::session_settings::{SessionSettings, SessionSettingsChangedEvent};
+use crate::terminal::session_settings::SessionSettings;
 use crate::terminal::view::Event as TerminalViewEvent;
 use crate::terminal::writeable_pty::pty_controller::{EventLoopSendError, EventLoopSender};
 use crate::terminal::writeable_pty::terminal_manager_util::{
@@ -597,7 +581,7 @@ impl TerminalManager {
     ) {
         let poller_weak_handle = terminal_attributes_poller.downgrade();
         let view_weak_handle = terminal_view.downgrade();
-        let view_weak_handle_2 = view_weak_handle.clone();
+        let _view_weak_handle_2 = view_weak_handle.clone();
 
         // Used to track the index of the started block across the view <-> poller interactions.
         let block_index: Rc<RefCell<Option<BlockIndex>>> = Rc::new(RefCell::new(None));
@@ -745,7 +729,7 @@ pub fn get_shell_starter(
 
 fn get_shell_starter_internal(
     shell_starter_source: ShellStarterSource,
-    background_executor: Arc<Background>,
+    _background_executor: Arc<Background>,
 ) -> ShellStarter {
     match shell_starter_source {
         ShellStarterSource::Override(shell_starter) => shell_starter,
@@ -756,7 +740,7 @@ fn get_shell_starter_internal(
             unsupported_shell,
             starter,
         } => {
-            if let Some(unsupported_shell) = unsupported_shell {
+            if let Some(_unsupported_shell) = unsupported_shell {
                 ();
             }
 

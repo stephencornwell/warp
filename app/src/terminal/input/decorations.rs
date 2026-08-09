@@ -136,7 +136,7 @@ impl Input {
             return;
         }
 
-        let mut mode = mode;
+        let mode = mode;
 
         // We don't show input command decorations in AI mode, but we keep slash command prefix highlighting.
         let buffer_text = self.editor.as_ref(ctx).buffer_text(ctx);

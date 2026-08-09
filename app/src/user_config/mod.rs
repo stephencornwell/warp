@@ -15,7 +15,7 @@ use warpui::{Entity, ModelContext, SingletonEntity};
 
 #[cfg(test)]
 pub(crate) use imp::load_tab_configs;
-pub use imp::{load_launch_configs, load_theme_configs};
+pub use imp::load_theme_configs;
 
 lazy_static! {
     pub static ref LAUNCH_CONFIG_COMMENT: String = format!(

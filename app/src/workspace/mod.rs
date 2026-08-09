@@ -94,7 +94,6 @@ pub fn init(app: &mut AppContext) {
         WorkspaceAction::DispatchToSettingsTab(settings_action)
     });
     global_actions::init_global_actions(app);
-    notebooks::init(app);
     code::init(app);
     sync_inputs::init(app);
     lsp::init(app);
@@ -561,7 +560,7 @@ pub fn init(app: &mut AppContext) {
         .with_custom_action(CustomAction::NewTeamNotebook)
         .with_context_predicate(
             id!("Workspace")
-                & id!(flags::ENABLE_WARP_DRIVE)
+                & id!("Workspace")
                 & id!("WarpDrive_BelongsToTeam")
                 & id!("IsOnline"),
         )
@@ -574,7 +573,7 @@ pub fn init(app: &mut AppContext) {
         )
         .with_group(bindings::BindingGroup::Notebooks.as_str())
         .with_custom_action(CustomAction::NewPersonalNotebook)
-        .with_context_predicate(id!("Workspace") & id!(flags::ENABLE_WARP_DRIVE)),
+        .with_context_predicate(id!("Workspace")),
         EditableBinding::new(
             "workspace:create_team_workflow",
             BindingDescription::new("Create a new team workflow")
@@ -584,7 +583,7 @@ pub fn init(app: &mut AppContext) {
         .with_custom_action(CustomAction::NewTeamWorkflow)
         .with_context_predicate(
             id!("Workspace")
-                & id!(flags::ENABLE_WARP_DRIVE)
+                & id!("Workspace")
                 & id!("IsOnline")
                 & id!("WarpDrive_BelongsToTeam"),
         )
@@ -597,7 +596,7 @@ pub fn init(app: &mut AppContext) {
         )
         .with_group(bindings::BindingGroup::Workflow.as_str())
         .with_custom_action(CustomAction::NewPersonalWorkflow)
-        .with_context_predicate(id!("Workspace") & id!(flags::ENABLE_WARP_DRIVE)),
+        .with_context_predicate(id!("Workspace")),
         EditableBinding::new(
             "workspace:create_team_folder",
             BindingDescription::new("Create a new team folder")
@@ -606,7 +605,7 @@ pub fn init(app: &mut AppContext) {
         )
         .with_context_predicate(
             id!("Workspace")
-                & id!(flags::ENABLE_WARP_DRIVE)
+                & id!("Workspace")
                 & id!("IsOnline")
                 & id!("WarpDrive_BelongsToTeam"),
         )
@@ -618,7 +617,7 @@ pub fn init(app: &mut AppContext) {
             WorkspaceAction::CreatePersonalFolder,
         )
         .with_group(bindings::BindingGroup::Folders.as_str())
-        .with_context_predicate(id!("Workspace") & id!(flags::ENABLE_WARP_DRIVE) & id!("IsOnline")),
+        .with_context_predicate(id!("Workspace") & id!("IsOnline")),
         EditableBinding::new(
             NEW_TAB_BINDING_NAME,
             BindingDescription::new("Create new tab"),
@@ -677,7 +676,7 @@ pub fn init(app: &mut AppContext) {
             WorkspaceAction::ToggleWarpDrive,
         )
         .with_group(bindings::BindingGroup::Navigation.as_str())
-        .with_context_predicate(id!("Workspace") & id!(flags::ENABLE_WARP_DRIVE))
+        .with_context_predicate(id!("Workspace"))
         .with_mac_key_binding("ctrl-4")
         .with_linux_or_windows_key_binding("alt-4"),
         EditableBinding::new(
@@ -703,7 +702,7 @@ pub fn init(app: &mut AppContext) {
                 .with_custom_description(bindings::MAC_MENUS_CONTEXT, "Warp Drive"),
             WorkspaceAction::ToggleWarpDrive,
         )
-        .with_context_predicate(id!("Workspace") & id!(flags::ENABLE_WARP_DRIVE)),
+        .with_context_predicate(id!("Workspace")),
         EditableBinding::new(
             "workspace:close_panel",
             BindingDescription::new("Close focused panel")
@@ -949,7 +948,7 @@ pub fn init(app: &mut AppContext) {
             WorkspaceAction::ExportAllWarpDriveObjects,
         )
         .with_group(bindings::BindingGroup::Settings.as_str())
-        .with_context_predicate(id!("Workspace") & id!(flags::ENABLE_WARP_DRIVE))]);
+        .with_context_predicate(id!("Workspace"))]);
     }
 
     // CLI install/uninstall actions (macOS only)
@@ -1014,7 +1013,7 @@ pub fn init(app: &mut AppContext) {
         .with_custom_action(CustomAction::NewTeamEnvVars)
         .with_context_predicate(
             id!("Workspace")
-                & id!(flags::ENABLE_WARP_DRIVE)
+                & id!("Workspace")
                 & id!("WarpDrive_BelongsToTeam")
                 & id!("IsOnline"),
         )
@@ -1030,7 +1029,7 @@ pub fn init(app: &mut AppContext) {
         )
         .with_group(bindings::BindingGroup::EnvVarCollection.as_str())
         .with_custom_action(CustomAction::NewPersonalEnvVars)
-        .with_context_predicate(id!("Workspace") & id!(flags::ENABLE_WARP_DRIVE)),
+        .with_context_predicate(id!("Workspace")),
         EditableBinding::new(
             "workspace:create_personal_ai_prompt",
             BindingDescription::new("Create a new personal prompt")
@@ -1040,7 +1039,7 @@ pub fn init(app: &mut AppContext) {
         .with_group(bindings::BindingGroup::WarpAi.as_str())
         .with_custom_action(CustomAction::NewPersonalAIPrompt)
         .with_context_predicate(
-            id!("Workspace") & id!(flags::ENABLE_WARP_DRIVE) & id!(flags::IS_ANY_AI_ENABLED),
+            id!("Workspace") & id!(flags::IS_ANY_AI_ENABLED),
         ),
         EditableBinding::new(
             "workspace:create_team_ai_prompt",
@@ -1052,7 +1051,7 @@ pub fn init(app: &mut AppContext) {
         .with_custom_action(CustomAction::NewTeamAIPrompt)
         .with_context_predicate(
             id!("Workspace")
-                & id!(flags::ENABLE_WARP_DRIVE)
+                & id!("Workspace")
                 & id!("WarpDrive_BelongsToTeam")
                 & id!("IsOnline")
                 & id!(flags::IS_ANY_AI_ENABLED),
@@ -1082,14 +1081,14 @@ pub fn init(app: &mut AppContext) {
             "Import To Personal Drive",
             WorkspaceAction::ImportToPersonalDrive,
         )
-        .with_context_predicate(id!("Workspace") & id!(flags::ENABLE_WARP_DRIVE)),
+        .with_context_predicate(id!("Workspace")),
         EditableBinding::new(
             "workspace:import_to_team_drive",
             "Import To Team Drive",
             WorkspaceAction::ImportToTeamDrive,
         )
         .with_context_predicate(
-            id!("Workspace") & id!(flags::ENABLE_WARP_DRIVE) & id!("WarpDrive_BelongsToTeam"),
+            id!("Workspace") & id!("WarpDrive_BelongsToTeam"),
         ),
     ]);
 
@@ -1325,9 +1324,7 @@ fn add_overflow_menu_items_as_editable_binding(app: &mut AppContext) {
         .with_context_predicate(id!("Workspace")),
         EditableBinding::new(
             "workspace:send_feedback",
-            BindingDescription::new("Send feedback (opens external link)").with_dynamic_override(
-                |ctx| is_feedback_skill_available(ctx).then(|| "Send feedback with Oz".into()),
-            ),
+            BindingDescription::new("Send feedback (opens external link)"),
             WorkspaceAction::SendFeedback,
         )
         .with_context_predicate(id!("Workspace")),

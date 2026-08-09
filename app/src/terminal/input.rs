@@ -9,7 +9,6 @@ pub mod repos;
 mod suggestions_mode_menu;
 pub mod suggestions_mode_model;
 mod terminal;
-mod terminal_message_bar;
 mod universal;
 
 use crate::context_chips::spacing;
@@ -27,7 +26,6 @@ use crate::terminal::input::repos::{InlineReposMenuEvent, InlineReposMenuView};
 use crate::terminal::input::suggestions_mode_model::{
     InputSuggestionsModeEvent, InputSuggestionsModeModel,
 };
-use crate::terminal::input::terminal_message_bar::TerminalInputMessageBar;
 use crate::terminal::model::session::active_session::ActiveSession;
 use crate::terminal::package_installers::command_at_cursor_has_common_package_installer_prefix;
 use crate::terminal::prompt_render_helper::should_render_ps1_prompt;
@@ -1230,7 +1228,6 @@ pub struct Input {
     conn: Option<Arc<Mutex<SqliteConnection>>>,
 
     /// Cached hint text to ensure it remains stable during shell initialization hooks
-    terminal_input_message_bar: ViewHandle<TerminalInputMessageBar>,
 
     /// Inline repos switcher menu.
 

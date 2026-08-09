@@ -16,7 +16,6 @@ use super::{
 };
 use crate::{
     appearance::Appearance,
-    settings::CloudPreferencesSettings,
     themes::theme::Fill,
     ui_components::icons::Icon,
     view_components::{Dropdown, SubmittableTextInput},
@@ -95,7 +94,6 @@ pub enum SettingsPageViewHandle {
     Main(ViewHandle<MainSettingsPageView>),
     Appearance(ViewHandle<AppearanceSettingsPageView>),
     Features(ViewHandle<FeaturesPageView>),
-    SharedBlocks(ViewHandle<ShowBlocksView>),
     Keybindings(ViewHandle<KeybindingsView>),
     About(ViewHandle<AboutPageView>),
     Privacy(ViewHandle<PrivacyPageView>),
@@ -108,7 +106,6 @@ impl SettingsPageViewHandle {
             Main(view_handle) => ChildView::new(view_handle).finish(),
             Appearance(view_handle) => ChildView::new(view_handle).finish(),
             Features(view_handle) => ChildView::new(view_handle).finish(),
-            SharedBlocks(view_handle) => ChildView::new(view_handle).finish(),
             Keybindings(view_handle) => ChildView::new(view_handle).finish(),
             About(view_handle) => ChildView::new(view_handle).finish(),
             Privacy(view_handle) => ChildView::new(view_handle).finish(),
@@ -406,13 +403,8 @@ impl LocalOnlyIconState {
         storage_key: &str,
         sync_to_cloud: SyncToCloud,
         mouse_states: &mut HashMap<String, MouseStateHandle>,
-        app: &AppContext,
+        _app: &AppContext,
     ) -> Self {
-        if !*CloudPreferencesSettings::as_ref(app).settings_sync_enabled {
-            // Only show the local-only icon if settings sync is enabled.
-            return Self::Hidden;
-        }
-
         match sync_to_cloud {
             SyncToCloud::Never => {
                 let mouse_state = mouse_states

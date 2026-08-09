@@ -9,12 +9,9 @@
 //! The [`PaneId`] must be created via a [`PaneView<BackingView>`]. The [`PaneId`] is consequently
 //! used to render a [`PaneView`] which internally renders the pane, including the [`BackingView`].
 pub(super) mod env_var_collection_pane;
-pub(crate) mod environment_management_pane;
-pub(super) mod file_pane;
 pub(super) mod get_started_pane;
 pub(super) mod get_started_view;
 pub(super) mod network_log_pane;
-pub(super) mod notebook_pane;
 pub(super) mod settings_pane;
 pub(super) mod terminal_pane;
 pub mod view;

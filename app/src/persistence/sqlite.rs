@@ -504,54 +504,6 @@ fn handle_model_event(event: ModelEvent, connection: &mut SqliteConnection) -> a
         ModelEvent::Snapshot(app_state) => {
             save_app_state(connection, &app_state).context("error saving app state")
         }
-        ModelEvent::UpsertWorkflows(workflows) => {
-            upsert_workflows(connection, workflows).context("error saving workflows")
-        }
-        ModelEvent::UpsertNotebooks(notebooks) => {
-            upsert_notebooks(connection, notebooks).context("error saving notebooks")
-        }
-        ModelEvent::UpsertFolders(folders) => {
-            upsert_folders(connection, folders).context("error saving folders")
-        }
-        ModelEvent::UpsertGenericStringObject { object } => {
-            upsert_generic_string_objects(connection, vec![object])
-                .context("error upserting generic object")
-        }
-        ModelEvent::UpsertGenericStringObjects(objects) => {
-            upsert_generic_string_objects(connection, objects)
-                .context("error upserting generic objects")
-        }
-        ModelEvent::UpsertNotebook { notebook } => {
-            upsert_notebooks(connection, vec![notebook]).context("error upserting notebook")
-        }
-        ModelEvent::UpsertWorkflow { workflow } => {
-            upsert_workflows(connection, vec![workflow]).context("error upserting workflow")
-        }
-        ModelEvent::UpsertFolder { folder } => {
-            upsert_folders(connection, vec![folder]).context("error upserting folder")
-        }
-        ModelEvent::MarkObjectAsSynced {
-            revision_and_editor,
-            metadata_ts,
-            hashed_sqlite_id,
-        } => mark_object_as_synced(
-            connection,
-            hashed_sqlite_id,
-            revision_and_editor,
-            metadata_ts,
-        )
-        .context("error marking object as synced"),
-        ModelEvent::IncrementRetryCount(id) => {
-            increment_retry_count(connection, id).context("error incrementing retry count")
-        }
-        ModelEvent::DeleteObjects { ids } => {
-            delete_objects(connection, ids).context("error deleting objects")
-        }
-        ModelEvent::UpdateObjectAfterServerCreation {
-            client_id,
-            server_creation_info,
-        } => update_object_after_server_creation(connection, client_id, server_creation_info)
-            .context("error executing object creation succeeded callback"),
         ModelEvent::UpsertCodebaseIndexMetadata { .. } => Ok(()),
         ModelEvent::DeleteCodebaseIndexMetadata { repo_path } => {
             delete_codebase_index_metadata(connection, &repo_path)
@@ -563,59 +515,12 @@ fn handle_model_event(event: ModelEvent, connection: &mut SqliteConnection) -> a
         ModelEvent::DeleteProject { path } => {
             delete_project(connection, &path).context("error deleting project")
         }
-        ModelEvent::UpsertWorkspace { workspace } => {
-            save_workspace(connection, *workspace).context("error upserting workspace")
-        }
-        ModelEvent::UpsertWorkspaces { workspaces } => {
-            save_workspaces(connection, workspaces).context("error upserting workspaces")
-        }
-        ModelEvent::SetCurrentWorkspace { workspace_uid } => {
-            set_current_workspace(connection, workspace_uid)
-                .context("error setting current workspace")
-        }
-        ModelEvent::UpdateObjectMetadata { id, metadata } => {
-            update_object_metadata(connection, id, metadata).context("error updating metadata")
-        }
         ModelEvent::InsertCommand { metadata } => {
             insert_command(connection, metadata).context("error inserting command")
         }
         ModelEvent::UpdateFinishedCommand { metadata } => {
             update_finished_command(connection, metadata).context("error updating finished command")
         }
-        ModelEvent::UpsertUserProfiles { profiles } => {
-            upsert_user_profiles(connection, profiles).context("error updating user profiles")
-        }
-        ModelEvent::ClearUserProfiles => {
-            clear_user_profiles(connection).context("error clearing user profiles")
-        }
-        ModelEvent::RecordTimeOfNextRefresh { timestamp } => {
-            record_time_of_next_refresh(connection, timestamp)
-                .context("error marking object refresh as completed")
-        }
-        ModelEvent::InsertObjectAction { object_action } => {
-            insert_object_action(connection, object_action).context("error inserting object action")
-        }
-        ModelEvent::SyncObjectActions {
-            actions_to_sync: objects_to_sync,
-        } => {
-            sync_object_actions(connection, objects_to_sync).context("error syncing object actions")
-        }
-        ModelEvent::SaveExperiments { experiments } => {
-            save_experiments(connection, experiments).context("error saving experiments")
-        }
-        ModelEvent::UpsertCurrentUserInformation { user_information } => {
-            upsert_current_user_information(connection, user_information)
-                .context("error upserting user information")
-        }
-        ModelEvent::UpsertMCPServerEnvironmentVariables {
-            mcp_server_uuid,
-            environment_variables,
-        } => upsert_mcp_server_environment_variables(
-            connection,
-            mcp_server_uuid,
-            environment_variables,
-        )
-        .context("error upserting mcp server mcp_environment variables"),
         ModelEvent::UpsertProjectRules { project_rule_paths } => {
             upsert_project_rules(connection, project_rule_paths)
                 .context("error upserting project rules")
@@ -633,20 +538,6 @@ fn handle_model_event(event: ModelEvent, connection: &mut SqliteConnection) -> a
             suggestion_type,
         } => remove_ignored_suggestion(connection, suggestion, suggestion_type)
             .context("error removing ignored suggestion"),
-        ModelEvent::UpsertMCPServerInstallation {
-            mcp_server_installation,
-        } => upsert_mcp_server_installation(connection, mcp_server_installation),
-        ModelEvent::DeleteMCPServerInstallations { installation_uuids } => {
-            delete_mcp_server_installations(connection, installation_uuids)
-        }
-        ModelEvent::DeleteMCPServerInstallationsByTemplateUuid { template_uuid } => {
-            delete_mcp_server_installations_by_template_uuid(connection, template_uuid)
-        }
-        ModelEvent::UpdateMCPInstallationRunning {
-            installation_uuid,
-            running,
-        } => update_mcp_server_running(connection, installation_uuid, running)
-            .context("Error updating running field for MCP installation"),
         ModelEvent::UpsertWorkspaceLanguageServer {
             workspace_path,
             lsp_type,
@@ -658,13 +549,6 @@ fn handle_model_event(event: ModelEvent, connection: &mut SqliteConnection) -> a
             agent_view_visibility,
         } => update_block_agent_view_visibility(connection, &block_id, &agent_view_visibility)
             .context("error updating block agent view visibility"),
-        ModelEvent::SaveAIDocumentContent {
-            document_id,
-            content,
-            version,
-            title,
-        } => save_ai_document_content(connection, &document_id, &content, version, &title)
-            .context("error saving AI document content"),
     }
 }
 

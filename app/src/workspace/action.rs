@@ -462,12 +462,6 @@ pub enum WorkspaceAction {
         path: PathBuf,
         toast_object_id: String,
     },
-    /// Sidecar action: set the hovered item as the Cmd+T default.
-    TabConfigSidecarMakeDefault {
-        mode: crate::settings::ai::DefaultSessionMode,
-        tab_config_path: Option<PathBuf>,
-        shell: Option<AvailableShell>,
-    },
     /// Sidecar action: open the tab config TOML in the user's editor.
     TabConfigSidecarEditConfig {
         path: PathBuf,
@@ -493,7 +487,6 @@ impl WorkspaceAction {
         use WorkspaceAction::*;
         match self {
             #[cfg(not(target_family = "wasm"))]
-            ContinueConversationLocally { .. } => true,
             ActivateTab(_)
             | ActivateTabByNumber(_)
             | ActivatePrevTab
@@ -531,16 +524,10 @@ impl WorkspaceAction {
             | AddWindowWithShell { .. }
             | CloseWindow
             | ScrollToSettingsWidget { .. }
-            | NewTabInAgentMode { .. }
-            | NewPaneInAgentMode { .. }
             | FixInAgentMode { .. }
             | OpenNotebook { .. }
-            | RunWorkflow { .. }
             | OpenFileInNewTab { .. }
-            | RestoreOrNavigateToConversation { .. }
             | NewCodeFile
-            | ForkAIConversation { .. }
-            | SummarizeAIConversation { .. }
             | OpenRepository { .. }
             | SelectTabConfig(_) => true, // actions that actually change a state of the state of user's
             // workspace would most likely require a save, so that if the app gets
@@ -662,13 +649,8 @@ impl WorkspaceAction {
             | RunAISuggestedCommand { .. }
             | RunCommand { .. }
             | InsertInInput { .. }
-            | InsertForkSlashCommand
-            | QueuePromptForConversation { .. }
             | AttemptLoginGatedAIUpgrade
-            | UndoTrash(_)
             | OpenFilePath { .. }
-            | ViewObjectInWarpDrive(_)
-            | OpenObjectSharingSettings { .. }
             | TerminateApp
             | SignInAnonymousWebUser
             | TabHoverWidthStart { .. }
@@ -688,12 +670,6 @@ impl WorkspaceAction {
             | ToggleNotificationMailbox { .. }
             | ToggleAgentManagementView
             | ViewAgentRunsForEnvironment { .. }
-            | ToggleAIDocumentPane { .. }
-            | HideAIDocumentPanes
-            | OpenAIDocumentPane { .. }
-            | ExecuteDeleteConversation { .. }
-            | OpenAmbientAgentSession { .. }
-            | OpenConversationTranscriptViewer { .. }
             | OpenLightbox { .. }
             | UpdateLightboxImage { .. }
             | ShowSessionConfigModal
@@ -701,7 +677,6 @@ impl WorkspaceAction {
             | SaveCurrentTabAsNewConfig(_)
             | SyncTrafficLights
             | OpenTabConfigErrorFile { .. }
-            | TabConfigSidecarMakeDefault { .. }
             | TabConfigSidecarEditConfig { .. }
             | TabConfigSidecarRemoveConfig { .. }
             | OpenSettingsFile

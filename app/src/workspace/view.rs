@@ -7111,9 +7111,6 @@ impl Workspace {
             pane_group::Event::OpenSuggestedRuleModal { rule_and_id } => {
                 self.open_suggested_rule_modal(rule_and_id, ctx);
             }
-            pane_group::Event::AnonymousUserSignup => {
-                self.initiate_user_signup(AnonymousUserSignupEntrypoint::RenotificationBlock, ctx);
-            }
             pane_group::Event::OpenDriveObjectShareDialog {
                 cloud_object_type_and_id,
                 invitee_email,
@@ -11730,7 +11727,6 @@ impl View for Workspace {
         event_handler.finish()
     }
 
-    /// Update this workspace when it has been closed, but may still be restored.
 }
 
 fn compute_default_panel_widths(

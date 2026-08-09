@@ -2,15 +2,15 @@ use super::{
     AgentOnboardingVersion, AskAISource, ContextMenuAction, OnboardingIntention, OnboardingVersion,
     TerminalAction,
 };
-
 use crate::ai::predict::prompt_suggestions::ACCEPT_PROMPT_SUGGESTION_KEYBINDING;
+use crate::terminal::shared_session::SharedSessionActionSource;
+use crate::terminal::ssh::error::{SshErrorBlockAction, SSH_ERROR_BLOCK_VISIBLE_KEY};
+use crate::terminal::view::passive_suggestions::PromptSuggestionResolution;
+
 use crate::settings_view::flags;
 use crate::terminal::input::{
     SET_INPUT_MODE_AGENT_ACTION_NAME, SET_INPUT_MODE_TERMINAL_ACTION_NAME,
 };
-use crate::terminal::shared_session::SharedSessionActionSource;
-use crate::terminal::ssh::error::{SshErrorBlockAction, SSH_ERROR_BLOCK_VISIBLE_KEY};
-use crate::terminal::view::passive_suggestions::PromptSuggestionResolution;
 use crate::terminal::view::{
     LONG_RUNNING_AGENT_REQUESTED_COMMAND_CONTEXT_KEY,
     LONG_RUNNING_AGENT_REQUESTED_COMMAND_USER_TOOK_OVER_CONTEXT_KEY,
@@ -167,30 +167,6 @@ pub fn init(app: &mut AppContext) {
         FixedBinding::new(
             "pagedown",
             TerminalAction::PageDown,
-            id!("Terminal") & !id!("IMEOpen"),
-        ),
-        // Resume conversation keybinding
-        FixedBinding::new_per_platform(
-            PerPlatformKeystroke {
-                mac: "cmd-shift-R",
-                linux_and_windows: "ctrl-alt-r",
-            },
-            TerminalAction::ResumeConversation,
-            id!("Terminal") & !id!("IMEOpen") & id!(CAN_RESUME_CONVERSATION_KEY),
-        ),
-        // Fork from the last known good exchange keybinding
-        FixedBinding::new_per_platform(
-            PerPlatformKeystroke {
-                mac: "cmd-alt-y",
-                linux_and_windows: "ctrl-alt-y",
-            },
-            TerminalAction::ForkConversationFromLastKnownGoodState,
-            id!("Terminal") & !id!("IMEOpen") & id!(CAN_FORK_FROM_LAST_KNOWN_GOOD_STATE_KEY),
-        ),
-        // Toggle AI document pane
-        FixedBinding::new(
-            "cmdorctrl-alt-p",
-            TerminalAction::ToggleAIDocumentPane,
             id!("Terminal") & !id!("IMEOpen"),
         ),
         // On the web, we get pastes from system paste events.

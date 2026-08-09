@@ -1331,64 +1331,6 @@ impl BlockList {
         Some(block)
     }
 
-    pub fn clear_user_executed_command_blocks_for_conversation(
-        &mut self,
-        conversation_id: AIConversationId,
-    ) {
-        let active_block_index = self.active_block_index();
-
-        let mut indices_to_remove = Vec::new();
-        for (i, block) in self.blocks.iter().enumerate() {
-            let index: BlockIndex = i.into();
-            if index == active_block_index {
-                continue;
-            }
-
-            // Only clear blocks that were created inside this agent view conversation. Blocks
-            // created in the top-level terminal (even if later attached as context) should not be
-            // removed by a conversation-scoped clear.
-            match block.agent_view_visibility() {
-                AgentViewVisibility::Agent {
-                    origin_conversation_id: block_conversation_id,
-                    ..
-                } => {
-                    if block_conversation_id != &conversation_id {
-                        continue;
-                    }
-                }
-                AgentViewVisibility::Terminal { .. } => continue,
-            }
-
-            // Skip agent-requested command blocks.
-            if block.requested_command_action_id().is_some() {
-                continue;
-            }
-
-            // Only clear blocks that are currently visible in the agent view.
-            if block.is_empty(&self.agent_view_state) {
-                continue;
-            }
-
-            indices_to_remove.push(index);
-        }
-
-        if indices_to_remove.is_empty() {
-            return;
-        }
-
-        self.clear_selection();
-        self.clear_smart_select_override();
-        self.clear_scroll_position_before_filter();
-
-        // Remove in reverse order so indices remain valid.
-        for index in indices_to_remove.into_iter().rev() {
-            self.remove_block_at_index(index);
-        }
-
-        // Force a re-draw since the blocklist has changed.
-        self.event_proxy.send_wakeup_event();
-    }
-
     /// Gets the active background block, if one exists.
     pub(super) fn background_block_mut(&mut self) -> Option<&mut Block> {
         // The active background block will be the one immediately before
@@ -1446,71 +1388,6 @@ impl BlockList {
     pub fn update_background_block_height(&mut self) {
         if let Some(block_idx) = self.background_block_mut().map(|block| block.index()) {
             self.update_live_block_height(block_idx);
-        }
-    }
-
-    pub fn agent_view_state(&self) -> &AgentViewState {
-        &self.agent_view_state
-    }
-
-    /// Sets the agent view state for this blocklist.
-    ///
-    /// With `FeatureFlag::AgentView` enabled, if the state is active, only blocks corresponding to
-    /// the active state's conversation ID are rendered. If inactive, only blocks with no conversation
-    /// ID (i.e. those executed in the top-level terminal context) are rendered.
-    ///
-    /// Do not call this method directly. Instead, use the `AgentViewController` to enter/exit the
-    /// agent view.
-    pub fn set_agent_view_state(&mut self, state: AgentViewState) {
-        self.agent_view_state = state;
-        if !self.active_block().finished() {
-            if let Some(id) = self.agent_view_state.active_conversation_id() {
-                // For inline agent views, add the conversation ID to Terminal variant
-                // instead of replacing with Agent variant
-                if self.agent_view_state.is_inline() {
-                    self.active_block_mut().add_attached_conversation_id(id);
-                } else {
-                    self.active_block_mut().set_conversation_id(id);
-                }
-            } else {
-                // Only clear conversation ID for blocks that were created inside agent view.
-                // Terminal blocks with conversation associations should keep them.
-                if matches!(
-                    self.active_block().agent_view_visibility(),
-                    &AgentViewVisibility::Agent { .. }
-                ) {
-                    self.active_block_mut().clear_conversation_id();
-                }
-            }
-        }
-
-        // AI blocks render with height 0 when hidden for the current agent view state, so mark
-        // them dirty to force a re-measure.
-        self.mark_agent_view_rich_content_dirty();
-
-        self.update_blocks_and_sumtree(None, None, |_| {}, |_| {});
-    }
-
-    /// Marks AI / agent-view rich content as dirty so heights get re-laid out. Call this after
-    /// any change that affects which rich content is visible for the current agent view state.
-    fn mark_agent_view_rich_content_dirty(&mut self) {
-        for (item, index) in &self.removable_blocklist_item_positions {
-            if let RemovableBlocklistItem::RichContent(view_id) = item {
-                let mut cursor = self.block_heights.cursor::<TotalIndex, ()>();
-                cursor.seek(index, SeekBias::Right);
-                if let Some(BlockHeightItem::RichContent(rich_content)) = cursor.item() {
-                    if rich_content.content_type.is_some_and(|content_type| {
-                        matches!(
-                            content_type,
-                            RichContentType::AIBlock
-                                | RichContentType::EnterAgentView
-                                | RichContentType::InlineAgentViewHeader
-                        )
-                    }) {
-                        self.dirty_rich_content_items.insert(*view_id);
-                    }
-                }
-            }
         }
     }
 

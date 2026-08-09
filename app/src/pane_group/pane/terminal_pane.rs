@@ -1,7 +1,5 @@
 //! Implementation of terminal panes.
-#[cfg(feature = "local_fs")]
-use crate::pane_group::CodeSource;
-use std::{collections::HashMap, sync::mpsc::SyncSender};
+use std::sync::mpsc::SyncSender;
 
 use base64::{engine::general_purpose::STANDARD as BASE64_STANDARD, Engine as _};
 use url::Url;
@@ -17,7 +15,6 @@ use crate::{
     session_management::SessionNavigationData,
     terminal::{
         general_settings::GeneralSettings,
-        shared_session::SharedSessionStatus,
         view::Event,
         TerminalManager, TerminalView,
     },
@@ -193,23 +190,6 @@ impl PaneContent for TerminalPane {
             }
         }
 
-        // Store the pane group entity ID on the agent view controller so the
-        // message bar can perform pane-group-scoped visibility checks.
-        let pane_group_id = ctx.view_id();
-        let terminal_view = self.terminal_view(ctx);
-        let agent_view_controller = terminal_view.as_ref(ctx).agent_view_controller().clone();
-        agent_view_controller.update(ctx, |controller, _ctx| {
-            controller.set_pane_group_id(pane_group_id);
-        });
-        let active_session = terminal_view.as_ref(ctx).active_session().clone();
-        ActiveAgentViewsModel::handle(ctx).update(ctx, |model, ctx| {
-            model.register_agent_view_controller(
-                &agent_view_controller,
-                &active_session,
-                terminal_view_id,
-                ctx,
-            );
-        });
     }
 
     fn detach(
@@ -219,12 +199,6 @@ impl PaneContent for TerminalPane {
         ctx: &mut ViewContext<PaneGroup>,
     ) {
         if matches!(detach_type, DetachType::Closed) {
-            // Only immediately clear conversations and delete blocks if the session is being
-            // permanently closed.
-            BlocklistAIHistoryModel::handle(ctx).update(ctx, |history_model, ctx| {
-                history_model
-                    .clear_conversations_in_terminal_view(self.terminal_view(ctx).id(), ctx);
-            });
             self.delete_blocks(ctx);
         }
 
@@ -245,108 +219,22 @@ impl PaneContent for TerminalPane {
 
         ctx.unsubscribe_to_view(&self.view);
 
-        #[cfg(feature = "local_fs")]
-        {
-            ctx.unsubscribe_to_model(&BlocklistAIHistoryModel::handle(ctx));
-        }
     }
 
     fn snapshot(&self, app: &AppContext) -> LeafContents {
         let view = self.terminal_view(app).as_ref(app);
-        let is_active = view.is_active_session(app);
-
-        // Capture the current input_config from the AI input model
-        let current_input_config = view.input_config(app.as_ref());
-
-        if view.model.lock().shared_session_status().is_viewer() {
-            // We save and restore ambient agent sessions
-            // (restoring the shared session if it's still open and the conversation transcript otherwise).
-            if let Some(ambient_model) = view.ambient_agent_view_model() {
-                let ambient_model = ambient_model.as_ref(app);
-                let task_id = ambient_model.task_id();
-
-                return LeafContents::AmbientAgent(AmbientAgentPaneSnapshot {
-                    uuid: self.uuid.clone(),
-                    task_id,
-                });
-            }
-
-            LeafContents::Terminal(TerminalPaneSnapshot {
-                uuid: self.uuid.clone(),
-                cwd: None,
-                is_active,
-                is_read_only: false,
-                shell_launch_data: None,
-                input_config: None,
-                llm_model_override: None,
-                active_profile_id: None,
-                conversation_ids_to_restore: vec![],
-                active_conversation_id: None,
-            })
-        } else if view.model.lock().is_conversation_transcript_viewer() {
-            // Conversation transcript viewers (opened from the conversation list)
-            // can be restored via the ambient agent task if one exists.
-            let task_id = view.model.lock().ambient_agent_task_id();
-            if task_id.is_some() {
-                LeafContents::AmbientAgent(AmbientAgentPaneSnapshot {
-                    uuid: self.uuid.clone(),
-                    task_id,
-                })
-            } else {
-                LeafContents::Terminal(TerminalPaneSnapshot {
-                    uuid: self.uuid.clone(),
-                    cwd: None,
-                    is_active,
-                    is_read_only: false,
-                    shell_launch_data: None,
-                    input_config: None,
-                    llm_model_override: None,
-                    active_profile_id: None,
-                    conversation_ids_to_restore: vec![],
-                    active_conversation_id: None,
-                })
-            }
-        } else {
-            let llm_model_override =
-                LLMPreferences::as_ref(app).get_base_llm_override(self.terminal_view(app).id());
-
-            let active_profile_id = AIExecutionProfilesModel::as_ref(app)
-                .active_profile(Some(self.terminal_view(app).id()), app)
-                .sync_id();
-
-            // Collect all conversation IDs for this terminal view
-            let conversation_ids_to_restore = BlocklistAIHistoryModel::as_ref(app)
-                .all_live_conversations_for_terminal_view(self.terminal_view(app).id())
-                .map(|conversation| conversation.id())
-                .collect();
-
-            // Capture agent view state: if fullscreen, store the active conversation ID
-            let active_conversation_id = view
-                .agent_view_controller()
-                .as_ref(app)
-                .agent_view_state()
-                .display_mode()
-                .filter(|mode| mode.is_fullscreen())
-                .and_then(|_| {
-                    view.agent_view_controller()
-                        .as_ref(app)
-                        .agent_view_state()
-                        .active_conversation_id()
-                });
-
-            LeafContents::Terminal(TerminalPaneSnapshot {
-                uuid: self.uuid.clone(),
-                cwd: view.pwd_if_local(app),
-                is_active,
-                is_read_only: view.model.lock().is_read_only(),
-                shell_launch_data: view.shell_launch_data_if_local(app),
-                input_config: Some(current_input_config),
-                llm_model_override,
-                active_profile_id,
-                conversation_ids_to_restore,
-                active_conversation_id,
-            })
-        }
+        LeafContents::Terminal(TerminalPaneSnapshot {
+            uuid: self.uuid.clone(),
+            cwd: view.pwd_if_local(app),
+            is_active: view.is_active_session(app),
+            is_read_only: view.model.lock().is_read_only(),
+            shell_launch_data: view.shell_launch_data_if_local(app),
+            input_config: Some(view.input_config(app)),
+            llm_model_override: None,
+            active_profile_id: None,
+            conversation_ids_to_restore: vec![],
+            active_conversation_id: None,
+        })
     }
 
     fn has_application_focus(&self, ctx: &mut ViewContext<PaneGroup>) -> bool {

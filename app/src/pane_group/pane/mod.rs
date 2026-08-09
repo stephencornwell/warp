@@ -198,11 +198,6 @@ impl PaneId {
         Self::new_from_ctx(IPaneType::EnvironmentManagement, ctx)
     }
 
-    /// Creates a [`PaneId`] from a [`ViewContext<PaneView<WorkflowView>>`]
-    pub fn from_workflow_pane_ctx(ctx: &ViewContext<PaneView<WorkflowView>>) -> Self {
-        Self::new_from_ctx(IPaneType::Workflow, ctx)
-    }
-
     /// Creates a [`PaneId`] from a [`ViewContext<PaneView<TextView>>`]
     pub fn from_code_pane_ctx(ctx: &ViewContext<PaneView<CodeView>>) -> Self {
         Self::new_from_ctx(IPaneType::Code, ctx)
@@ -271,13 +266,6 @@ impl PaneId {
             IPaneType::EnvironmentManagement,
             environment_management_pane_view,
         )
-    }
-
-    /// Creates a [`PaneId`] from a [`PaneView<WorkflowView>`] entity ID.
-    pub fn from_workflow_pane_view(
-        workflow_pane_view: &ViewHandle<PaneView<WorkflowView>>,
-    ) -> Self {
-        Self::new(IPaneType::Workflow, workflow_pane_view)
     }
 
     /// Creates a [`PaneId`] from a [`PaneView<SettingsView>`] entity ID.
@@ -393,9 +381,6 @@ impl PaneId {
             }
             IPaneType::EnvironmentManagement => {
                 ChildView::<PaneView<EnvironmentsPageView>>::with_id(self.0.pane_view_id).finish()
-            }
-            IPaneType::Workflow => {
-                ChildView::<PaneView<WorkflowView>>::with_id(self.0.pane_view_id).finish()
             }
             IPaneType::Settings => {
                 ChildView::<PaneView<SettingsView>>::with_id(self.0.pane_view_id).finish()

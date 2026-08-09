@@ -1551,23 +1551,7 @@ impl PaneGroup {
                 Ok((PaneData::new(pane_id), focus))
             }
             LeafContents::Code(_) => Err(anyhow::anyhow!("Skipping removed code pane")),
-            LeafContents::Workflow(snapshot) => {
-                let pane: Box<dyn AnyPaneContent + 'static> = match snapshot {
-                    WorkflowPaneSnapshot::CloudWorkflow {
-                        workflow_id,
-                        settings,
-                    } => Box::new(WorkflowPane::restore(workflow_id, settings, ctx)?),
-                };
-
-                let pane_id = pane.as_pane().id();
-                pane_contents.insert(pane_id, pane);
-                let focus = InitialFocus {
-                    focused_pane: leaf.is_focused.then_some(pane_id),
-                    active_session: None,
-                };
-
-                Ok((PaneData::new(pane_id), focus))
-            }
+            LeafContents::Workflow(_) => Err(anyhow::anyhow!("Skipping removed workflow pane")),
             LeafContents::Settings(snapshot) => {
                 let pane: Box<dyn AnyPaneContent + 'static> = match snapshot {
                     SettingsPaneSnapshot::Local {
@@ -3629,17 +3613,6 @@ impl PaneGroup {
             .map(|pane| pane.notebook_view(ctx))
     }
 
-    /// Get the notebook view within the pane at `pane_index`.
-    #[cfg(any(test, feature = "integration_tests"))]
-    pub fn workflow_view_at_pane_index(
-        &self,
-        pane_index: usize,
-        ctx: &AppContext,
-    ) -> Option<ViewHandle<crate::workflows::workflow_view::WorkflowView>> {
-        self.content_by_pane_index(pane_index)
-            .and_then(|pane| pane.as_any().downcast_ref::<WorkflowPane>())
-            .map(|pane| pane.get_view(ctx))
-    }
 
     /// Find the ID of the pane at an index (going left to right, top to bottom).
     /// Only considers visible panes (excludes panes hidden for close, move, job, etc.).
@@ -3767,9 +3740,6 @@ impl PaneGroup {
         self.downcast_pane_by_id(pane_id?)
     }
 
-    pub fn workflow_pane_by_pane_id(&self, pane_id: Option<PaneId>) -> Option<&WorkflowPane> {
-        self.downcast_pane_by_id(pane_id?)
-    }
 
     pub fn ai_fact_pane_by_pane_id(&self, pane_id: Option<PaneId>) -> Option<&AIFactPane> {
         self.downcast_pane_by_id(pane_id?)

@@ -4102,14 +4102,7 @@ impl TerminalView {
                 // happen during autonomous execution.
                 self.focus_ai_block_if_self_focused(&ai_block, ctx);
 
-                ctx.subscribe_to_view(&ai_block, move |me, block, event, ctx| {
-                    me.handle_ai_block_event(
-                        block.clone(),
-                        false, // is_restored
-                        event,
-                        ctx,
-                    );
-                });
+                ctx.subscribe_to_view(&ai_block, |_me, _block, _event, _ctx| {});
                 let ai_block_clone = ai_block.clone();
                 let is_passive_conversation =
                     ai_block_clone.as_ref(ctx).is_passive_conversation(ctx);
@@ -16818,6 +16811,7 @@ impl TerminalView {
     }
 
     /// Handles AI block events for both live and restored AI blocks.
+    #[cfg(any())]
     fn handle_ai_block_event(
         &mut self,
         block: ViewHandle<AIBlock>,

@@ -1344,62 +1344,7 @@ impl Workspace {
     }
 
     #[cfg(feature = "local_fs")]
-    fn handle_remove_tab_config_confirmation_event(
-        &mut self,
-        event: &RemoveTabConfigConfirmationEvent,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        match event {
-            RemoveTabConfigConfirmationEvent::Confirm { path } => {
-                // If the removed config was the default, revert to Terminal.
-                let ai_settings = AISettings::as_ref(ctx);
-                let is_removed_default = ai_settings.default_session_mode(ctx)
-                    == DefaultSessionMode::TabConfig
-                    && ai_settings.default_tab_config_path() == path.to_string_lossy();
-                if is_removed_default {
-                    AISettings::handle(ctx).update(ctx, |settings, ctx| {
-                        report_if_error!(settings
-                            .default_session_mode_internal
-                            .set_value(DefaultSessionMode::Terminal, ctx));
-                        report_if_error!(settings
-                            .default_tab_config_path
-                            .set_value(String::new(), ctx));
-                    });
-                }
-                if let Err(e) = std::fs::remove_file(path) {
-                    log::warn!("Failed to remove tab config file: {e:?}");
-                    self.toast_stack.update(ctx, |toast_stack, ctx| {
-                        toast_stack.add_ephemeral_toast(
-                            DismissibleToast::error(format!("Failed to remove tab config: {e}")),
-                            ctx,
-                        );
-                    });
-                } else {
-                    WarpConfig::handle(ctx).update(ctx, |warp_config, ctx| {
-                        warp_config.remove_tab_config_by_path(path, ctx);
-                    });
-                }
-                self.current_workspace_state
-                    .is_remove_tab_config_dialog_open = false;
-                ctx.notify();
-            }
-            RemoveTabConfigConfirmationEvent::Cancel => {
-                self.current_workspace_state
-                    .is_remove_tab_config_dialog_open = false;
-                ctx.notify();
-            }
-        }
-    }
-
     #[cfg(not(feature = "local_fs"))]
-    fn handle_remove_tab_config_confirmation_event(
-        &mut self,
-        _event: &RemoveTabConfigConfirmationEvent,
-        _ctx: &mut ViewContext<Self>,
-    ) {
-        log::error!("Cannot delete a tab config from the web");
-    }
-
     fn handle_session_config_modal_event(
         &mut self,
         event: &SessionConfigModalEvent,
@@ -9137,35 +9082,6 @@ impl Workspace {
                 // A resize of universal search should write the app snapshot to sqlite.
                 ctx.dispatch_global_action("workspace:save_app", ());
             }
-        }
-    }
-
-    fn restore_previous_workspace_state(&mut self, ctx: &mut ViewContext<Self>) {
-        if let Some(previous_state) = self.previous_workspace_state.take() {
-            self.current_workspace_state = previous_state;
-
-            // Assumption: at most one of the states will be active.
-            // If none are, then we focus the terminal view instead.
-            if self.current_workspace_state.is_palette_open {
-                self.open_command_palette(ctx);
-            } else if self.current_workspace_state.is_theme_chooser_open {
-                self.focus_theme_chooser(ctx);
-            } else if self.current_workspace_state.is_resource_center_open {
-                ctx.focus(&self.resource_center_view);
-            } else if self.current_workspace_state.is_ai_assistant_panel_open {
-                ctx.focus(&self.ai_assistant_panel);
-            } else if self
-                .current_workspace_state
-                .is_close_session_confirmation_dialog_open
-            {
-                ctx.focus(&self.close_session_confirmation_dialog);
-            } else if self.current_workspace_state.is_native_quit_modal_open {
-                ctx.focus(&self.native_modal);
-            } else {
-                ctx.focus_self();
-            }
-
-            self.cancel_tab_rename(ctx);
         }
     }
 

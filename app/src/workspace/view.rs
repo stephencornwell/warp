@@ -1021,38 +1021,6 @@ impl Workspace {
     }
 
 
-    fn build_reward_modal(ctx: &mut ViewContext<Self>) -> ViewHandle<Modal<RewardView>> {
-        let reward_view = ctx.add_typed_action_view(|_| RewardView::new());
-        ctx.subscribe_to_view(&reward_view, |me, _, event, ctx| {
-            me.handle_reward_view_event(event, ctx);
-        });
-        let modal = ctx.add_typed_action_view(|ctx| {
-            Modal::new(Some(String::new()), reward_view, ctx)
-                .with_modal_style(UiComponentStyles {
-                    width: Some(316.),
-                    height: Some(389.),
-                    ..Default::default()
-                })
-                .with_body_style(UiComponentStyles {
-                    height: Some(319.),
-                    padding: Some(Coords {
-                        // Default padding values except for the top, which is too much for the
-                        // reward modal
-                        top: 0.,
-                        bottom: 28.,
-                        left: 28.,
-                        right: 28.,
-                    }),
-                    ..Default::default()
-                })
-                .with_dismiss_on_click()
-        });
-        ctx.subscribe_to_view(&modal, |me, _, event, ctx| {
-            me.handle_reward_modal_event(event, ctx);
-        });
-        modal
-    }
-
     fn build_settings_views(
         global_resource_handles: GlobalResourceHandles,
         tips_completed: ModelHandle<TipsCompleted>,
@@ -1071,10 +1039,6 @@ impl Workspace {
         });
 
         let settings_pane = ctx.add_typed_action_view(move |ctx| SettingsView::new(None, ctx));
-        ctx.subscribe_to_view(&settings_pane, move |me, _, event, ctx| {
-            me.handle_settings_pane_event(event, ctx);
-        });
-
         let window_id = ctx.window_id();
         SettingsPaneManager::handle(ctx).update(ctx, |manager, _| {
             manager.register_view(window_id, settings_pane.clone());
@@ -1297,14 +1261,9 @@ impl Workspace {
         ctx: &mut ViewContext<Self>,
     ) -> ViewHandle<RemoveTabConfigConfirmationDialog> {
         let dialog = ctx.add_typed_action_view(RemoveTabConfigConfirmationDialog::new);
-        ctx.subscribe_to_view(&dialog, |me, _, event, ctx| {
-            me.handle_remove_tab_config_confirmation_event(event, ctx);
-        });
         dialog
     }
 
-    #[cfg(feature = "local_fs")]
-    #[cfg(not(feature = "local_fs"))]
     fn handle_session_config_modal_event(
         &mut self,
         event: &SessionConfigModalEvent,
@@ -1710,10 +1669,6 @@ impl Workspace {
         let theme_deletion_modal = Self::build_theme_deletion_modal(ctx);
 
         let openwarp_launch_view = ctx.add_typed_action_view(OpenWarpLaunchModal::new);
-        ctx.subscribe_to_view(&openwarp_launch_view, |me, _, event, ctx| {
-            me.handle_openwarp_launch_modal_event(event, ctx);
-        });
-
         let launch_config_save_modal = Self::build_launch_config_save_modal(ctx);
 
         let tab_config_params_modal = Self::build_tab_config_params_modal(ctx);
@@ -1750,10 +1705,6 @@ impl Workspace {
             &SessionSettings::handle(ctx),
             Self::handle_session_settings_event,
         );
-
-        ctx.subscribe_to_model(&WindowSettings::handle(ctx), |me, _handle, event, ctx| {
-            me.handle_window_settings_changed_event(event, ctx);
-        });
 
         let tab_settings_handle = TabSettings::handle(ctx);
         ctx.subscribe_to_model(&tab_settings_handle, |me, _, event, ctx| {

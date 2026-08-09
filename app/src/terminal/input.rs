@@ -3301,8 +3301,8 @@ impl Input {
                         CompleterOptions {
                             match_strategy: matcher,
                             fallback_strategy,
-                            suggest_file_path_completions_only: input_type.is_ai(),
-                            parse_quotes_as_literals: input_type.is_ai(),
+                            suggest_file_path_completions_only: false,
+                            parse_quotes_as_literals: false,
                         },
                         &completion_context,
                     )

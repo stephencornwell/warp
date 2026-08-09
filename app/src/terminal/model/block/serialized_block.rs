@@ -153,10 +153,6 @@ impl From<&Block> for SerializedBlock {
             grid_content.trim_trailing_newline();
             hex::encode(grid_content)
         });
-        let prompt_snapshot = block
-            .prompt_snapshot
-            .as_ref()
-            .and_then(|prompt_snapshot| serde_json::to_string(prompt_snapshot).ok());
         let prompt_info = PromptInfo {
             pwd: block.pwd().map(String::from),
             git_branch: block.git_branch.clone(),
@@ -167,7 +163,6 @@ impl From<&Block> for SerializedBlock {
             ps1,
             rprompt,
             honor_ps1: block.honor_ps1(),
-            prompt_snapshot,
         };
 
         SerializedBlock {
@@ -192,7 +187,7 @@ impl From<&Block> for SerializedBlock {
             honor_ps1: prompt_info.honor_ps1,
             session_id: block.session_id,
             shell_host: block.shell_host.clone(),
-            prompt_snapshot: prompt_info.prompt_snapshot,
+            prompt_snapshot: None,
             is_local: None,
         }
     }

@@ -1,5 +1,3 @@
-use crate::ai::ambient_agents::AmbientAgentTaskId;
-use crate::ai::blocklist::SerializedBlockListItem;
 use crate::terminal::available_shells::AvailableShell;
 use crate::terminal::block_list_element::GridType;
 use crate::terminal::event::{
@@ -15,10 +13,8 @@ use crate::terminal::model::completions::{
 use crate::terminal::model::escape_sequences::ModeProvider;
 use crate::terminal::model::index::VisibleRow;
 use crate::terminal::model::iterm_image::{ITermImage, ITermImageMetadata};
-use crate::terminal::shared_session::{ai_agent::encode_agent_response_event, SharedSessionStatus};
-use crate::terminal::ssh::util::{InteractiveSshCommand, SshLoginState};
 use crate::terminal::{block_filter::BlockFilterQuery, model::ansi::Handler};
-use crate::terminal::{color, ssh, BlockPadding, ShellHost, SizeUpdate, SizeUpdateReason};
+use crate::terminal::{color, BlockPadding, ShellHost, SizeUpdate, SizeUpdateReason};
 use crate::terminal::{ShellLaunchData, ShellLaunchState};
 use crate::util::AsciiDebug;
 

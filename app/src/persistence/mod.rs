@@ -16,20 +16,18 @@ pub use persistence::schema;
 pub mod testing;
 
 use instant::Instant;
-use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::mpsc::SyncSender;
 use std::sync::Arc;
 use std::thread::JoinHandle;
 
 use chrono::{DateTime, Local};
-use lsp::supported_servers::LSPServerType;
 use warp_core::command::ExitCode;
 use warpui::{AppContext, Entity, SingletonEntity};
 
 use crate::app_state::AppState;
 use crate::terminal::history::PersistedCommand;
-use crate::terminal::model::block::{SerializedAgentViewVisibility, SerializedBlock};
+use crate::terminal::model::block::SerializedBlock;
 use crate::terminal::model::session::SessionId;
 
 use self::model::Project;
@@ -156,10 +154,7 @@ pub struct PersistedData {
     pub app_state: AppState,
 
     pub command_history: Vec<PersistedCommand>,
-    pub workspace_language_servers: HashMap<PathBuf, HashMap<LSPServerType, EnablementState>>,
     pub projects: Vec<Project>,
-    pub project_rules: Vec<ProjectRulePath>,
-    pub ignored_suggestions: Vec<(String, SuggestionType)>,
 }
 
 #[derive(Clone, Debug)]
@@ -180,7 +175,6 @@ pub struct StartedCommandMetadata {
     pub hostname: Option<String>,
     pub session_id: Option<SessionId>,
     pub git_branch: Option<String>,
-    pub cloud_workflow_id: Option<SyncId>,
     pub workflow_command: Option<String>,
     pub is_agent_executed: bool,
 }
@@ -217,34 +211,5 @@ pub enum ModelEvent {
     },
     DeleteProject {
         path: String,
-    },
-    UpsertProjectRules {
-        project_rule_paths: Vec<ProjectRulePath>,
-    },
-    DeleteProjectRules {
-        path: Vec<PathBuf>,
-    },
-    AddIgnoredSuggestion {
-        suggestion: String,
-        suggestion_type: SuggestionType,
-    },
-    RemoveIgnoredSuggestion {
-        suggestion: String,
-        suggestion_type: SuggestionType,
-    },
-    UpsertWorkspaceLanguageServer {
-        workspace_path: PathBuf,
-        lsp_type: LSPServerType,
-        enabled: EnablementState,
-    },
-    UpdateBlockAgentViewVisibility {
-        block_id: String,
-        agent_view_visibility: SerializedAgentViewVisibility,
-    },
-    SaveAIDocumentContent {
-        document_id: String,
-        content: String,
-        version: i32,
-        title: String,
     },
 }

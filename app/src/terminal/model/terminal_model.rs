@@ -1265,17 +1265,6 @@ impl TerminalModel {
         )
     }
 
-    fn ai_metadata_to_protocol(metadata: &AgentInteractionMetadata) -> AICommandMetadata {
-        AICommandMetadata {
-            tool_call_id: metadata
-                .requested_command_action_id()
-                .map(|id| id.to_string())
-                .unwrap_or_default(),
-            // Any command with a long-running control state is considered agent-monitored.
-            is_agent_monitored: metadata.long_running_control_state().is_some(),
-        }
-    }
-
     pub fn send_agent_conversation_replay_started_for_shared_session(&mut self) {
     }
 

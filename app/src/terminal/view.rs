@@ -2362,13 +2362,6 @@ impl TerminalView {
             }
         });
 
-        if FeatureFlag::CodebaseIndexSpeedbump.is_enabled() {
-            // Check whether or not to show the codebase index speedbump when the codebase indexing settings change.
-            ctx.subscribe_to_model(&CodeSettings::handle(ctx), |me, _, _, ctx| {
-                me.check_codebase_index_speedbump_on_settings_changed(ctx);
-            });
-
-        }
 
         let window_id = ctx.window_id();
         let mut terminal_view = Self {
@@ -2587,12 +2580,7 @@ impl TerminalView {
     /// Returns whether or not the active session is a local session.  Returns
     /// None if there is no active session.
     pub fn active_session_is_local<C: ModelAsRef>(&self, ctx: &C) -> Option<bool> {
-        // Ensure shared session viewers and conversation transcript viewers are not
-        // considered local, even if the session hasn't been joined yet.
         let model = self.model.lock();
-        if model.is_shared_session_viewer() || model.is_conversation_transcript_viewer() {
-            return Some(false);
-        }
         drop(model);
 
         self.active_block_session_id().and_then(|session_id| {
@@ -2971,9 +2959,6 @@ impl TerminalView {
             }));
         }
 
-        self.model
-            .lock()
-            .send_write_to_pty_events_for_shared_session(chars);
     }
 
     fn update_scroll_position_locking(
@@ -3050,9 +3035,7 @@ impl TerminalView {
             .sessions
             .as_ref(ctx)
             .has_pending_or_bootstrapped_session();
-        let is_shared_session_executor = model.shared_session_status().is_executor();
-
-        was_bootstrap_script_echoed || is_shared_session_executor
+        was_bootstrap_script_echoed
     }
     /// Receiving a warpui::Event::TypedCharacters event from a child element.
     /// We can assume `characters` consists of all printable characters, and therefore,
@@ -3327,9 +3310,7 @@ impl TerminalView {
 
     fn handle_sessions_event(&mut self, event: SessionsEvent, ctx: &mut ViewContext<Self>) {
         match event {
-            SessionsEvent::SessionInitialized { .. } => {
-                self.handle_session_initialized(ctx);
-            }
+            SessionsEvent::SessionInitialized { .. } => {}
             SessionsEvent::SessionBootstrapped(event) => {
                 self.handle_session_bootstrapped(*event, ctx);
             }
@@ -3482,37 +3463,6 @@ impl TerminalView {
         content
             .map(|content| clipboard_content_with_escaped_paths(content, shell_family, false))
             .unwrap_or_default()
-    }
-
-    /// Turns the active session into a bootstrapped subshell by writing the InitShell DCS hook
-    fn trigger_subshell_bootstrap(
-        &mut self,
-        shell_type: Option<ShellType>,
-        triggered_by_rc_file_snippet: bool,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        self.dismiss_warpify_banner(&RememberForWarpification::DoNotRememberSubshellCommand, ctx);
-
-        // Record the active long-running block so we can hide it later once the remote
-        // actually confirms subshell bootstrap is in progress.
-        // If the remote never emits InitShell, the block stays visible.
-        {
-            let model = self.model.lock();
-            if model
-                .block_list()
-                .active_block()
-                .is_active_and_long_running()
-            {
-                let block_id = model.block_list().active_block_id().clone();
-                self.warpify_state.set_block_id(block_id);
-            }
-        }
-
-        self.write_init_subshell_bytes_to_pty(shell_type, ctx);
-
-        self.start_bootstrap_timer(BOOTSTRAP_FAILED_DURATION, ctx);
-
-        ();
     }
 
     /// Util method to update the ssh block, with a lock
@@ -4455,31 +4405,6 @@ impl TerminalView {
             ModelEvent::TmuxControlModeReady { .. } => {
                 self.trigger_subshell_bootstrap(None, false, ctx);
             }
-            ModelEvent::DetectedEndOfSshLogin(check_type) => {
-                self.handle_detected_end_of_ssh_login(check_type, ctx);
-            }
-            ModelEvent::RemoteWarpificationIsUnavailable(reason) => {
-                self.handle_remote_warpification_is_unavailable(reason.clone(), ctx);
-            }
-            ModelEvent::SshTmuxInstaller(tmux_installation) => {
-                self.warpify_state
-                    .set_tmux_installation_state(*tmux_installation);
-            }
-            ModelEvent::TmuxInstallFailed { line, command } => {
-                let system_details = self
-                    .warpify_state
-                    .ssh_block_state()
-                    .and_then(|s| s.get_system_details(ctx));
-                self.warpify_state.abort_ssh_warpify_timeout();
-                self.add_ssh_error_block(
-                    WarpificationUnavailableReason::TmuxInstallFailed {
-                        system_details,
-                        line: Some(line.to_string()),
-                        command: Some(command.to_string()),
-                    },
-                    ctx,
-                );
-            }
             ModelEvent::ExecutedInBandCommand(event) => {
                 // TODO(vorporeal): Figure out a way to not need the terminal view involved
                 // in this flow.
@@ -4489,57 +4414,6 @@ impl TerminalView {
                         sessions.handle_executed_command_event(active_session_id, event.clone());
                     });
                 }
-            }
-            ModelEvent::InitSubshell(event) => {
-                let shell_type = event.shell_type;
-                self.trigger_subshell_bootstrap(Some(shell_type), false, ctx);
-            }
-            ModelEvent::InitSsh(event) => {
-                let shell_type = event.shell_type;
-                let uname = event.uname.as_ref().unwrap_or(&String::default()).clone();
-                self.continue_warpify_ssh_session(&uname, shell_type, ctx);
-            }
-            ModelEvent::SourcedRcFileInSubshell(event) => {
-                ();
-                let shell_type = event.shell_type;
-                let uname = event.uname.clone();
-                let disable_tmux = event.tmux == Some(false);
-
-                ctx.spawn(
-                    async {
-                        warpui::r#async::Timer::after(*TRIGGER_RC_FILE_SUBSHELL_BOOTSTRAP_DELAY)
-                            .await
-                    },
-                    move |me, _, ctx| {
-                        let uname = uname.to_owned().unwrap_or_default();
-                        let (is_ssh, is_tmux_control_mode_active, has_ai_metadata) = {
-                            let lock = me.model.lock();
-                            let has_ai_metadata = lock
-                                .block_list()
-                                .active_block()
-                                .agent_interaction_metadata()
-                                .is_some();
-                            (
-                                lock.is_ssh_block(),
-                                lock.tmux_control_mode_active(),
-                                has_ai_metadata,
-                            )
-                        };
-                        // Never warpify for agent-requested commands.
-                        if has_ai_metadata {
-                            return;
-                        }
-                        // To simplify the implementation, we do not support warpifying while SSH-warpified.
-                        if is_tmux_control_mode_active {
-                            return;
-                        }
-                        if is_ssh && !disable_tmux {
-                            me.continue_warpify_ssh_session(&uname, shell_type, ctx);
-                        } else {
-                            me.trigger_subshell_bootstrap(Some(shell_type), true, ctx);
-                        }
-                    },
-                );
             }
             ModelEvent::PromptUpdated => {
                 self.input.update(ctx, |input, ctx| {

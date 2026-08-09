@@ -574,24 +574,12 @@ pub struct TerminalModel {
     /// a synchronized data structure (i.e. [`FairMutex<TerminalModel>`]) and thus multiple
     /// `send`s via the [`TerminalModel`] will be synchronized.
     ///
-    /// This field is only [`Some`] if this session is shared.
-    /// TODO: consider combining this with `shared_session_status` because
-    /// the state can technically diverge.
-
-    /// A sender for write to pty events for a shared session viewer.
-    ///
-    /// This field is only [`Some`] if this session is shared.
-
     /// Whether this viewer is currently receiving historical agent conversation replay.
     /// Used to suppress live-conversation-specific actions (e.g. tombstone insertion)
     /// until the replay is complete.
     is_receiving_agent_conversation_replay: bool,
 
     tmux_background_outputs: HashMap<u32, Vec<u8>>,
-
-    /// When some, the TerminalModel emits the event [Event::DetectedEndOfSshLogin]. This
-    /// event is emitted either as the initial check or the confirmation check.
-    notify_on_end_of_ssh_login: Option<SshLogin>,
 
     pub image_id_to_metadata: HashMap<u32, StoredImageMetadata>,
 
@@ -1149,7 +1137,6 @@ impl TerminalModel {
             tmux_background_outputs: HashMap::new(),
             tmux_control_mode_context: None,
             pending_warp_initiated_control_mode: None,
-            notify_on_end_of_ssh_login: None,
             is_receiving_hook: IsReceivingHook::No,
             image_id_to_metadata: HashMap::new(),
             // Start mid-way through the u32 range to avoid collisions

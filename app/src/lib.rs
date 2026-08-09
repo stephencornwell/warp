@@ -73,7 +73,6 @@ mod user_config;
 pub mod util;
 mod view_components;
 mod vim_registers;
-mod voice;
 mod warp_managed_paths_watcher;
 mod window_settings;
 mod word_block_editor;

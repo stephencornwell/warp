@@ -46,7 +46,6 @@ use welcome_view::WelcomeView;
 use super::{ActivationReason, LeafContents, PaneGroup, PaneGroupAction};
 
 pub(super) fn init(app: &mut AppContext) {
-    self::view::init(app);
     welcome_view::init(app);
     get_started_view::init(app);
 }

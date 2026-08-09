@@ -5346,8 +5346,6 @@ impl TerminalView {
             self.insert_vim_mode_banner(ctx);
         }
 
-        let is_subshell_or_ssh = session.is_subshell_or_ssh();
-
         // Make sure we decorate any text that is already in the input.  We
         // need to make sure external commands have finished loading before
         // doing the decoration to ensure we don't erroneously apply error
@@ -5388,7 +5386,6 @@ impl TerminalView {
         ctx.emit(Event::SessionBootstrapped);
     }
 
-    // Helper function to get the PATH variable for a local session.
     fn local_session_path(session: &Session) -> Option<String> {
         if matches!(session.session_type(), SessionType::Local) && session.subshell_info().is_none()
         {

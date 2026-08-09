@@ -29,7 +29,7 @@ use super::{
         SECTION_SPACING_BOTTOM,
     },
     sections::sections,
-    ChangelogSectionView, ContentSectionData, ContentSectionView, FeatureSection,
+    ContentSectionData, ContentSectionView, FeatureSection,
     FeatureSectionData, FeatureSectionView, Section, TipsCompleted,
 };
 
@@ -213,7 +213,6 @@ impl ResourceCenterMainView {
                             }
                         }
                         SectionViewHandle::Content(_) => {}
-                        SectionViewHandle::Changelog(_) => {}
                     }
                 }
                 ctx.notify();
@@ -242,7 +241,6 @@ impl ResourceCenterMainView {
                     });
                 }
                 SectionViewHandle::Content(_) => {}
-                SectionViewHandle::Changelog(_) => {}
             }
         }
     }
@@ -256,9 +254,6 @@ impl ResourceCenterMainView {
                     body.add_child(ChildView::new(feature_view_handle).finish());
                 }
                 SectionViewHandle::Content(section_view_handle) => {
-                    body.add_child(ChildView::new(section_view_handle).finish());
-                }
-                SectionViewHandle::Changelog(section_view_handle) => {
                     body.add_child(ChildView::new(section_view_handle).finish());
                 }
             }

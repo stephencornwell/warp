@@ -1716,59 +1716,6 @@ impl Input {
         let input_render_state_model_handle: ModelHandle<InputRenderStateModel> =
             ctx.add_model(|_| InputRenderStateModel::new(false, size_info));
 
-        ctx.subscribe_to_model(&CLIAgentSessionsModel::handle(ctx), |me, _, event, ctx| {
-            let CLIAgentSessionsModelEvent::InputSessionChanged {
-                terminal_view_id,
-                new_input_state,
-                ..
-            } = event
-            else {
-                return;
-            };
-            if *terminal_view_id != me.terminal_view_id {
-                return;
-            }
-
-            match new_input_state {
-                CLIAgentInputState::Open { .. } => {
-                    // Input just opened — switch to agent mode.
-                    me.set_input_mode_agent(true, ctx);
-                    me.clear_buffer_and_reset_undo_stack(ctx);
-
-                    // Restore any draft text saved when the composer was last
-                    // closed, so the user doesn't lose work-in-progress.
-                    let terminal_view_id = me.terminal_view_id;
-                    let draft = CLIAgentSessionsModel::handle(ctx)
-                        .update(ctx, |sessions_model, _| {
-                            sessions_model.take_draft(terminal_view_id)
-                        });
-                    if let Some(draft) = draft {
-                        me.replace_buffer_content(&draft, ctx);
-                    }
-                }
-                CLIAgentInputState::Closed => {
-                    // Input just closed — clear the buffer.
-                    me.clear_buffer_and_reset_undo_stack(ctx);
-                }
-            }
-
-            // Set the CLI agent flag after the mode switch so that
-            // refresh_categories_state sees the correct is_ai_or_autodetect_mode.
-            let is_cli_agent_input = matches!(new_input_state, CLIAgentInputState::Open { .. });
-            me.editor.update(ctx, |editor, ctx| {
-                if let Some(ai_context_menu) = editor.ai_context_menu() {
-                    ai_context_menu.update(ctx, |menu, ctx| {
-                        menu.set_is_cli_agent_input(is_cli_agent_input, ctx);
-                    });
-                }
-            });
-            // Sync the editor text colors with the (now active or inactive)
-            // alt-screen CLI agent background so input text stays legible.
-            me.update_cli_agent_editor_text_colors(ctx);
-            me.set_zero_state_hint_text(ctx);
-            ctx.notify();
-        });
-
         let prompt_render_helper = PromptRenderHelper::new(
             sessions.clone(),
             prompt_view,
@@ -1778,15 +1725,6 @@ impl Input {
             ai_input_model.clone(),
         );
 
-        let next_command_model = ctx.add_model(|_| {
-            NextCommandModel::new(sessions.clone(), model.clone(), server_api.clone())
-        });
-        ctx.subscribe_to_model(&next_command_model, |me, _, event, ctx| {
-            me.handle_next_command_model_event(event, ctx);
-        });
-
-        let ai_follow_up_icon_mouse_state = MouseStateHandle::default();
-        let has_prompt_suggestion_banner = Arc::new(AtomicBool::new(false));
         let editor = {
             // Clones used in render_decorator_elements closure below.
             let prompt_render_helper_clone = prompt_render_helper.clone();

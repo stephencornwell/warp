@@ -11955,6 +11955,7 @@ impl TerminalView {
         }
     }
 
+    #[cfg(any())]
     fn clear_prompt_suggestions(&mut self, ctx: &mut ViewContext<Self>) {
         if self
             .inline_banners_state
@@ -11974,6 +11975,7 @@ impl TerminalView {
         };
     }
 
+    #[cfg(any())]
     fn update_input_prompt_suggestions_banner_state(&mut self, ctx: &mut ViewContext<Self>) {
         for rich_content in &self.rich_content_views {
             if let Some(ai_metadata) = rich_content.ai_block_metadata() {
@@ -12003,6 +12005,7 @@ impl TerminalView {
     ///
     /// Hidden AI blocks are only generated when generating passive codegen suggestions after a
     /// compiler error.
+    #[cfg(any())]
     fn drop_hidden_passive_ai_blocks(&mut self, ctx: &mut ViewContext<Self>) {
         let mut ai_block_ids_to_remove = vec![];
         self.rich_content_views.retain(|rich_content| {
@@ -12049,6 +12052,7 @@ impl TerminalView {
     /// Removes AI blocks from `rich_content_views` that match the given conversation and exchange IDs.
     /// This handles cleanup of the block, removal from the block list model, and notifying the
     /// new last AI block in the conversation so it re-renders with the footer.
+    #[cfg(any())]
     fn remove_ai_blocks_for_exchanges(
         &mut self,
         conversation_id: &AIConversationId,
@@ -12105,6 +12109,7 @@ impl TerminalView {
         self.update_scroll_position_locking(ScrollPositionUpdate::AfterEnd, ctx);
     }
 
+    #[cfg(any())]
     fn handle_maa_passive_suggestions_event(
         &mut self,
         _: ModelHandle<MaaPassiveSuggestionsModel>,
@@ -12156,6 +12161,7 @@ impl TerminalView {
     }
 
     #[allow(clippy::too_many_arguments)]
+    #[cfg(any())]
     fn on_maa_prompt_suggestion_generated(
         &mut self,
         prompt: &str,
@@ -12203,6 +12209,7 @@ impl TerminalView {
     }
 
     #[allow(clippy::too_many_arguments)]
+    #[cfg(any())]
     fn on_maa_code_diff_generated(
         &mut self,
         diffs: Vec<FileDiff>,
@@ -12393,6 +12400,7 @@ impl TerminalView {
         );
     }
 
+    #[cfg(any())]
     fn on_legacy_prompt_suggestion_generated(
         &mut self,
         prompt_suggestion: AgentModePromptSuggestion,
@@ -12471,6 +12479,7 @@ impl TerminalView {
     }
 
     /// Generates command corrections, if applicable.
+    #[cfg(any())]
     fn maybe_generate_command_suggestions(
         &mut self,
         block_completed: &UserBlockCompleted,
@@ -12496,6 +12505,7 @@ impl TerminalView {
         }
     }
 
+    #[cfg(any())]
     fn can_suggest_alias_expansion(&mut self, ctx: &mut ViewContext<TerminalView>) -> bool {
         let has_user_seen_banner: bool = ctx
             .private_user_preferences()
@@ -12520,6 +12530,7 @@ impl TerminalView {
             && !is_fish_shell
     }
 
+    #[cfg(any())]
     fn maybe_suggest_alias_expansion(
         &mut self,
         block_completed: &UserBlockCompleted,
@@ -12539,6 +12550,7 @@ impl TerminalView {
         }
     }
 
+    #[cfg(any())]
     fn suggest_alias_expansion(
         &mut self,
         aliased_command: Option<AliasedCommand>,
@@ -12552,6 +12564,7 @@ impl TerminalView {
         }
     }
 
+    #[cfg(any())]
     fn maybe_send_block_completed_notification(
         &mut self,
         block: &UserBlockCompleted,
@@ -12633,6 +12646,7 @@ impl TerminalView {
     /// May become separate triggers if we show sub-tasks in the UI.
     /// Note that this does NOT handle agent mode toast notifications in-app.
     /// Those are handled in the workspace view on AgentManagementEvent::ConversationNeedsAttention.
+    #[cfg(any())]
     fn maybe_send_agent_mode_desktop_notification(
         &mut self,
         conversation_id: &AIConversationId,
@@ -12672,6 +12686,7 @@ impl TerminalView {
 
     /// Shared logic for sending a desktop notification (or showing a discovery banner)
     /// for any agent status change (both Warp's agent and any CLI agent).
+    #[cfg(any())]
     fn send_agent_desktop_notification_or_show_banner(
         &mut self,
         trigger: NotificationsTrigger,

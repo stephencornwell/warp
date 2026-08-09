@@ -1,6 +1,6 @@
-use crate::send_telemetry_from_ctx;
 //! Module for utlities related to editing items in the file tree.
 
+use crate::send_telemetry_from_ctx;
 #[cfg(test)]
 #[path = "editing_tests.rs"]
 mod tests;

@@ -2120,41 +2120,17 @@ impl BlockListElement {
         warp_theme: &WarpTheme,
         block_borders_enabled: bool,
         snackbar_header: &Option<SnackbarHeader>,
-        ai_render_context: &BlocklistAIRenderContext,
-        agent_view_state: &AgentViewState,
         ctx: &mut PaintContext,
         app: &AppContext,
     ) {
-        let block_height = block.height(agent_view_state).as_f64() as f32 * cell_size.y();
-        if block.is_restored()
-            && (!FeatureFlag::AgentView.is_enabled() || !agent_view_state.is_fullscreen())
-        {
+        let block_height = block.height(None).as_f64() as f32 * cell_size.y();
+        if block.is_restored() {
             ctx.scene
                 .draw_rect_with_hit_recording(RectF::new(
                     grid_origin,
                     Vector2F::new(bounds.width(), block_height),
                 ))
                 .with_background(warp_theme.restored_blocks_overlay());
-        }
-
-        // Update the background for the current active long running command when the inline agent view is active.
-        if agent_view_state.is_inline() && block.is_active_and_long_running() {
-            ctx.scene
-                .draw_rect_with_hit_recording(RectF::new(
-                    grid_origin,
-                    Vector2F::new(bounds.width(), block_height),
-                ))
-                .with_background(agent_view_bg_fill(app));
-        }
-
-        let mut did_render_ai_stripe = false;
-        if !FeatureFlag::AgentView.is_enabled() {
-            if let Some(ai_context_stripe_color) =
-                ai_render_context.context_color_for_block(block, warp_theme)
-            {
-                draw_flag_pole(grid_origin, block_height, ai_context_stripe_color, ctx);
-                did_render_ai_stripe = true;
-            }
         }
 
         if block.has_failed() {
@@ -2165,14 +2141,7 @@ impl BlockListElement {
                 ))
                 .with_background(warp_theme.failed_block_color().with_opacity(10));
 
-            if !is_selected_by_anyone && !did_render_ai_stripe {
-                draw_flag_pole(
-                    grid_origin,
-                    block_height,
-                    warp_theme.failed_block_color(),
-                    ctx,
-                );
-            }
+            let _ = is_selected_by_anyone;
         }
 
         if let Some((is_hovered, header_rect)) =
@@ -4052,17 +4021,7 @@ impl Element for BlockListElement {
                     // we want to avoid drawing a border between the banner and the next block.
                     // Specifically, if there is a banner, we want to draw the border
                     // iff it's not a shared session banner.
-                    draw_border_above_block = match self.shared_session_banner_state {
-                        SharedSessionBanners::None => true,
-                        SharedSessionBanners::ActiveShare {
-                            started_banner_id, ..
-                        } => *banner_id != started_banner_id,
-                        SharedSessionBanners::LastShared {
-                            started_banner_id,
-                            ended_banner_id,
-                            ..
-                        } => *banner_id != started_banner_id && *banner_id != ended_banner_id,
-                    };
+                    draw_border_above_block = true;
 
                     grid_origin += vec2f(0., *height);
                 }

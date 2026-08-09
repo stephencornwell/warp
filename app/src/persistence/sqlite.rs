@@ -95,8 +95,7 @@ pub fn initialize(ctx: &mut AppContext) -> (Option<PersistedData>, Option<Writer
     let database_path = database_file_path();
     match init_db() {
         Ok(mut conn) => {
-            let user_uid = AuthStateProvider::as_ref(ctx).get().user_id();
-            let app_state = match read_sqlite_data(&mut conn, user_uid) {
+            let app_state = match read_sqlite_data(&mut conn) {
                 Ok(app_state) => Some(app_state),
                 Err(err) => {
                     report_error!(anyhow::Error::new(err).context("Failed to read app state"));
@@ -481,10 +480,6 @@ fn handle_model_event(event: ModelEvent, connection: &mut SqliteConnection) -> a
         }
         ModelEvent::UpdateFinishedCommand { metadata } => {
             update_finished_command(connection, metadata).context("error updating finished command")
-        }
-        ModelEvent::UpsertProjectRules { project_rule_paths } => {
-            upsert_project_rules(connection, project_rule_paths)
-                .context("error upserting project rules")
         }
         ModelEvent::DeleteProjectRules { path } => {
             delete_project_rules(connection, path).context("error deleting project rules")
@@ -1312,7 +1307,6 @@ fn read_node(conn: &mut SqliteConnection, node: model::PaneNode) -> Result<Optio
 /// In the future, the awkwardness of the transaction interface is resolved in diesel 2.0.0.
 fn read_sqlite_data(
     conn: &mut SqliteConnection,
-    current_user_id: Option<UserUid>,
 ) -> Result<PersistedData, Error> {
     use schema::windows::dsl::*;
 
@@ -1531,9 +1525,7 @@ impl From<StartedCommandMetadata> for model::NewCommand {
                 id.try_into().ok()
             }),
             git_branch: metadata.git_branch,
-            cloud_workflow_id: metadata
-                .cloud_workflow_id
-                .map(|id| id.sqlite_uid_hash(ObjectIdType::Workflow)),
+            cloud_workflow_id: None,
             workflow_command: metadata.workflow_command,
             is_agent_executed: Some(metadata.is_agent_executed),
         }
@@ -1584,233 +1576,6 @@ fn update_finished_command(
     })
 }
 
-fn upsert_user_profiles(
-    conn: &mut SqliteConnection,
-    profiles: Vec<UserProfileWithUID>,
-) -> Result<(), Error> {
-    use schema::user_profiles::dsl::*;
-
-    conn.transaction::<(), Error, _>(|conn| {
-        for profile in profiles {
-            // Delete any stale profile with that uid
-            diesel::delete(
-                schema::user_profiles::dsl::user_profiles
-                    .filter(firebase_uid.eq(profile.firebase_uid.to_string())),
-            )
-            .execute(conn)?;
-
-            // Insert a new user profile row
-            let new_user_profile = UserProfile {
-                firebase_uid: profile.firebase_uid.to_string(),
-                photo_url: profile.photo_url,
-                display_name: profile.display_name,
-                email: profile.email,
-            };
-            diesel::insert_into(schema::user_profiles::dsl::user_profiles)
-                .values(new_user_profile)
-                .execute(conn)?;
-        }
-        Ok(())
-    })
-}
-
-fn save_experiments(
-    conn: &mut SqliteConnection,
-    experiments: Vec<ServerExperiment>,
-) -> Result<(), Error> {
-    conn.transaction::<(), Error, _>(|conn| {
-        diesel::delete(schema::server_experiments::dsl::server_experiments).execute(conn)?;
-
-        let new_experiments = experiments
-            .into_iter()
-            .map(|experiment| NewServerExperiment {
-                experiment: experiment.to_string(),
-            })
-            .collect_vec();
-
-        diesel::insert_into(schema::server_experiments::dsl::server_experiments)
-            .values(new_experiments)
-            .execute(conn)?;
-        Ok(())
-    })
-}
-
-fn clear_user_profiles(conn: &mut SqliteConnection) -> Result<(), Error> {
-    conn.transaction::<(), Error, _>(|conn| {
-        diesel::delete(schema::user_profiles::dsl::user_profiles).execute(conn)?;
-
-        Ok(())
-    })
-}
-
-fn record_time_of_next_refresh(
-    conn: &mut SqliteConnection,
-    timestamp: DateTime<Utc>,
-) -> Result<(), Error> {
-    use schema::cloud_objects_refreshes::dsl::*;
-    let refresh = NewCloudObjectsRefresh {
-        time_of_next_refresh: timestamp.naive_utc(),
-    };
-    conn.transaction::<(), Error, _>(|conn| {
-        diesel::delete(cloud_objects_refreshes).execute(conn)?;
-        diesel::insert_into(cloud_objects_refreshes)
-            .values(refresh)
-            .execute(conn)?;
-        Ok(())
-    })
-}
-
-fn upsert_current_user_information(
-    conn: &mut SqliteConnection,
-    user_information: PersistedCurrentUserInformation,
-) -> Result<(), Error> {
-    conn.transaction::<(), Error, _>(|conn| {
-        diesel::delete(schema::current_user_information::dsl::current_user_information)
-            .execute(conn)?;
-
-        diesel::insert_into(schema::current_user_information::dsl::current_user_information)
-            .values(CurrentUserInformation {
-                email: user_information.email,
-            })
-            .execute(conn)?;
-        Ok(())
-    })
-}
-
-/// Converts the ObjectAction type into a uniform type that can be inserted into
-/// the sqlite table.
-
-impl From<ObjectAction> for model::NewPersistedObjectAction {
-    fn from(action: ObjectAction) -> Self {
-        match action.action_subtype {
-            ObjectActionSubtype::SingleAction {
-                timestamp,
-                data,
-                pending,
-                processed_at_timestamp,
-            } => Self {
-                hashed_object_id: action.hashed_sqlite_id,
-                timestamp: Some(timestamp.naive_utc()),
-                action: action.action_type.to_string(),
-                data,
-                count: None,
-                oldest_timestamp: None,
-                latest_timestamp: None,
-                pending: Some(pending),
-                processed_at_timestamp: processed_at_timestamp.map(|t| t.naive_utc()),
-            },
-            ObjectActionSubtype::BundledActions {
-                count,
-                oldest_timestamp,
-                latest_timestamp,
-                latest_processed_at_timestamp,
-            } => Self {
-                hashed_object_id: action.hashed_sqlite_id,
-                timestamp: None,
-                action: action.action_type.to_string(),
-                data: None,
-                count: Some(count),
-                oldest_timestamp: Some(oldest_timestamp.naive_utc()),
-                latest_timestamp: Some(latest_timestamp.naive_utc()),
-                pending: None,
-                processed_at_timestamp: Some(latest_processed_at_timestamp.naive_utc()),
-            },
-        }
-    }
-}
-
-fn insert_object_action(
-    conn: &mut SqliteConnection,
-    object_action: ObjectAction,
-) -> Result<(), Error> {
-    let action: NewPersistedObjectAction = object_action.into();
-    conn.transaction::<(), Error, _>(|conn| {
-        diesel::insert_into(schema::object_actions::dsl::object_actions)
-            .values(action)
-            .execute(conn)?;
-        Ok(())
-    })
-}
-
-fn sync_object_actions(
-    conn: &mut SqliteConnection,
-    actions_to_sync: Vec<ObjectAction>,
-) -> Result<(), Error> {
-    use schema::object_actions::dsl::*;
-
-    let ids_to_delete: HashSet<String> =
-        HashSet::from_iter(actions_to_sync.iter().map(|a| a.hashed_sqlite_id.clone()));
-    // Insert the new ones
-    let new_actions: Vec<NewPersistedObjectAction> =
-        actions_to_sync.iter().map(|a| a.clone().into()).collect();
-    conn.transaction::<(), Error, _>(|conn| {
-        // Erase all the actions that currently have this object ID
-        for hashed_sqlite_id in ids_to_delete {
-            diesel::delete(object_actions.filter(hashed_object_id.eq(hashed_sqlite_id)))
-                .execute(conn)?;
-        }
-
-        // Insert the new ones
-        diesel::insert_into(schema::object_actions::dsl::object_actions)
-            .values(new_actions)
-            .execute(conn)?;
-        Ok(())
-    })
-}
-
-fn delete_objects(
-    conn: &mut SqliteConnection,
-    ids: Vec<(SyncId, ObjectIdType)>,
-) -> Result<(), Error> {
-    conn.transaction::<(), Error, _>(|conn| {
-        for (sync_id, object_id_type) in ids {
-            match object_id_type {
-                ObjectIdType::Notebook => delete_cloud_object(
-                    conn,
-                    sync_id,
-                    object_id_type,
-                    Box::new(|conn, notebook_id| {
-                        use schema::notebooks::dsl::*;
-                        diesel::delete(notebooks.filter(id.eq(notebook_id))).execute(conn)?;
-                        Ok(())
-                    }),
-                )?,
-                ObjectIdType::Workflow => delete_cloud_object(
-                    conn,
-                    sync_id,
-                    object_id_type,
-                    Box::new(|conn, workflow_id| {
-                        use schema::workflows::dsl::*;
-                        diesel::delete(workflows.filter(id.eq(workflow_id))).execute(conn)?;
-                        Ok(())
-                    }),
-                )?,
-                ObjectIdType::Folder => delete_cloud_object(
-                    conn,
-                    sync_id,
-                    object_id_type,
-                    Box::new(|conn, folder_id| {
-                        use schema::folders::dsl::*;
-                        diesel::delete(folders.filter(id.eq(folder_id))).execute(conn)?;
-                        Ok(())
-                    }),
-                )?,
-                ObjectIdType::GenericStringObject => delete_cloud_object(
-                    conn,
-                    sync_id,
-                    object_id_type,
-                    Box::new(|conn, gso_id| {
-                        use schema::generic_string_objects::dsl::*;
-                        diesel::delete(generic_string_objects.filter(id.eq(gso_id)))
-                            .execute(conn)?;
-                        Ok(())
-                    }),
-                )?,
-            }
-        }
-        Ok(())
-    })
-}
 
 #[cfg(test)]
 #[path = "sqlite_tests.rs"]

@@ -2422,78 +2422,20 @@ impl Workspace {
         shell: Option<AvailableShell>,
         ctx: &mut ViewContext<Self>,
     ) {
-        let show_warp_home = !ContextFlag::CreateNewSession.is_enabled();
-        let mut placeholder_pane = None;
-        let open_warp_drive = if !show_warp_home {
-            if self.should_trigger_get_started_onboarding(ctx) {
-                self.trigger_get_started_onboarding(ctx);
-            } else if FeatureFlag::WelcomeTab.is_enabled() {
-                self.add_welcome_tab(ctx);
-            } else {
-                self.add_new_session_tab_with_default_mode(
-                    NewSessionSource::Window,
-                    previous_active_window,
-                    shell,
-                    None,  /* ai_conversation */
-                    false, /* hide_homepage */
-                    ctx,
-                );
-                self.check_and_trigger_onboarding(ctx);
-            }
-            false
-        } else {
+        if self.should_trigger_get_started_onboarding(ctx) {
+            self.trigger_get_started_onboarding(ctx);
+        } else if FeatureFlag::WelcomeTab.is_enabled() {
             self.add_welcome_tab(ctx);
-            true
-        };
-        let initial_tab = self.active_tab_pane_group().clone();
-
-        if open_warp_drive {
-            // We open Warp Drive automatically in two cases:
-            // * The user is new to Warp, and went through the overall onboarding flow
-            // * The user is on the web, so we can't open a terminal session.
-            let initial_load_complete = UpdateManager::as_ref(ctx).initial_load_complete();
-            ctx.spawn(initial_load_complete, move |me, _, ctx| {
-                // New Warp users can have non-welcome objects if they were directly invited OR if
-                // linked objects were copied over from an anonymous user.
-                if CloudModel::as_ref(ctx).has_non_welcome_objects() {
-                    me.open_or_toggle_warp_drive(false, false, ctx);
-
-                    // After opening Warp Drive, if we rendered the Warp Home placeholder panel, replace it with one of
-                    // the user's own objects.
-                    if show_warp_home {
-                        let cloud_model = CloudModel::as_ref(ctx);
-                        let candidate_objects = cloud_model
-                            .cloud_objects()
-                            .filter(|object| {
-                                !object.is_trashed(cloud_model)
-                                    && object.renders_in_warp_drive()
-                                    && !object.metadata().is_welcome_object
-                            })
-                            .map(|object| object.cloud_object_type_and_id())
-                            .collect_vec();
-                        // Collect into a temporary Vec so that we can create a pane for the first
-                        // supported object.
-                        let target_object_pane = candidate_objects
-                            .into_iter()
-                            .find_map(|object_id| me.create_cloud_object_pane(object_id, ctx));
-
-                        if let Some((target_object_pane, placeholder_pane)) =
-                            target_object_pane.zip(placeholder_pane)
-                        {
-                            initial_tab.update(ctx, |pane_group, ctx| {
-                                pane_group.add_pane_sibling(
-                                    placeholder_pane,
-                                    Direction::Left,
-                                    target_object_pane,
-                                    true,
-                                    ctx,
-                                );
-                                pane_group.close_pane(placeholder_pane, ctx);
-                            });
-                        }
-                    }
-                }
-            });
+        } else {
+            self.add_new_session_tab_with_default_mode(
+                NewSessionSource::Window,
+                previous_active_window,
+                shell,
+                None,
+                false,
+                ctx,
+            );
+            self.check_and_trigger_onboarding(ctx);
         }
     }
 

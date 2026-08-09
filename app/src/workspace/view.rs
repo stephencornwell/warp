@@ -8631,58 +8631,6 @@ impl Workspace {
 
     #[cfg(not(target_family = "wasm"))]
     /// Opens a new tab and enters agent view with a prompt from a Linear deeplink.
-    pub fn open_linear_issue_work(
-        &mut self,
-        args: &crate::linear::LinearIssueWork,
-        ctx: &mut ViewContext<Self>,
-    ) {
-
-        self.add_new_session_tab_internal_with_default_session_mode_behavior(
-            NewSessionSource::Tab,
-            Some(ctx.window_id()),
-            None,  // Chosen shell
-            None,  // Conversation restoration
-            false, // Hide the agent view homepage
-            DefaultSessionModeBehavior::Ignore,
-            ctx,
-        );
-
-        let Some(terminal_view) = self
-            .active_tab_pane_group()
-            .as_ref(ctx)
-            .active_session_view(ctx)
-        else {
-            log::error!("No active terminal view after adding tab for Linear issue work");
-            return;
-        };
-
-        let prompt = args.prompt.clone();
-        terminal_view.update(ctx, |terminal_view, ctx| {
-            terminal_view.enter_agent_view_for_new_conversation(
-                prompt,
-                AgentViewEntryOrigin::LinearDeepLink,
-                ctx,
-            );
-        });
-
-        if let Some(conversation_id) = terminal_view
-            .as_ref(ctx)
-            .agent_view_controller()
-            .as_ref(ctx)
-            .agent_view_state()
-            .active_conversation_id()
-        {
-            BlocklistAIHistoryModel::handle(ctx).update(ctx, |history, _ctx| {
-                if let Some(conversation) = history.conversation_mut(&conversation_id) {
-                    conversation.set_fallback_display_title("Linear Issue".to_string());
-                }
-            });
-        }
-    }
-
-    /// Determines if the changelog is currently being shown or if the changelog request is
-    /// in-flight
-    ///
     fn focus_active_tab(&mut self, ctx: &mut ViewContext<Self>) {
         self.active_tab_pane_group().update(ctx, |tab, ctx| {
             tab.focus(ctx);

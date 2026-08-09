@@ -174,11 +174,6 @@ impl PtySpawner {
         >,
         _ctx: &mut AppContext,
     ) -> Result<(PtySpawnResult, Box<dyn PtyHandle>)> {
-        #[cfg(not(unix))]
-        let is_fallback = false;
-        #[cfg(unix)]
-        let mut is_fallback = false;
-
         #[cfg(unix)]
         if let Some(server) = &self.server {
             let result = Self::spawn_pty_via_server(server, options.clone()).context(
@@ -186,7 +181,6 @@ impl PtySpawner {
             );
             if let Err(err) = result {
                 report_error!(err);
-                is_fallback = true;
             } else {
                 return result;
             }

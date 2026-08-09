@@ -1,4 +1,3 @@
-use crate::send_telemetry_from_ctx;
 use crate::appearance::Appearance;
 use crate::drive::CloudObjectTypeAndId;
 use crate::search::binding_source::{BindingFilterFn, BindingSource};
@@ -623,7 +622,7 @@ impl View {
             }
         };
 
-        send_telemetry_from_ctx!(event, ctx);
+        ();
 
         self.state.clipped_scroll_state = Default::default();
         self.reset(ctx);
@@ -803,7 +802,7 @@ impl View {
                     );
                 }
 
-                send_telemetry_from_ctx!(TelemetryEvent::SelectNavigationPaletteItem, ctx);
+                ();
             }
             CommandPaletteItemAction::OpenLaunchConfiguration {
                 open_in_active_window,
@@ -903,10 +902,7 @@ impl View {
         action: &dyn warpui::Action,
         ctx: &mut ViewContext<Self>,
     ) {
-        send_telemetry_from_ctx!(
-            TelemetryEvent::SelectCommandPaletteOption(format!("{action:?}")),
-            ctx
-        );
+        ();
 
         let (window_id, view_id) = match self.binding_source.as_ref(ctx) {
             BindingSource::View {

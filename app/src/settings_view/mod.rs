@@ -1,4 +1,3 @@
-use crate::send_telemetry_from_ctx;
 use crate::pane_group::focus_state::PaneFocusHandle;
 use crate::{
     appearance::Appearance,
@@ -1687,7 +1686,7 @@ impl SettingsView {
         }
         self.current_settings_page = section;
         if previous_section != section && section == SettingsSection::CloudEnvironments {
-            send_telemetry_from_ctx!(SettingsTelemetryEvent::EnvironmentsPageOpened, ctx);
+            ();
         }
 
         // When navigating to a subpage, update the backing page's active subpage mode

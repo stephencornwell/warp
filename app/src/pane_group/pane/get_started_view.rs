@@ -1,4 +1,3 @@
-use crate::send_telemetry_from_ctx;
 use pathfinder_geometry::vector::vec2f;
 use warp_core::ui::{self, appearance::Appearance, color::blend::Blend as _};
 use warpui::{
@@ -96,10 +95,7 @@ impl GetStartedView {
         match event {
             ProjectButtonsEvent::OpenRepository(path_result) => match path_result {
                 Ok(path) => {
-                    send_telemetry_from_ctx!(
-                        TelemetryEvent::OpenRepoFolderSubmitted { is_ftux: true },
-                        ctx
-                    );
+                    ();
                     ctx.dispatch_typed_action(&WorkspaceAction::OpenRepository {
                         path: Some(path.clone()),
                     });
@@ -316,7 +312,7 @@ impl TypedActionView for GetStartedView {
     fn handle_action(&mut self, action: &Self::Action, ctx: &mut ViewContext<Self>) {
         match action {
             GetStartedAction::TerminalSession => {
-                send_telemetry_from_ctx!(TelemetryEvent::GetStartedSkipToTerminal, ctx);
+                ();
                 ctx.dispatch_typed_action(&WorkspaceAction::AddTerminalTab {
                     hide_homepage: true,
                 });

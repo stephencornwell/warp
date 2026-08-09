@@ -1,5 +1,4 @@
 use crate::report_if_error;
-use crate::send_telemetry_from_ctx;
 use warpui::{
     elements::{CrossAxisAlignment, Fill, Flex, ParentElement, Shrinkable},
     presenter::ChildView,
@@ -257,6 +256,6 @@ impl TypedActionView for StartupShellView {
                 });
             }
         }
-        send_telemetry_from_ctx!(action.telemetry_event(), ctx);
+        ();
     }
 }

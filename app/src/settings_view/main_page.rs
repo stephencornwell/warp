@@ -1,5 +1,4 @@
 use crate::report_if_error;
-use crate::send_telemetry_from_ctx;
 use super::{
     flags,
     settings_page::{
@@ -208,12 +207,7 @@ impl TypedActionView for MainSettingsPageView {
                             .toggle_and_save_value(ctx));
                         *prefs_settings.settings_sync_enabled
                     });
-                send_telemetry_from_ctx!(
-                    TelemetryEvent::ToggleSettingsSync {
-                        is_settings_sync_enabled: new_value,
-                    },
-                    ctx
-                );
+                ();
                 ctx.notify();
             }
             MainPageAction::Upgrade { team_uid, user_id } => match team_uid {

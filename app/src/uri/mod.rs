@@ -1,4 +1,3 @@
-use crate::send_telemetry_from_app_ctx;
 mod docker;
 pub mod parse_url_paths;
 pub mod web_intent_parser;
@@ -146,7 +145,7 @@ impl UriHost {
                         );
                     }
                 };
-                send_telemetry_from_app_ctx!(TelemetryEvent::OpenTeamFromURI, ctx);
+                ();
             }
             UriHost::Action => {
                 match Action::parse(url) {
@@ -1118,7 +1117,7 @@ fn open_file(window_id: Option<WindowId>, path: PathBuf, ctx: &mut AppContext) {
             }
         }
 
-        send_telemetry_from_app_ctx!(TelemetryEvent::OpenNewSessionFromFilePath, ctx);
+        ();
     }
 }
 
@@ -1130,7 +1129,7 @@ fn execute_file(window_id: WindowId, path_str: &str, ctx: &mut AppContext) {
         })
     });
 
-    send_telemetry_from_app_ctx!(TelemetryEvent::CommandFileRun, ctx);
+    ();
 }
 
 fn open_window_with_action(active_window_id: Option<WindowId>, action: &str, ctx: &mut AppContext) {

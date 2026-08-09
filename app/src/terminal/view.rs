@@ -11188,36 +11188,15 @@ impl TypedActionView for TerminalView {
             | AliasExpansionBanner(_)
             | VimModeBanner(_)
             | InsertMostRecentCommandCorrection
-            | StopSharingCurrentSession { .. }
-            | RequestSharedSessionRole(_)
-            | OnboardingFlow(_)
             | ImportSettings
             | DragAndDropFiles(_)
-            | WarpifySSHSession
             | ShowWarpifySshBanner(_, _)
-            | NotifySshErrorBlock(_)
-            | ToggleBlockFilterOnSelectedOrLastBlock(_)
             | SetMarkedText { .. }
-            | ResumeConversation
-            | ForkConversationFromLastKnownGoodState
-            | ToggleAIDocumentPane
             | ClearMarkedText
             | StartLspServer => ActionAccessibilityContent::from_debug(),
             #[cfg(feature = "local_fs")]
             OpenCodeInWarp { .. } => ActionAccessibilityContent::from_debug(),
             OpenInWarpBanner(action) => self.open_in_warp_banner_accessibility_content(*action),
-            OpenAIBlockAttachedBlocksMenu { .. } => Custom(AccessibilityContent::new_without_help(
-                "Open list of blocks attached as context to this AI query.".to_owned(),
-                WarpA11yRole::PopoverRole,
-            )),
-            OpenAIBlockOverflowMenu { .. } => Custom(AccessibilityContent::new_without_help(
-                "Open overflow menu with copy options for this AI block.".to_owned(),
-                WarpA11yRole::PopoverRole,
-            )),
-            SelectAIAttachedBlock(_) => Custom(AccessibilityContent::new_without_help(
-                "Click on a block attached as context to this AI query.".to_owned(),
-                WarpA11yRole::ButtonRole,
-            )),
             PickRepoToOpen => Custom(AccessibilityContent::new_without_help(
                 "Use file picker to select a git repository".to_owned(),
                 WarpA11yRole::PopoverRole,
@@ -11241,17 +11220,7 @@ impl TypedActionView for TerminalView {
             | InputContextMenuItem(_)
             | NotificationsDiscoveryBanner(_)
             | NotificationsErrorBanner(_)
-            | LegacySSHBanner(_)
             | OpenWorkflowModal
-            | OpenWorkflowModalForAIWorkflow(_)
-            | OpenWorkflowModalForBlock(_)
-            | OpenWorkflowModalWithCloudWorkflow(_)
-            | OpenShareSessionModal { .. }
-            | OpenSharedSessionViewerRoleMenu
-            | CopySharedSessionLink { .. }
-            | OpenSharedSessionOnDesktop { .. }
-            | MakeAllParticipantsReaders { .. }
-            | AskAIAssistant { .. }
             | ToggleSnackbarInActivePane
             | SetInputModeAgent
             | SetInputModeTerminal
@@ -11261,48 +11230,21 @@ impl TypedActionView for TerminalView {
             | StopFileDropTarget
             | RunNativeShellCompletions { .. }
             | OpenTeamSettingsPage
-            | SelectAgenticSuggestion(_)
-            | HideTelemetryBannerPermanently
-            | GenerateCodebaseIndex
-            | LoadAgentModeConversation
-            | DeleteAttachment { .. }
-            | WriteCodebaseIndex
-            | ToggleAutoexecuteMode
-            | ToggleQueueNextPrompt
-            | ToggleTodoPopup
-            | CloseTodoPopup
             | OpenProjectRulesPane
             | InitProject
             | IndexProjectSpeedbump
             | OpenViewMCPPane
             | OpenAddMCPPane
-            | OpenBillingAndUsagePane
             | OpenAddRulePane
             | OpenRulesPane
-            | OpenEditSkillPane { .. }
             | OpenAddPromptPane
             | AddProjectAtCurrentDirectory
-            | CodebaseIndexSpeedbumpBanner(_)
-            | AgentModeSetupSpeedbumpBanner(_)
-            | AnonymousUserAISignUpBanner(_)
             | DismissCodeToolbeltTooltip
             | SummarizeConversation
             | ToggleLongRunningCommandControl
             | ToggleHideCliResponses
-            | OpenConversationsPalette
-            | ExitAgentView
-            | EnterCloudAgentView
-            | StartNewAgentConversation
-            | ToggleCloudModeDetailsPanel
-            | CancelAmbientAgentTask
             | OpenInlineHistoryMenu
             | OpenModelSelector
-            | ResolvePromptSuggestion(..)
-            | AwsBedrockLoginBanner(_)
-            | AwsCliNotInstalledBanner(_)
-            | ToggleUsageFooter
-            | RevealChildAgent { .. }
-            | SwitchAgentViewToConversation { .. }
             | OpenCLIAgentRichInput
             | ToggleSessionRecording => Empty,
         }
@@ -11366,28 +11308,6 @@ impl TypedActionView for TerminalView {
             AltScreenContextMenu { position } => self.alt_screen_context_menu(*position, ctx),
             AltMouseAction(mouse_state) => self.alt_mouse_action(mouse_state, ctx),
             BlockListContextMenu(menu_state) => self.block_list_context_menu(menu_state, ctx),
-            OpenAIBlockAttachedBlocksMenu {
-                exchange_id,
-                conversation_id: ai_conversation_id,
-                ai_block_view_id,
-            } => self.open_ai_block_attached_context_menu(
-                *ai_block_view_id,
-                *exchange_id,
-                *ai_conversation_id,
-                ctx,
-            ),
-            OpenAIBlockOverflowMenu {
-                exchange_id,
-                conversation_id: ai_conversation_id,
-                ai_block_view_id,
-                is_restored,
-            } => self.open_ai_block_overflow_context_menu(
-                *ai_block_view_id,
-                *exchange_id,
-                *ai_conversation_id,
-                *is_restored,
-                ctx,
-            ),
             CloseContextMenu => self.close_context_menu(ctx, true),
             Paste => self.paste(false, ctx),
             Copy => self.copy(ctx),
@@ -11517,7 +11437,6 @@ impl TypedActionView for TerminalView {
             NotificationsDiscoveryBanner(action) => {
                 self.notifications_discovery_banner_action(*action, ctx)
             }
-            LegacySSHBanner(action) => self.ssh_banner_action(*action, ctx),
             JumpToBookmark(index) => self.jump_to_bookmark(*index, ctx),
             InsertCommandCorrection { correction } => {
                 self.insert_command_correction(correction, ctx);
@@ -11583,23 +11502,12 @@ impl TypedActionView for TerminalView {
                     ();
                 }
             }
-            StopSharingCurrentSession { source } => self.stop_sharing_session(*source, ctx),
-            ToggleBlockFilterOnSelectedOrLastBlock(source) => {
-                self.toggle_block_filter_on_selected_or_last_block(*source, ctx);
-            }
             ToggleSnackbarInActivePane => self.toggle_snackbar_in_active_pane(ctx),
-            MakeAllParticipantsReaders { reason } => {
-                self.make_all_shared_session_participants_readers(*reason, ctx)
-            }
             MiddleClickOnGrid { position } => self.middle_click_on_grid(position, ctx),
             MiddleClickOnInput => self.middle_click_on_input(ctx),
-            SelectAIAttachedBlock(block_index) => {
-                self.scroll_to_and_maybe_select_block(*block_index, ctx)
-            }
             DragAndDropFiles(paths) => {
                 self.drag_and_drop_files(paths, ctx);
             }
-            WarpifySSHSession => self.add_ssh_warpifying_block(ctx),
             #[cfg(feature = "voice_input")]
             HyperlinkClick(hyperlink) => {
                 ctx.notify();
@@ -11718,15 +11626,6 @@ impl TypedActionView for TerminalView {
                 self.input.update(ctx, |input, ctx| {
                     input.handle_action(&InputAction::OpenModelSelector, ctx);
                 });
-            }
-            ResolvePromptSuggestion(resolution) => {
-                self.resolve_passive_suggestion(*resolution, ctx);
-            }
-            AwsBedrockLoginBanner(action) => {
-                self.handle_aws_bedrock_login_banner_action(*action, ctx);
-            }
-            AwsCliNotInstalledBanner(action) => {
-                self.handle_aws_cli_not_installed_banner_action(*action, ctx);
             }
             ToggleCloudModeDetailsPanel => {
                 let will_open = !self.is_cloud_mode_details_panel_open;

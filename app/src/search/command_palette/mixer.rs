@@ -28,9 +28,6 @@ pub enum CommandPaletteItemAction {
     ViewInWarpDrive {
         id: CloudObjectTypeAndId,
     },
-    InvokeEnvironmentVariables {
-        id: SyncId,
-    },
     /// Navigate to the session identified by `pane_view`.
     NavigateToSession {
         pane_view_locator: PaneViewLocator,
@@ -73,9 +70,6 @@ impl CommandPaletteItemAction {
             },
             CommandPaletteItemAction::OpenNotebook { id } => ItemSummary::Notebook { id: *id },
             CommandPaletteItemAction::ExecuteWorkflow { id } => ItemSummary::Workflow { id: *id },
-            CommandPaletteItemAction::InvokeEnvironmentVariables { id } => {
-                ItemSummary::EnvVarCollection { id: *id }
-            }
             CommandPaletteItemAction::NavigateToSession {
                 pane_view_locator, ..
             } => ItemSummary::Session {
@@ -138,9 +132,6 @@ pub enum ItemSummary {
         binding_id: BindingId,
     },
     Workflow {
-        id: SyncId,
-    },
-    EnvVarCollection {
         id: SyncId,
     },
     Notebook {

@@ -162,10 +162,6 @@ impl DataSourceStore {
                 .warp_drive_data_source
                 .as_ref(app)
                 .query_result(id, app),
-            ItemSummary::EnvVarCollection { id } => self
-                .warp_drive_data_source
-                .as_ref(app)
-                .query_result(id, app),
             ItemSummary::Notebook { id } => self
                 .warp_drive_data_source
                 .as_ref(app)

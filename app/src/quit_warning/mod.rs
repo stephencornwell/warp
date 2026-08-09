@@ -67,7 +67,7 @@ impl QuitScope<'_> {
                 pane_group_id,
                 window_id,
             } => pane_group
-                .downcast_pane_by_id::<TerminalPane>(*pane_id)
+                .terminal_view_from_pane_id(*pane_id, ctx)
                 .map(|pane| pane.session_navigation_data(*pane_group_id, *window_id, ctx))
                 .into_iter()
                 .collect_vec(),
@@ -101,11 +101,7 @@ impl QuitScope<'_> {
                 pane_group,
                 pane_id,
                 ..
-            } => pane_group
-                .terminal_view_from_pane_id(*pane_id, ctx)
-                .filter(|view| view.as_ref(ctx).is_sharing_session())
-                .into_iter()
-                .count(),
+            } => 0,
             Self::Tabs(ref tabs) => tabs
                 .iter()
                 .filter_map(|tab| tab.upgrade(ctx))
@@ -200,7 +196,7 @@ impl<'a> UnsavedStateSummary<'a> {
             QuitScope::Tabs(ref tabs) if tabs.len() == 1 => " in this tab.",
             QuitScope::Window(_) => " in this window.",
             QuitScope::Pane { .. } => " in this pane.",
-            QuitScope::App | QuitScope::Tabs(_) | QuitScope::EditorTab { .. } => ".",
+            QuitScope::App | QuitScope::Tabs(_) => ".",
         };
 
         if self.total_long_running_commands > 0 {
@@ -235,11 +231,7 @@ impl<'a> UnsavedStateSummary<'a> {
         }
 
         if self.unsaved_code_changes {
-            if let QuitScope::EditorTab { ref file_name, .. } = self.scope {
-                info_text_lines.push(format!("Do you want to save the changes you made to {}? Your changes will be discarded if you don't save them.", file_name.clone().unwrap_or("this file".to_string())));
-            } else {
-                info_text_lines.push(format!("You have unsaved file changes{scope_suffix}"));
-            }
+            info_text_lines.push(format!("You have unsaved file changes{scope_suffix}"));
         }
 
         info_text_lines.join("\n")
@@ -340,7 +332,6 @@ impl<'a> QuitWarningDialog<'a> {
             QuitScope::Tabs(_) => "Close tabs?",
             QuitScope::Window(_) => "Close window?",
             QuitScope::App => "Quit Warp?",
-            QuitScope::EditorTab { .. } => "Save changes?",
         };
 
         AlertDialogWithCallbacks::for_app(

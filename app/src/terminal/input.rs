@@ -3070,7 +3070,7 @@ impl Input {
         &'a self,
         ctx: &'a ViewContext<Self>,
     ) -> Vec<HistoryInputSuggestion<'a>> {
-        let config = UpArrowHistoryConfig::for_input_config(&InputConfig::default());
+        let config = UpArrowHistoryConfig::for_input_config();
 
         History::as_ref(ctx).up_arrow_suggestions_for_terminal_view(
             self.terminal_view_id,

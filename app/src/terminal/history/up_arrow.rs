@@ -1,12 +1,8 @@
 use std::collections::HashSet;
 
-use warp_core::features::FeatureFlag;
 use warpui::{AppContext, EntityId, SingletonEntity};
 
-use crate::ai::blocklist::BlocklistAIHistoryModel;
-use crate::ai::blocklist::InputConfig;
 use crate::input_suggestions::HistoryInputSuggestion;
-use crate::settings::AISettings;
 use crate::suggestions::ignored_suggestions_model::{IgnoredSuggestionsModel, SuggestionType};
 use crate::terminal::model::session::SessionId;
 
@@ -23,17 +19,10 @@ impl UpArrowHistoryConfig {
     /// Derives the config from the current input config.
     /// When the input is locked to a specific type, only that type is included.
     /// When unlocked (auto-detection), both types are included.
-    pub fn for_input_config(input_config: &InputConfig) -> Self {
-        if input_config.is_locked {
-            Self {
-                include_commands: input_config.is_shell(),
-                include_prompts: input_config.is_ai(),
-            }
-        } else {
-            Self {
-                include_commands: true,
-                include_prompts: true,
-            }
+    pub fn for_input_config() -> Self {
+        Self {
+            include_commands: true,
+            include_prompts: false,
         }
     }
 }
@@ -82,10 +71,6 @@ impl History {
     ) -> Vec<HistoryInputSuggestion<'a>> {
         let ignored_suggestions = IgnoredSuggestionsModel::handle(app).as_ref(app);
 
-        let include_agent_commands = *AISettings::handle(app)
-            .as_ref(app)
-            .include_agent_commands_in_history;
-
         let commands = session_id
             .and_then(|session_id| self.commands(session_id))
             .unwrap_or_default()
@@ -93,40 +78,14 @@ impl History {
             .filter(|entry| {
                 !ignored_suggestions.is_ignored(&entry.command, SuggestionType::ShellCommand)
             })
-            .filter(move |entry| include_agent_commands || !entry.is_agent_executed)
+            .filter(|entry| !entry.is_agent_executed)
             .map(|entry| HistoryInputSuggestion::Command { entry });
 
-        let should_include_prompts = config.include_prompts
-            && FeatureFlag::AgentMode.is_enabled()
-            && AISettings::handle(app).as_ref(app).is_any_ai_enabled(app);
         let all_live_session_ids = self.all_live_session_ids();
-        if !should_include_prompts {
-            if !config.include_commands {
-                return vec![];
-            }
-            return sort_and_dedupe_suggestions(
-                commands.collect(),
-                session_id,
-                &all_live_session_ids,
-            );
+        let _ = (terminal_view_id, config.include_prompts);
+        if !config.include_commands {
+            return vec![];
         }
-
-        let ai_queries = BlocklistAIHistoryModel::handle(app)
-            .as_ref(app)
-            .all_ai_queries(Some(terminal_view_id))
-            .filter(|query| {
-                !ignored_suggestions.is_ignored(&query.query_text, SuggestionType::AIQuery)
-            })
-            .map(|entry| HistoryInputSuggestion::AIQuery { entry });
-
-        let suggestions: Vec<HistoryInputSuggestion<'a>> =
-            match (config.include_commands, config.include_prompts) {
-                (true, true) => commands.chain(ai_queries).collect(),
-                (true, false) => commands.collect(),
-                (false, true) => ai_queries.collect(),
-                (false, false) => vec![],
-            };
-
-        sort_and_dedupe_suggestions(suggestions, session_id, &all_live_session_ids)
+        sort_and_dedupe_suggestions(commands.collect(), session_id, &all_live_session_ids)
     }
 }

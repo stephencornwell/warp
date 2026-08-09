@@ -1,5 +1,6 @@
 use std::borrow::Cow;
 
+use itertools::Itertools;
 use lazy_static::lazy_static;
 use memo_map::MemoMap;
 use warpui::{AppContext, AssetProvider, SingletonEntity};

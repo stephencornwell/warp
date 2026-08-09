@@ -239,6 +239,7 @@ impl FeatureSectionView {
                 font_color: Some(match color {
                     Fill::Solid(color) => color,
                     Fill::None => pathfinder_color::ColorU::new(0, 0, 0, 255),
+                    Fill::Gradient { .. } => pathfinder_color::ColorU::new(0, 0, 0, 255),
                 }),
                 ..Default::default()
             })

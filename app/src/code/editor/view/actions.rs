@@ -7,8 +7,7 @@ use crate::code::editor::{
     view::{CodeEditorEvent, CodeEditorView, VimMode},
 };
 use crate::{
-    cmd_or_ctrl_shift, code_review::comments::CommentId,
-    code_review::telemetry_event::CodeReviewTelemetryEvent, editor::InteractionState,
+    cmd_or_ctrl_shift, editor::InteractionState,
     features::FeatureFlag, notebooks::editor::model::word_unit,
     util::bindings::CustomAction,
 };
@@ -638,13 +637,6 @@ pub enum CodeEditorViewAction {
     RevertDiffHunk {
         line_range: Range<LineCount>,
     },
-    /// Open comment line (when opening a comment on a specific line)
-    NewCommentOnLine {
-        line: EditorLineLocation,
-    },
-    RequestOpenSavedComment {
-        uuid: CommentId,
-    },
     DeleteLineLeft,
     DeleteLineRight,
     DeleteWordLeft,
@@ -1063,21 +1055,6 @@ impl TypedActionView for CodeEditorView {
 
                     // Notify to re-render
                     ctx.notify();
-                }
-            }
-            NewCommentOnLine { line: line_info } => {
-                if FeatureFlag::InlineCodeReview.is_enabled() {
-                    self.model.update(ctx, |model: &mut CodeEditorModel, ctx| {
-                        model.open_comment_line(line_info, ctx);
-                    });
-
-                    ctx.focus(&self.active_comment_editor);
-                    ctx.notify();
-                }
-            }
-            RequestOpenSavedComment { uuid } => {
-                if FeatureFlag::InlineCodeReview.is_enabled() {
-                    ctx.emit(CodeEditorEvent::RequestOpenComment(*uuid))
                 }
             }
             MouseHovered {

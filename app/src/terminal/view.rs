@@ -3842,27 +3842,7 @@ impl TerminalView {
 
     /// Recomputes the chip values for the Warp prompt (i.e. _not_ PS1).
     fn refresh_warp_prompt(&mut self, ctx: &mut ViewContext<Self>) {
-        // Ask the per-repo sub-model to re-fetch metadata so the chip values
-        // reflect the latest git state (branch, diff stats, etc.).
-        #[cfg(feature = "local_fs")]
-        if let Some(handle) = &self.git_repo_status {
-            handle.update(ctx, |model, ctx| {
-                model.refresh_metadata(ctx);
-            });
-        }
-
-        self.input.update(ctx, |input, ctx| {
-            input.update_prompt_display_chips(ctx);
-        });
-
-        self.current_prompt.update(ctx, |prompt_type, ctx| {
-            if let PromptType::Dynamic { prompt } = prompt_type {
-                prompt.update(ctx, |current_prompt, ctx| {
-                    current_prompt
-                        .update_context(self.model.lock().block_list().active_block(), ctx);
-                });
-            }
-        });
+        let _ = ctx;
     }
 
     pub fn current_state(&self) -> TerminalViewStateChange {
@@ -4235,7 +4215,6 @@ impl TerminalView {
                                     }
 
                                     let Some(active_directory) = me.active_session_path_if_local(ctx) else {
-                                        me.clear_git_repo_status(ctx);
                                         return;
                                     };
 
@@ -4254,7 +4233,7 @@ impl TerminalView {
                                         // and git status updates are needed.
                                         if old_repo_path.as_ref() != Some(repo_path) {
                                             // Drop old handle (unsubscribes automatically).
-                                            me.git_repo_status = None;
+                                            let _ = old_repo_path;
                                                                         }
 
                                         // Notify chips of the new repo path.
@@ -4262,22 +4241,8 @@ impl TerminalView {
                                             input.update_repo_path(Some(repo_path.clone()), ctx);
                                         });
 
-                                        if FeatureFlag::AIContextMenuEnabled.is_enabled() {
-                                            me.input.update(ctx, |input, ctx| {
-                                                input.check_and_update_ai_context_menu_disabled_state(
-                                                    ctx,
-                                                );
-                                            });
-                                        }
-
-                                        me.start_lsp_server_in_active_pwd(ctx);
-
-                                        me.update_repo_banner_state(
-                                            repo_path.clone(),
-                                            ctx,
-                                        );
+                                        let _ = repo_path;
                                     } else {
-                                        me.clear_git_repo_status(ctx);
                                         ctx.notify();
                                     }
                                 });
@@ -4340,7 +4305,6 @@ impl TerminalView {
                         {
                             // Redundantly send resizes in case the alt-screens
                             // resize handler was not registered in time.
-                            self.resize_alt_screen_redundantly(ctx);
                         }
                     }
                 }

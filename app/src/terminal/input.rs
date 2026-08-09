@@ -3415,22 +3415,6 @@ impl Input {
 
     /// Resets the SelectedWorkflowState back to the original workflow, with its original arguments. This
     /// is useful when the command does not match the original workflow.
-    fn reset_workflow_state(&mut self, ctx: &mut ViewContext<Input>) {
-        if let Some(state) = self.workflows_state.selected_workflow_state.take() {
-            self.insert_workflow_into_input(
-                state.workflow_type,
-                state.workflow_source,
-                state.workflow_selection_source,
-                None,
-                None,
-                true,
-                ctx,
-            )
-        }
-
-        ctx.notify();
-    }
-
     fn confirm_suggestion(&mut self, suggestion: &str, ctx: &mut ViewContext<Input>) -> bool {
         self.confirm_suggestion_internal(suggestion, Executing::No, ctx)
     }

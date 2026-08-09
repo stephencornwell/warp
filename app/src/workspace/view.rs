@@ -6627,7 +6627,6 @@ impl Workspace {
                 is_wsl_session,
                 session_id,
                 pwd,
-                has_pending_ssh,
             ) = terminal_handle.read(ctx, |terminal, ctx| {
                 let active_session_id = terminal.active_block_session_id();
                 let session =
@@ -6636,7 +6635,6 @@ impl Workspace {
                 let is_local = terminal.active_session_is_local(ctx);
                 let is_wsl_session = session.as_ref().map(|s| s.is_wsl()).unwrap_or(false);
                 let pwd = terminal.pwd();
-                let has_pending_ssh = terminal.has_pending_ssh_command();
                 (
                     session,
                     path_if_local,
@@ -6644,7 +6642,6 @@ impl Workspace {
                     is_wsl_session,
                     active_session_id,
                     pwd,
-                    has_pending_ssh,
                 )
             });
 
@@ -6671,18 +6668,6 @@ impl Workspace {
                 is_unsupported_session,
                 has_remote_server,
             );
-
-            // When an SSH command is running (pending host set + block
-            // still long-running), the old local session is still active
-            // so the enablement computes as `Enabled`. Override to
-            // `PendingRemoteSession` so the file tree shows loading
-            // instead of the stale local tree.
-            let enablement =
-                if has_pending_ssh && matches!(enablement, CodingPanelEnablementState::Enabled) {
-                    CodingPanelEnablementState::PendingRemoteSession
-                } else {
-                    enablement
-                };
 
             self.left_panel_view.update(ctx, |left_panel, ctx| {
                 left_panel.update_coding_panel_enablement(enablement, ctx);
@@ -7327,7 +7312,6 @@ impl Workspace {
             {
                 ToolPanelView::ProjectExplorer => "Project explorer",
                 ToolPanelView::GlobalSearch { .. } => "Global search",
-                ToolPanelView::WarpDrive => "Warp Drive",
             }
         } else {
             "Tools panel"

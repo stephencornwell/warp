@@ -1591,7 +1591,6 @@ impl Input {
 
         let editor = {
             // Clones used in render_decorator_elements closure below.
-            let prompt_render_helper_clone = prompt_render_helper.clone();
             let model_clone = model.clone();
             // Clone used in keymap_context_modifier closure below.
             let terminal_model_for_keymap_context = model.clone();

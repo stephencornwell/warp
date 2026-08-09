@@ -101,7 +101,6 @@ pub use icon::icon_from_file_path;
 
 #[cfg_attr(not(target_family = "wasm"), path = "view.rs")]
 #[cfg_attr(target_family = "wasm", path = "wasm.rs")]
-pub mod view;
 
 pub fn init(app: &mut AppContext) {
     self::view::init(app);

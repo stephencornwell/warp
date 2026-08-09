@@ -10114,53 +10114,12 @@ impl Workspace {
     // warning on mac)
     #[allow(clippy::let_and_return)]
     fn banner_fields(&self, app: &AppContext) -> Option<WorkspaceBannerFields> {
-        // The settings error banner sits just below reauth in priority — it's
-        // more important that users are notified their settings file is broken
-        // than that they continue to see any of the autoupdate or crash recovery
-        // banners.
-        let banner_fields = self
-            .render_reauth_banner_element()
-            .or_else(|| self.render_settings_error_banner(app))
-            .or_else(|| self.render_autoupdate_banner_element(app));
+        let banner_fields = self.render_reauth_banner_element();
 
         #[cfg(enable_crash_recovery)]
         let banner_fields = banner_fields.or_else(|| crash_recovery::banner_metadata(app));
 
         banner_fields
-    }
-
-    fn render_settings_error_banner(&self, app: &AppContext) -> Option<WorkspaceBannerFields> {
-        if self.settings_error_banner_dismissed {
-            return None;
-        }
-        let error = self.settings_file_error.as_ref()?;
-        let (heading, description) = error.heading_and_description();
-        let secondary_button =
-            AISettings::as_ref(app)
-                .is_any_ai_enabled(app)
-                .then(|| WorkspaceBannerButtonDetails {
-                    text: "Fix with Oz".to_owned(),
-                    action: WorkspaceAction::FixSettingsWithOz {
-                        error_description: error.to_string(),
-                    },
-                    variant: BannerButtonVariant::Naked,
-                    icon: Some(Icon::Oz),
-                    more_info_button_action: None,
-                });
-        Some(WorkspaceBannerFields {
-            banner_type: WorkspaceBanner::InvalidSettings,
-            severity: BannerSeverity::Warning,
-            heading: Some(heading),
-            description,
-            secondary_button,
-            button: Some(WorkspaceBannerButtonDetails {
-                text: "Open file".to_owned(),
-                action: WorkspaceAction::OpenSettingsFile,
-                variant: BannerButtonVariant::Outlined,
-                icon: None,
-                more_info_button_action: None,
-            }),
-        })
     }
 
     fn maybe_render_workspace_banner(

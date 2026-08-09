@@ -17,7 +17,6 @@ use crate::uri::browser_url_handler::update_browser_url;
 #[cfg(feature = "local_fs")]
 use crate::util::openable_file_type::FileTarget;
 use crate::view_components::ToastFlavor;
-use crate::workflows::workflow::Workflow;
 use warp_terminal::shell::{ShellName, ShellType};
 
 use std::any::Any;
@@ -446,7 +445,6 @@ pub enum Event {
         source: SharingDialogSource,
     },
     // Tell the workspace to open the workflow modal with an unsaved workflow.
-    OpenWorkflowModalWithTemporary(Box<Workflow>),
     OpenPromptEditor,
     OpenAgentToolbarEditor,
     OpenCLIAgentToolbarEditor,

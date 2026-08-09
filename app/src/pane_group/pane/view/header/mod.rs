@@ -471,10 +471,7 @@ impl<P: BackingView> PaneHeader<P> {
             .with_cross_axis_alignment(CrossAxisAlignment::Center)
             .with_main_axis_size(MainAxisSize::Min);
 
-        if should_show_on_header {
-            let appearance = Appearance::as_ref(app);
-            self.render_sharing_controls(&mut optional_controls, appearance, None, None, app);
-        }
+        let _ = (should_show_on_header, app);
 
         let optional_controls =
             Shrinkable::new(1., Clipped::new(optional_controls.finish()).finish()).finish();
@@ -516,17 +513,7 @@ impl<P: BackingView> PaneHeader<P> {
                 }
             }
             OpenOverlay::SharingDialog => {
-                if self.is_sharing_dialog_enabled(app) {
-                    stack.add_positioned_overlay_child(
-                        ChildView::new(self.sharing_dialog()).finish(),
-                        OffsetPositioning::offset_from_parent(
-                            vec2f(-8., 0.),
-                            ParentOffsetBounds::WindowByPosition,
-                            ParentAnchor::BottomRight,
-                            ChildAnchor::TopRight,
-                        ),
-                    );
-                }
+                let _ = app;
             }
             OpenOverlay::None => {}
         }
@@ -578,7 +565,6 @@ impl<P: BackingView> PaneHeader<P> {
                 let should_show_on_header = hover_state.is_hovered()
                     || self.open_overlay != OpenOverlay::None
                     || options.has_open_menu
-                    || self.has_shareable_shared_session(app)
                     || options.always_show_icons;
 
                 let (right_justified_row, min_right_width) = self.render_right_justified_row(
@@ -720,16 +706,7 @@ impl<P: BackingView> View for PaneHeader<P> {
             overflow_button_position_id: self.overflow_button_position_id(),
             has_overflow_items,
             header_left_inset,
-            render_sharing_controls_fn: Box::new(|app, icon_color, button_size| {
-                if !self.is_sharing_dialog_enabled(app) {
-                    return None;
-                }
-
-                let appearance = Appearance::as_ref(app);
-                let mut row = Flex::row();
-                self.render_sharing_controls(&mut row, appearance, icon_color, button_size, app);
-                Some(row.finish())
-            }),
+            render_sharing_controls_fn: Box::new(|_, _, _| None),
         };
         let header_content = self
             .pane_stack

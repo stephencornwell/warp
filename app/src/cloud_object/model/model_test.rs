@@ -35,7 +35,6 @@ use crate::server::ids::ServerIdAndType;
 use crate::server::server_api::object::ObjectClient;
 use crate::server::server_api::ServerApiProvider;
 use crate::server::sync_queue::SyncQueue;
-use crate::server::telemetry::context_provider::AppTelemetryContextProvider;
 use crate::settings::init_and_register_user_preferences;
 use crate::settings::Preference;
 use crate::system::SystemStats;

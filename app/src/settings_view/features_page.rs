@@ -37,7 +37,6 @@ use crate::editor::{
 use crate::search::command_search::settings::{
     CommandSearchSettings, ShowGlobalWorkflowsInUniversalSearch,
 };
-use crate::server::telemetry::TelemetryEvent;
 use crate::settings::{ScrollSettingsChangedEvent, ShowChangelogAfterUpdate, UserNativeRedirectPreference};
 use crate::settings::{
     AliasExpansionEnabled, AliasExpansionSettings, AppEditorSettings, AtContextMenuInTerminalMode,

@@ -306,8 +306,6 @@ use crate::terminal::{color::List, model::block::LONG_RUNNING_BOTTOM_PADDING_LIN
 use crate::terminal::{event::AfterBlockCompletedEvent, event::BlockLatencyData, event::BlockType};
 use crate::throttle::throttle;
 use crate::util::color::darken;
-use crate::send_telemetry_from_ctx;
-
 use self::link_detection::HighlightedLinkOption;
 use super::available_shells::AvailableShell;
 use super::block_list_viewport::FindMatchScrollLocation;

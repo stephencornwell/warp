@@ -24,7 +24,6 @@ use crate::editor::{
 };
 use crate::gpu_state::{GPUState, GPUStateEvent};
 use crate::prompt::editor_modal::OpenSource as PromptEditorOpenSource;
-use crate::server::telemetry::InputUXChangeOrigin;
 use crate::settings::{
     active_theme_kind,
     app_icon::{AppIcon, AppIconSettings},
@@ -64,7 +63,6 @@ use crate::{
     view_components::{Dropdown, DropdownItem, FilterableDropdown},
 };
 use crate::{report_error, report_if_error, themes};
-use crate::{send_telemetry_from_ctx, server::telemetry::TelemetryEvent};
 use ::settings::{Setting, SettingSection, ToggleableSetting};
 use enum_iterator::all;
 use std::borrow::Cow;

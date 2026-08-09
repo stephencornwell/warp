@@ -6,8 +6,6 @@ use lsp::{
     LanguageId, LanguageServerId, LspManagerModel, LspManagerModelEvent, LspServerModel,
     LspState as LspModelState,
 };
-use warp_core::send_telemetry_from_ctx;
-
 use crate::code::lsp_telemetry::{LspControlActionType, LspEnablementSource, LspTelemetryEvent};
 use pathfinder_color::ColorU;
 use pathfinder_geometry::vector::vec2f;

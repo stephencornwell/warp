@@ -18,8 +18,6 @@ use crate::features::FeatureFlag;
 use crate::menu::MenuItemFields;
 use crate::modal::{Modal, ModalEvent, MODAL_PADDING, MODAL_WIDTH};
 use crate::pricing::{PricingInfoModel, PricingInfoModelEvent};
-use crate::send_telemetry_from_ctx;
-use crate::server::telemetry::{AutoReloadModalAction, TelemetryEvent};
 use crate::settings_view::create_discount_badge;
 use crate::ui_components::blended_colors;
 use crate::view_components::{Dropdown, ToastFlavor};

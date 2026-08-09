@@ -65,8 +65,6 @@ pub(super) fn run_daemon_app(
         ctx.background_executor()
             .spawn(warp_logging::rotate_log_files())
             .detach();
-
-        use crate::server::telemetry::context_provider::NoopTelemetryContextProvider;
         use repo_metadata::repositories::DetectedRepositories;
         use repo_metadata::watcher::DirectoryWatcher;
         use repo_metadata::RepoMetadataModel;

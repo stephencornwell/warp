@@ -3,17 +3,6 @@ use warpui::{
     r#async::SpawnedFutureHandle, AppContext, ClosedWindowData, Entity, EntityId, ModelContext,
     ModelHandle, SingletonEntity, ViewHandle, WeakViewHandle, WindowId,
 };
-
-use crate::{
-    ai::active_agent_views_model::ActiveAgentViewsModel,
-    ai::blocklist::BlocklistAIHistoryModel,
-    pane_group::{PaneGroup, PaneId},
-    send_telemetry_from_app_ctx,
-    server::telemetry::{TelemetryEvent, UndoCloseItemType},
-    tab::TabData,
-    workspace::Workspace,
-};
-
 use super::{settings::UndoCloseSettingsChangedEvent, UndoCloseSettings};
 
 /// A unique identifier for an item in the undo close stack.

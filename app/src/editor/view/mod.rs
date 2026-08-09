@@ -47,7 +47,6 @@ use crate::appearance::Appearance;
 use crate::channel::{Channel, ChannelState};
 use crate::editor::accept_autosuggestion_keybinding_view::AcceptAutosuggestionKeybinding;
 use crate::editor::autosuggestion_ignore_view::{AutosuggestionIgnore, AutosuggestionIgnoreEvent};
-use crate::server::telemetry::TelemetryEvent;
 use crate::settings_view::flags;
 use crate::suggestions::ignored_suggestions_model::{IgnoredSuggestionsModel, SuggestionType};
 use crate::ui_components::buttons::icon_button;

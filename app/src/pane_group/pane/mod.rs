@@ -22,16 +22,6 @@ use std::{any::Any, fmt::Display};
 use crate::pane_group::focus_state::PaneFocusHandle;
 use crate::pane_group::pane::get_started_view::GetStartedView;
 use crate::view_components::action_button::ActionButton;
-use crate::{
-    code::view::CodeView,
-    drive::sharing::ShareableObject,
-    menu::MenuItem,
-    server::network_log_view::NetworkLogView,
-    server::telemetry::SharingDialogSource,
-    settings::PaneSettings,
-    settings_view::SettingsView,
-    terminal::{available_shells::AvailableShell, TerminalView},
-};
 use serde::{Deserialize, Serialize};
 use url::Url;
 use warp_core::HostId;

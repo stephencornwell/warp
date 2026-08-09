@@ -8,7 +8,6 @@ use super::{
     SettingsAction, SettingsSection, ToggleSettingActionPair,
 };
 use crate::auth::{AuthStateProvider, UserUid};
-use crate::send_telemetry_from_ctx;
 use crate::workspaces::user_workspaces::UserWorkspaces;
 use crate::{
     appearance::Appearance,

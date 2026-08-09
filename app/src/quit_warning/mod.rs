@@ -5,18 +5,6 @@ use warpui::{
     modals::{AlertDialogWithCallbacks, AppModalCallback, ModalButton},
     AppContext, EntityId, SingletonEntity, ViewContext, WeakViewHandle, WindowId,
 };
-
-use crate::{
-    code::editor_management::{CodeEditorStatus, CodeEditorSummary},
-    pane_group::{CodePane, PaneGroup, PaneId, TerminalPane},
-    report_if_error, send_telemetry_from_app_ctx,
-    server::telemetry::CloseTarget,
-    session_management::{RunningSessionSummary, SessionNavigationData},
-    terminal::general_settings::GeneralSettings,
-    workspace::Workspace,
-    TelemetryEvent,
-};
-
 /// Scope of what's being quit/closed.
 #[derive(Clone)]
 enum QuitScope<'a> {

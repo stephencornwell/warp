@@ -7,7 +7,6 @@ use crate::workspaces::user_workspaces::UserWorkspaces;
 use crate::workspaces::workspace::{AdminEnablementSetting, UgcCollectionEnablementSetting};
 use asset_macro::bundled_or_fetched_asset;
 use markdown_parser::{FormattedTextFragment, FormattedTextLine};
-use warp_core::send_telemetry_from_ctx;
 use warpui::assets::asset_cache::AssetSource;
 use warpui::{AppContext, SingletonEntity};
 

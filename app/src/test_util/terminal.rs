@@ -31,7 +31,6 @@ use crate::auth::auth_manager::AuthManager;
 use crate::auth::AuthStateProvider;
 use crate::changelog_model::ChangelogModel;
 use crate::pricing::PricingInfoModel;
-use crate::server::telemetry::context_provider::AppTelemetryContextProvider;
 use crate::suggestions::ignored_suggestions_model::IgnoredSuggestionsModel;
 use crate::terminal::shared_session::permissions_manager::SessionPermissionsManager;
 use crate::terminal::view::inline_banner::ByoLlmAuthBannerSessionState;

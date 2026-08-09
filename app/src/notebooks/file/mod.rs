@@ -27,31 +27,6 @@ use warpui::{
 
 #[cfg(feature = "local_fs")]
 use crate::notebooks::post_process_notebook;
-use crate::{
-    appearance::Appearance,
-    cmd_or_ctrl_shift,
-    editor::InteractionState,
-    menu::{MenuItem, MenuItemFields},
-    notebooks::editor::{model::NotebooksEditorModel, rich_text_styles},
-    pane_group::{
-        focus_state::PaneFocusHandle,
-        pane::view,
-        pane::view::header::components::{
-            render_pane_header_buttons, render_pane_header_title_text, render_three_column_header,
-            CenteredHeaderEdgeWidth,
-        },
-        BackingView, PaneConfiguration, PaneEvent,
-    },
-    safe_warn, send_telemetry_from_ctx,
-    server::telemetry::{NotebookActionEvent, NotebookTelemetryMetadata, TelemetryEvent},
-    settings::FontSettings,
-    terminal::model::session::Session,
-    ui_components::icons::Icon,
-    view_components::{MarkdownToggleEvent, MarkdownToggleView},
-    workflows::{WorkflowSource, WorkflowType},
-    workspace::ActiveSession,
-};
-
 use super::{
     context_menu::{show_rich_editor_context_menu, ContextMenuAction, ContextMenuState},
     editor::view::{EditorViewEvent, RichTextEditorConfig, RichTextEditorView},

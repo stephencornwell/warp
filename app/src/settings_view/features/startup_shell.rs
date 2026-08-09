@@ -4,20 +4,6 @@ use warpui::{
     ui_components::components::{Coords, UiComponent, UiComponentStyles},
     Element, Entity, SingletonEntity, TypedActionView, View, ViewContext, ViewHandle,
 };
-
-use crate::{
-    appearance::Appearance,
-    editor::{EditorView, Event, SingleLineEditorOptions, TextOptions},
-    report_if_error, send_telemetry_from_ctx,
-    server::telemetry::TelemetryEvent,
-    terminal::{
-        available_shells::{AvailableShell, AvailableShells},
-        local_tty::shell::is_valid_path_or_command_for_supported_shell,
-        session_settings::{SessionSettings, SessionSettingsChangedEvent},
-    },
-    view_components::{dropdown::TOP_MENU_BAR_HEIGHT, Dropdown, DropdownItem},
-};
-
 /// A view for configuring the initial shell for new sessions. This can be the
 /// user's login shell, the default installed version of zsh, bash, or fish,
 /// or an arbitrary user-provided path.

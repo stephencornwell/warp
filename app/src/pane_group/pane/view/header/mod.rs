@@ -1,26 +1,5 @@
 use sharing::SharedPaneContent;
 use std::fmt::Debug;
-
-use crate::{
-    appearance::Appearance,
-    menu::{Menu, MenuItem},
-    pane_group::{
-        focus_state::{PaneFocusHandle, PaneGroupFocusEvent},
-        pane::{
-            view::StandardHeader, ActionOrigin, PaneConfiguration, PaneConfigurationEvent,
-            PaneStack, PaneStackEvent, ToolbeltButton,
-        },
-        BackingView, Direction, PaneDragDropLocation, PaneId, TabBarHoverIndex,
-    },
-    send_telemetry_from_ctx,
-    server::telemetry::{SharingDialogSource, TelemetryEvent},
-    settings::CodeSettings,
-    tab::tab_position_id,
-    terminal::view::TerminalAction,
-    view_components::{FeaturePopup, NewFeaturePopupEvent, NewFeaturePopupLabel},
-    workspace::TabBarLocation,
-};
-
 use crate::workspace::TabBarDropTargetData;
 
 use super::header_content::{HeaderContent, HeaderRenderContext, StandardHeaderOptions};

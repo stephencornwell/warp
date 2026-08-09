@@ -38,8 +38,6 @@ use crate::server::cloud_objects::{listener::Listener, update_manager::UpdateMan
 use crate::server::experiments::ServerExperiments;
 use crate::server::server_api::ServerApiProvider;
 use crate::server::sync_queue::SyncQueue;
-
-use crate::server::telemetry::context_provider::AppTelemetryContextProvider;
 use crate::settings::PrivacySettings;
 use crate::settings_view::keybindings::KeybindingChangedNotifier;
 use crate::settings_view::DisplayCount;

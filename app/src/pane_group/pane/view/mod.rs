@@ -2,14 +2,6 @@ pub mod header;
 pub mod header_content;
 
 use crate::pane_group::pane::ActionOrigin;
-use crate::{
-    appearance::Appearance,
-    pane_group::{Direction, SplitPaneState, TabBarHoverIndex},
-    server::telemetry::SharingDialogSource,
-    settings::{PaneSettings, PaneSettingsChangedEvent},
-    util::bindings::CustomAction,
-};
-
 use super::{
     BackingView, PaneConfiguration, PaneConfigurationEvent, PaneId, PaneStack, PaneStackEvent,
 };

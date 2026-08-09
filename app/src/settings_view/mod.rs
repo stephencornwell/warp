@@ -39,7 +39,6 @@ use show_blocks_view::{ShowBlocksEvent, ShowBlocksView};
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::str::FromStr;
-use warp_core::send_telemetry_from_ctx;
 use warp_core::{
     channel::ChannelState, context_flag::ContextFlag, features::FeatureFlag,
     settings::ToggleableSetting as _, ui::theme::color::internal_colors,

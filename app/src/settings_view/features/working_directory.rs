@@ -5,17 +5,6 @@ use warpui::{
     ui_components::components::{Coords, UiComponent, UiComponentStyles},
     Element, Entity, SingletonEntity, TypedActionView, View, ViewContext, ViewHandle,
 };
-
-use crate::{
-    appearance::Appearance,
-    editor::{EditorView, Event as EditorEvent, SingleLineEditorOptions, TextOptions},
-    report_if_error, send_telemetry_from_ctx,
-    server::telemetry::TelemetryEvent,
-    settings_view::features_page::render_group,
-    terminal::session_settings::*,
-    view_components::{dropdown::TOP_MENU_BAR_HEIGHT, Dropdown, DropdownItem},
-};
-
 #[derive(Clone, Debug)]
 #[allow(clippy::enum_variant_names)]
 pub enum WorkingDirectoryAction {

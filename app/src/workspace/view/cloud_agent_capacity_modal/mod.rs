@@ -24,8 +24,6 @@ use warpui::platform::Cursor;
 use warpui::ui_components::button::ButtonVariant;
 use warpui::ui_components::components::{UiComponent, UiComponentStyles};
 use warpui::{AppContext, Element, Entity, SingletonEntity, TypedActionView, View, ViewContext};
-
-use crate::send_telemetry_from_ctx;
 use crate::TelemetryEvent;
 
 const MODAL_WIDTH: f32 = 360.;

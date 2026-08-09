@@ -17,7 +17,6 @@ use warp_util::path::LineAndColumnArg;
 use warp_util::standardized_path::StandardizedPath;
 
 use repo_metadata::repositories::DetectedRepositories;
-use warp_core::send_telemetry_from_ctx;
 use warpui::elements::{
     AcceptedByDropTarget, Align, Clipped, ConstrainedBox, Container, Dismiss, Draggable,
     DraggableState, Empty, FormattedTextElement, MainAxisAlignment, Percentage, Rect, SavePosition,
@@ -45,7 +44,6 @@ use crate::code::active_file::{ActiveFileEvent, ActiveFileModel};
 use crate::coding_panel_enablement_state::CodingPanelEnablementState;
 use crate::editor::{EditorOptions, EditorView, TextOptions};
 #[cfg(feature = "local_fs")]
-use crate::server::telemetry::CodePanelsFileOpenEntrypoint;
 use crate::terminal::input::InputDropTargetData;
 use crate::terminal::view::{TerminalDropTargetData, TerminalView};
 use crate::ui_components::item_highlight::{ImageOrIcon, ItemHighlightState};
@@ -55,14 +53,6 @@ use crate::util::openable_file_type::{is_file_content_binary, EditorLayout, File
 #[cfg(feature = "local_fs")]
 use crate::util::openable_file_type::{
     resolve_file_target_to_open_in_warp, resolve_file_target_with_editor_choice,
-};
-use crate::{
-    appearance::Appearance,
-    menu::{Menu, MenuItem, MenuItemFields},
-    server::telemetry::TelemetryEvent,
-    ui_components::icons::Icon,
-    view_components::DismissibleToast,
-    workspace::ToastStack,
 };
 use warp_core::features::FeatureFlag;
 use warp_core::ui::theme::{color::internal_colors, Fill};

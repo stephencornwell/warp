@@ -13,18 +13,6 @@ use warpui::{
 
 use warp_core::ui::theme::Fill;
 use warpui::elements::ConstrainedBox;
-
-use crate::{
-    drive::sharing::{
-        dialog::{SharingDialog, SharingDialogEvent},
-        ContentEditability, ShareableObject,
-    },
-    pane_group::BackingView,
-    server::telemetry::SharingDialogSource,
-    ui_components::buttons::{icon_button, icon_button_with_color},
-    ui_components::icons::Icon,
-};
-
 use super::{Event, OpenOverlay, PaneHeader, PaneHeaderAction};
 
 const UNSHARABLE_CONVERSATION_TOOLTIP: &str =

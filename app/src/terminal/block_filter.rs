@@ -17,18 +17,6 @@ use warpui::{
 };
 
 use crate::terminal::model::terminal_model::BlockIndex;
-use crate::{
-    appearance::Appearance,
-    editor::{
-        EditOrigin, EditorView, Event as EditorEvent, PropagateAndNoOpNavigationKeys,
-        SingleLineEditorOptions, TextOptions, ValidInputType,
-    },
-    send_telemetry_from_ctx,
-    server::telemetry::TelemetryEvent,
-    themes::theme::Fill,
-    ui_components::{blended_colors, icons::Icon},
-};
-
 use super::model::find::{FindConfig, RegexDFAs};
 
 const FILTER_BLOCK_PLACEHOLDER_TEXT: &str = "Filter block output";

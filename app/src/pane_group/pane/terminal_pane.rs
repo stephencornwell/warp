@@ -13,9 +13,8 @@ use crate::{
     pane_group::{self, Direction, Event::OpenConversationHistory, PaneGroup},
     persistence::{BlockCompleted, ModelEvent},
     session_management::SessionNavigationData,
-    terminal::{
+        terminal::{
         general_settings::GeneralSettings,
-        shared_session::SharedSessionStatus,
         view::Event,
         TerminalManager, TerminalView,
     },
@@ -138,7 +137,6 @@ impl TerminalPane {
             view.last_focus_ts(),
             view.is_read_only(),
             window_id,
-            SharedSessionStatus::NotShared,
         )
     }
 

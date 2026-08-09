@@ -244,10 +244,7 @@ where
 /// - Whether Warp is an OS-level default editor (skips Markdown files)
 #[cfg(feature = "local_fs")]
 pub fn should_show_open_in_warp_link(path: &Path, app: &AppContext) -> bool {
-    use crate::{
-        notebooks::file::is_markdown_file,
-        util::file::external_editor::{settings::EditorChoice, EditorSettings},
-    };
+    use crate::util::file::external_editor::{settings::EditorChoice, EditorSettings};
     use warp_util::file_type::is_binary_file;
     use warpui::SingletonEntity;
 
@@ -257,7 +254,9 @@ pub fn should_show_open_in_warp_link(path: &Path, app: &AppContext) -> bool {
         return false;
     }
 
-    !is_markdown_file(path) && !is_binary_file(path) && !path.is_dir()
+    path.extension().and_then(|extension| extension.to_str()) != Some("md")
+        && !is_binary_file(path)
+        && !path.is_dir()
 }
 
 #[cfg(not(feature = "local_fs"))]

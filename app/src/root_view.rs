@@ -2991,7 +2991,6 @@ impl WorkspaceArgs {
         ctx.add_typed_action_view(|ctx| {
             Workspace::new(
                 self.global_resource_handles,
-                self.server_time,
                 self.workspace_setting,
                 ctx,
             )

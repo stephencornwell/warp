@@ -8801,44 +8801,10 @@ impl TerminalView {
                 // oh-my-zsh prompt and send input directly to the pty.
                 && (!is_input_visible || !has_bootstrapped);
 
-            let is_shell_mode = !self.ai_input_model.as_ref(ctx).is_ai_input_enabled();
-            let are_blocks_selected = !self.selected_blocks.is_empty();
-            let is_text_selected = model
-                .selection_to_string(semantic_selection, false, ctx)
-                .filter(|text| !text.is_empty())
-                .is_some();
-
-            // Leave the input box focused when selecting blocks or text as context in AI input
-            // mode so users can quickly submit queries.
-            //
-            // In the new modality, block selection always represents context attachment and the
-            // input should remain focused.
-            let has_block_or_text_selection_in_shell_mode = is_shell_mode
-                && !FeatureFlag::AgentView.is_enabled()
-                && (are_blocks_selected || is_text_selected);
-
-            has_active_user_terminal_command || has_block_or_text_selection_in_shell_mode
+            has_active_user_terminal_command
         };
-        let blocked_cli_subagent_view = {
-            let model = self.model.lock();
-            let active_block = model.block_list().active_block();
-            if active_block.is_agent_blocked() {
-                self.cli_subagent_views.get(active_block.id())
-            } else {
-                None
-            }
-        };
-
-        if let Some(blocked_cli_subagent_view) = blocked_cli_subagent_view {
-            ctx.focus(blocked_cli_subagent_view);
-        } else if should_focus_terminal {
+        if should_focus_terminal {
             self.focus_terminal(ctx);
-        } else if let Some(ssh_choice_view) = self.active_ssh_remote_server_choice_block() {
-            ctx.focus(&ssh_choice_view);
-        } else if let (Some(active_ai_block_view_handle), false) =
-            (self.active_ai_block(ctx), is_input_visible)
-        {
-            ctx.focus(active_ai_block_view_handle);
         } else if self.has_active_init_project(ctx) && self.is_last_block_init_step(ctx) {
             self.try_focus_active_init_step(ctx);
         } else if let Some(active_init_environment_block_handle) =

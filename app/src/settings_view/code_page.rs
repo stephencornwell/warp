@@ -1,5 +1,3 @@
-#[cfg(feature = "local_fs")]
-use warp_core::report_if_error;
 use super::features::external_editor::ExternalEditorView;
 use super::{
     flags,
@@ -40,7 +38,6 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use warp_core::{
     features::FeatureFlag,
-    report_if_error,
     settings::ToggleableSetting as _,
     ui::theme::{AnsiColorIdentifier, Fill as ThemeFill},
 };

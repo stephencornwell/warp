@@ -8,7 +8,7 @@ use crate::code::editor::{
 };
 use crate::{
     cmd_or_ctrl_shift, editor::InteractionState,
-    features::FeatureFlag, notebooks::editor::model::word_unit,
+    features::FeatureFlag,
     util::bindings::CustomAction,
 };
 use lazy_static::lazy_static;

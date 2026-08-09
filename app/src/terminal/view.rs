@@ -5291,45 +5291,6 @@ impl TerminalView {
                     ctx.notify();
                 }
 
-                // Auto-open code review pane on first accepted file edits
-                if let Some(result) = action_result {
-                    if let AIAgentActionResultType::RequestFileEdits(
-                        crate::ai::agent::RequestFileEditsResult::Success { .. },
-                    ) = &result.result
-                    {
-                        let history_model = BlocklistAIHistoryModel::handle(ctx);
-                        if let Some(conversation_id) = history_model
-                            .as_ref(ctx)
-                            .conversation_id_for_action(action_id, ctx.view_id())
-                        {
-                            let already_opened = history_model
-                                .as_ref(ctx)
-                                .conversation(&conversation_id)
-                                .map(|c| c.has_opened_code_review())
-                                .unwrap_or(false);
-
-                            let should_auto_open = *GeneralSettings::as_ref(ctx)
-                                .auto_open_code_review_pane_on_first_agent_change;
-
-                            if !already_opened
-                                && should_auto_open
-                                && FeatureFlag::AutoOpenCodeReviewPane.is_enabled()
-                                && self.can_auto_open_code_review_panel(ctx)
-                                // we shouldn't auto open if this was triggered from a passive code review diff
-                                && !BlocklistAIHistoryModel::as_ref(ctx)
-                                .is_entirely_passive_conversation(&conversation_id)
-                            {
-                                self.open_code_review_pane(
-                                    GitDeltaPreference::Always,
-                                    CodeReviewPaneEntrypoint::ForceOpened,
-                                    None,  // cli_agent
-                                    false, /* focus_new_pane */
-                                    ctx,
-                                );
-                            }
-                        }
-                    }
-                }
             }
             BlocklistAIActionEvent::InitProject(_) => {
                 self.on_next_conversation_finished(|me, _reason, ctx| {
@@ -24098,55 +24059,6 @@ impl TypedActionView for TerminalView {
             }
             OpenRulesPane => {
                 ctx.emit(Event::OpenRulesPane);
-            }
-            OpenEditSkillPane { skill_reference } => {
-                #[cfg(feature = "local_fs")]
-                {
-                    use ai::skills::SkillReference;
-
-                    match skill_reference {
-                        SkillReference::Path(path) => {
-                            ctx.emit(Event::OpenCodeInWarp {
-                                source: CodeSource::Skill {
-                                    reference: skill_reference.clone(),
-                                    path: path.clone(),
-                                    origin: SkillOpenOrigin::OpenSkillCommand,
-                                },
-                                layout:
-                                    *crate::util::file::external_editor::EditorSettings::as_ref(ctx)
-                                        .open_file_layout
-                                        .value(),
-                            });
-                        }
-                        SkillReference::BundledSkillId(_) => {
-                            let window_id = ctx.window_id();
-                            ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
-                                toast_stack.add_ephemeral_toast(
-                                    DismissibleToast::error(
-                                        "Bundled skills cannot be edited".to_string(),
-                                    ),
-                                    window_id,
-                                    ctx,
-                                );
-                            });
-                        }
-                    }
-                }
-
-                #[cfg(not(feature = "local_fs"))]
-                {
-                    let _ = skill_reference;
-                    let window_id = ctx.window_id();
-                    ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
-                        toast_stack.add_ephemeral_toast(
-                            DismissibleToast::error(
-                                "Editing skills is not supported in this build".to_string(),
-                            ),
-                            window_id,
-                            ctx,
-                        );
-                    });
-                }
             }
             OpenAddPromptPane => ctx.emit(Event::OpenAddPromptPane {
                 initial_content: None,

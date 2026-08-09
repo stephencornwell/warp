@@ -211,14 +211,17 @@ use crate::util::bindings::is_binding_cross_platform;
 use crate::workspace::{PaneViewLocator, Workspace, WorkspaceAction};
 use warp_logging::LogDestination;
 
+#[macro_export]
 macro_rules! send_telemetry_from_ctx {
     ($($tokens:tt)*) => {};
 }
 
+#[macro_export]
 macro_rules! send_telemetry_from_app_ctx {
     ($($tokens:tt)*) => {};
 }
 
+#[macro_export]
 macro_rules! send_telemetry_sync_from_ctx {
     ($($tokens:tt)*) => {};
 }

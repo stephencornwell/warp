@@ -611,17 +611,6 @@ fn handle_terminal_view_event(
             Event::OpenFilesPalette { source } => {
                 ctx.emit(pane_group::Event::OpenFilesPalette { source: *source })
             }
-            Event::OpenAddRulePane => {
-                ctx.emit(crate::pane_group::Event::OpenAddRulePane);
-            }
-            Event::OpenRulesPane => {
-                ctx.emit(crate::pane_group::Event::OpenAIFactCollection { sync_id: None });
-            }
-            Event::OpenAddPromptPane { initial_content } => {
-                ctx.emit(crate::pane_group::Event::OpenAddPromptPane {
-                    initial_content: initial_content.clone(),
-                });
-            }
             #[cfg(feature = "local_fs")]
             Event::FileRenamed { old_path, new_path } => {
                 ctx.emit(pane_group::Event::FileRenamed {
@@ -641,23 +630,6 @@ fn handle_terminal_view_event(
                     target_view: *target_view,
                     force_open: *force_open,
                 });
-            }
-            Event::OpenAgentProfileEditor { profile_id } => {
-                ctx.emit(pane_group::Event::OpenAgentProfileEditor {
-                    profile_id: *profile_id,
-                });
-            }
-            Event::ShowCloudAgentCapacityModal { variant } => {
-                ctx.emit(pane_group::Event::ShowCloudAgentCapacityModal { variant: *variant });
-            }
-            Event::RevealChildAgent { conversation_id } => {
-                if let Some(&child_pane_id) = group.child_agent_panes.get(conversation_id) {
-                    group.panes.show_pane_for_child_agent(child_pane_id);
-                    group.handle_pane_count_change(ctx);
-                    group.focus_pane(child_pane_id, true, ctx);
-                } else {
-                    log::warn!("No hidden pane found for child conversation {conversation_id:?}");
-                }
             }
             Event::StartAgentConversation(request) => {
                 let request = request.clone();

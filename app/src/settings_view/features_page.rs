@@ -480,7 +480,7 @@ pub fn init_actions_from_parent_view<T: Action + Clone>(
         .with_enabled(|| FeatureFlag::AgentView.is_enabled()),
     );
 
-    if FeatureFlag::AgentView.is_enabled() && AISettings::as_ref(app).is_any_ai_enabled(app) {
+    if FeatureFlag::AgentView.is_enabled() && true {
         toggle_binding_pairs.push(
             ToggleSettingActionPair::new(
                 "slash commands in terminal mode",
@@ -1162,12 +1162,7 @@ impl TypedActionView for FeaturesPageView {
                 });
                 ctx.notify();
             }
-            ToggleAgentInAppNotifications => {
-                AISettings::handle(ctx).update(ctx, |settings, ctx| {
-                    report_if_error!(settings.show_agent_notifications.toggle_and_save_value(ctx));
-                });
-                ctx.notify();
-            }
+            ToggleAgentInAppNotifications => { ctx.notify(); }
             ToggleCompletionsOpenWhileTyping => {
                 InputSettings::handle(ctx).update(ctx, |input_settings, ctx| {
                     report_if_error!(input_settings
@@ -4584,87 +4579,7 @@ impl SettingsWidget for DesktopNotificationsWidget {
             column.add_child(render_group(toggles, appearance));
         }
 
-        if FeatureFlag::HOANotifications.is_enabled() {
-            let ai_settings = AISettings::as_ref(app);
-            let show_agent_notifications = *ai_settings.show_agent_notifications;
-            column.add_child(render_body_item::<FeaturesPageAction>(
-                "Show in-app agent notifications".into(),
-                None,
-                LocalOnlyIconState::Hidden,
-                ToggleState::Enabled,
-                appearance,
-                ui_builder
-                    .switch(
-                        view.button_mouse_states
-                            .agent_in_app_notifications_switch
-                            .clone(),
-                    )
-                    .check(show_agent_notifications)
-                    .build()
-                    .on_click(move |ctx, _, _| {
-                        ctx.dispatch_typed_action(
-                            FeaturesPageAction::ToggleAgentInAppNotifications,
-                        );
-                    })
-                    .finish(),
-                None,
-            ));
 
-            if show_agent_notifications {
-                let theme = appearance.theme();
-                let font_size = appearance.ui_font_size() - 2.;
-                let font_color = theme.active_ui_text_color();
-
-                let editor_style = UiComponentStyles {
-                    width: Some(appearance.ui_font_size() * 3.),
-                    height: Some(appearance.ui_font_size() * 2.),
-                    padding: Some(Coords::uniform(5.)),
-                    background: Some(theme.surface_2().into()),
-                    ..Default::default()
-                };
-
-                let toast_duration_row = Flex::row()
-                    .with_cross_axis_alignment(CrossAxisAlignment::Center)
-                    .with_child(
-                        Text::new_inline(
-                            "Toast notifications stay visible for",
-                            appearance.ui_font_family(),
-                            font_size,
-                        )
-                        .with_color(font_color.into())
-                        .finish(),
-                    )
-                    .with_child(
-                        Container::new(
-                            Dismiss::new(
-                                appearance
-                                    .ui_builder()
-                                    .text_input(view.notification_toast_duration_editor.clone())
-                                    .with_style(editor_style)
-                                    .build()
-                                    .finish(),
-                            )
-                            .on_dismiss(|ctx, _app| {
-                                ctx.dispatch_typed_action(
-                                    FeaturesPageAction::SetNotificationToastDuration,
-                                )
-                            })
-                            .finish(),
-                        )
-                        .with_margin_right(NOTIFICATION_EDITOR_MARGIN)
-                        .with_margin_left(NOTIFICATION_EDITOR_MARGIN)
-                        .finish(),
-                    )
-                    .with_child(
-                        Text::new_inline("seconds", appearance.ui_font_family(), font_size)
-                            .with_color(font_color.into())
-                            .finish(),
-                    )
-                    .finish();
-
-                column.add_child(render_group(vec![toast_duration_row], appearance));
-            }
-        }
 
         column.finish()
     }
@@ -5534,7 +5449,7 @@ impl SettingsWidget for SlashCommandsInTerminalModeWidget {
     }
 
     fn should_render(&self, app: &AppContext) -> bool {
-        AISettings::as_ref(app).is_any_ai_enabled(app)
+        true
     }
 
     fn render(
@@ -5893,15 +5808,7 @@ impl SettingsWidget for TabKeyBehaviorWidget {
                     .build()
                     .finish(),
             );
-        if *CloudPreferencesSettings::as_ref(app).settings_sync_enabled {
-            tab_key_span.add_child(render_local_only_icon(
-                appearance,
-                view.button_mouse_states
-                    .tab_behavior_local_only_icon
-                    .clone(),
-                None,
-            ));
-        }
+
 
         let main_row = Flex::row()
             .with_cross_axis_alignment(CrossAxisAlignment::Center)
@@ -6317,7 +6224,7 @@ impl SettingsWidget for ShowTerminalZeroStateBlockWidget {
     }
 
     fn should_render(&self, app: &AppContext) -> bool {
-        AISettings::as_ref(app).is_any_ai_enabled(app)
+        true
     }
 
     fn render(

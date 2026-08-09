@@ -16,7 +16,6 @@ use crate::pane_group::focus_state::PaneFocusHandle;
 use crate::prompt::editor_modal::OpenSource as PromptEditorOpenSource;
 use crate::search::slash_command_menu::static_commands::commands::{self, COMMAND_REGISTRY};
 
-use crate::server::telemetry::{PaletteSource, SlashCommandAcceptedDetails, SlashMenuSource};
 use crate::settings::PrivacySettings;
 use crate::suggestions::ignored_suggestions_model::{
     IgnoredSuggestionsModel, IgnoredSuggestionsModelEvent, SuggestionType,
@@ -46,10 +45,6 @@ use crate::code::editor_management::CodeSource;
 use crate::{
     appearance::{Appearance, AppearanceEvent},
     channel::{Channel, ChannelState},
-    cloud_object::{
-        model::{actions::ObjectActionType, persistence::CloudModel, view::CloudViewModel},
-        CloudObject, Space,
-    },
     cmd_or_ctrl_shift,
     completer::SessionContext,
     context_chips::{
@@ -80,20 +75,12 @@ use crate::{
         mark_feature_used_and_write_to_user_defaults, Tip, TipAction, TipHint, TipsCompleted,
     },
     search::QueryFilter,
-    send_telemetry_from_ctx,
     server::{
-        cloud_objects::update_manager::UpdateManager,
         ids::SyncId,
-        server_api::ServerApi,
-        telemetry::{
-            AICommandSearchEntrypoint, AgentModeAutoDetectionFalsePositivePayload,
-            AgentModeAutoDetectionSettingOrigin, AnonymousUserSignupEntrypoint, CommandXRayTrigger,
-            EnvVarTelemetryMetadata, TelemetryEvent, WorkflowTelemetryMetadata,
-        },
     },
     session_management::SessionNavigationPromptElements,
     settings::{
-        AISettings, AISettingsChangedEvent, AliasExpansionSettings, AppEditorSettings,
+        AliasExpansionSettings, AppEditorSettings,
         AppEditorSettingsChangedEvent, InputModeSettings, InputSettings, InputSettingsChangedEvent,
         MAX_TIMES_TO_SHOW_AUTOSUGGESTION_HINT,
     },
@@ -107,28 +94,13 @@ use crate::{
         Voltron, VoltronEvent, VoltronFeatureView, VoltronFeatureViewHandle,
         VoltronFeatureViewMeta, VoltronItem, VoltronMetadata,
     },
-    workflows::{
-        self,
-        aliases::WorkflowAliases,
-        command_parser::{
-            compute_workflow_display_data, compute_workflow_display_data_for_history_command,
-            compute_workflow_display_data_with_overrides, WorkflowArgumentIndex,
-            WorkflowDisplayData,
-        },
-        info_box::{
-            WorkflowsInfoBoxViewEvent, WorkflowsMoreInfoView, WORKFLOW_PARAMETER_HIGHLIGHT_COLOR,
-        },
-        local_workflows::LocalWorkflows,
-        workflow_enum::EnumVariants,
-        WorkflowSelectionSource, WorkflowSource, WorkflowType,
-    },
     workspace::{
         sync_inputs::SyncedInputState, CommandSearchOptions,
         ForkedConversationDestination, InitContent, RestoreConversationLayout, ToastStack,
         WorkspaceAction,
     },
     workspaces::user_workspaces::UserWorkspaces,
-    AgentModeEntrypoint, ServerApiProvider,
+    ServerApiProvider,
 };
 
 use base64::Engine as _;
@@ -227,21 +199,11 @@ use super::{
     },
     session_settings::{SessionSettings, SessionSettingsChangedEvent},
     settings::{SpacingMode, TerminalSettings, TerminalSettingsChangedEvent},
-    shared_session::{
-        presence_manager::PresenceManager, viewer::history_model::SharedSessionHistoryModel,
-        SharedSessionStatus,
-    },
     shell::ShellType,
-    universal_developer_input::{
-        UniversalDeveloperInputButtonBar, UniversalDeveloperInputButtonBarEvent,
-    },
     view::{
-        inline_banner::{
-        },
         ExecuteCommandEvent, SyncInputType, TerminalAction,
         PADDING_LEFT as TERMINAL_VIEW_PADDING_LEFT,
     },
-    warpify::SubshellSource,
     History, HistoryEntry, SizeInfo, TerminalModel, UpArrowHistoryConfig,
 };
 use async_channel::Sender;

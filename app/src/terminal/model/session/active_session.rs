@@ -1,5 +1,5 @@
 use std::sync::Arc;
-use warpui::{Entity, ModelContext, ModelHandle};
+use warpui::{AppContext, Entity, ModelContext, ModelHandle};
 
 use crate::{
     terminal::{

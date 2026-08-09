@@ -70,7 +70,6 @@ use crate::terminal::{terminal_manager, TerminalView, PTY_READS_BROADCAST_CHANNE
 use crate::NetworkStatus;
 
 use super::mio_channel;
-use super::recorder;
 use super::shell::ShellStarter;
 use super::{event_loop::EventLoop, shell::ShellStarterSource};
 

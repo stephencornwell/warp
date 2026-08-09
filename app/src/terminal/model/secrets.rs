@@ -1,6 +1,5 @@
 #![allow(dead_code)]
 
-use crate::ai::blocklist::TextLocation;
 use crate::terminal::model::index::Point;
 use anyhow::anyhow;
 use itertools::Itertools;
@@ -69,7 +68,6 @@ impl SecretHandle {
 pub struct RichContentSecretTooltipInfo {
     pub secret: String,
     pub secret_range: SecretRange,
-    pub location: TextLocation,
     pub is_obfuscated: bool,
     pub position_id: String,
     pub view_id: EntityId,

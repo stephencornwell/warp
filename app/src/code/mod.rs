@@ -10,16 +10,9 @@ use warpui::AppContext;
 pub mod find_references_view;
 #[cfg(not(target_family = "wasm"))]
 pub mod language_server_extension;
-#[cfg_attr(not(target_family = "wasm"), path = "local_code_editor.rs")]
-#[cfg_attr(target_family = "wasm", path = "local_code_editor_wasm.rs")]
-pub mod local_code_editor;
-#[cfg(not(target_family = "wasm"))]
-pub use local_code_editor::ShowFindReferencesCard;
-pub mod diff_viewer;
 pub mod editor;
 pub mod editor_management;
 pub mod global_buffer_model;
-pub mod inline_diff;
 #[cfg(feature = "local_fs")]
 pub mod language_server_shutdown_manager;
 #[cfg(not(target_family = "wasm"))]

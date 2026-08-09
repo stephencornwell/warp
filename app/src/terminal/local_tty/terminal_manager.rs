@@ -1088,35 +1088,9 @@ impl crate::terminal::TerminalManager for TerminalManager {
 
     fn on_view_detached(
         &self,
-        // The detach type is intentionally ignored: a sharer always stops sharing immediately,
-        // even on a reversible `HiddenForClose` detach. This is desirable for security — a sharer
-        // should not continue accepting commands from viewers while the session is not visible.
         _detach_type: crate::pane_group::pane::DetachType,
-        app: &mut AppContext,
+        _app: &mut AppContext,
     ) {
-        let shared_session_status = self.model.lock().shared_session_status().clone();
-        if shared_session_status.is_sharer() {
-            let is_confirm_close_session =
-                *SessionSettings::as_ref(app).should_confirm_close_session;
-            self.view.update(app, |terminal_view, ctx| {
-                // This emits an event that is handled in [`Self::end_shared_session`].
-                // We still need to call this in order to emit a telemetry event.
-                terminal_view.stop_sharing_session(
-                    SharedSessionActionSource::Closed {
-                        is_confirm_close_session,
-                    },
-                    ctx,
-                )
-            });
-            // The window could close before the event from above is processed, so directly stop sharing here.
-            Self::end_shared_session(
-                &self.view,
-                self.session_sharer.clone(),
-                SessionEndedReason::EndedBySharer,
-                self.model.clone(),
-                app,
-            )
-        }
     }
 
     fn as_any(&self) -> &dyn std::any::Any {

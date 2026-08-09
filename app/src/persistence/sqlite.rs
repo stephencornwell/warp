@@ -33,7 +33,7 @@ use uuid::Uuid;
 use warpui::platform::FullscreenState;
 use warpui::{AppContext, SingletonEntity};
 
-use super::block_list::{delete_blocks, save_block, update_block_agent_view_visibility};
+use super::block_list::{delete_blocks, save_block};
 use super::model::{
     self, ActiveMCPServer, CurrentUserInformation, MCPEnvironmentVariables, NewActiveMCPServer,
     NewApp, NewCommand, NewFolder, NewNotebook, NewServerExperiment, NewTab, NewTeam, NewWindow,

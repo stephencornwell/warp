@@ -4,7 +4,7 @@ use std::collections::HashMap;
 
 use diesel::{prelude::*, result::Error, sqlite::SqliteConnection};
 
-use crate::terminal::model::block::{SerializedAgentViewVisibility, SerializedBlock};
+use crate::terminal::model::block::SerializedBlock;
 use crate::app_state::PaneUuid;
 
 use super::model::Block;
@@ -41,7 +41,7 @@ pub(super) fn get_all_restored_blocks(
         .collect::<HashMap<_, Vec<SerializedBlock>>>();
 
     for (_, blocks) in all_block_items_by_pane.iter_mut() {
-        blocks.sort_by_key(|item| item.start_ts());
+        blocks.sort_by_key(|item| item.start_ts);
         // Only keep most recent command blocks
         blocks.drain(
             0..blocks
@@ -131,12 +131,9 @@ fn create_block<'a>(
         user: block.shell_host.as_ref().map(|host| host.user.as_str()),
         host: block.shell_host.as_ref().map(|host| host.hostname.as_str()),
         prompt_snapshot: block.prompt_snapshot.as_ref(),
-        ai_metadata: block.ai_metadata.as_ref(),
+        ai_metadata: None,
         is_local: Some(is_local),
-        agent_view_visibility: block
-            .agent_view_visibility
-            .as_ref()
-            .and_then(|v| serde_json::to_string(v).ok()),
+        agent_view_visibility: None,
     }
 }
 
@@ -147,17 +144,4 @@ pub(super) fn delete_blocks(conn: &mut SqliteConnection, pane_id: Vec<u8>) -> Re
             .execute(conn)?;
         Ok(())
     })
-}
-
-pub(super) fn update_block_agent_view_visibility(
-    conn: &mut SqliteConnection,
-    target_block_id: &str,
-    visibility: &SerializedAgentViewVisibility,
-) -> anyhow::Result<()> {
-    use schema::blocks::dsl::*;
-    let visibility_json = serde_json::to_string(visibility)?;
-    diesel::update(blocks.filter(block_id.eq(target_block_id)))
-        .set(agent_view_visibility.eq(visibility_json))
-        .execute(conn)?;
-    Ok(())
 }

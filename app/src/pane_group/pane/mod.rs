@@ -29,11 +29,10 @@ use crate::{
     drive::sharing::ShareableObject,
     env_vars::view::env_var_collection::EnvVarCollectionView,
     menu::MenuItem,
-    notebooks::{file::FileNotebookView, notebook::NotebookView},
     server::network_log_view::NetworkLogView,
     server::telemetry::SharingDialogSource,
     settings::PaneSettings,
-    settings_view::{environments_page::EnvironmentsPageView, SettingsView},
+    settings_view::SettingsView,
     terminal::{available_shells::AvailableShell, TerminalView},
     workflows::workflow_view::WorkflowView,
 };

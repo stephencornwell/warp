@@ -1,4 +1,4 @@
-use std::fmt;
+use std::{fmt, str::FromStr};
 
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use uuid::Uuid;
@@ -33,6 +33,13 @@ impl fmt::Display for ClientId {
 
 impl From<String> for ClientId {
     fn from(value: String) -> Self { Self::from_hash(&value).unwrap_or_default() }
+}
+
+impl FromStr for ClientId {
+    type Err = ();
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        Self::from_hash(value).ok_or(())
+    }
 }
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
@@ -78,7 +85,13 @@ impl SyncId {
         match self { Self::ClientId(id) => Some(id), Self::ServerId(_) => None }
     }
     pub fn uid(&self) -> ObjectUid { self.to_string() }
+
+    pub fn from_object_id<T: ToServerId>(id: T) -> Self {
+        Self::ServerId(id.to_server_id())
+    }
 }
+
+impl settings_value::SettingsValue for SyncId {}
 
 pub type ObjectUid = String;
 pub type HashedSqliteId = String;
@@ -96,6 +109,11 @@ impl ServerId {
         })
     }
     pub fn uid(&self) -> ObjectUid { (*self).into() }
+}
+
+impl FromStr for ServerId {
+    type Err = ();
+    fn from_str(value: &str) -> Result<Self, Self::Err> { Self::try_from(value) }
 }
 
 impl TryFrom<&str> for ServerId {
@@ -134,6 +152,18 @@ impl fmt::Display for ServerId {
 impl fmt::Debug for ServerId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_tuple("ServerId").field(&String::from(*self)).finish()
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct ServerIdAndType {
+    pub id: ServerId,
+    pub id_type: String,
+}
+
+impl ServerIdAndType {
+    pub fn sqlite_type_and_uid_hash(&self) -> HashedSqliteId {
+        format!("{}-{}", self.id_type, self.id)
     }
 }
 

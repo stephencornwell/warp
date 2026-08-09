@@ -10024,7 +10024,6 @@ ShowReferralSettingsPage => {
             }
             JoinSlack => self.join_slack(ctx),
             ViewUserDocs => self.view_user_docs(ctx),
-=> self.toggle_tab_color(*tab_index, *color, ctx),
             DispatchToSettingsTab(action) => {
                 let window_id = ctx.window_id();
                 ctx.dispatch_typed_action_for_view(window_id, self.settings_pane.id(), action)

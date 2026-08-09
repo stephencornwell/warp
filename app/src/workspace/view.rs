@@ -100,7 +100,6 @@ use crate::wasm_nux_dialog::WasmNUXDialog;
 
 
 use crate::appearance::{Appearance, AppearanceManager};
-use crate::ai::blocklist::SerializedBlockListItem;
 use crate::banner::BannerState;
 use crate::channel::Channel;
 use crate::GlobalResourceHandles;
@@ -11028,83 +11027,6 @@ impl View for Workspace {
                     let render_left = self.should_render_sidecar_left(
                         &anchor_label,
                         NEW_SESSION_SIDECAR_WIDTH,
-                        app,
-                    );
-                    let (offset, parent_anchor, child_anchor) = if render_left {
-                        (
-                            vec2f(-4., 0.),
-                            PositionedElementAnchor::TopLeft,
-                            ChildAnchor::TopRight,
-                        )
-                    } else {
-                        (
-                            vec2f(4., 0.),
-                            PositionedElementAnchor::TopRight,
-                            ChildAnchor::TopLeft,
-                        )
-                    };
-
-                    stack.add_positioned_overlay_child(
-                        sidecar_element,
-                        OffsetPositioning::offset_from_save_position_element(
-                            anchor_label,
-                            offset,
-                            PositionedElementOffsetBounds::WindowByPosition,
-                            parent_anchor,
-                            child_anchor,
-                        ),
-                    );
-                }
-            }
-
-            // Action sidecar for actionable items (Terminal, Agent, Cloud Oz, tab configs).
-            if let Some(sidecar_item) = &self.tab_config_action_sidecar_item {
-                let anchor_label = self.new_session_dropdown_menu.read(app, |menu, _| {
-                    menu.hovered_index().and_then(|idx| {
-                        menu.items().get(idx).and_then(|item| match item {
-                            MenuItem::Item(fields) => Some(fields.label().to_string()),
-                            _ => None,
-                        })
-                    })
-                });
-
-                if let Some(anchor_label) = anchor_label {
-                    let is_already_default = {
-                        let ai_settings = AISettings::as_ref(app);
-                        let current_mode = ai_settings.default_session_mode(app);
-                        let current_path = ai_settings.default_tab_config_path();
-                        match sidecar_item {
-                            SidecarItemKind::BuiltIn {
-                                default_mode,
-                                shell,
-                                ..
-                            } => {
-                                current_mode == *default_mode
-                                    && *default_mode != DefaultSessionMode::TabConfig
-                                    && shell.is_none()
-                            }
-                            SidecarItemKind::UserTabConfig { config } => {
-                                current_mode == DefaultSessionMode::TabConfig
-                                    && config
-                                        .source_path
-                                        .as_ref()
-                                        .is_some_and(|p| p.to_string_lossy() == current_path)
-                            }
-                        }
-                    };
-                    let sidecar_content = crate::tab_configs::action_sidecar::render_action_sidecar(
-                        sidecar_item,
-                        &self.tab_config_action_sidecar_mouse_states,
-                        is_already_default,
-                        app,
-                    );
-                    let sidecar_element =
-                        SavePosition::new(sidecar_content, NEW_SESSION_SIDECAR_POSITION_ID)
-                            .finish();
-
-                    let render_left = self.should_render_sidecar_left(
-                        &anchor_label,
-                        crate::tab_configs::action_sidecar::SIDECAR_WIDTH,
                         app,
                     );
                     let (offset, parent_anchor, child_anchor) = if render_left {

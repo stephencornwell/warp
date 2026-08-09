@@ -464,11 +464,6 @@ fn handle_model_event(event: ModelEvent, connection: &mut SqliteConnection) -> a
         ModelEvent::Snapshot(app_state) => {
             save_app_state(connection, &app_state).context("error saving app state")
         }
-        ModelEvent::UpsertCodebaseIndexMetadata { .. } => Ok(()),
-        ModelEvent::DeleteCodebaseIndexMetadata { repo_path } => {
-            delete_codebase_index_metadata(connection, &repo_path)
-                .context("error deleting codebase index metadata")
-        }
         ModelEvent::UpsertProject { project } => {
             save_project(connection, project).context("error upserting project")
         }
@@ -481,24 +476,6 @@ fn handle_model_event(event: ModelEvent, connection: &mut SqliteConnection) -> a
         ModelEvent::UpdateFinishedCommand { metadata } => {
             update_finished_command(connection, metadata).context("error updating finished command")
         }
-        ModelEvent::DeleteProjectRules { path } => {
-            delete_project_rules(connection, path).context("error deleting project rules")
-        }
-        ModelEvent::AddIgnoredSuggestion {
-            suggestion,
-            suggestion_type,
-        } => add_ignored_suggestion(connection, suggestion, suggestion_type)
-            .context("error adding ignored suggestion"),
-        ModelEvent::RemoveIgnoredSuggestion {
-            suggestion,
-            suggestion_type,
-        } => remove_ignored_suggestion(connection, suggestion, suggestion_type)
-            .context("error removing ignored suggestion"),
-        ModelEvent::UpdateBlockAgentViewVisibility {
-            block_id,
-            agent_view_visibility,
-        } => update_block_agent_view_visibility(connection, &block_id, &agent_view_visibility)
-            .context("error updating block agent view visibility"),
     }
 }
 
@@ -628,14 +605,9 @@ fn save_app_state(conn: &mut SqliteConnection, app_state: &AppState) -> Result<(
                 universal_search_width: window.universal_search_width,
                 warp_ai_width: window.warp_ai_width,
                 voltron_width: window.voltron_width,
-                warp_drive_index_width: window.warp_drive_index_width,
                 left_panel_open: Some(window.left_panel_open),
                 vertical_tabs_panel_open: Some(false),
                 fullscreen_state: window.fullscreen_state as i32,
-                agent_management_filters: window
-                    .agent_management_filters
-                    .as_ref()
-                    .and_then(|f| serde_json::to_string(f).ok()),
             };
             diesel::insert_into(schema::windows::dsl::windows)
                 .values(new_window)
@@ -808,17 +780,12 @@ fn save_pane_state(
     let kind = match &snapshot.contents {
         LeafContents::Terminal(_) => TERMINAL_PANE_KIND,
         LeafContents::Notebook(_) => NOTEBOOK_PANE_KIND,
-        LeafContents::Code(_) => CODE_PANE_KIND,
         LeafContents::Workflow(_) => WORKFLOW_PANE_KIND,
         LeafContents::Settings(_) => SETTINGS_PANE_KIND,
-        LeafContents::AIFact(_) => AI_FACT_PANE_KIND,
-        LeafContents::CodeReview(_) => CODE_REVIEW_PANE_KIND,
-        LeafContents::AmbientAgent(_) => AMBIENT_AGENT_PANE_KIND,
         LeafContents::ExecutionProfileEditor => EXECUTION_PROFILE_EDITOR_PANE_KIND,
         LeafContents::GetStarted => GET_STARTED_PANE_KIND,
         LeafContents::Welcome { .. } => WELCOME_PANE_KIND,
-        LeafContents::AIDocument(_) => AI_DOCUMENT_PANE_KIND,
-        LeafContents::EnvironmentManagement(_) | LeafContents::NetworkLog => {
+        LeafContents::NetworkLog => {
             // These pane types are filtered out before this function is
             // called; see `LeafContents::is_persisted` and the skip in
             // `save_app_state`. Reaching this arm would mean a `pane_nodes`
@@ -836,7 +803,6 @@ fn save_pane_state(
         pane_node_id: id,
         kind: kind.into(),
         is_focused: snapshot.is_focused,
-        custom_vertical_tabs_title: snapshot.custom_vertical_tabs_title.clone(),
     };
 
     diesel::insert_into(schema::pane_leaves::dsl::pane_leaves)
@@ -854,11 +820,7 @@ fn save_pane_state(
                     .shell_launch_data
                     .as_ref()
                     .and_then(|shell| serde_json::to_string(shell).ok()),
-                input_config: terminal_snapshot
-                    .input_config
-                    .as_ref()
-                    .and_then(|config| serde_json::to_string(config).ok()),
-                llm_model_override: terminal_snapshot.llm_model_override.clone(),
+                input_config: None,
                 active_profile_id: terminal_snapshot
                     .active_profile_id
                     .as_ref()
@@ -871,11 +833,7 @@ fn save_pane_state(
                 .values(terminal)
                 .execute(conn)?;
         }
-        LeafContents::Notebook(_) | LeafContents::Workflow(_) | LeafContents::CodeReview(_) => {}
-        LeafContents::Code(_) => {}
-        LeafContents::EnvironmentManagement(_) => {
-            // Unreachable: filtered by `is_persisted` in `save_app_state`.
-        }
+        LeafContents::Notebook(_) | LeafContents::Workflow(_) => {}
         LeafContents::Settings(settings_pane_snapshot) => {
             let current_page = match settings_pane_snapshot {
                 SettingsPaneSnapshot::Local { current_page, .. } => current_page,
@@ -890,14 +848,6 @@ fn save_pane_state(
                 .values(settings_pane)
                 .execute(conn)?;
         }
-        LeafContents::AIFact(_ai_fact_pane_snapshot) => {
-            let ai_fact = model::NewAIFactPane { id };
-
-            diesel::insert_into(schema::ai_memory_panes::dsl::ai_memory_panes)
-                .values(ai_fact)
-                .execute(conn)?;
-        }
-        LeafContents::CodeReview(_) => {}
         LeafContents::GetStarted => {
             // Stateless
         }
@@ -912,7 +862,6 @@ fn save_pane_state(
                 .values(welcome_pane)
                 .execute(conn)?;
         }
-        LeafContents::AIDocument(_) | LeafContents::AmbientAgent(_) => {}
         LeafContents::NetworkLog => {
             // Unreachable: filtered by `is_persisted` in `save_app_state`.
         }
@@ -1122,9 +1071,7 @@ fn read_node(conn: &mut SqliteConnection, node: model::PaneNode) -> Result<Optio
                     let shell_launch_data: Option<ShellLaunchData> = terminal_pane
                         .shell_launch_data
                         .and_then(|shell_str| serde_json::from_str(&shell_str).ok());
-                    let input_config = terminal_pane
-                        .input_config
-                        .and_then(|config_str| serde_json::from_str(&config_str).ok());
+                    let input_config = None;
                     let active_profile_id = terminal_pane
                         .active_profile_id
                         .and_then(|profile_str| serde_json::from_str(&profile_str).ok());
@@ -1137,10 +1084,7 @@ fn read_node(conn: &mut SqliteConnection, node: model::PaneNode) -> Result<Optio
                         is_read_only: false,
                         shell_launch_data,
                         input_config,
-                        llm_model_override: terminal_pane.llm_model_override,
                         active_profile_id,
-                        conversation_ids_to_restore: vec![],
-                        active_conversation_id: None,
                     })
                 }
                 NOTEBOOK_PANE_KIND | WORKFLOW_PANE_KIND => return Ok(None),
@@ -1160,10 +1104,7 @@ fn read_node(conn: &mut SqliteConnection, node: model::PaneNode) -> Result<Optio
                     })
                 }
                 AI_FACT_PANE_KIND => return Ok(None),
-                MCP_SERVER_PANE_KIND => {
-                    // Legacy MCP server panes are no longer supported.
-                    bail!("Legacy MCP server panes are no longer supported")
-                }
+                MCP_SERVER_PANE_KIND => return Ok(None),
                 CODE_REVIEW_PANE_KIND => return Ok(None),
                 GET_STARTED_PANE_KIND => LeafContents::GetStarted,
                 WELCOME_PANE_KIND => {
@@ -1184,7 +1125,6 @@ fn read_node(conn: &mut SqliteConnection, node: model::PaneNode) -> Result<Optio
 
             Ok(Some(PaneNodeSnapshot::Leaf(LeafSnapshot {
                 is_focused: pane.is_focused,
-                custom_vertical_tabs_title: pane.custom_vertical_tabs_title,
                 contents,
             })))
         }
@@ -1412,19 +1352,8 @@ fn read_sqlite_data(
 
     Ok(PersistedData {
         app_state,
-        cloud_objects,
-        workspaces,
-        current_workspace_uid,
         command_history: commands,
-        user_profiles,
-        time_of_next_force_object_refresh,
-        object_actions,
-        experiments: server_experiments,
-        codebase_indices,
-        workspace_language_servers,
         projects,
-        project_rules,
-        ignored_suggestions,
     })
 }
 

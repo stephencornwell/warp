@@ -7695,12 +7695,6 @@ impl TerminalView {
         position: Vector2F,
         ctx: &mut ViewContext<Self>,
     ) {
-        // Clear any active text selections in CLI subagent views, since a new selection
-        // is starting on the underlying block list.
-        for subagent_view in self.cli_subagent_views.values() {
-            subagent_view.update(ctx, |view, ctx| view.clear_all_selections(ctx));
-        }
-
         self.block_text_selection_start_position = Some(position);
 
         self.model
@@ -7708,66 +7702,6 @@ impl TerminalView {
             .block_list_mut()
             .start_selection(point, selection_type, side);
         self.is_selecting = true;
-
-        if self.rich_content_views.is_empty() {
-            ctx.notify();
-            return;
-        }
-
-        let is_inverted_blocklist = self.is_inverted_blocklist(ctx);
-        let terminal_model = self.model.lock();
-        let block_list = terminal_model.block_list();
-        let mut block_cursor = block_list
-            .block_heights()
-            .cursor::<BlockHeight, BlockHeightSummary>();
-        block_cursor.seek(&BlockHeight::from(0.), SeekBias::Right);
-
-        let selection_start_total_index = {
-            let mut click_cursor = block_list
-                .block_heights()
-                .cursor::<BlockHeight, BlockHeightSummary>();
-            click_cursor.seek(&BlockHeight::from(point.row), SeekBias::Right);
-            click_cursor.start().total_count
-        };
-
-        // Loop over each item in the block list. If it's an AI block which doesn't include the point
-        // where the user clicked, begin a selection at either the maximum (bottom right) or minimum
-        // (top left) point in the block. This is needed to support selections across command blocks
-        // and AI blocks since SelectableArea can't start selections outside of its bounds on its own.
-        if let Some(active_window_id) = ctx.windows().active_window() {
-            while let Some(block_height_item) = block_cursor.item() {
-                if let BlockHeightItem::RichContent(RichContentItem { view_id, .. }) =
-                    block_height_item
-                {
-                    if let Some(ai_block) = ctx.view_with_id::<AIBlock>(active_window_id, *view_id)
-                    {
-                        let x_pos = match selection_type {
-                            SelectionType::Rect => Some(position.x()),
-                            _ => None,
-                        };
-
-                        let ai_block_view = ctx.view(&ai_block);
-                        let ai_block_total_index = block_cursor.start().total_count;
-
-                        if (ai_block_total_index < selection_start_total_index
-                            && !is_inverted_blocklist)
-                            || (ai_block_total_index > selection_start_total_index
-                                && is_inverted_blocklist)
-                        {
-                            ai_block_view.start_selection_at_max_point(selection_type, x_pos);
-                        } else if (ai_block_total_index > selection_start_total_index
-                            && !is_inverted_blocklist)
-                            || (ai_block_total_index < selection_start_total_index
-                                && is_inverted_blocklist)
-                        {
-                            ai_block_view.start_selection_at_min_point(selection_type, x_pos);
-                        }
-                    }
-                }
-
-                block_cursor.next();
-            }
-        };
 
         ctx.notify();
     }
@@ -9240,31 +9174,6 @@ impl TerminalView {
                     button_bar.update_input_empty_state(*is_empty, ctx);
                 });
 
-                // When AgentView is enabled and the buffer is cleared, reset the input type
-                // based on whether there's an active agent view.
-                if FeatureFlag::AgentView.is_enabled()
-                    && *is_empty
-                    && self
-                        .ai_input_model
-                        .as_ref(ctx)
-                        .should_run_input_autodetection(ctx)
-                {
-                    let is_agent_view_active = self.agent_view_controller.as_ref(ctx).is_active();
-                    let input_type = match reason {
-                        InputEmptyStateChangeReason::UserCommandCompleted => InputType::Shell,
-                        InputEmptyStateChangeReason::Edited => {
-                            if is_agent_view_active {
-                                InputType::AI
-                            } else {
-                                InputType::Shell
-                            }
-                        }
-                    };
-
-                    self.ai_input_model.update(ctx, |model, ctx| {
-                        model.enable_autodetection(input_type, ctx);
-                    });
-                }
             }
             InputEvent::SyncInput(input) => {
                 if !SyncedInputState::as_ref(ctx).is_syncing_any_inputs(ctx.window_id()) {

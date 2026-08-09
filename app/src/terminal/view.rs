@@ -17160,6 +17160,7 @@ impl TerminalView {
         ctx.notify();
     }
 
+    #[cfg(any())]
     fn imported_comments_panel_arg(&self) -> CodeReviewPanelArg {
         CodeReviewPanelArg {
             repo_path: self.current_repo_path.clone(),
@@ -17174,6 +17175,7 @@ impl TerminalView {
     /// given conversation, which marks the start of the current thread.
     ///
     /// Returns `None` if the conversation has no user-query exchanges.
+    #[cfg(any())]
     fn thread_start_exchange_id(
         conversation_id: &AIConversationId,
         ctx: &AppContext,
@@ -17193,6 +17195,7 @@ impl TerminalView {
     ///
     /// This does **not** dereference view handles; callers add their own
     /// `.map()` to obtain `&AIBlock` references.
+    #[cfg(any())]
     fn ai_block_metadata_for_current_thread<'a>(
         &'a self,
         conversation_id: &'a AIConversationId,
@@ -17215,6 +17218,7 @@ impl TerminalView {
     /// Returns an iterator over the `AIBlock`s that belong to the current
     /// thread of `conversation_id` (newest first, bounded by the most recent
     /// user query).
+    #[cfg(any())]
     fn ai_blocks_for_current_thread<'a>(
         &'a self,
         conversation_id: &'a AIConversationId,
@@ -17226,6 +17230,7 @@ impl TerminalView {
 
     /// Collects all imported review comments from blocks in the current thread of the given
     /// conversation.
+    #[cfg(any())]
     fn all_comments_in_thread(
         &self,
         conversation_id: &AIConversationId,
@@ -17257,6 +17262,7 @@ impl TerminalView {
             .any(|ai_block| ai_block.has_any_imported_comments())
     }
 
+    #[cfg(any())]
     fn active_ai_block(&self, ctx: &AppContext) -> Option<&ViewHandle<AIBlock>> {
         // Skip trailing non-AI items (usage footers, pending user query blocks)
         // as they don't impact the conversation state.
@@ -17278,6 +17284,7 @@ impl TerminalView {
     }
 
     /// Check if there's an active (non-completed, non-cancelled) /init in progress
+    #[cfg(any())]
     fn has_active_init_project(&self, ctx: &AppContext) -> bool {
         self.active_init_project_model
             .as_ref()
@@ -17285,6 +17292,7 @@ impl TerminalView {
     }
 
     /// Check if there are any init step blocks for the given conversation
+    #[cfg(any())]
     fn has_init_steps_for_conversation(&self, conversation_id: AIConversationId) -> bool {
         self.rich_content_views
             .iter()
@@ -17292,6 +17300,7 @@ impl TerminalView {
     }
 
     /// Returns whether the last block in the currently visible conversation is an `InitStepBlock`.
+    #[cfg(any())]
     fn is_last_block_init_step(&self, ctx: &AppContext) -> bool {
         let last_visible_block = if FeatureFlag::AgentView.is_enabled() {
             let visible_conversation_id = self
@@ -17310,6 +17319,7 @@ impl TerminalView {
         last_visible_block.is_some_and(|rc| rc.is_init_step())
     }
 
+    #[cfg(any())]
     #[cfg(any())]
     fn active_init_environment_block(
         &self,
@@ -17336,6 +17346,7 @@ impl TerminalView {
         None
     }
 
+    #[cfg(any())]
     fn ai_block_for_exchange(
         &self,
         exchange_id: &AIAgentExchangeId,
@@ -17349,6 +17360,7 @@ impl TerminalView {
         })
     }
 
+    #[cfg(any())]
     fn ai_block_handle_by_view_id(&self, view_id: EntityId) -> Option<&ViewHandle<AIBlock>> {
         self.rich_content_views.iter().find_map(|rich_content| {
             let ai_metadata = rich_content.ai_block_metadata()?;
@@ -17361,6 +17373,7 @@ impl TerminalView {
 
     /// Returns the last block's `EnvVarCollectionBlock` if it is uncompleted, scoped to the
     /// currently visible conversation.
+    #[cfg(any())]
     fn active_env_var_collection_block(
         &self,
         ctx: &AppContext,

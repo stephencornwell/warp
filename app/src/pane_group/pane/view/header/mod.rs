@@ -1,5 +1,23 @@
 use sharing::SharedPaneContent;
 use std::fmt::Debug;
+use crate::{
+    appearance::Appearance,
+    menu::{Menu, MenuItem},
+    pane_group::{
+        focus_state::{PaneFocusHandle, PaneGroupFocusEvent},
+        pane::{
+            view::StandardHeader, ActionOrigin, PaneConfiguration, PaneConfigurationEvent,
+            PaneStack, PaneStackEvent, ToolbeltButton,
+        },
+        BackingView, Direction, PaneDragDropLocation, PaneId, TabBarHoverIndex,
+    },
+    settings::CodeSettings,
+    tab::tab_position_id,
+    terminal::view::TerminalAction,
+    view_components::{FeaturePopup, NewFeaturePopupEvent, NewFeaturePopupLabel},
+    workspace::TabBarLocation,
+};
+
 use crate::workspace::TabBarDropTargetData;
 
 use super::header_content::{HeaderContent, HeaderRenderContext, StandardHeaderOptions};
@@ -80,7 +98,6 @@ pub enum PaneHeaderAction<A: ActionPayload, B: ActionPayload> {
     OverflowMenuAction(A),
     CustomAction(B),
     OpenOverflowMenu,
-    ShareContents,
     Close,
     PaneHeaderDragStarted,
     PaneHeaderDragged {
@@ -864,9 +881,6 @@ impl<P: BackingView> TypedActionView for PaneHeader<P> {
                 self.open_overlay = OpenOverlay::OverflowMenu;
                 ctx.emit(Event::PaneHeaderOverflowMenuToggled(true));
                 ctx.notify();
-            }
-            PaneHeaderAction::ShareContents => {
-                self.share_pane_contents(SharingDialogSource::PaneHeader, ctx)
             }
             PaneHeaderAction::PaneHeaderDragStarted => {
                 ();

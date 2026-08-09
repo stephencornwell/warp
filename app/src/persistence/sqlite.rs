@@ -15,8 +15,8 @@ use diesel::{
     connection::{DefaultLoadingMode, SimpleConnection},
     result::Error,
     sqlite::SqliteConnection,
-    BelongingToDsl, Connection, ExpressionMethods, GroupedBy,
-    OptionalExtension, QueryDsl, RunQueryDsl, SelectableHelper,
+    BelongingToDsl, Connection, ExpressionMethods, GroupedBy, OptionalExtension, QueryDsl,
+    RunQueryDsl, SelectableHelper,
 };
 use diesel_migrations::MigrationHarness;
 use itertools::Itertools;

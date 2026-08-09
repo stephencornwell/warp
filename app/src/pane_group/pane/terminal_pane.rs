@@ -58,7 +58,7 @@ impl TerminalPane {
         ctx: &mut ViewContext<PaneGroup>,
     ) -> Self {
         let pane_configuration = terminal_view.as_ref(ctx).pane_configuration().to_owned();
-        let view = ctx.add_typed_action_view(|ctx| {
+        let view = ctx.add_view(|ctx| {
             let pane_id = PaneId::from_terminal_pane_ctx(ctx);
             PaneView::new(
                 pane_id,
@@ -228,6 +228,7 @@ impl PaneContent for TerminalPane {
             is_active: view.is_active_session(app),
             is_read_only: view.model.lock().is_read_only(),
             shell_launch_data: view.shell_launch_data_if_local(app),
+            input_config: None,
             active_profile_id: None,
         })
     }

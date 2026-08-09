@@ -869,13 +869,6 @@ impl PaneGroup {
                     ctx.emit(Event::ClearHoveredTabIndex);
                     self.move_pane(pane_id, *target_id, *direction, ctx);
                 }
-                PaneViewEvent::DroppedOnTabBar { origin } => {
-                    ctx.emit(Event::DroppedOnTabBar {
-                        origin: *origin,
-                        pane_id,
-                    });
-                    ctx.emit(Event::ClearHoveredTabIndex);
-                }
                 PaneViewEvent::DraggedOntoTabBar {
                     origin,
                     tab_hover_index,
@@ -1017,12 +1010,10 @@ impl PaneGroup {
                         HashMap::new(),
                         resources,
                         None,
-                        None, // no conversation restoration for launch config
                         user_default_shell_unsupported_banner_model_handle,
                         view_size,
                         model_event_sender.clone(),
                         chosen_shell,
-                        None,
                         ctx,
                     ),
                 };
@@ -1475,7 +1466,7 @@ impl PaneGroup {
             terminal_view
                 .as_ref(ctx)
                 .selected_text_from_input(ctx)
-                .or_else(|| terminal_view.as_ref(ctx).selected_text(ctx))
+                .or_else(|| None)
         } else {
             None
         };
@@ -1990,14 +1981,6 @@ impl PaneGroup {
         new_pane_id
     }
 
-    pub fn terminal_pane_view_at_pane_index(
-        &self,
-        pane_index: usize,
-    ) -> Option<ViewHandle<self::pane::terminal_pane::TerminalPaneView>> {
-        self.terminal_session_by_pane_index(pane_index)
-            .map(|session| session.pane_view())
-    }
-
     pub fn terminal_view_at_pane_index(
         &self,
         pane_index: usize,
@@ -2291,7 +2274,6 @@ impl PaneGroup {
             view_bounds.size(),
             self.model_event_sender.clone(),
             chosen_shell,
-            None,
             ctx,
         );
 

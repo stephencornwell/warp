@@ -8640,52 +8640,6 @@ impl TerminalView {
         ctx.notify();
     }
 
-    /// Handles AI block events for both live and restored AI blocks.
-
-
-    /// Returns the exchange ID of the most recent user-query exchange in the
-    /// given conversation, which marks the start of the current thread.
-    ///
-    /// Returns `None` if the conversation has no user-query exchanges.
-
-    /// Returns an iterator over the `AIBlockMetadata` entries that belong to the
-    /// current thread of `conversation_id` (newest first, bounded by the most
-    /// recent user query).
-    ///
-    /// This does **not** dereference view handles; callers add their own
-    /// `.map()` to obtain `&AIBlock` references.
-
-    /// Returns an iterator over the `AIBlock`s that belong to the current
-    /// thread of `conversation_id` (newest first, bounded by the most recent
-    /// user query).
-
-    /// Collects all imported review comments from blocks in the current thread of the given
-    /// conversation.
-
-    /// Returns `true` if any block in the current thread of the given conversation has imported
-    /// review comments.
-    pub(crate) fn has_imported_comments_in_thread(
-        &self,
-        conversation_id: &AIConversationId,
-        ctx: &AppContext,
-    ) -> bool {
-        self.ai_blocks_for_current_thread(conversation_id, ctx)
-            .any(|ai_block| ai_block.has_any_imported_comments())
-    }
-
-
-    /// Check if there's an active (non-completed, non-cancelled) /init in progress
-
-    /// Check if there are any init step blocks for the given conversation
-
-    /// Returns whether the last block in the currently visible conversation is an `InitStepBlock`.
-
-
-
-
-    /// Returns the last block's `EnvVarCollectionBlock` if it is uncompleted, scoped to the
-    /// currently visible conversation.
-
     /// Examines the local state of the [`TerminalView`] and chooses where best to assign focus.
     ///
     /// WARNING: this can steal focus even when the user is working in a separate terminal view!

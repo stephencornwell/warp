@@ -53,7 +53,6 @@ use warpui::{
 
 use crate::{
     menu::{MenuItem, MenuItemFields},
-    notebooks::file::{is_markdown_file, MarkdownDisplayMode},
     search::{files::icon::icon_from_file_path, ItemHighlightState},
     tab::TAB_BAR_BORDER_HEIGHT,
     ui_components::{blended_colors, buttons::icon_button},
@@ -299,27 +298,6 @@ impl CodeView {
         ctx.notify();
     }
 
-    /// Restore a code view from a persisted multi-tab snapshot.
-    pub fn restore(
-        tabs: &[crate::app_state::CodePaneTabSnapshot],
-        active_tab_index: usize,
-        source: CodeSource,
-        ctx: &mut ViewContext<Self>,
-    ) -> Self {
-        let mut view = Self::new_internal(source, ctx);
-        for tab_snapshot in tabs {
-            let tab_data = view.build_tab_data(tab_snapshot.path.clone(), false, ctx);
-            view.tab_group.push(tab_data);
-        }
-        let clamped_index = if view.tab_group.is_empty() {
-            0
-        } else {
-            active_tab_index.min(view.tab_group.len() - 1)
-        };
-        view.active_tab_index = clamped_index;
-        view
-    }
-
     /// Create a new "preview" code view for when a user is exploring the file tree.
     /// There is only one preview active at a time
     pub fn new_preview(source: CodeSource, ctx: &mut ViewContext<Self>) -> Self {
@@ -380,10 +358,6 @@ impl CodeView {
                 None,
                 ctx,
             );
-            if FeatureFlag::HoaCodeReview.is_enabled() {
-                editor =
-                    editor.with_selection_as_context(Box::new(get_context_target_terminal_view));
-            }
             let mut editor = editor.with_find_references_provider(
                 ShowFindReferencesCard {
                     editor_window_id: ctx.window_id(),
@@ -419,10 +393,6 @@ impl CodeView {
 
         ctx.add_typed_action_view(|ctx| {
             let mut local_editor = LocalCodeEditorView::new(editor, None, false, None, ctx);
-            if FeatureFlag::HoaCodeReview.is_enabled() {
-                local_editor = local_editor
-                    .with_selection_as_context(Box::new(get_context_target_terminal_view));
-            }
             local_editor.with_find_references_provider(
                 ShowFindReferencesCard {
                     editor_window_id: ctx.window_id(),

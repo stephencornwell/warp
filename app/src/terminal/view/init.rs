@@ -151,37 +151,6 @@ pub fn init(app: &mut AppContext) {
             id!("Terminal") & !id!("IMEOpen"),
         ),
     ]);
-    if cfg!(target_os = "macos") {
-        // On MacOS, if the user has the 'Option as meta' setting enabled, the cmd-alt-y binding
-        // above will not match.
-        app.register_fixed_bindings([FixedBinding::new(
-            "cmd-meta-y",
-            TerminalAction::ForkConversationFromLastKnownGoodState,
-            id!("Terminal") & !id!("IMEOpen") & id!(CAN_FORK_FROM_LAST_KNOWN_GOOD_STATE_KEY),
-        )]);
-    }
-
-    // Register binding to toggle plans in agent conversations.
-    {
-        app.register_fixed_bindings([FixedBinding::new(
-            "cmdorctrl-alt-p",
-            TerminalAction::ToggleAIDocumentPane,
-            id!("Terminal") & !id!("IMEOpen"),
-        )]);
-        if cfg!(target_os = "macos") {
-            // On MacOS, if the user has the 'Option as meta' setting enabled, the cmd-alt-p binding
-            // above will not match.
-            //
-            // TODO(zachbai): Consider if, for the purposes of fixed bindings, alt/meta should work
-            // fungibly regardless of underlying setting.
-            app.register_fixed_bindings([FixedBinding::new(
-                "cmd-meta-p",
-                TerminalAction::ToggleAIDocumentPane,
-                id!("Terminal") & !id!("IMEOpen"),
-            )]);
-        }
-    }
-
     if ChannelState::channel() == Channel::Integration {
         app.register_fixed_bindings([
             // Hack: Add explicit bindings for the tests, since the tests' injected
@@ -648,37 +617,6 @@ pub fn init(app: &mut AppContext) {
     )
     .with_context_predicate(id!("Terminal"))]);
 
-    app.register_editable_bindings([
-        EditableBinding::new(
-            TOGGLE_AUTOEXECUTE_MODE_KEYBINDING,
-            "Toggle Auto-execute Mode",
-            TerminalAction::ToggleAutoexecuteMode,
-        )
-        .with_key_binding("cmdorctrl-shift-I")
-        .with_group(bindings::BindingGroup::WarpAi.as_str())
-        .with_context_predicate(id!(flags::IS_ANY_AI_ENABLED) & id!("Terminal"))
-        .with_enabled(|| FeatureFlag::FastForwardAutoexecuteButton.is_enabled()),
-        EditableBinding::new(
-            TOGGLE_QUEUE_NEXT_PROMPT_KEYBINDING,
-            "Toggle Queue Next Prompt",
-            TerminalAction::ToggleQueueNextPrompt,
-        )
-        .with_key_binding("cmdorctrl-shift-J")
-        .with_group(bindings::BindingGroup::WarpAi.as_str())
-        .with_context_predicate(id!(flags::IS_ANY_AI_ENABLED) & id!("Terminal"))
-        .with_enabled(|| FeatureFlag::QueueSlashCommand.is_enabled()),
-        EditableBinding::new(
-            "terminal:generate_codebase_index",
-            "[Debug] Generate codebase index",
-            TerminalAction::GenerateCodebaseIndex,
-        )
-        .with_group(bindings::BindingGroup::WarpAi.as_str())
-        .with_context_predicate(id!("Terminal") & !id!("IMEOpen"))
-        .with_enabled(|| {
-            FeatureFlag::FullSourceCodeEmbedding.is_enabled()
-                && ChannelState::enable_debug_features()
-        }),
-    ]);
 
     app.register_editable_bindings([EditableBinding::new(
         "terminal:toggle_session_recording",

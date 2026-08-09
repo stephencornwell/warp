@@ -6,7 +6,7 @@ use pathfinder_geometry::vector::Vector2F;
 
 use crate::search::mixer::AddAsyncSourceOptions;
 use lazy_static::lazy_static;
-use std::{collections::HashSet, ops::Range, sync::Arc, time::Duration};
+use std::{collections::HashSet, ops::Range, time::Duration};
 use warpui::{
     accessibility::{AccessibilityContent, WarpA11yRole},
     elements::{
@@ -200,7 +200,7 @@ impl CommandSearchView {
     fn reset_command_search_mixer(
         &mut self,
         session_id: SessionId,
-        session_context: Option<SessionContext>,
+        _session_context: Option<SessionContext>,
         ctx: &mut ViewContext<Self>,
     ) {
         self.mixer.update(ctx, |mixer, ctx| {
@@ -317,7 +317,7 @@ impl CommandSearchView {
     }
 
     fn blur(&self, ctx: &mut ViewContext<Self>) {
-        let buffer_length = self.search_bar.as_ref(ctx).query(ctx).len();
+        let _buffer_length = self.search_bar.as_ref(ctx).query(ctx).len();
         ();
         ctx.emit(CommandSearchEvent::Blur);
     }
@@ -330,12 +330,12 @@ impl CommandSearchView {
     ) {
         match event {
             SearchBarEvent::Close => {
-                let buffer_length = self.search_bar.as_ref(ctx).query(ctx).len();
+                let _buffer_length = self.search_bar.as_ref(ctx).query(ctx).len();
                 ();
                 self.close(ctx);
             }
             // ctrl-c should close the command search view
-            SearchBarEvent::BufferCleared { buffer_len } => {
+            SearchBarEvent::BufferCleared { buffer_len: _ } => {
                 ();
                 self.close(ctx);
             }
@@ -346,7 +346,7 @@ impl CommandSearchView {
                 self.state.list_state.scroll_to(*index);
                 ctx.notify();
             }
-            SearchBarEvent::QueryFilterChanged { new_filter } => {
+            SearchBarEvent::QueryFilterChanged { new_filter: _ } => {
                 ();
             }
             SearchBarEvent::SelectionUpdateInZeroState { .. } => {}
@@ -410,7 +410,7 @@ impl CommandSearchView {
 
             // Recompute the result index - the incoming index is the index in the
             // uniform list, but what we want is the "distance from first result".
-            let result_index = match self.search_bar_state.as_ref(ctx).query_result_renderers() {
+            let _result_index = match self.search_bar_state.as_ref(ctx).query_result_renderers() {
                 Some(renderers) => renderers.len() - result_index - 1,
                 None => result_index,
             };
@@ -540,7 +540,7 @@ impl CommandSearchView {
                     }
                 };
 
-                let mut column = Flex::column();
+                let column = Flex::column();
                 let scrollable_results = Scrollable::vertical(
                     self.state.scroll_state.clone(),
                     UniformList::new(

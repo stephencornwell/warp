@@ -1,4 +1,4 @@
-use super::{ContextMenuAction, TerminalAction};
+use super::TerminalAction;
 
 use crate::settings_view::flags;
 use crate::terminal::input::{
@@ -20,9 +20,8 @@ use crate::{
     terminal::TerminalView,
     util::bindings::CustomAction,
 };
-use warp_core::context_flag::ContextFlag;
 use warpui::keymap::ContextPredicate;
-use warpui::keymap::{BindingDescription, PerPlatformKeystroke};
+use warpui::keymap::PerPlatformKeystroke;
 use warpui::platform::OperatingSystem;
 use warpui::{
     keymap::{EditableBinding, FixedBinding},

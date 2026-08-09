@@ -32,15 +32,13 @@ use std::ops::{AddAssign, Range, RangeInclusive};
 use std::sync::Arc;
 use std::time::Duration;
 use sum_tree::{Dimension, Item, SeekBias, SumTree};
-use warp_core::features::FeatureFlag;
 use warpui::color::ColorU;
 use warpui::r#async::executor::Background;
 use warpui::record_trace_event;
 
 use std::collections::{HashMap, HashSet};
 use warpui::{
-    units::{IntoLines, IntoPixels, Lines},
-    AppContext, EntityId, ViewHandle,
+    units::{IntoLines, IntoPixels, Lines}, EntityId,
 };
 
 use super::ansi::InputBufferValue;
@@ -1769,7 +1767,7 @@ impl BlockList {
                         last_laid_out_height,
                         ..
                     }) => {
-                        let should_hide = RichContentItem {
+                        let _should_hide = RichContentItem {
                             content_type: *content_type,
                             view_id: *view_id,
                             last_laid_out_height: *last_laid_out_height,

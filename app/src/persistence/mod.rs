@@ -16,7 +16,6 @@ pub use persistence::schema;
 pub mod testing;
 
 use instant::Instant;
-use std::path::PathBuf;
 use std::sync::mpsc::SyncSender;
 use std::sync::Arc;
 use std::thread::JoinHandle;

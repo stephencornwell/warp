@@ -5,7 +5,6 @@ use std::{collections::HashMap, ops::Range};
 
 use settings::Setting as _;
 use string_offset::{ByteOffset, CharOffset};
-use warp_core::features::FeatureFlag;
 use warpui::{AppContext, SingletonEntity, ViewContext};
 
 use crate::{
@@ -137,7 +136,7 @@ impl Input {
             return;
         }
 
-        let mut mode = mode;
+        let mode = mode;
 
         // We don't show input command decorations in AI mode, but we keep slash command prefix highlighting.
         let buffer_text = self.editor.as_ref(ctx).buffer_text(ctx);

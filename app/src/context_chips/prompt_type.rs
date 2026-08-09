@@ -5,7 +5,6 @@ use crate::{
     settings::WarpPromptSeparator,
     terminal::{
         model::session::Sessions,
-        session_settings::SessionSettings,
         view::{ContextMenuAction, PromptPart, PromptPosition, TerminalAction},
     },
 };

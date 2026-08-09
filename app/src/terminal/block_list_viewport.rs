@@ -6,10 +6,9 @@ use sum_tree::{Cursor, SeekBias};
 use warpui::{
     elements::ClippedScrollStateHandle,
     units::{IntoLines, IntoPixels, Lines, Pixels},
-    AppContext, ModelHandle,
+    AppContext,
 };
 
-use crate::terminal::model::blocks::RichContentItem;
 use crate::terminal::model::index::Point as IndexPoint;
 
 use super::{
@@ -1193,7 +1192,7 @@ impl<'a> ViewportState<'a> {
     }
 
     // Returns whether the input is rendered exactly at the bottom of its pane.
-    fn is_input_rendered_at_bottom_of_pane(&self, app: &AppContext) -> bool {
+    fn is_input_rendered_at_bottom_of_pane(&self, _app: &AppContext) -> bool {
         match self.input_mode {
             InputMode::Waterfall => {
                 let current_scroll_top_px = self.scroll_top_in_pixels();
@@ -1990,9 +1989,7 @@ impl Iterator for ViewportIter<'_> {
                 }
             }
 
-            match item {
-                _ => return next,
-            }
+            return next
         }
     }
 }

@@ -103,7 +103,7 @@ impl ImportedConfigModel {
     pub fn write_parse_results(
         &mut self,
         terminal_type: TerminalType,
-        (configs, timer): (Result<Vec<Config>, ConfigError>, IntervalTimer),
+        (configs, _timer): (Result<Vec<Config>, ConfigError>, IntervalTimer),
         ctx: &mut ModelContext<Self>,
     ) {
         ();

@@ -21,20 +21,17 @@ use warpui::r#async::{SpawnedFutureHandle, Timer};
 use regex::Regex;
 use settings::Setting as _;
 use warp_core::context_flag::ContextFlag;
-use warp_core::features::FeatureFlag;
 use warp_core::ui::theme::WarpTheme;
 use warpui::elements::{
-    Align, ChildAnchor, ChildView, ConstrainedBox, Container, CornerRadius, CrossAxisAlignment,
-    Empty, Expanded, Flex, Hoverable, MainAxisAlignment, MainAxisSize, MouseStateHandle,
-    OffsetPositioning, ParentAnchor, ParentElement, ParentOffsetBounds, Radius, Rect, Shrinkable,
-    Stack, Text,
+    Align, ChildView, ConstrainedBox, Container, CornerRadius, CrossAxisAlignment,
+    Empty, Expanded, Flex, Hoverable, MainAxisAlignment, MainAxisSize, MouseStateHandle, ParentElement, Radius, Rect, Shrinkable, Text,
 };
 use warpui::keymap::ContextPredicate;
 use warpui::platform::Cursor;
 use warpui::ui_components::button::{ButtonVariant, TextAndIcon, TextAndIconAlignment};
 use warpui::ui_components::{
     components::{Coords, UiComponent, UiComponentStyles},
-    switch::{SwitchStateHandle, TooltipConfig},
+    switch::SwitchStateHandle,
 };
 use warpui::{
     Action, AppContext, Element, Entity, ModelHandle, SingletonEntity, TypedActionView,
@@ -53,8 +50,6 @@ use super::{
 };
 use crate::settings::{CustomSecretRegex, RegexDisplayInfo};
 use crate::settings_view::privacy::AddRegexModalViewState;
-use crate::settings_view::render_body_item_label;
-use crate::settings_view::settings_page::CONTENT_FONT_SIZE;
 use crate::terminal::safe_mode_settings::{
     get_effective_secret_display_mode, SecretDisplayMode, SecretDisplayModeSetting,
 };
@@ -733,7 +728,7 @@ impl SecretRedactionWidget {
         privacy_settings: &PrivacySettings,
         active_tab: SecretRedactionTab,
         view: &PrivacyPageView,
-        app: &AppContext,
+        _app: &AppContext,
     ) -> Box<dyn Element> {
         if !privacy_settings.is_enterprise_secret_redaction_enabled() {
             return Empty::new().finish();
@@ -888,7 +883,7 @@ impl SecretRedactionWidget {
     fn render_enterprise_content(
         &self,
         appearance: &Appearance,
-        app: &AppContext,
+        _app: &AppContext,
     ) -> Box<dyn Element> {
         let enterprise_regex_list: Vec<CustomSecretRegex> = Vec::new();
         let ui_builder = appearance.ui_builder();
@@ -931,7 +926,7 @@ impl SecretRedactionWidget {
     ) -> Box<dyn Element> {
         let privacy_settings = PrivacySettings::as_ref(app);
         let ui_builder = appearance.ui_builder();
-        let enterprise_regex_list: Vec<CustomSecretRegex> = Vec::new();
+        let _enterprise_regex_list: Vec<CustomSecretRegex> = Vec::new();
 
         let mut column = Flex::column();
 

@@ -7,7 +7,7 @@ use warp_terminal::model::grid::CellType;
 use warpui::{
     text::{IsRect, SelectionType},
     units::{IntoLines as _, Lines},
-    AppContext, EntityId, ViewAsRef as _,
+    AppContext, EntityId,
 };
 
 use crate::terminal::{
@@ -970,7 +970,7 @@ impl BlockList {
                 let head_row = original_selection.head.point.row;
                 let tail_row = original_selection.tail.point.row;
                 let top_row = head_row.min(tail_row);
-                let bottom_row = head_row.max(tail_row);
+                let _bottom_row = head_row.max(tail_row);
 
                 selection_start_cursor.seek(&BlockHeight::from(top_row), SeekBias::Right);
 

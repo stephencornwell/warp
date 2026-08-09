@@ -1,4 +1,3 @@
-use std::collections::HashSet;
 use std::ffi::OsString;
 use std::path::Path;
 use std::str::FromStr;
@@ -9,13 +8,11 @@ use std::{
     convert::TryInto,
     fs,
     path::PathBuf,
-    sync::Arc,
     thread,
 };
 use warp_core::report_if_error;
 
-use anyhow::{anyhow, bail, Context, Result};
-use chrono::{DateTime, Utc};
+use anyhow::{anyhow, Context, Result};
 use diesel::{
     connection::{DefaultLoadingMode, SimpleConnection},
     result::Error,
@@ -29,16 +26,14 @@ use libsqlite3_sys as sqlite3;
 use num_traits::FromPrimitive;
 use pathfinder_geometry::{rect::RectF, vector::Vector2F};
 use persistence::model::AMBIENT_AGENT_PANE_KIND;
-use uuid::Uuid;
 use warpui::platform::FullscreenState;
 use warpui::{AppContext, SingletonEntity};
 
 use super::block_list::{delete_blocks, save_block};
 use super::model::{
-    self, ActiveMCPServer, CurrentUserInformation, MCPEnvironmentVariables, NewActiveMCPServer,
-    NewApp, NewCommand, NewFolder, NewNotebook, NewServerExperiment, NewTab, NewTeam, NewWindow,
-    NewWorkspace, NewWorkspaceMetadata, NewWorkspaceTeam, ObjectMetadata, ObjectPermissions,
-    Project, Tab, Window, WorkspaceMetadata as WorkspaceMetadataModel, AI_DOCUMENT_PANE_KIND,
+    self, NewActiveMCPServer,
+    NewApp, NewCommand, NewTab, NewWindow,
+    Project, Tab, Window, AI_DOCUMENT_PANE_KIND,
     AI_FACT_PANE_KIND, CODE_PANE_KIND, EXECUTION_PROFILE_EDITOR_PANE_KIND, MCP_SERVER_PANE_KIND,
     NOTEBOOK_PANE_KIND, SETTINGS_PANE_KIND, TERMINAL_PANE_KIND, WELCOME_PANE_KIND,
     WORKFLOW_PANE_KIND,
@@ -49,11 +44,11 @@ use super::{
     WriterHandles,
 };
 use crate::app_state::{
-    AppState, BranchSnapshot, LeafContents, LeafSnapshot, NotebookPaneSnapshot, PaneFlex,
+    AppState, BranchSnapshot, LeafContents, LeafSnapshot, PaneFlex,
     PaneNodeSnapshot, SplitDirection, TabSnapshot, TerminalPaneSnapshot, WindowSnapshot,
 };
-use crate::app_state::{LeftPanelSnapshot, SettingsPaneSnapshot, WorkflowPaneSnapshot};
-use crate::persistence::model::{ProjectRules, CODE_REVIEW_PANE_KIND, GET_STARTED_PANE_KIND};
+use crate::app_state::{LeftPanelSnapshot, SettingsPaneSnapshot};
+use crate::persistence::model::{CODE_REVIEW_PANE_KIND, GET_STARTED_PANE_KIND};
 use crate::settings_view::SettingsSection;
 use crate::suggestions::ignored_suggestions_model::SuggestionType;
 use crate::tab::SelectedTabColor;
@@ -61,7 +56,6 @@ use crate::terminal::history::PersistedCommand;
 use crate::terminal::ShellLaunchData;
 use crate::themes::theme::AnsiColorIdentifier;
 use crate::{report_error, safe_info};
-use lsp::supported_servers::LSPServerType;
 
 diesel::define_sql_function! {
     fn json_extract(target: diesel::sql_types::Text, path: diesel::sql_types::Text) -> diesel::sql_types::Text;
@@ -81,7 +75,7 @@ const WARP_SQLITE_FILE_NAME: &str = "warp.sqlite";
 /// Runs any migrations and creates the Sqlite database if it doesn't exist.
 /// Reads from the sqlite database to get the app state for session restoration.
 /// Starts a writer thread that listens for ModelEvents and processes them.
-pub fn initialize(ctx: &mut AppContext) -> (Option<PersistedData>, Option<WriterHandles>) {
+pub fn initialize(_ctx: &mut AppContext) -> (Option<PersistedData>, Option<WriterHandles>) {
     unsafe {
         // Set up logging before any SQLite calls.
         init_logging();
@@ -1312,9 +1306,9 @@ fn read_sqlite_data(conn: &mut SqliteConnection) -> Result<PersistedData, Error>
         })
         .collect();
 
-    let object_metadata =
+    let _object_metadata =
         schema::object_metadata::dsl::object_metadata.load::<model::ObjectMetadata>(conn)?;
-    let object_permissions = schema::object_permissions::dsl::object_permissions
+    let _object_permissions = schema::object_permissions::dsl::object_permissions
         .load::<model::ObjectPermissions>(conn)?;
 
     // Cache metadata and permissions by id so that we aren't doing an n^2 lookups for each object type.

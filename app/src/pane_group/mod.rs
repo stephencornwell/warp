@@ -18,11 +18,9 @@ use crate::view_components::ToastFlavor;
 use warp_terminal::shell::{ShellName, ShellType};
 
 use std::any::Any;
-use std::cell::RefCell;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::ffi::OsString;
 use std::path::PathBuf;
-use std::rc::Rc;
 use std::sync::{mpsc::SyncSender, Arc};
 
 use itertools::Itertools;
@@ -33,22 +31,16 @@ use parking_lot::FairMutex;
 use pathfinder_geometry::rect::RectF;
 use pathfinder_geometry::vector::{vec2f, Vector2F};
 use serde::{Deserialize, Serialize};
-use session_sharing_protocol::common::{
-    ParticipantId, Role, RoleRequestId, RoleRequestRejectedReason, RoleRequestResponse, SessionId,
-};
-use tree::DEFAULT_FLEX_VALUE;
 use typed_path::TypedPath;
 use url::Url;
 use uuid::Uuid;
-use warp_cli::agent::Harness;
-use warp_core::command::ExitCode;
 use warp_core::context_flag::ContextFlag;
 use warp_core::HostId;
 use warp_util::path::convert_wsl_to_windows_host_path;
 #[cfg(feature = "local_fs")]
 use warp_util::path::LineAndColumnArg;
 use warpui::elements::{
-    Clipped, CrossAxisAlignment, DispatchEventResult, EventHandler, Flex, MainAxisSize, Shrinkable,
+    CrossAxisAlignment, DispatchEventResult, EventHandler, Flex, MainAxisSize, Shrinkable,
     Stack,
 };
 use warpui::keymap::{Context, EditableBinding, FixedBinding};
@@ -62,7 +54,7 @@ use warpui::{
 use warpui::{SingletonEntity, ViewContext};
 
 use crate::app_state::{
-    self, BranchSnapshot, LeafContents, LeafSnapshot, NotebookPaneSnapshot, PaneNodeSnapshot,
+    self, BranchSnapshot, LeafContents, LeafSnapshot, PaneNodeSnapshot,
     PaneUuid, SettingsPaneSnapshot, TerminalPaneSnapshot,
 };
 use crate::appearance::Appearance;
@@ -89,7 +81,6 @@ use crate::terminal::view::{
     BlockNotification, ExecuteCommandEvent, LeftPanelTargetView, SyncEvent, TerminalViewState,
 };
 use crate::terminal::{MockTerminalManager, ShellLaunchData, ShellLaunchState};
-use session_sharing_protocol::sharer::SessionSourceType;
 use settings::Setting as _;
 
 use crate::code::active_file::ActiveFileModel;
@@ -99,7 +90,7 @@ use crate::palette::PaletteMode;
 use crate::terminal::model::terminal_model::ConversationTranscriptViewerStatus;
 use crate::terminal::{TerminalManager, TerminalModel, TerminalView};
 use crate::workspace::{
-    self, CommandSearchOptions, PaletteSource, PaneViewLocator, TabBarLocation, WorkspaceAction,
+    self, CommandSearchOptions, PaletteSource, PaneViewLocator, TabBarLocation,
 };
 
 pub mod focus_state;
@@ -1189,7 +1180,7 @@ impl PaneGroup {
         view_size: Vector2F,
         model_event_sender: Option<SyncSender<ModelEvent>>,
         #[cfg_attr(not(feature = "local_fs"), allow(unused_variables, clippy::ptr_arg))]
-        deferred_panes: &mut Vec<(PaneId, LeafSnapshot)>,
+        _deferred_panes: &mut Vec<(PaneId, LeafSnapshot)>,
     ) -> anyhow::Result<(PaneData, InitialFocus)> {
         let result = match leaf.contents {
             LeafContents::Terminal(terminal_snapshot) => {
@@ -1224,7 +1215,7 @@ impl PaneGroup {
                     ctx,
                 );
 
-                let terminal_view_id = terminal_view.id();
+                let _terminal_view_id = terminal_view.id();
 
                 let pane_data = TerminalPane::new(
                     uuid.0,
@@ -1332,7 +1323,7 @@ impl PaneGroup {
     #[cfg_attr(not(feature = "local_fs"), allow(unused_variables, unused_mut))]
     fn process_deferred_panes(
         deferred_panes: Vec<(PaneId, LeafSnapshot)>,
-        mut result: (PaneData, InitialFocus),
+        result: (PaneData, InitialFocus),
         pane_contents: &mut HashMap<PaneId, Box<dyn AnyPaneContent>>,
         ctx: &mut ViewContext<Self>,
     ) -> (PaneData, InitialFocus) {
@@ -1369,7 +1360,7 @@ impl PaneGroup {
                 })
             }
             PaneNode::Leaf(pane_id) => {
-                let custom_title = self.pane_contents.get(pane_id).and_then(|pane| {
+                let _custom_title = self.pane_contents.get(pane_id).and_then(|pane| {
                     pane.as_pane()
                         .pane_configuration()
                         .read(app, |configuration, _| {
@@ -1469,7 +1460,7 @@ impl PaneGroup {
                 terminal_view
                     .as_ref(ctx)
                     .selected_text_from_input(ctx)
-                    .or_else(|| None)
+                    .or(None)
             } else {
                 None
             };
@@ -1677,7 +1668,7 @@ impl PaneGroup {
         // discovered via the parent→child index.  Child panes are excluded
         // from snapshots and always rebuilt here on startup.
         let pane_ids: Vec<PaneId> = pane_group.pane_contents.keys().copied().collect();
-        for pane_id in pane_ids {}
+        for _pane_id in pane_ids {}
 
         pane_group
     }
@@ -2134,7 +2125,7 @@ impl PaneGroup {
     }
 
     pub fn close_pane_with_confirmation(&mut self, pane_id: PaneId, ctx: &mut ViewContext<Self>) {
-        if let Some(terminal_manager) = self
+        if let Some(_terminal_manager) = self
             .terminal_session_by_id(pane_id)
             .map(|session| session.terminal_manager(ctx))
         {}
@@ -2201,7 +2192,7 @@ impl PaneGroup {
         default_session_mode_behavior: DefaultSessionModeBehavior,
         ctx: &mut ViewContext<Self>,
     ) -> TerminalPaneId {
-        let startup_directory = ({
+        let startup_directory = {
             let ignore_custom_startup_directory =
                 self.should_ignore_custom_startup_directory(&chosen_shell, ctx);
 
@@ -2217,7 +2208,7 @@ impl PaneGroup {
                         ignore_custom_startup_directory,
                     )
             })
-        });
+        } ;
         self.add_session_in_directory(
             direction,
             base_pane_id_for_split,
@@ -2268,7 +2259,7 @@ impl PaneGroup {
 
     fn discard_pane(&mut self, pane_id: PaneId, ctx: &mut ViewContext<Self>) {
         if let Some(terminal_view) = self.terminal_view_from_pane_id(pane_id, ctx) {
-            let terminal_view_id = terminal_view.id();
+            let _terminal_view_id = terminal_view.id();
 
             // Discard any child agent panes parented by this terminal view.
         }
@@ -3368,10 +3359,10 @@ impl PaneGroup {
         base_pane_id: Option<PaneId>,
         chosen_shell: Option<AvailableShell>,
         startup_directory: Option<PathBuf>,
-        default_session_mode_behavior: DefaultSessionModeBehavior,
+        _default_session_mode_behavior: DefaultSessionModeBehavior,
         ctx: &mut ViewContext<Self>,
     ) -> TerminalPaneId {
-        let (pane_data, view) =
+        let (pane_data, _view) =
             self.create_terminal_pane_data(startup_directory, HashMap::new(), chosen_shell, ctx);
         let new_pane_id = pane_data.terminal_pane_id();
 
@@ -3951,7 +3942,7 @@ impl PaneGroup {
         self.shared_session_view_ids(ctx).len()
     }
 
-    pub fn shared_session_view_ids(&self, ctx: &AppContext) -> Vec<EntityId> {
+    pub fn shared_session_view_ids(&self, _ctx: &AppContext) -> Vec<EntityId> {
         Vec::new()
     }
 
@@ -3978,14 +3969,14 @@ impl PaneGroup {
 
     pub fn code_diff_view_local_paths<'a>(
         &'a self,
-        ctx: &'a AppContext,
+        _ctx: &'a AppContext,
     ) -> impl Iterator<Item = (EntityId, Option<String>)> + 'a {
         std::iter::empty()
     }
 
     pub fn file_notebook_local_paths<'a>(
         &'a self,
-        ctx: &'a AppContext,
+        _ctx: &'a AppContext,
     ) -> impl Iterator<Item = (EntityId, Option<String>)> + 'a {
         std::iter::empty()
     }
@@ -4107,7 +4098,7 @@ impl View for PaneGroup {
         };
         column.add_child(Shrinkable::new(1., main_content).finish());
 
-        let mut stack = Stack::new().with_child(column.finish());
+        let stack = Stack::new().with_child(column.finish());
 
         stack.finish()
     }

@@ -16,7 +16,6 @@ use warpui::ModelAsRef;
 use warpui::{
     elements::{Container, Element, EventHandler, SavePosition, SelectableArea, Text},
     fonts::{Properties, Weight},
-    presenter::ChildView,
     AppContext, EntityId, ModelHandle, SingletonEntity,
 };
 
@@ -130,7 +129,7 @@ pub(in crate::terminal) enum PromptAndPaddingElement {
 }
 
 impl PromptAndPaddingElement {
-    pub(in crate::terminal) fn text(&self, ctx: &AppContext) -> String {
+    pub(in crate::terminal) fn text(&self, _ctx: &AppContext) -> String {
         match self {
             Self::Text(text_element) => text_element.text().to_owned(),
             Self::BlockGrid(block_grid_element) => block_grid_element.text(),

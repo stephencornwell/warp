@@ -75,7 +75,7 @@ impl IgnoredSuggestionsModel {
         &mut self,
         suggestion: String,
         suggestion_type: SuggestionType,
-        ctx: &mut ModelContext<Self>,
+        _ctx: &mut ModelContext<Self>,
     ) {
         let key = IgnoredSuggestionKey {
             suggestion: suggestion.clone(),

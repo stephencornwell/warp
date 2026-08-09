@@ -2,7 +2,7 @@ use crate::terminal::available_shells::AvailableShell;
 use crate::terminal::block_list_element::GridType;
 use crate::terminal::event::{
     BootstrappedEvent, Event, ExecutedExecutorCommandEvent, InitSshEvent, InitSubshellEvent,
-    SourcedRcFileInSubshellEvent, SshLoginStatus, TerminalMode,
+    SourcedRcFileInSubshellEvent, TerminalMode,
 };
 use crate::terminal::event_listener::ChannelEventListener;
 use crate::terminal::model::ansi;
@@ -57,19 +57,14 @@ use crate::terminal::shell::{ShellName, ShellType};
 
 use crate::terminal::model::secrets::ObfuscateSecrets;
 use session_sharing_protocol::sharer::SessionSourceType;
-use warp_core::report_error;
 #[cfg(not(target_family = "wasm"))]
 use warpui::util::save_as_file;
 
-use async_channel::Sender;
 use base64::Engine;
 use hex::FromHexError;
 use instant::Instant;
 use itertools::{Either, Itertools};
 use serde::Serialize;
-use session_sharing_protocol::common::{
-    AICommandMetadata, OrderedTerminalEventType, ParticipantId,
-};
 use std::cmp::{max, min};
 use std::collections::HashMap;
 use std::num::ParseIntError;
@@ -1212,7 +1207,7 @@ impl TerminalModel {
         honor_ps1: bool,
         is_inverted: bool,
         obfuscate_secrets: ObfuscateSecrets,
-        is_dummy_cloud_mode_session: bool,
+        _is_dummy_cloud_mode_session: bool,
     ) -> Self {
         Self::new_internal(
             None,

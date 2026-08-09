@@ -13,7 +13,6 @@ use crate::{
 use pathfinder_geometry::vector::vec2f;
 use vim::vim::{VimMode, VimState};
 use warp_completer::completer::Description;
-use warp_core::features::FeatureFlag;
 use warpui::{
     elements::{
         AnchorPair, Border, ChildAnchor, ConstrainedBox, Container, CornerRadius,
@@ -22,9 +21,8 @@ use warpui::{
         PositioningAxis, Radius, Shrinkable, Stack, Text, XAxisAnchor,
     },
     fonts::Weight,
-    presenter::ChildView,
     ui_components::components::{UiComponent, UiComponentStyles},
-    AppContext, EntityId, SingletonEntity, ViewHandle,
+    AppContext, SingletonEntity,
 };
 
 /// Whether the terminal input message bar should be shown.
@@ -32,7 +30,7 @@ use warpui::{
 /// The message bar is hidden when AI is disabled, the user has turned it off in settings,
 /// or the session is a shared ambient agent session.
 pub(super) fn should_show_terminal_input_message_bar(
-    model: &TerminalModel,
+    _model: &TerminalModel,
     app: &AppContext,
 ) -> bool {
     InputSettings::as_ref(app).is_terminal_input_message_bar_enabled()

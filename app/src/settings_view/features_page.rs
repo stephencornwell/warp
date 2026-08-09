@@ -22,8 +22,7 @@ use super::keybindings::KeyBindingModifyingState;
 #[cfg(feature = "local_tty")]
 use super::settings_page::render_sub_sub_header;
 use super::settings_page::{
-    add_setting, build_reset_button, render_body_item_label, render_dropdown_item_label,
-    render_local_only_icon, Category, LocalOnlyIconState, MatchData, PageType, SettingsWidget,
+    add_setting, build_reset_button, render_body_item_label, Category, LocalOnlyIconState, MatchData, PageType, SettingsWidget,
     TOGGLE_BUTTON_RIGHT_PADDING,
 };
 use super::settings_page::{
@@ -37,9 +36,7 @@ use crate::editor::{
     Event as EditorEvent, SingleLineEditorOptions, TextOptions,
     ACCEPT_AUTOSUGGESTION_KEYBINDING_NAME,
 };
-use crate::search::command_search::settings::{
-    CommandSearchSettings, ShowGlobalWorkflowsInUniversalSearch,
-};
+use crate::search::command_search::settings::CommandSearchSettings;
 use crate::settings::{
     AliasExpansionEnabled, AliasExpansionSettings, AppEditorSettings, AtContextMenuInTerminalMode,
     AutocompleteSymbols, AutosuggestionKeybindingHint, ChangelogSettings, CodeSettings,
@@ -77,11 +74,10 @@ use crate::terminal::settings::{
 };
 use crate::terminal::{BlockListSettings, SnackbarEnabled};
 use crate::undo_close::UndoCloseSettings;
-use crate::user_config::{WarpConfig, WarpConfigUpdateEvent};
 use crate::util::bindings::{
     keybinding_name_to_display_string, reset_keybinding_to_default, set_custom_keybinding,
 };
-use crate::view_components::{Dropdown, DropdownItem, FilterableDropdown};
+use crate::view_components::{Dropdown, DropdownItem};
 use crate::workspace::tab_settings::{NewTabPlacement, TabSettings};
 use crate::workspace::WorkspaceAction;
 use crate::{appearance::Appearance, settings::native_preference::NativePreferenceSettings};
@@ -5325,7 +5321,7 @@ impl SettingsWidget for SlashCommandsInTerminalModeWidget {
         "slash commands terminal mode input menu"
     }
 
-    fn should_render(&self, app: &AppContext) -> bool {
+    fn should_render(&self, _app: &AppContext) -> bool {
         true
     }
 
@@ -5672,7 +5668,7 @@ impl SettingsWidget for TabKeyBehaviorWidget {
         appearance: &Appearance,
         app: &AppContext,
     ) -> Box<dyn Element> {
-        let mut tab_key_span = Flex::row()
+        let tab_key_span = Flex::row()
             .with_cross_axis_alignment(CrossAxisAlignment::Start)
             .with_child(
                 appearance
@@ -6099,7 +6095,7 @@ impl SettingsWidget for ShowTerminalZeroStateBlockWidget {
         "zero state new conversation terminal block welcome output first"
     }
 
-    fn should_render(&self, app: &AppContext) -> bool {
+    fn should_render(&self, _app: &AppContext) -> bool {
         true
     }
 

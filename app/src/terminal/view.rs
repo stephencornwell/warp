@@ -5,7 +5,6 @@ mod bookmarks;
 pub mod init;
 pub mod inline_banner;
 // TODO(advait): if we align on prompt suggestions banner in Input, move code out of inline_banner mod.
-use crate::global_resource_handles::GlobalResourceHandlesProvider;
 mod link_detection;
 mod open_in_warp;
 mod pane_impl;
@@ -20,16 +19,12 @@ use warpui::clipboard_utils::get_image_filepaths_from_paths;
 
 use std::ops::Deref as _;
 
-use crate::search::slash_command_menu::static_commands::commands;
 pub use crate::terminal::view::rich_content::{
     RichContent, RichContentInsertionPosition, RichContentMetadata,
 };
-use crate::view_components::action_button::{ActionButton, ButtonSize, KeystrokeSource};
 
-use crate::terminal::model::blocks::RemovableBlocklistItem;
 #[cfg(feature = "local_fs")]
 use crate::util::file::external_editor::{settings::EditorLayout, EditorSettings};
-use crate::util::truncation::truncate_from_end;
 
 use crate::projects::ProjectManagementModel;
 
@@ -45,11 +40,8 @@ pub use init::{
 pub use inline_banner::{NotificationsDiscoveryBannerAction, NotificationsErrorBannerAction};
 #[cfg(feature = "local_fs")]
 use repo_metadata::repositories::{DetectedRepositories, RepoDetectionSource};
-use session_sharing_protocol::common::LongRunningCommandAgentInteractionState;
-use session_sharing_protocol::sharer::{RoleUpdateReason, SessionEndedReason, SessionSourceType};
-use uuid::Uuid;
 use warp_core::channel::ChannelState;
-use warpui::elements::{shimmering_text::ShimmeringTextStateHandle, Border, ChildView};
+use warpui::elements::{shimmering_text::ShimmeringTextStateHandle, ChildView};
 use warpui::fonts::Properties;
 use warpui::{ViewHandle, WeakModelHandle};
 
@@ -59,12 +51,9 @@ use crate::context_chips::prompt::Prompt;
 use crate::context_chips::prompt_type::PromptType;
 use crate::context_chips::ContextChipKind;
 use crate::pane_group::focus_state::PaneFocusHandle;
-use crate::persistence::{self, FinishedCommandMetadata};
+use crate::persistence::{self};
 use crate::safe_warn;
-use crate::sync_ids::{ObjectUid, SyncId};
-#[cfg(feature = "local_fs")]
-use crate::settings::import::model::ImportedConfigModel;
-use crate::settings::import::view::{SettingsImportEvent, SettingsImportView};
+use crate::sync_ids::SyncId;
 use crate::settings::{
     AliasExpansionSettings, AppEditorSettings, BlockVisibilitySettings,
     BlockVisibilitySettingsChangedEvent, DebugSettings, DebugSettingsChangedEvent,
@@ -72,11 +61,10 @@ use crate::settings::{
     InputModeSettingsChangedEvent, InputSettings, PaneSettings, PaneSettingsChangedEvent,
     SelectionSettings, VimBannerSettings,
 };
-use crate::settings_view::flags;
 use crate::settings_view::keybindings::KeybindingChangedNotifier;
 use crate::settings_view::SettingsSection;
 use crate::shell_indicator::ShellIndicatorType;
-use crate::terminal::alias::{check_for_alias_async, AliasedCommand};
+use crate::terminal::alias::AliasedCommand;
 use crate::terminal::alt_screen_reporting::{AltScreenReporting, AltScreenReportingChangedEvent};
 use crate::terminal::block_filter::{
     filter_button_position_id, BlockFilterEditor, BlockFilterEditorEvent, BlockFilterQuery,
@@ -85,16 +73,11 @@ use crate::terminal::block_filter::{
 use crate::terminal::block_list_viewport::OverhangingBlock;
 use crate::terminal::block_list_viewport::ScrollPositionUpdate;
 use crate::terminal::block_list_viewport::ScrollState;
-use crate::terminal::command_corrections_denylist::COMMAND_CORRECTIONS_PREFERRED_DENYLIST;
 use crate::terminal::general_settings::GeneralSettings;
 use crate::terminal::grid_size_util::grid_cell_dimensions;
 use crate::terminal::input::decorations::InputBackgroundJobOptions;
-use crate::terminal::input::{CommandExecutionSource, InputAction, InputEmptyStateChangeReason};
+use crate::terminal::input::{CommandExecutionSource, InputAction};
 use crate::terminal::ligature_settings::{should_use_ligature_rendering, LigatureSettings};
-#[cfg(feature = "local_tty")]
-use crate::terminal::local_tty::get_shell_starter;
-#[cfg(feature = "local_tty")]
-use crate::terminal::local_tty::shell::ShellStarter;
 #[cfg(all(windows, feature = "local_tty"))]
 use crate::terminal::local_tty::windows::get_user_and_system_env_variable;
 use crate::terminal::model::blockgrid::BlockGrid;
@@ -106,9 +89,7 @@ use crate::terminal::safe_mode_settings::get_secret_obfuscation_mode;
 use crate::terminal::session_settings::{
     NotificationsMode, NotificationsSettings, SessionSettings,
 };
-use crate::terminal::session_settings::{
-    SessionSettingsChangedEvent, DEFAULT_THRESHOLD_FOR_LONG_RUNNING_NOTIFICATION,
-};
+use crate::terminal::session_settings::SessionSettingsChangedEvent;
 use crate::terminal::settings::{TerminalSettings, TerminalSettingsChangedEvent};
 use crate::terminal::ShellLaunchData;
 use crate::terminal::{element_size_at_last_frame, HistoryEntry};
@@ -127,7 +108,6 @@ use crate::util::clipboard::clipboard_content_with_escaped_paths;
 use crate::util::openable_file_type::{is_markdown_file, resolve_file_target, FileTarget};
 use crate::view_components::{DismissibleToast, ToastFlavor};
 use crate::workspace::sync_inputs::SyncedInputState;
-use crate::workspace::ForkedConversationDestination;
 use crate::workspace::{CommandSearchOptions, OneTimeModalModel, ToastStack, WorkspaceAction};
 use crate::ActiveSession as WindowActiveSession;
 
@@ -144,28 +124,20 @@ use parking_lot::FairMutex;
 use pathfinder_color::ColorU;
 use regex::Regex;
 use serde::Serialize;
-use serde_json::json;
-use session_sharing_protocol::common::{
-    AgentAttachment, ParticipantId, Role, RoleRequestId, RoleRequestResponse,
-    ServerConversationToken as SessionSharingServerConversationToken,
-    WindowSize as SessionSharingWindowSize,
-};
 use std::any::Any;
 use std::borrow::Cow;
-use std::cell::RefCell;
 use std::collections::hash_map::Entry;
 use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::hash::Hash;
 use std::ops::Range;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::rc::Rc;
 use std::str::FromStr;
 use std::sync::mpsc::SyncSender;
 use std::sync::Arc;
 use std::thread::JoinHandle;
 use std::time::Duration;
-use sum_tree::SeekBias;
 use vec1::vec1;
 use warp_core::context_flag::ContextFlag;
 use warp_core::user_preferences::GetUserPreferences as _;
@@ -178,10 +150,8 @@ use warpui::elements::new_scrollable::{
     ScrollableAppearance, SingleAxisConfig,
 };
 use warpui::elements::{
-    get_rich_content_position_id, ChildAnchor, ClippedScrollStateHandle, Container,
-    CrossAxisAlignment, DispatchEventResult, DropTarget, DropTargetData, Empty, EventHandler,
-    Expanded, Flex, NewScrollable, OffsetPositioning, ParentAnchor, ParentElement,
-    ParentOffsetBounds, PositionedElementAnchor, PositionedElementOffsetBounds, Radius,
+    ChildAnchor, ClippedScrollStateHandle, Container, DispatchEventResult, DropTarget, DropTargetData, Empty, EventHandler, Flex, NewScrollable, OffsetPositioning, ParentAnchor, ParentElement,
+    ParentOffsetBounds, Radius,
     ScrollableElement, ScrollbarWidth, Shrinkable, Text,
 };
 use warpui::event::ModifiersState;
@@ -203,8 +173,7 @@ use warpui::{
         Rect, ScrollStateHandle, Scrollable,
     },
     fonts::{Cache as FontCache, FamilyId},
-    ui_components::components::UiComponent,
-    AccessibilityData, AppContext, BlurContext, Element, Entity, FocusContext, ModelHandle,
+    ui_components::components::UiComponent, AppContext, Element, Entity, ModelHandle,
     TypedActionView, UpdateView, View, ViewAsRef, ViewContext, WeakViewHandle,
 };
 use warpui::{
@@ -214,7 +183,7 @@ use warpui::{
     record_trace_event, WindowId,
 };
 
-use warpui::{windowing, CursorInfo, EntityId, EventContext, ModelAsRef, SingletonEntity, Tracked};
+use warpui::{windowing, EntityId, EventContext, ModelAsRef, SingletonEntity, Tracked};
 
 use crate::appearance::{Appearance, AppearanceEvent};
 use crate::banner::{
@@ -222,11 +191,11 @@ use crate::banner::{
     DismissalType,
 };
 use crate::debounce::debounce;
-use crate::editor::{AutosuggestionType, CrdtOperation, EditorAction};
+use crate::editor::EditorAction;
 use crate::features::FeatureFlag;
 use crate::pane_group::SplitPaneState;
 use crate::pane_group::{
-    PaneConfiguration, PaneEvent, PaneGroupAction, PaneHeaderAction, TerminalViewResources,
+    PaneConfiguration, PaneEvent, PaneGroupAction, TerminalViewResources,
 };
 use crate::resource_center::{
     mark_feature_used_and_write_to_user_defaults, Tip, TipHint, TipsCompleted,
@@ -240,22 +209,20 @@ use crate::terminal::block_list_element::{
 };
 use crate::terminal::block_list_viewport::AutoscrollBehavior;
 use crate::terminal::block_list_viewport::{InputMode, ScrollPosition, ViewportState};
-use crate::terminal::bootstrap::init_subshell_command;
 use crate::terminal::event::TerminalMode;
 use crate::terminal::event::UserBlockCompleted;
 use crate::terminal::find::{BlockGridMatch, BlockListMatch, TerminalFindModel};
 use crate::terminal::input::{InputState, MenuPositioning, MenuPositioningProvider};
-use crate::terminal::keys::TerminalKeybindings;
 use crate::terminal::model::block::BlockMetadata;
 use crate::terminal::model::block::{Block, BlockId};
 use crate::terminal::model::blocks::{BlockFilter, BlockList};
-use crate::terminal::model::blocks::{BlockHeight, BlockHeightItem, BlockHeightSummary, Gap};
+use crate::terminal::model::blocks::Gap;
 use crate::terminal::model::escape_sequences::{self, EscCodes, ToEscapeSequence, C1};
 use crate::terminal::model::grid::grid_handler::{FragmentBoundary, TermMode};
 use crate::terminal::model::index::{Point, Side};
 use crate::terminal::model::mouse::MouseState;
 use crate::terminal::model::selection::{SelectAction, SelectionDirection};
-use crate::terminal::model::session::{BootstrapSessionType, SessionType, Sessions, SessionsEvent};
+use crate::terminal::model::session::{SessionType, Sessions, SessionsEvent};
 use crate::terminal::model::terminal_model::{BlockIndex, TerminalInputState};
 use crate::terminal::model::terminal_model::{
     BlockSelectionCardinality, SelectedBlocks, WithinModel,
@@ -287,41 +254,31 @@ use warpui::text::SelectionType;
 use self::link_detection::HighlightedLinkOption;
 use super::available_shells::AvailableShell;
 use super::block_list_viewport::FindMatchScrollLocation;
-use super::event::SshLoginStatus;
 use super::find::FindOptions;
-use super::model::ansi::{SystemDetails, WarpificationUnavailableReason};
-use super::model::block::{
-    BlockSection, BlocklistEnvVarMetadata, LONG_RUNNING_COMMAND_DURATION_MS,
-};
-use super::model::blocks::RichContentItem;
+use super::model::block::BlockSection;
 use super::model::completions::ShellCompletion;
-use super::model::rich_content::RichContentType;
 use super::model::secrets::RichContentSecretTooltipInfo;
 use super::model::selection::ExpandedSelectionRange;
 use super::model::session::SessionBootstrappedEvent;
 use super::settings::AltScreenPaddingMode;
-use super::{GridType, HistoryEvent};
-use crate::antivirus::AntivirusInfo;
+use super::GridType;
 use crate::menu::{Event as MenuEvent, Menu, MenuItem, MenuItemFields};
 use crate::terminal::links::should_directly_open_link;
 use crate::terminal::model_events::{AnsiHandlerEvent, ModelEvent, ModelEventDispatcher};
 use crate::terminal::{block_list_element::BlockListMenuSource, prompt};
-use crate::terminal::{color, History, SizeInfo};
+use crate::terminal::{color, SizeInfo};
 use crate::terminal::{color::List, model::block::LONG_RUNNING_BOTTOM_PADDING_LINES};
-use crate::terminal::{event::AfterBlockCompletedEvent, event::BlockLatencyData, event::BlockType};
+use crate::terminal::event::BlockType;
 use crate::throttle::throttle;
 use crate::util::color::darken;
-use action::RememberForWarpification;
 use bookmarks::render_floating_block_snapshot;
 use command_corrections::rules::generic::history::History as CommandCorrectionsHistoryRule;
-use init::{INPUT_BOX_VISIBLE_KEY, TOGGLE_BLOCK_FILTER_KEYBINDING};
 use inline_banner::{
     render_alias_expansion_banner, render_inline_notifications_discovery_banner,
     render_inline_notifications_error_banner, render_open_in_warp_banner,
     render_shell_process_terminated_banner, render_vim_mode_banner, AliasExpansionBanner,
     AliasExpansionBannerAction, OpenInWarpBannerState, VimModeBannerAction,
 };
-use warp_core::command::ExitCode;
 
 lazy_static! {
     // A set of commands that perform minimal work that we use as a baseline to measure the latency of blocks.
@@ -953,7 +910,7 @@ impl SizeUpdateBuilder {
                     model.block_list().block_heights().summary().height - gap.height();
                 let max_scroll_top = viewport.max_scroll_top_in_lines();
                 let input_id = view.input.as_ref(ctx).save_position_id();
-                let mut input_height =
+                let input_height =
                     element_size_at_last_frame(input_id.as_str(), ctx.window_id(), ctx)
                         .map_or(0., |r| r.y())
                         .into_pixels()
@@ -1100,9 +1057,9 @@ impl fmt::Debug for InputContextMenuAction {
             SelectAll => f.write_str("SelectAll"),
             Paste => f.write_str("Paste"),
             ShowCommandSearch => f.write_str("CommandSearch"),
-            ShowAICommandSearch => f.write_str("AICommandSearch"),
-            AskWarpAI => f.write_str("AskWarpAI"),
-            SaveAsWorkflow => f.write_str("SaveAsWorkflow"),
+            _ShowAICommandSearch => f.write_str("AICommandSearch"),
+            _AskWarpAI => f.write_str("AskWarpAI"),
+            _SaveAsWorkflow => f.write_str("SaveAsWorkflow"),
             ToggleInputHintText => f.write_str("ToggleInputHintText"),
         }
     }
@@ -1971,7 +1928,7 @@ impl TerminalView {
         model_event_sender: Option<SyncSender<persistence::ModelEvent>>,
         current_prompt: ModelHandle<PromptType>,
         inactive_pty_reads_rx: Option<async_broadcast::InactiveReceiver<Arc<Vec<u8>>>>,
-        is_cloud_mode: bool,
+        _is_cloud_mode: bool,
         ctx: &mut ViewContext<Self>,
     ) -> Self {
         let terminal_view_id = ctx.view_id();
@@ -2292,7 +2249,7 @@ impl TerminalView {
 
         // Re-evaluate git status subscription when the prompt configuration
         // changes (e.g. chips added/removed, input type toggled).
-        ctx.subscribe_to_model(&Prompt::handle(ctx), |me, _, _, ctx| {});
+        ctx.subscribe_to_model(&Prompt::handle(ctx), |_me, _, _, _ctx| {});
 
         ctx.subscribe_to_model(&AltScreenReporting::handle(ctx), move |me, _, evt, ctx| {
             me.handle_reporting_settings_event(evt, ctx);
@@ -2350,7 +2307,7 @@ impl TerminalView {
         });
 
         let window_id = ctx.window_id();
-        let mut terminal_view = Self {
+        let terminal_view = Self {
             model,
             input,
             view_handle: ctx.handle(),
@@ -3286,7 +3243,7 @@ impl TerminalView {
 
     fn handle_typeahead_event(&mut self, ctx: &mut ViewContext<Self>) {
         let mut model = self.model.lock();
-        let completed_block_idx = model.block_list().prev_matching_block_from_index(
+        let _completed_block_idx = model.block_list().prev_matching_block_from_index(
             BlockFilter {
                 include_hidden: true,
                 include_background: false,
@@ -3819,7 +3776,7 @@ impl TerminalView {
         }
     }
 
-    fn on_user_block_completed(&mut self, block_id: &BlockId, ctx: &mut ViewContext<Self>) {
+    fn on_user_block_completed(&mut self, _block_id: &BlockId, _ctx: &mut ViewContext<Self>) {
         {
             self.model
                 .lock()
@@ -3979,7 +3936,7 @@ impl TerminalView {
             ModelEvent::AfterBlockStarted {
                 command,
                 is_for_in_band_command,
-                block_id,
+                block_id: _,
                 ..
             } => {
                 if *is_for_in_band_command {
@@ -3999,7 +3956,7 @@ impl TerminalView {
                         let alias_value = session.alias_value(first_word)?;
                         Some(format!("{alias_value}{rest}"))
                     });
-                let warpify_command = expanded_command.as_deref().unwrap_or(command.as_str());
+                let _warpify_command = expanded_command.as_deref().unwrap_or(command.as_str());
 
                 if self.is_login_shell_bootstrapped {
                     let _ = ctx.spawn(
@@ -4312,7 +4269,7 @@ impl TerminalView {
             ModelEvent::ImageReceived {
                 image_id,
                 image_data,
-                image_protocol,
+                image_protocol: _,
             } => {
                 AssetCache::handle(ctx).update(ctx, |asset_cache, ctx| {
                     asset_cache.insert_raw_asset_bytes::<ImageType>(
@@ -4343,7 +4300,7 @@ impl TerminalView {
                     });
                 }
             }
-            ModelEvent::ExitShell { session_id } => {} // Handled by RemoteServerController via model subscription.
+            ModelEvent::ExitShell { session_id: _ } => {} // Handled by RemoteServerController via model subscription.
         }
     }
 
@@ -5199,7 +5156,7 @@ impl TerminalView {
                 None,
                 true,
             ) => {
-                let mut fields = vec![
+                let fields = vec![
                     MenuItemFields::new("Copy")
                         .with_on_select_action(TerminalAction::ContextMenu(
                             ContextMenuAction::CopySelectedText,
@@ -5323,7 +5280,7 @@ impl TerminalView {
                     && ContextFlag::CreateSharedSession.is_enabled()
                 {
                     // Sharing a session from a context menu is disabled for multi block selections, restored blocks, and viewers.
-                    let is_share_session_disabled = !is_single_selection
+                    let _is_share_session_disabled = !is_single_selection
                         || model
                             .block_list()
                             .block_at(tail_block_index)
@@ -5422,9 +5379,9 @@ impl TerminalView {
                 true,
             ) => {
                 // If selection is empty, only show non-block related options
-                let mut items = Vec::new();
+                
 
-                items
+                Vec::new()
             }
             _ => vec![],
         };
@@ -6730,7 +6687,7 @@ impl TerminalView {
         self.input.as_ref(app).create_prompt_elements(app)
     }
 
-    pub fn session_command_context(&self, app: &AppContext) -> CommandContext {
+    pub fn session_command_context(&self, _app: &AppContext) -> CommandContext {
         let model = self.model.lock();
         let block_list = model.block_list();
 
@@ -6821,7 +6778,7 @@ impl TerminalView {
     }
 
     fn toggle_input_hint_text(&mut self, ctx: &mut ViewContext<Self>) {
-        let new_val = InputSettings::handle(ctx).update(ctx, |input_settings, ctx| {
+        let _new_val = InputSettings::handle(ctx).update(ctx, |input_settings, ctx| {
             report_if_error!(input_settings.show_hint_text.toggle_and_save_value(ctx));
             *input_settings.show_hint_text
         });
@@ -7409,7 +7366,7 @@ impl TerminalView {
             self.is_input_box_visible(&model, ctx)
         };
         let should_focus_terminal = {
-            let semantic_selection = SemanticSelection::as_ref(ctx);
+            let _semantic_selection = SemanticSelection::as_ref(ctx);
             let model = self.model.lock();
             let block_list = model.block_list();
 
@@ -7628,7 +7585,7 @@ impl TerminalView {
     }
 
     fn bookmark_block(&mut self, index: &BlockIndex, ctx: &mut ViewContext<Self>) {
-        let enable_bookmark = match self.bookmarked_blocks.entry(*index) {
+        let _enable_bookmark = match self.bookmarked_blocks.entry(*index) {
             Entry::Occupied(occupied) => {
                 occupied.remove();
                 false
@@ -7722,7 +7679,7 @@ impl TerminalView {
             InputEvent::ClearSelectedBlock => self.clear_selected_blocks(ctx),
             InputEvent::SelectRecentBlocks { count } => self.select_most_recent_blocks(*count, ctx),
             InputEvent::Copy => self.copy(ctx),
-            InputEvent::UnhandledModifierKeyOnEditor(keystroke) => {
+            InputEvent::UnhandledModifierKeyOnEditor(_keystroke) => {
                 ();
             }
             InputEvent::ClearSelectionsWhenShellMode => self.clear_selections_when_shell_mode(ctx),
@@ -8500,17 +8457,14 @@ impl TerminalView {
         evt: &SessionSettingsChangedEvent,
         ctx: &mut ViewContext<Self>,
     ) {
-        match evt {
-            SessionSettingsChangedEvent::HonorPS1 { .. } => {
-                let session = self
-                    .active_block_session_id()
-                    .and_then(|session_id| self.sessions.as_ref(ctx).get(session_id));
+        if let SessionSettingsChangedEvent::HonorPS1 { .. } = evt {
+            let session = self
+                .active_block_session_id()
+                .and_then(|session_id| self.sessions.as_ref(ctx).get(session_id));
 
-                if let Some(session) = session {
-                    self.update_incompatible_configuration_banner(session.shell().plugins(), ctx)
-                }
+            if let Some(session) = session {
+                self.update_incompatible_configuration_banner(session.shell().plugins(), ctx)
             }
-            _ => {}
         }
     }
 
@@ -8963,7 +8917,7 @@ impl TerminalView {
         &self,
         appearance: &Appearance,
         app: &AppContext,
-        model: &TerminalModel,
+        _model: &TerminalModel,
     ) -> HashMap<usize, Box<dyn Element>> {
         let mut inline_banners = HashMap::new();
 
@@ -9089,13 +9043,13 @@ impl TerminalView {
         if should_use_ligature_rendering(app) {
             alt_screen_element = alt_screen_element.with_ligature_rendering();
         }
-        let required_terminal_height = self.size_info.cell_height_px.as_f32() * (rows as f32)
+        let _required_terminal_height = self.size_info.cell_height_px.as_f32() * (rows as f32)
             + 2. * self.size_info.padding_y_px().as_f32();
-        let pane_height = self.content_element_height_px(app);
+        let _pane_height = self.content_element_height_px(app);
 
         let required_terminal_width = self.size_info.cell_width_px.as_f32() * (columns as f32)
             + 2. * self.size_info.padding_x_px().as_f32();
-        let pane_width = self.content_element_width_px(app);
+        let _pane_width = self.content_element_width_px(app);
 
         let should_be_vertical_scrollable = false;
         let should_be_horizontal_scrollable = false;
@@ -9321,7 +9275,7 @@ impl TerminalView {
         let required_terminal_width = self.size_info.cell_width_px.as_f32()
             * (columns_needed as f32)
             + 2. * self.size_info.padding_x_px().as_f32();
-        let pane_width = self.content_element_width_px(app);
+        let _pane_width = self.content_element_width_px(app);
 
         let should_be_vertical_scrollable =
             heights_approx_gt(total_height, visible_rows) && is_scrollable;
@@ -9361,7 +9315,7 @@ impl TerminalView {
         let element =
             SavePosition::new(element_to_save, &self.content_element_position_id).finish();
 
-        let is_waterfall_no_gap_mode =
+        let _is_waterfall_no_gap_mode =
             matches!(input_mode, InputMode::Waterfall) && model.block_list().active_gap().is_none();
 
         // If there is an 'inset' to be applied to the blocklist element because the inline menu is
@@ -9772,7 +9726,7 @@ impl TerminalView {
             Troubleshoot => {
                 ctx.open_url(NOTIFICATIONS_TROUBLESHOOT_URL);
             }
-            TurnOn(trigger) => {
+            TurnOn(_trigger) => {
                 let current_settings = SessionSettings::as_ref(ctx).notifications.value().clone();
                 let new_settings = NotificationsSettings {
                     mode: NotificationsMode::Enabled,
@@ -10157,11 +10111,11 @@ impl TypedActionView for TerminalView {
                 format!("Open block filter editor for block {block_index}"),
                 WarpA11yRole::TextRole,
             )),
-            ShowInitializationBlock => Custom(AccessibilityContent::new_without_help(
+            _ShowInitializationBlock => Custom(AccessibilityContent::new_without_help(
                 "Showed initialization block",
                 WarpA11yRole::TextareaRole,
             )),
-            OpenFilesPalette { .. } => Custom(AccessibilityContent::new_without_help(
+            OpenFilesPalette => Custom(AccessibilityContent::new_without_help(
                 "Opened file search palette",
                 WarpA11yRole::ButtonRole,
             )),
@@ -10352,7 +10306,7 @@ impl TypedActionView for TerminalView {
             FocusInputAndClearSelection => self.focus_input_and_clear_selections(ctx),
             ShowFindBar => self.show_find_bar(ctx),
             SelectPriorBlock => {
-                let is_first_selection = self.selected_blocks.is_empty();
+                let _is_first_selection = self.selected_blocks.is_empty();
                 match input_mode {
                     InputMode::PinnedToBottom | InputMode::Waterfall => {
                         self.select_less_recent_block(false /* is_shift_down */, ctx)
@@ -10565,7 +10519,7 @@ impl TypedActionView for TerminalView {
                 selected_range,
             } => self.set_marked_text_on_terminal(marked_text, selected_range, ctx),
             ClearMarkedText => self.clear_marked_text_on_terminal(ctx),
-            ShowInitializationBlock => {}
+            _ShowInitializationBlock => {}
             InitProject => {}
             AddProjectAtCurrentDirectory => {
                 // Get the current working directory and add it as a project
@@ -10591,7 +10545,7 @@ impl TypedActionView for TerminalView {
                     });
                 }
             }
-            OpenBillingAndUsagePane => {
+            _OpenBillingAndUsagePane => {
                 ctx.emit(Event::OpenSettings(SettingsSection::BillingAndUsage));
             }
             OpenAddRulePane => {
@@ -10606,7 +10560,7 @@ impl TypedActionView for TerminalView {
             PickRepoToOpen => {
                 ctx.dispatch_typed_action(&WorkspaceAction::OpenRepository { path: None });
             }
-            OpenFilesPalette { .. } => {}
+            OpenFilesPalette => {}
             DismissCodeToolbeltTooltip => {
                 CodeSettings::handle(ctx).update(ctx, |settings, ctx| {
                     if let Err(e) = settings
@@ -10623,7 +10577,7 @@ impl TypedActionView for TerminalView {
             StartLspServer => {
                 let _ = ctx;
             }
-            OpenConversationsPalette => {
+            _OpenConversationsPalette => {
                 let _ = ctx;
             }
             ToggleHideCliResponses => {
@@ -10639,13 +10593,13 @@ impl TypedActionView for TerminalView {
                     input.handle_action(&InputAction::OpenModelSelector, ctx);
                 });
             }
-            ToggleCloudModeDetailsPanel => {
+            _ToggleCloudModeDetailsPanel => {
                 let _ = ctx;
             }
-            CancelAmbientAgentTask => {
+            _CancelAmbientAgentTask => {
                 let _ = ctx;
             }
-            ToggleUsageFooter => {
+            _ToggleUsageFooter => {
                 let _ = ctx;
             }
             ToggleSessionRecording => {
@@ -10663,7 +10617,7 @@ impl View for TerminalView {
     }
 
     fn render(&self, app: &AppContext) -> Box<dyn Element> {
-        let menu_positioning = self.input.as_ref(app).menu_positioning(app);
+        let _menu_positioning = self.input.as_ref(app).menu_positioning(app);
         let appearance = Appearance::as_ref(app);
         let semantic_selection = SemanticSelection::as_ref(app);
         let model = self.model.lock();
@@ -10673,8 +10627,8 @@ impl View for TerminalView {
         // Compute callout positioning early while we have the model lock.
         // For UpdatedAgentInput state, always position relative to the input box,
         // even when the zero state is visible.
-        let should_position_callout_above_zero_state = false;
-        let is_long_running_command = {
+        let _should_position_callout_above_zero_state = false;
+        let _is_long_running_command = {
             model
                 .block_list()
                 .active_block()

@@ -1,6 +1,5 @@
 use crate::appearance::Appearance;
 use crate::context_chips::prompt_snapshot::PromptSnapshot;
-use crate::context_chips::ContextChipKind;
 use crate::search::command_palette::navigation::search::SessionHighlightIndices;
 use crate::search::result_renderer::ItemHighlightState;
 use crate::session_management::{CommandContext, SessionNavigationData};

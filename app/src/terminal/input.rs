@@ -10,23 +10,16 @@ pub mod suggestions_mode_model;
 mod terminal;
 mod universal;
 
-use crate::context_chips::spacing;
 use crate::pane_group::focus_state::PaneFocusHandle;
-use crate::search::slash_command_menu::static_commands::commands::{self, COMMAND_REGISTRY};
+use crate::search::slash_command_menu::static_commands::commands::COMMAND_REGISTRY;
 
-use crate::settings::PrivacySettings;
 use crate::suggestions::ignored_suggestions_model::{
     IgnoredSuggestionsModel, IgnoredSuggestionsModelEvent, SuggestionType,
 };
 use crate::terminal::input::buffer_model::InputBufferModel;
-use crate::terminal::input::suggestions_mode_model::{
-    InputSuggestionsModeEvent, InputSuggestionsModeModel,
-};
+use crate::terminal::input::suggestions_mode_model::InputSuggestionsModeModel;
 use crate::terminal::model::session::active_session::ActiveSession;
-use crate::terminal::package_installers::command_at_cursor_has_common_package_installer_prefix;
-use crate::terminal::prompt_render_helper::should_render_ps1_prompt;
 use crate::terminal::view::CodeDiffAction;
-use crate::util::bindings::keybinding_name_to_normalized_string;
 #[cfg(feature = "local_fs")]
 use crate::util::file::external_editor;
 use crate::util::truncation::truncate_from_end;
@@ -37,55 +30,42 @@ use crate::ASSETS;
 use crate::code::editor_management::CodeSource;
 
 use crate::{
-    appearance::{Appearance, AppearanceEvent},
-    channel::{Channel, ChannelState},
+    appearance::Appearance,
     cmd_or_ctrl_shift,
     completer::SessionContext,
     context_chips::prompt_type::PromptType,
     debounce::debounce,
     editor::{
-        default_cursor_colors, position_id_for_cached_point, position_id_for_cursor,
-        position_id_for_first_cursor, AttachedImage as AttachedImageRawData,
-        AutosuggestionLocation, AutosuggestionType, BaselinePositionComputationMethod,
-        CommandXRayAnchor, CrdtOperation, CursorColors, DisplayPoint, EditOrigin, EditorAction,
-        EditorDecoratorElements, EditorOptions, EditorSnapshot, EditorView, Event as EditorEvent,
-        ImageContextOptions, InteractionState, PathTransformerFn, PlainTextEditorViewAction,
+        position_id_for_cached_point, position_id_for_cursor,
+        position_id_for_first_cursor,
+        AutosuggestionLocation, AutosuggestionType, BaselinePositionComputationMethod, CrdtOperation, DisplayPoint, EditOrigin, EditorAction, EditorOptions, EditorSnapshot, EditorView, Event as EditorEvent, InteractionState, PathTransformerFn, PlainTextEditorViewAction,
         Point as BufferPoint, PropagateAndNoOpEscapeKey, PropagateAndNoOpNavigationKeys,
-        PropagateHorizontalNavigationKeys, ReplicaId, TextColors, TextRun,
-        MAX_IMAGES_PER_CONVERSATION,
+        PropagateHorizontalNavigationKeys, TextColors,
     },
     features::FeatureFlag,
     input_suggestions::{
         Event as InputSuggestionsEvent, HistoryInputSuggestion, InputSuggestions,
         TabCompletionsPreselectOption,
     },
-    network::NetworkStatus,
     pane_group::PaneGroupAction,
     prefix::longest_common_prefix,
     resource_center::{
-        mark_feature_used_and_write_to_user_defaults, Tip, TipAction, TipHint, TipsCompleted,
+        mark_feature_used_and_write_to_user_defaults, Tip, TipHint, TipsCompleted,
     },
     search::QueryFilter,
-    sync_ids::SyncId,
     session_management::SessionNavigationPromptElements,
     settings::{
         AliasExpansionSettings, AppEditorSettings, AppEditorSettingsChangedEvent,
         InputModeSettings, InputSettings, InputSettingsChangedEvent,
-        MAX_TIMES_TO_SHOW_AUTOSUGGESTION_HINT,
     },
     settings_view::{flags, SettingsSection},
-    ui_components::{blended_colors, icons::Icon},
-    user_config::WarpConfig,
     util::bindings::{self, CustomAction},
-    util::image::MAX_IMAGE_COUNT_FOR_QUERY,
     view_components::{DismissibleToast, ToastFlavor},
     workspace::{
-        sync_inputs::SyncedInputState, CommandSearchOptions, ForkedConversationDestination,
-        InitContent, PaletteSource, RestoreConversationLayout, ToastStack, WorkspaceAction,
+        sync_inputs::SyncedInputState, CommandSearchOptions, ToastStack, WorkspaceAction,
     },
 };
 
-use base64::Engine as _;
 #[cfg(feature = "local_fs")]
 use diesel::SqliteConnection;
 use futures::FutureExt as _;
@@ -93,8 +73,6 @@ use itertools::Itertools;
 use lazy_static::lazy_static;
 use ordered_float::Float;
 use regex::Regex;
-use serde_json::json;
-use session_sharing_protocol::common::{AgentAttachment, ParticipantId, ServerConversationToken};
 use settings::{Setting as _, ToggleableSetting};
 use std::{
     any::Any,
@@ -107,9 +85,7 @@ use std::{
     time::Duration,
 };
 use string_offset::CharOffset;
-use vec1::Vec1;
-use vim::vim::{VimHandler, VimMode};
-use warp_completer::util::parse_current_commands_and_tokens;
+use vim::vim::VimMode;
 
 use warp_completer::{
     completer::{
@@ -121,36 +97,21 @@ use warp_completer::{
     signatures::CommandRegistry,
 };
 use warp_core::user_preferences::GetUserPreferences as _;
-use warp_core::{
-    context_flag::ContextFlag,
-    ui::theme::{color::internal_colors, AnsiColorIdentifier},
-};
 use warp_editor::editor::NavigationKey;
 use warp_util::path::ShellFamily;
 use warpui::{
     accessibility::{AccessibilityContent, ActionAccessibilityContent, WarpA11yRole},
-    clipboard::{ClipboardContent, ImageData},
-    clipboard_utils::CLIPBOARD_IMAGE_MIME_TYPES,
-    color::ColorU,
+    clipboard::ClipboardContent,
     elements::{
-        resizable_state_handle, Align, AnchorPair, ChildAnchor, Clipped, ConstrainedBox, Container,
-        CornerRadius, CrossAxisAlignment, DispatchEventResult, DropTargetData, Element,
-        EventHandler, Flex, MainAxisAlignment, MainAxisSize, MouseStateHandle, OffsetPositioning,
-        OffsetType, ParentAnchor, ParentElement, PositionedElementOffsetBounds, PositioningAxis,
-        Radius, ResizableStateHandle, SavePosition, SelectionHandle, Text, Wrap, XAxisAnchor,
+        resizable_state_handle, AnchorPair, Clipped, ConstrainedBox, Container, DispatchEventResult, DropTargetData, Element,
+        EventHandler, MouseStateHandle,
+        OffsetType, ResizableStateHandle, SavePosition, SelectionHandle,
         YAxisAnchor,
     },
-    end_trace,
-    keymap::{BindingDescription, EditableBinding, FixedBinding, Keystroke},
+    keymap::{EditableBinding, FixedBinding, Keystroke},
     platform::OperatingSystem,
     presenter::ChildView,
     r#async::SpawnedFutureHandle,
-    start_trace,
-    text_layout::TextStyle,
-    ui_components::{
-        chip::Chip,
-        components::{Coords, UiComponent, UiComponentStyles},
-    },
     units::IntoPixels,
     AppContext, Entity, EntityId, FocusContext, ModelAsRef, ModelHandle, SingletonEntity,
     TypedActionView, View, ViewContext, ViewHandle, WeakViewHandle,
@@ -168,20 +129,19 @@ use super::{
     event::{BlockCompletedEvent, BlockType, UserBlockCompleted},
     ligature_settings::LigatureSettings,
     model::{
-        block::{BlockId, BlockMetadata, BlocklistEnvVarMetadata},
-        session::{Session, SessionId, SessionType, Sessions},
+        block::{BlockId, BlockMetadata},
+        session::{Session, SessionId, Sessions},
     },
     prompt,
     prompt_render_helper::{
-        should_render_prompt_on_same_line, should_render_prompt_using_editor_decorator_elements,
-        PromptRenderHelper, SameLinePromptElements,
+        should_render_prompt_on_same_line,
+        PromptRenderHelper,
     },
     safe_mode_settings::{
         get_secret_obfuscation_mode, SafeModeSettings, SafeModeSettingsChangedEvent,
     },
     session_settings::{SessionSettings, SessionSettingsChangedEvent},
-    settings::{SpacingMode, TerminalSettings, TerminalSettingsChangedEvent},
-    shell::ShellType,
+    settings::{SpacingMode, TerminalSettings},
     view::{
         ExecuteCommandEvent, SyncInputType, TerminalAction,
         PADDING_LEFT as TERMINAL_VIEW_PADDING_LEFT,
@@ -194,7 +154,6 @@ use parking_lot::FairMutex;
 #[cfg(feature = "local_fs")]
 use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use string_offset::ByteOffset;
 
@@ -1386,12 +1345,12 @@ impl Input {
         menu_positioning_provider: Arc<dyn MenuPositioningProvider>,
         current_prompt: ModelHandle<PromptType>,
         terminal_view_id: EntityId,
-        current_repo_path: Option<PathBuf>,
-        model_events: ModelHandle<crate::terminal::model_events::ModelEventDispatcher>,
-        active_session: ModelHandle<ActiveSession>,
+        _current_repo_path: Option<PathBuf>,
+        _model_events: ModelHandle<crate::terminal::model_events::ModelEventDispatcher>,
+        _active_session: ModelHandle<ActiveSession>,
         ctx: &mut ViewContext<Self>,
     ) -> Self {
-        let initial_session_context = {
+        let _initial_session_context = {
             let completer_data = CompleterData::new(
                 sessions.clone(),
                 None, // active_block_metadata will be set later when blocks are available
@@ -1417,10 +1376,10 @@ impl Input {
 
         let editor = {
             // Clones used in render_decorator_elements closure below.
-            let model_clone = model.clone();
+            let _model_clone = model.clone();
             // Clone used in keymap_context_modifier closure below.
-            let terminal_model_for_keymap_context = model.clone();
-            let input_render_state_model_handle_clone = input_render_state_model_handle.clone();
+            let _terminal_model_for_keymap_context = model.clone();
+            let _input_render_state_model_handle_clone = input_render_state_model_handle.clone();
 
             ctx.add_typed_action_view(|ctx| {
                 let options = EditorOptions {
@@ -1584,7 +1543,7 @@ impl Input {
     pub fn set_focus_handle(&mut self, focus_handle: PaneFocusHandle, ctx: &mut ViewContext<Self>) {
         self.focus_handle = Some(focus_handle.clone());
         let focus_model = focus_handle.focus_state_handle().clone();
-        ctx.subscribe_to_model(&focus_model, move |me, _, event, ctx| {
+        ctx.subscribe_to_model(&focus_model, move |_me, _, event, ctx| {
             if !focus_handle.is_affected(event) {
                 return;
             }
@@ -1882,7 +1841,7 @@ impl Input {
         }
 
         // Save the zero state next command state before clearing it.
-        let zerostate_next_command_suggestion_info: Option<()> = None;
+        let _zerostate_next_command_suggestion_info: Option<()> = None;
         // Clear the auto-suggestion in the editor, so the height of
         // the input box is not inaccurate for its contents. Since we
         // we adjust the height of the long running block to be the same
@@ -2191,7 +2150,7 @@ impl Input {
             {
                 let original_buffer = original_buffer.clone();
                 let original_cursor_point = *original_cursor_point;
-                let original_input_was_locked = *original_input_was_locked;
+                let _original_input_was_locked = *original_input_was_locked;
                 self.editor.update(ctx, |editor, ctx| {
                     editor.set_buffer_text_ignoring_undo(&original_buffer, ctx);
                     if let Some(original_cursor_point) = original_cursor_point {

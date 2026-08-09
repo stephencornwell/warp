@@ -1,12 +1,10 @@
 use std::collections::HashSet;
 use std::ops::Deref as _;
 use std::path::PathBuf;
-use std::sync::Arc;
 
 use chrono::Utc;
 use itertools::Itertools as _;
 use pathfinder_geometry::vector::vec2f;
-use warp_core::context_flag::ContextFlag;
 use warp_core::features::FeatureFlag;
 use warpui::elements::{
     Border, ChildView, Clipped, ClippedScrollStateHandle, ClippedScrollable, ConstrainedBox,
@@ -44,7 +42,6 @@ use crate::search::QueryFilter;
 use crate::terminal::History;
 use crate::themes::theme::WarpTheme;
 use crate::ui_components::icons::Icon;
-use crate::workspace::WorkspaceAction;
 
 /// Position ID for the command palette list.
 const PALETTE_LIST_SAVE_POSITION_ID: &str = "welcome_palette:list";

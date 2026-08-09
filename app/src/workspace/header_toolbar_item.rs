@@ -1,10 +1,9 @@
 use serde::{Deserialize, Serialize};
 
 use crate::ui_components::icons::Icon;
-use crate::workspace::tab_settings::TabSettings;
 
 use settings::Setting as _;
-use warpui::{AppContext, SingletonEntity};
+use warpui::AppContext;
 
 /// A configurable item in the vertical tabs header toolbar.
 ///
@@ -46,7 +45,7 @@ impl HeaderToolbarItemKind {
     /// Whether this item is supported on the current platform/configuration
     /// (feature flags, compile-time features, AI enabled, auth state).
     /// Does not check user show/hide preferences — use `is_available` for that.
-    pub fn is_supported(&self, app: &AppContext) -> bool {
+    pub fn is_supported(&self, _app: &AppContext) -> bool {
         match self {
             Self::TabsPanel => false,
             Self::ToolsPanel => true,
@@ -59,9 +58,7 @@ impl HeaderToolbarItemKind {
         if !self.is_supported(app) {
             return false;
         }
-        match self {
-            _ => true,
-        }
+        true
     }
 
     /// Whether this item opens a side panel (as opposed to replacing the content

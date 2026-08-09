@@ -3,7 +3,6 @@ mod serialized_block;
 
 pub use interaction_mode::*;
 pub use serialized_block::*;
-use warp_core::features::FeatureFlag;
 
 use super::grid::grid_handler::{GridHandler, PerformResetGridChecks};
 use super::grid::{Cursor, RespectDisplayedOutput};
@@ -376,10 +375,10 @@ impl From<&Block> for BlockType {
                     BlockType::Background(Arc::new(serialized_block))
                 } else {
                     let command = block.command_to_string();
-                    let mut command_with_obfuscated_secrets =
+                    let command_with_obfuscated_secrets =
                         block.command_with_secrets_obfuscated(false);
 
-                    let (output_truncated, mut output_truncated_with_obfuscated_secrets) =
+                    let (output_truncated, output_truncated_with_obfuscated_secrets) =
                         if block.is_ai_ugc_telemetry_enabled {
                             // If telemetry is enabled, we collect the full output but are limiting it to
                             // the first and last 2500 lines in case the block is very large.
@@ -1315,13 +1314,13 @@ impl Block {
             number_of_bottom_lines_per_grid,
         );
 
-        let mut processed_input = self.prompt_and_command_grid().content_summary(
+        let processed_input = self.prompt_and_command_grid().content_summary(
             optimized_top_lines,
             optimized_bottom_lines,
             true,
         );
 
-        let mut processed_output =
+        let processed_output =
             self.output_grid()
                 .content_summary(optimized_top_lines, optimized_bottom_lines, true);
 
@@ -1465,8 +1464,8 @@ impl Block {
         &self,
         include_escape_sequences: bool,
     ) -> (String, String) {
-        let mut command = self.command_with_secrets_obfuscated(include_escape_sequences);
-        let mut output = self
+        let command = self.command_with_secrets_obfuscated(include_escape_sequences);
+        let output = self
             .output_grid()
             .contents_to_string_force_secrets_obfuscated(
                 include_escape_sequences,

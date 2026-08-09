@@ -4783,10 +4783,6 @@ impl TerminalView {
                                             return;
                                         }
 
-                                        PersistedWorkspace::handle(ctx).update(ctx, |manager, _| {
-                                            manager.navigated_to_path(active_directory.as_path_buf());
-                                        });
-
                                         // Subscribe to GitRepoStatusModel if the repo changed
                                         // and git status updates are needed.
                                         if old_repo_path.as_ref() != Some(repo_path) {
@@ -6281,50 +6277,6 @@ impl TerminalView {
                         ctx,
                     ))
                     .into_item()]);
-
-                // Add debugging link for command blocks run by the agent
-                if is_single_selection {
-                    if let Some(metadata) = tail_block.agent_interaction_metadata() {
-                        let conversation_id = metadata.conversation_id();
-
-                        // Try to find the exchange ID using the requested command action ID if available,
-                        // otherwise use the subagent task ID to get the latest exchange from that task
-                        let exchange_id =
-                            if let Some(action_id) = metadata.requested_command_action_id() {
-                                BlocklistAIHistoryModel::as_ref(ctx)
-                                    .conversation(conversation_id)
-                                    .and_then(|convo| convo.exchange_id_for_action(action_id))
-                            } else if let Some(subagent_task_id) = metadata.subagent_task_id() {
-                                BlocklistAIHistoryModel::as_ref(ctx)
-                                    .conversation(conversation_id)
-                                    .and_then(|convo| convo.get_task(subagent_task_id))
-                                    .and_then(|task| task.last_exchange())
-                                    .map(|exchange| exchange.id)
-                            } else {
-                                None
-                            };
-
-                        if let Some(exchange_id) = exchange_id {
-                            let debugging_items = self.create_copy_debugging_menu_item(
-                                exchange_id,
-                                *conversation_id,
-                                ctx,
-                            );
-                            if !debugging_items.is_empty() {
-                                items.push(MenuItem::Separator);
-                                for (button_text, action) in debugging_items {
-                                    items.push(
-                                        MenuItemFields::new(button_text)
-                                            .with_on_select_action(TerminalAction::ContextMenu(
-                                                action,
-                                            ))
-                                            .into_item(),
-                                    );
-                                }
-                            }
-                        }
-                    }
-                }
 
                 items
             }
@@ -8957,15 +8909,6 @@ impl TerminalView {
                     layout: *layout,
                 });
             }
-            InputEvent::OpenCodeReviewPane => {
-                ctx.emit(Event::OpenCodeReviewPane(CodeReviewPanelArg {
-                    repo_path: self.current_repo_path.clone(),
-                    terminal_view: self.view_handle.clone(),
-                    entrypoint: CodeReviewPaneEntrypoint::GitDiffChip,
-                    focus_new_pane: true,
-                    cli_agent: None,
-                }));
-            }
             InputEvent::AttachDiffSetContext {
                 #[cfg_attr(not(feature = "local_fs"), allow(unused_variables))]
                 diff_mode,
@@ -9033,18 +8976,6 @@ impl TerminalView {
             #[cfg(not(target_family = "wasm"))]
             InputEvent::OpenPluginInstructionsPane(agent, kind) => {
                 ctx.emit(Event::OpenPluginInstructionsPane(*agent, *kind));
-            }
-            InputEvent::OpenShareSessionModal => {
-                self.open_share_session_modal(SharedSessionActionSource::FooterChip, ctx);
-            }
-            InputEvent::StartRemoteControl => {
-                self.attempt_to_share_session(
-                    SharedSessionScrollbackType::All,
-                    Some(SharedSessionActionSource::FooterChip),
-                    SessionSourceType::default(),
-                    true,
-                    ctx,
-                );
             }
         }
     }
@@ -12274,14 +12205,6 @@ impl View for TerminalView {
 
                     if self.is_input_box_visible(&model, app) {
                         column.add_child(self.render_input());
-                    } else if !model.is_read_only()
-                        && is_cloud_agent_pre_first_exchange(
-                            self.ambient_agent_view_model.as_ref(),
-                            &self.agent_view_controller,
-                            app,
-                        )
-                    {
-                        column.add_child(ambient_agent::render_loading_footer(appearance));
                     }
 
                     let stack = Stack::new()
@@ -12298,17 +12221,6 @@ impl View for TerminalView {
 
         if self.is_any_tooltip_open() {
             self.render_grid_tooltip(&mut stack, &model, appearance, app);
-        }
-
-        if !FeatureFlag::CloudModeSetupV2.is_enabled() {
-            // Show progress steps while waiting for an ambient agent to start.
-            if self
-                .ambient_agent_view_model
-                .as_ref()
-                .is_some_and(|model| model.as_ref(app).agent_progress().is_some())
-            {
-                stack.add_child(self.render_ambient_agent_progress(appearance, app));
-            }
         }
 
         // For shared session viewers, we want to show a "Request edit access"

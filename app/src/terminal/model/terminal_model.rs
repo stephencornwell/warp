@@ -619,9 +619,6 @@ pub struct SubshellInitializationInfo {
     /// The subshell was triggered from an EVC invocation
     pub env_var_collection_name: Option<String>,
 
-    /// If the subshell is from an SSH command, store the connection details.
-    /// Note that these details come from parsing the ssh command, not from retrieving
-    /// any actual state on the remote host.
 }
 
 /// Since a SelectedBlockRange is a range of blocks, it is possible that
@@ -1079,8 +1076,6 @@ impl TerminalModel {
         is_ai_ugc_telemetry_enabled: bool,
         session_startup_path: Option<PathBuf>,
         shell_state: ShellLaunchState,
-        shared_session_status: SharedSessionStatus,
-        is_dummy_cloud_mode_session: bool,
     ) -> Self {
         let alt_screen = AltScreen::new(
             sizes.size,
@@ -1177,8 +1172,6 @@ impl TerminalModel {
             is_ai_ugc_telemetry_enabled,
             session_startup_path,
             shell_state,
-            SharedSessionStatus::NotShared,
-            false,
         )
     }
 
@@ -1244,8 +1237,6 @@ impl TerminalModel {
                 display_name: ShellName::blank(),
                 shell_type: ShellType::Zsh,
             },
-            SharedSessionStatus::ViewPending,
-            is_dummy_cloud_mode_session,
         )
     }
 
@@ -1852,19 +1843,6 @@ impl TerminalModel {
                 available_shell, ..
             } => available_shell.clone(),
         }
-    }
-
-    pub fn shared_session_status(&self) -> &SharedSessionStatus {
-        &self.shared_session_status
-    }
-
-    pub fn set_shared_session_status(&mut self, shared_session_status: SharedSessionStatus) {
-        self.shared_session_status = shared_session_status;
-    }
-
-    /// Returns whether this terminal is viewing a shared session.
-    pub fn is_shared_session_viewer(&self) -> bool {
-        self.shared_session_status.is_viewer()
     }
 
     /// Resize terminal to new dimensions.

@@ -242,7 +242,7 @@ use crate::editor::{AutosuggestionType, CrdtOperation, EditorAction};
 use crate::features::FeatureFlag;
 use crate::pane_group::SplitPaneState;
 use crate::pane_group::{
-    CodeReviewPanelArg, PaneConfiguration, PaneEvent, PaneGroupAction, PaneHeaderAction,
+    PaneConfiguration, PaneEvent, PaneGroupAction, PaneHeaderAction,
     TerminalViewResources,
 };
 use crate::resource_center::{
@@ -12827,9 +12827,6 @@ impl TerminalView {
         ctx: &mut ViewContext<Self>,
     ) {
         let action_id = AIAgentActionId::from(uuid::Uuid::new_v4().to_string());
-        use crate::ai::agent::AIIdentifiers;
-        use crate::ai::blocklist::inline_action::code_diff_view::CodeDiffViewEvent;
-
         let identifiers = AIIdentifiers::default();
         let title_for_result = title.clone();
 

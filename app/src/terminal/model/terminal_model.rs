@@ -1126,7 +1126,6 @@ impl TerminalModel {
             env_var_collection_name: None,
             shell_launch_state: shell_state,
             obfuscate_secrets,
-            is_dummy_cloud_mode_session,
             conversation_transcript_viewer_status: None,
             is_receiving_agent_conversation_replay: false,
             tmux_background_outputs: HashMap::new(),
@@ -2799,14 +2798,10 @@ impl ansi::Handler for TerminalModel {
                 let env_var_collection_name = self.env_var_collection_name.take();
                 let spawning_command = self.block_list().active_block().command_to_string();
 
-                let ssh_connection_info =
-                    ssh::util::parse_interactive_ssh_command(&spawning_command);
-
                 Some(SubshellInitializationInfo {
                     spawning_command,
                     was_triggered_by_rc_file_snippet,
                     env_var_collection_name,
-                    ssh_connection_info,
                 })
             } else {
                 None
@@ -2997,38 +2992,10 @@ impl ansi::Handler for TerminalModel {
     }
 
     fn on_finish_byte_processing(&mut self, input: &ansi::ProcessorInput<'_>) {
-        if let Some(SshLogin {
-            notification_state, ..
-        }) = &self.notify_on_end_of_ssh_login
-        {
-            if matches!(
-                notification_state,
-                SshLoginNotificationState::Monitoring
-                    | SshLoginNotificationState::SentInitialNotification
-            ) {
-                self.check_for_end_of_ssh_login(false);
-            }
-        }
-
         let bytes = input.bytes();
 
         // Send a copy of the bytes to subscribers.
         self.event_proxy.send_pty_read_event(bytes);
-
-        // Send a copy of the bytes for the active shared session, if applicable.
-        // When processing a synchronized output frame, `on_finish_byte_processing` is called
-        // both when the frame is flushed and when we initially process the raw bytes (the ordering of the two
-        // depends on whether we receive the start and end markers in the same batch of bytes). We only want to send
-        // the raw bytes to viewers, not the flushed frame - they'll handle the synchronized output framing themselves.
-        if !input.is_synchronized_output_frame() && self.shared_session_status().is_sharer() {
-            if let Some(tx) = &self.ordered_terminal_events_for_shared_session_tx {
-                if let Err(e) = tx.try_send(OrderedTerminalEventType::PtyBytesRead {
-                    bytes: bytes.to_owned(),
-                }) {
-                    log::warn!("Failed to send OrderedTerminalEventType::PtyBytesRead: {e}");
-                }
-            }
-        }
 
         delegate!(self.on_finish_byte_processing(input))
     }

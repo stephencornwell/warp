@@ -1358,7 +1358,7 @@ pub fn init(app: &mut AppContext) {
     .with_group(bindings::BindingGroup::Settings.as_str())
     .with_context_predicate(
         id!("Input")
-            & id!(SharedSessionStatus::ActiveSharer.as_keymap_context())
+            
             & !id!("LongRunningCommand")
             & !id!(flags::ACTIVE_AGENT_VIEW)
             & !id!(flags::ACTIVE_INLINE_AGENT_VIEW),
@@ -1433,7 +1433,7 @@ pub fn init(app: &mut AppContext) {
         )
         .with_context_predicate(
             id!("Input")
-                & !id!(SharedSessionStatus::reader().as_keymap_context())
+                
                 & id!(flags::IS_ANY_AI_ENABLED)
                 & !id!("AIInput"),
         )
@@ -3270,99 +3270,14 @@ impl Input {
             .as_ref()
             .map(|completion_context| completion_context.session.clone());
 
-        let reverse_chronological_potential_autosuggestions =
-            NextCommandModel::get_reverse_chronological_potential_autosuggestions(
-                &buffer_text,
-                &completer_data,
-                ctx,
-            );
-
         let session_env_vars = self.sessions.read(ctx, |sessions, _| {
             sessions.get_env_vars_for_session(session_id)
         });
-        // Get current ignored shell commands to filter during generation
         let ignored_suggestions = IgnoredSuggestionsModel::as_ref(ctx)
             .get_ignored_suggestions_for_type(SuggestionType::ShellCommand);
-        #[cfg(feature = "local_fs")]
-        let conn = self.conn.clone();
-        let abort_handle = ctx
-            .spawn_abortable(
-                async move {
-                    #[cfg(feature = "local_fs")]
-                    // First, use rich history to find commands with a matching prefix that were run
-                    // in a similar context, taking into account the most recent block run.
-                    if let Some(conn) = conn {
-                        if let Some(last_user_block_completed) =
-                            &completer_data.last_user_block_completed
-                        {
-                            let similar_history_contexts = {
-                                let mut conn = conn.lock();
-                                NextCommandModel::get_similar_history_context(
-                                    &mut conn,
-                                    last_user_block_completed,
-                                    0,
-                                )
-                            };
-                            if !similar_history_contexts.is_empty() {
-                                let mut history_next_command_counts =
-                                    counter::Counter::<String>::new();
-                                // Find the most likely next command after a similar context, out of those that have a matching prefix and aren't ignored.
-                                for history_context in &similar_history_contexts {
-                                    if history_context
-                                        .next_command
-                                        .command
-                                        .starts_with(&buffer_text)
-                                        && !ignored_suggestions
-                                            .contains(&history_context.next_command.command)
-                                    {
-                                        history_next_command_counts
-                                            [&history_context.next_command.command] += 1;
-                                    }
-                                }
-
-                                for (most_likely_next_command, _) in
-                                    history_next_command_counts.k_most_common_ordered(5)
-                                {
-                                    if is_command_valid(
-                                        &most_likely_next_command,
-                                        completion_context.as_ref(),
-                                        session_env_vars.as_ref(),
-                                    )
-                                    .await
-                                    {
-                                        return AutoSuggestionResult {
-                                            buffer_text,
-                                            autosuggestion_result: Some(
-                                                most_likely_next_command.clone(),
-                                            ),
-                                        };
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    // If we have no suggestion from similar historical context, fallback to the most recent
-                    // command with a matching prefix run in the same pwd (if exists, otherwise just most recent command anywhere with matching prefix).
-                    for reverse_chronological_command in
-                        reverse_chronological_potential_autosuggestions.unwrap_or_default()
-                    {
-                        if !ignored_suggestions.contains(&reverse_chronological_command.command)
-                            && is_command_valid(
-                                &reverse_chronological_command.command,
-                                completion_context.as_ref(),
-                                session_env_vars.as_ref(),
-                            )
-                            .await
-                        {
-                            return AutoSuggestionResult {
-                                buffer_text,
-                                autosuggestion_result: Some(reverse_chronological_command.command),
-                            };
-                        }
-                    }
-
-                    // If we have no command anywhere in history with a matching prefix, fallback to the first completer result.
+        let abort_handle = ctx.spawn_abortable(
+            async move {
+                // Fall back to the first completer result.
                     let Some(completion_context) = completion_context else {
                         return AutoSuggestionResult {
                             buffer_text,
@@ -3400,19 +3315,18 @@ impl Input {
                             .find(|suggestion| !ignored_suggestions.contains(suggestion))
                     });
 
-                    AutoSuggestionResult {
-                        buffer_text,
-                        autosuggestion_result: autosuggestion,
-                    }
-                },
-                Self::on_autosuggestion_result,
-                move |_, _| {
-                    if let Some(session) = completion_session {
-                        session.cancel_active_commands();
-                    }
-                },
-            )
-            .abort_handle();
+                AutoSuggestionResult {
+                    buffer_text,
+                    autosuggestion_result: autosuggestion,
+                }
+            },
+            Self::on_autosuggestion_result,
+            move |_, _| {
+                if let Some(session) = completion_session {
+                    session.cancel_active_commands();
+                }
+            },
+        ).abort_handle();
 
         self.set_autosuggestion_future(abort_handle);
     }

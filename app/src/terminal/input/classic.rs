@@ -1,5 +1,4 @@
 use crate::{
-    ai::blocklist::InputType,
     appearance::Appearance,
     context_chips::spacing,
     features::FeatureFlag,
@@ -10,7 +9,7 @@ use crate::{
         input::{
             common::{
                 add_command_xray_overlay, add_input_suggestions_overlays, add_vim_status_to_stack,
-                add_voltron_overlay, add_workflow_info_overlay,
+                add_voltron_overlay,
                 should_show_terminal_input_message_bar,
                 wrap_input_with_terminal_padding_and_focus_handler,
             },
@@ -18,7 +17,6 @@ use crate::{
         },
         settings::{SpacingMode, TerminalSettings},
         view::TerminalAction,
-        warpify::render::{render_subshell_flag, render_subshell_flag_pole},
     },
 };
 use pathfinder_geometry::vector::vec2f;
@@ -121,21 +119,6 @@ impl Input {
 
         column.add_children([prompt_top_padding_row.finish(), prompt_row.finish()]);
 
-        let ai_input_model = self.ai_input_model.as_ref(app);
-
-        if FeatureFlag::ImageAsContext.is_enabled()
-            && matches!(ai_input_model.input_type(), InputType::AI)
-            && !FeatureFlag::AgentView.is_enabled()
-        {
-            if let Some(images) = self.render_attachment_chips(appearance) {
-                column.add_child(
-                    Container::new(images)
-                        .with_padding_bottom(spacing::CLASSIC_PROMPT_ATTACH_IMAGES_BOTTOM_PADDING)
-                        .finish(),
-                );
-            }
-        }
-
         column.add_child(self.render_input_box(show_vim_status, appearance, app));
 
         if should_show_terminal_input_message_bar(&model, app) {
@@ -214,18 +197,6 @@ impl Input {
             column.finish(),
             false, // legacy uses full padding
         ));
-
-        if let Some(selected_workflow_state) = self.workflows_state.selected_workflow_state.as_ref()
-        {
-            if selected_workflow_state.should_show_more_info_view {
-                add_workflow_info_overlay(
-                    &mut stack,
-                    selected_workflow_state,
-                    self.size_info(app).pane_height_px().as_f32(),
-                    menu_positioning,
-                );
-            }
-        }
 
         if self.is_voltron_open && self.is_pane_focused(app) {
             add_voltron_overlay(&mut stack, &self.voltron_view, menu_positioning);

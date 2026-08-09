@@ -4672,11 +4672,6 @@ impl Workspace {
 
         match toml::from_str::<crate::tab_configs::TabConfig>(&toml_content) {
             Ok(tab_config) => {
-                let naming_mode = if worktree_branch_name.is_some() {
-                    WorktreeBranchNamingMode::Manual
-                } else {
-                    WorktreeBranchNamingMode::Auto
-                };
                 if let Some(name) = worktree_branch_name {
                     // First open with manual name — bypass the params modal.
                     let mut param_values = HashMap::new();
@@ -10047,62 +10042,6 @@ ToggleRecordingMode => self.toggle_recording_mode(ctx),
                 filter,
                 init_content,
             }) => self.show_command_search(*filter, init_content, ctx),
-ImportToTeamDrive => {
-                let team_uid = self.team_uid(ctx);
-                if let Some(team_uid) = team_uid {
-                    self.open_import_modal(Owner::Team { team_uid }, &None, ctx);
-                }
-            }
-CreateTeamNotebook => {
-                let team_uid = self.team_uid(ctx);
-                if let Some(team_uid) = team_uid {
-                    self.update_warp_drive_view(ctx, |drive_panel, ctx| {
-                        drive_panel.open_cloud_object_dialog(
-                            DriveObjectType::Notebook {
-                                is_ai_document: false,
-                            },
-                            Space::Team { team_uid },
-                            None,
-                            ctx,
-                        );
-                    });
-                    self.current_workspace_state.is_warp_drive_open = true;
-                    ctx.notify();
-                }
-            }
-CreateTeamWorkflow => {
-                let team_uid = self.team_uid(ctx);
-                if let Some(team_uid) = team_uid {
-                    let source = WorkflowOpenSource::New {
-                        title: None,
-                        content: None,
-                        owner: Owner::Team { team_uid },
-                        initial_folder_id: None,
-                        is_for_agent_mode: false,
-                    };
-                    self.open_workflow_in_pane(
-                        &source,
-                        &OpenWarpDriveObjectSettings::default(),
-                        WorkflowViewMode::Create,
-                        ctx,
-                    );
-                }
-            }
-CreateTeamFolder => {
-                let team_uid = self.team_uid(ctx);
-                if let Some(team_uid) = team_uid {
-                    self.update_warp_drive_view(ctx, |drive_panel, ctx| {
-                        drive_panel.open_cloud_object_dialog(
-                            DriveObjectType::Folder,
-                            Space::Team { team_uid },
-                            None,
-                            ctx,
-                        );
-                    });
-                    self.current_workspace_state.is_warp_drive_open = true;
-                    ctx.notify();
-                }
-            }
             ToggleMouseReporting => self.toggle_mouse_reporting(ctx),
             ToggleScrollReporting => self.toggle_scroll_reporting(ctx),
             ToggleFocusReporting => self.toggle_focus_reporting(ctx),
@@ -10332,32 +10271,6 @@ RunCommand(code) => {
             DismissWaylandCrashRecoveryBannerAndOpenLink => {
                 self.dismiss_workspace_banner(ctx, &WorkspaceBanner::WaylandCrashRecovery);
                 ctx.open_url("https://docs.warp.dev/terminal/more-features/linux#native-wayland");
-            }
-=> {
-                self.active_tab_pane_group().update(ctx, |pane_group, ctx| {
-                    pane_group.add_terminal_pane_in_agent_mode(None, None, ctx);
-                    if let Some(terminal_view) = pane_group.focused_session_view(ctx) {
-                        terminal_view.update(ctx, |terminal_view, terminal_view_ctx| {
-                            terminal_view.ai_controller().update(
-                                terminal_view_ctx,
-                                |controller, ctx| {
-                                    controller.send_user_query_in_new_conversation(
-                                        query.to_owned(),
-                                        None,
-                                        EntrypointType::UserInitiated,
-                                        None,
-                                        ctx,
-                                    );
-                                },
-                            );
-                        });
-                    }
-                });
-            }
-HideAIDocumentPanes => {
-                self.active_tab_pane_group().update(ctx, |pane_group, ctx| {
-                    pane_group.close_all_ai_document_panes(ctx);
-                });
             }
             TabHoverWidthStart { width } => {
                 // Store the fixed width value for the tab to maintain consistent size during hover

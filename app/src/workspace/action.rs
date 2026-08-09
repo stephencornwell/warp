@@ -49,7 +49,7 @@ pub enum AddTabWithShellSource {
     ShellSelectorMenu,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 pub enum PaletteSource {
     ContextChip,
     CtrlTab { query: Option<String> },
@@ -636,7 +636,6 @@ impl WorkspaceAction {
             | ToggleSyncTerminalInputsInTab
             | DisableTerminalInputSync
             | HandleConflictingWorkflow(_)
-            | OpenPromptEditor { .. }
             | OpenAgentToolbarEditor
             | OpenCLIAgentToolbarEditor
             | OpenHeaderToolbarEditor

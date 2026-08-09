@@ -745,7 +745,6 @@ pub enum Event {
     },
     Enter,
     ExecuteCommand(Box<ExecuteCommandEvent>),
-    ExecuteAIQuery,
     EmacsBindingUsed,
     /// The input editor was locally edited and
     /// peers should be notified, if applicable.
@@ -757,89 +756,29 @@ pub enum Event {
         /// The CRDT-compliant operations.
         operations: Rc<Vec<CrdtOperation>>,
     },
-    /// A viewer in a shared session is requesting to send an agent prompt.
-    SendAgentPrompt {
-        server_conversation_token: Option<ServerConversationToken>,
-        prompt: String,
-        attachments: Vec<AgentAttachment>,
-    },
-    /// A viewer in a shared session is requesting to cancel the active agent conversation.
-    CancelSharedSessionConversation {
-        server_conversation_token: ServerConversationToken,
-    },
     InputFocusedFromMiddleClick,
     EditorFocused,
     UnhandledCmdEnter,
     CtrlEnter,
-    SignupAnonymousUser {
-        entrypoint: AnonymousUserSignupEntrypoint,
-    },
     OpenSettings(SettingsSection),
     #[cfg(feature = "local_fs")]
     OpenCodeInWarp {
         source: CodeSource,
         layout: external_editor::settings::EditorLayout,
     },
-    OpenCodeReviewPane,
-    /// Request to attach a diff set as context to the AI conversation
-    AttachDiffSetContext {
-        diff_mode: DiffMode,
-    },
-    OpenConversationHistory,
     OpenViewMCPPane,
     OpenAddMCPPane,
     OpenProjectRulesPane,
     OpenEnvironmentManagementPane,
-    OpenFilesPalette {
-        source: PaletteSource,
-    },
-    TryHandlePassiveCodeDiff(CodeDiffAction),
-    ToggleAIDocumentPane {
-        document_id: AIDocumentId,
-        document_version: AIDocumentVersion,
-    },
-    SubmitCLIAgentInput {
-        text: String,
-    },
-    OpenAIDocumentPane {
-        document_id: AIDocumentId,
-        document_version: AIDocumentVersion,
-    },
-    OpenAutoReloadModal {
-        purchased_credits: i32,
-    },
     ShowToast {
         message: String,
         flavor: ToastFlavor,
     },
 
-    EnterAgentView {
-        initial_prompt: Option<String>,
-        conversation_id: Option<AIConversationId>,
-        origin: AgentViewEntryOrigin,
-    },
-    EnterCloudAgentView {
-        initial_prompt: Option<String>,
-    },
-    CreateDockerSandbox,
-    /// Exit cloud mode (ambient agent) and start a new *local* agent conversation in the root terminal.
-    ///
-    /// If `initial_prompt` is `Some`, it should prefill the local agent prompt but not auto-send.
-    ExitCloudModeAndStartLocalAgent {
-        initial_prompt: Option<String>,
-    },
-    ScrollToExchange {
-        exchange_id: AIAgentExchangeId,
-    },
     /// Trigger environment setup flow with optional repository arguments
     TriggerEnvironmentSetup {
         repos: Vec<String>,
     },
-    RegisterPluginListener(CLIAgent),
-    #[cfg(not(target_family = "wasm"))]
-    OpenPluginInstructionsPane(CLIAgent, PluginModalKind),
-    OpenShareSessionModal,
-    StartRemoteControl,
 }
 
 pub enum InputState {

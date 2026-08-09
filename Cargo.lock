@@ -3539,17 +3539,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "eventsource-stream"
-version = "0.2.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "74fef4569247a5f429d9156b9d0a2599914385dd189c539334c625d8099d90ab"
-dependencies = [
- "futures-core",
- "nom 7.1.3",
- "pin-project-lite",
-]
-
-[[package]]
 name = "exr"
 version = "1.74.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4076,10 +4065,6 @@ name = "futures-timer"
 version = "3.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e64b03909df88034c26dc1547e8970b91f98bdb65165d6a4e9110d94263dbb2c"
-dependencies = [
- "gloo-timers 0.2.6",
- "send_wrapper 0.4.0",
-]
 
 [[package]]
 name = "futures-util"
@@ -4298,7 +4283,7 @@ checksum = "d15282ece24eaf4bd338d73ef580c6714c8615155c4190c781290ee3fa0fd372"
 dependencies = [
  "gloo-events",
  "gloo-file",
- "gloo-timers 0.3.0",
+ "gloo-timers",
  "gloo-utils",
  "gloo-worker",
 ]
@@ -4339,18 +4324,6 @@ dependencies = [
  "thiserror 1.0.63",
  "wasm-bindgen",
  "web-sys",
-]
-
-[[package]]
-name = "gloo-timers"
-version = "0.2.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9b995a66bb87bebce9a0f4a95aed01daca4872c050bfcb21653361c03bc35e5c"
-dependencies = [
- "futures-channel",
- "futures-core",
- "js-sys",
- "wasm-bindgen",
 ]
 
 [[package]]
@@ -4838,12 +4811,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "http-range-header"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3ce4ef31cda248bbdb6e6820603b82dfcd9e833db65a43e997a0ccec777d11fe"
-
-[[package]]
 name = "http_client"
 version = "0.0.0"
 dependencies = [
@@ -4860,7 +4827,6 @@ dependencies = [
  "prevent_sleep",
  "prost 0.14.3",
  "reqwest",
- "reqwest-eventsource",
  "serde",
  "serde_json",
  "serde_urlencoded",
@@ -5337,7 +5303,6 @@ dependencies = [
  "warp-workflows",
  "warp_cli",
  "warp_core",
- "warp_multi_agent_api",
  "warpui",
  "warpui_extras",
  "whoami",
@@ -7758,7 +7723,6 @@ dependencies = [
  "diesel_migrations",
  "serde",
  "serde_json",
- "warp_multi_agent_api",
 ]
 
 [[package]]
@@ -8263,29 +8227,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b89455ef41ed200cafc47c76c552ee7792370ac420497e551f16123a9135f76e"
 dependencies = [
  "prost 0.14.3",
- "prost-reflect-derive",
  "prost-types",
-]
-
-[[package]]
-name = "prost-reflect-build"
-version = "0.16.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8214ae2c30bbac390db0134d08300e770ef89b6d4e5abf855e8d300eded87e28"
-dependencies = [
- "prost-build",
- "prost-reflect",
-]
-
-[[package]]
-name = "prost-reflect-derive"
-version = "0.16.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7b6d90e29fa6c0d13c2c19ba5e4b3fb0efbf5975d27bcf4e260b7b15455bcabe"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.117",
 ]
 
 [[package]]
@@ -8916,22 +8858,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "reqwest-eventsource"
-version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "632c55746dbb44275691640e7b40c907c16a2dc1a5842aa98aaec90da6ec6bde"
-dependencies = [
- "eventsource-stream",
- "futures-core",
- "futures-timer",
- "mime",
- "nom 7.1.3",
- "pin-project-lite",
- "reqwest",
- "thiserror 1.0.63",
-]
-
-[[package]]
 name = "resvg"
 version = "0.47.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -9510,12 +9436,6 @@ checksum = "836fa6a3e1e547f9a2c4040802ec865b5d85f4014efe00555d7090a3dcaa1090"
 
 [[package]]
 name = "send_wrapper"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f638d531eccd6e23b980caf34876660d38e265409d8e99b397ab71eb3612fad0"
-
-[[package]]
-name = "send_wrapper"
 version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cd0b0ec5f1c1ca621c432a25813d8d60c88abe6d3e08a3eb9cf37d97a0fe3d73"
@@ -9873,20 +9793,6 @@ dependencies = [
  "quote",
  "rustversion",
  "syn 1.0.109",
-]
-
-[[package]]
-name = "serve-wasm"
-version = "0.1.0"
-dependencies = [
- "axum",
- "axum-extra",
- "clap",
- "tokio",
- "tower",
- "tower-http",
- "tracing",
- "tracing-subscriber",
 ]
 
 [[package]]
@@ -11252,12 +11158,7 @@ dependencies = [
  "http 1.1.0",
  "http-body",
  "http-body-util",
- "http-range-header",
- "httpdate",
  "iri-string",
- "mime",
- "mime_guess",
- "percent-encoding",
  "pin-project-lite",
  "tokio",
  "tokio-util",
@@ -12010,7 +11911,6 @@ dependencies = [
  "freedesktop-desktop-entry",
  "futures",
  "futures-lite 1.13.0",
- "futures-timer",
  "futures-util",
  "fuzzy_match",
  "gethostname",
@@ -12477,18 +12377,6 @@ dependencies = [
  "wasm-bindgen",
  "web-sys",
  "zip",
-]
-
-[[package]]
-name = "warp_multi_agent_api"
-version = "0.0.0"
-source = "git+https://github.com/warpdotdev/warp-proto-apis.git?rev=aa2f9cde164a5b48ac01087d417d1188771f9b6d#aa2f9cde164a5b48ac01087d417d1188771f9b6d"
-dependencies = [
- "prost 0.14.3",
- "prost-reflect",
- "prost-reflect-build",
- "prost-types",
- "regex",
 ]
 
 [[package]]
@@ -13932,7 +13820,7 @@ dependencies = [
  "log",
  "pharos",
  "rustc_version",
- "send_wrapper 0.6.0",
+ "send_wrapper",
  "thiserror 1.0.63",
  "wasm-bindgen",
  "wasm-bindgen-futures",

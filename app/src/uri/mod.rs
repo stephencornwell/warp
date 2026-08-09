@@ -5,22 +5,17 @@ pub mod web_intent_parser;
 #[cfg(target_family = "wasm")]
 pub mod browser_url_handler;
 
-use crate::ai::active_agent_views_model::{ActiveAgentViewsModel, ConversationOrTaskId};
-use crate::ai::agent::api::ServerConversationToken;
-use crate::drive::OpenWarpDriveObjectSettings;
 use crate::launch_configs::launch_config::LaunchConfig;
 use crate::linear::{LinearAction, LinearIssueWork};
 use crate::root_view::{open_new_window_get_handles, OpenLaunchConfigArg};
-use crate::server::ids::ServerId;
 use crate::util::openable_file_type::{
     is_file_openable_in_warp, is_markdown_file, is_runnable_shell_script, starts_with_shebang,
 };
 use crate::workspace::{Workspace, WorkspaceAction, WorkspaceRegistry};
-use crate::{cloud_object::ObjectType, workspace::ToastStack};
-use crate::{drive::OpenWarpDriveObjectArgs, view_components::DismissibleToast};
+use crate::workspace::ToastStack;
+use crate::view_components::DismissibleToast;
 use crate::{features::FeatureFlag, workspace::active_terminal_in_window};
 
-use crate::ai::ambient_agents::github_auth_notifier::GitHubAuthNotifier;
 use crate::settings_view::{OpenTeamsSettingsModalArgs, SettingsSection};
 use crate::user_config::load_launch_configs;
 use crate::{quake_mode_window_id, quake_mode_window_is_open, safe_info, ChannelState, OpenPath};
@@ -103,6 +98,7 @@ impl UriHost {
     fn handle(&self, primary_window_id: Option<WindowId>, url: &Url, ctx: &mut AppContext) {
         // Handle host
         match self {
+            #[cfg(any())]
             UriHost::Auth => {
                 ctx.window_ids()
                     .collect_vec()
@@ -124,6 +120,7 @@ impl UriHost {
                         );
                     });
             }
+            #[cfg(any())]
             UriHost::Team => {
                 match url.path_segments().into_iter().flatten().last() {
                     // If the last segment of the URL is "settings", open the team settings page.
@@ -179,6 +176,7 @@ impl UriHost {
                     log::warn!("couldn't turn launch link '{}' into path", url.path());
                 }
             }
+            #[cfg(any())]
             UriHost::SharedSession => {
                 // We expect the uri to have the ID of the session to join as the last segment.
                 // e.g. warp://shared_session/{id}
@@ -211,6 +209,7 @@ impl UriHost {
                     log::warn!("Failed to join shared session with uri={url}");
                 }
             }
+            #[cfg(any())]
             UriHost::Conversation => {
                 // We expect the uri to have the conversation ID as the last segment.
                 // e.g. warp://conversation/{conversation_id}
@@ -245,6 +244,7 @@ impl UriHost {
                     log::warn!("Failed to open conversation with uri={url}");
                 }
             }
+            #[cfg(any())]
             UriHost::Drive => {
                 // We expect the uri to have the ID of the object we are trying to open and the object_type.
                 // e.g. warp://drive/{object_type}?id={UID}

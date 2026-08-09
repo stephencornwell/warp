@@ -8125,29 +8125,6 @@ impl Workspace {
             view.set_active_query_filter(QueryFilter::Files, ctx);
         });
     }
-    fn set_command_palette_binding_source(
-        &mut self,
-        source: PaletteSource,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        let window_id = ctx.window_id();
-        // Safety: Unwrap is okay here because we just retrieved the window_id from the context
-        // so we know it exists
-        let view_id = ctx
-            .focused_view_id(window_id)
-            .expect("Just retrieved the window_id from the context.");
-
-        let active_palette_handle = if matches!(source, PaletteSource::CtrlTab { .. }) {
-            &self.ctrl_tab_palette
-        } else {
-            &self.palette
-        };
-        active_palette_handle.update(ctx, |view, ctx| {
-            view.set_binding_source(window_id, view_id, ctx);
-            ctx.notify();
-        });
-    }
-
     fn open_navigation_palette(&mut self, ctx: &mut ViewContext<Self>) {
         self.palette.update(ctx, |view, ctx| {
             view.reset(ctx);
@@ -8155,62 +8132,6 @@ impl Workspace {
             view.set_initial_selection_offset(0, ctx);
         });
         ctx.notify();
-    }
-
-    fn open_ctrl_tab_palette(
-        &mut self,
-        shift_pressed_initially: bool,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        let offset = if shift_pressed_initially { -1 } else { 1 };
-        self.ctrl_tab_palette.update(ctx, |view, ctx| {
-            view.reset(ctx);
-            view.set_active_query_filter(QueryFilter::Sessions, ctx);
-            view.set_initial_selection_offset(offset, ctx);
-        });
-        ctx.notify();
-    }
-
-    fn set_navigation_palette_session_source(
-        &mut self,
-        source: PaletteSource,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        let active_pane_id = self
-            .active_tab_pane_group()
-            .as_ref(ctx)
-            .focused_pane_id(ctx);
-        let active_tab_id = self
-            .tabs
-            .get(self.active_tab_index)
-            .map(|tab| tab.pane_group.id());
-        let active_window_id = ctx.window_id();
-
-        let active_palette_handle = if matches!(source, PaletteSource::CtrlTab { .. }) {
-            &self.ctrl_tab_palette
-        } else {
-            &self.palette
-        };
-        active_palette_handle.update(ctx, |view, ctx| {
-            // Set the session source when the active_tab_id is Some.
-            if let Some(active_tab_id) = active_tab_id {
-                view.set_session_source(
-                    SessionSource::Set {
-                        active_pane_id,
-                        active_tab_id,
-                        active_window_id,
-                    },
-                    ctx,
-                );
-                ctx.notify();
-            }
-            ctx.notify();
-        });
-    }
-
-    fn set_palette_sources(&mut self, source: PaletteSource, ctx: &mut ViewContext<Self>) {
-        self.set_command_palette_binding_source(source, ctx);
-        self.set_navigation_palette_session_source(source, ctx);
     }
 
     fn open_launch_config_palette(&mut self, ctx: &mut ViewContext<Self>) {

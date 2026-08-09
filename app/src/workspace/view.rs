@@ -2081,6 +2081,7 @@ impl Workspace {
                 }
                 self.pending_pane_group_transfer = true;
             }
+            _ => {}
         };
 
         debug_assert!(
@@ -4814,7 +4815,7 @@ impl Workspace {
                     self.open_palette(
                         PaletteMode::Navigation,
                         PaletteSource::CtrlTab {
-                            query: String::new(),
+                            query: None,
                         },
                         ctx,
                     );
@@ -5446,13 +5447,6 @@ impl Workspace {
             None,
             ctx,
         );
-        self.active_tab_pane_group().update(ctx, |tab, ctx| {
-            if let Some(active_terminal) = tab.active_session_view(ctx) {
-                active_terminal.update(ctx, |terminal, _| {
-                    terminal.maybe_set_pending_repo_init_path(path_buf);
-                });
-            }
-        });
     }
 
     /// Navigate to an existing AI conversation, focusing on its terminal view, if it's open anywhere.

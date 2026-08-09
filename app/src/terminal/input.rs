@@ -1167,7 +1167,6 @@ pub struct Input {
     terminal_view_id: EntityId,
     view_id: EntityId,
     input_render_state_model_handle: ModelHandle<InputRenderStateModel>,
-    voltron_view: ViewHandle<Voltron>,
     is_voltron_open: bool,
     command_x_ray_description: Option<Arc<Description>>,
     last_parsed_tokens: Option<decorations::ParsedTokensSnapshot>,
@@ -1234,7 +1233,6 @@ pub struct Input {
     terminal_input_message_bar: ViewHandle<TerminalInputMessageBar>,
 
     /// Inline repos switcher menu.
-    inline_repos_menu_view: ViewHandle<InlineReposMenuView>,
 
     /// Cached flag indicating whether the editor buffer is empty, used to track changes between
     /// empty and non-empty states.
@@ -1536,17 +1534,6 @@ pub enum CompletionsTrigger {
     AsYouType,
 }
 
-/// Represents whether the input editor should render the subshell flag.
-#[derive(Clone, Debug)]
-enum SubshellRenderState {
-    /// Contains the subshell-spawning command for the flag. Render the flag
-    /// and extend the flag into the input editor.
-    Flag,
-    /// The input is inside a subshell, extend the flag into the input editor,
-    /// but do not render the actual flag.
-    Flagpole,
-}
-
 /// Represents whether a command is currently being executed.
 #[derive(Clone, Copy, Eq, PartialEq)]
 enum Executing {
@@ -1750,7 +1737,6 @@ impl Input {
             terminal_view_id,
             view_id,
             input_render_state_model_handle,
-            voltron_view,
             is_voltron_open: false,
             command_x_ray_description: None,
             last_parsed_tokens: None,
@@ -1772,7 +1758,6 @@ impl Input {
             #[cfg(feature = "local_fs")]
             conn: None,
             terminal_input_message_bar,
-            inline_repos_menu_view,
             is_editor_empty_on_last_edit: is_editor_empty,
             weak_view_handle: ctx.handle(),
             input_contents_before_prompt_chip_command: None,
@@ -5123,7 +5108,7 @@ impl View for Input {
     fn on_focus(&mut self, focus_ctx: &FocusContext, ctx: &mut ViewContext<Self>) {
         if focus_ctx.is_self_focused() {
             if self.is_voltron_open {
-                ctx.focus(&self.voltron_view);
+                ctx.focus(&self.editor);
             } else if self.prompt_render_helper.has_open_chip_menu(ctx) {
                 // Focus the PromptDisplay, which will in turn focus any open chip menu
                 ctx.focus(self.prompt_render_helper.prompt_view());

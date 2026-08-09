@@ -869,6 +869,7 @@ impl PaneGroup {
                     ctx.emit(Event::ClearHoveredTabIndex);
                     self.move_pane(pane_id, *target_id, *direction, ctx);
                 }
+                PaneViewEvent::DroppedOnTabBar { .. } => {}
                 PaneViewEvent::DraggedOntoTabBar {
                     origin,
                     tab_hover_index,
@@ -1003,7 +1004,7 @@ impl PaneGroup {
                 };
 
                 let (view, terminal_manager) = match pane_mode {
-                    PaneMode::Terminal | PaneMode::Agent => PaneGroup::create_session(
+                    PaneMode::Terminal | PaneMode::Agent | PaneMode::Cloud => PaneGroup::create_session(
                         // Use cwd from the template iff such path exists, otherwise None
                         // TODO(CORE-3187): On Windows, support WSL directory restoration.
                         Some(cwd).filter(|p| p.exists()),
@@ -1964,7 +1965,7 @@ impl PaneGroup {
             .or(self.active_session_id(ctx));
         let startup_directory = self.startup_path_for_new_session(base_session_id, ctx);
         let (pane_data, _view) =
-            self.create_terminal_pane_data(startup_directory, env_vars, None, None, ctx);
+            self.create_terminal_pane_data(startup_directory, env_vars, None, ctx);
         let new_pane_id = pane_data.terminal_pane_id();
         let _ = self.add_pane_with_options(
             Box::new(pane_data),

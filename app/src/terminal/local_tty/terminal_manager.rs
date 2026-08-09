@@ -607,19 +607,6 @@ impl TerminalManager {
             },
         );
 
-        // Always wire up the model but check the flag when a share is attempted.
-        Self::wire_up_session_sharer_with_view(
-            &view,
-            prompt_type,
-            session_sharer.clone(),
-            model.clone(),
-            window_id,
-            sharer_remote_update_guard,
-            ctx,
-        );
-
-        Self::handle_network_status_events(&view, session_sharer.clone(), ctx);
-
         #[cfg(windows)]
         let event_loop_tx_clone = event_loop_tx.clone();
 

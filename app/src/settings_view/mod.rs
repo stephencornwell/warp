@@ -1345,9 +1345,6 @@ impl SettingsView {
     ) {
         match event {
             MainSettingsPageEvent::CheckForUpdate => ctx.emit(SettingsViewEvent::CheckForUpdate),
-            MainSettingsPageEvent::SignupAnonymousUser => {
-                ctx.emit(SettingsViewEvent::SignupAnonymousUser)
-            }
             _ => (),
         }
     }
@@ -1363,6 +1360,7 @@ impl SettingsView {
                 // These events are not handled in standalone settings - only used
                 // when the view is hosted inside a pane.
             }
+            _ => {}
         }
     }
 
@@ -1376,6 +1374,7 @@ impl SettingsView {
             SettingsPageEvent::Pane(_) => {
                 // Not applicable in standalone settings view.
             }
+            _ => {}
         }
     }
 
@@ -1399,10 +1398,7 @@ impl SettingsView {
     ) {
         match event {
             SettingsPageEvent::FocusModal => ctx.focus(&self.search_editor),
-            SettingsPageEvent::Pane(_) => {
-                // These events are not handled in standalone settings - only used
-                // when the view is hosted inside a pane.
-            }
+            SettingsPageEvent::Pane(_) => {}
         }
     }
 
@@ -1569,13 +1565,7 @@ impl SettingsView {
         email: Option<&String>,
         ctx: &mut ViewContext<Self>,
     ) {
-        if let Some(team_page) = self.settings_page(SettingsSection::Teams) {
-            if let SettingsPageViewHandle::Teams(view) = &team_page.view_handle {
-                view.update(ctx, |view, ctx| {
-                    view.open_team_members(email, ctx);
-                })
-            }
-        }
+        let _ = (email, ctx);
     }
 
     /// Updates the PS1 prompt that is shown on the Appearance page.
@@ -1686,9 +1676,6 @@ impl SettingsView {
         if let Some(current_page) = self.current_settings_page() {
             match &current_page.view_handle {
                 SettingsPageViewHandle::Keybindings(view_handle) => {
-                    view_handle.update(ctx, |view, ctx| view.on_tab_pressed(ctx));
-                }
-                SettingsPageViewHandle::Teams(view_handle) => {
                     view_handle.update(ctx, |view, ctx| view.on_tab_pressed(ctx));
                 }
                 _ => (),
@@ -2045,14 +2032,6 @@ impl View for SettingsView {
             );
         }
 
-        // Render agent-assisted environment modal overlay when open.
-        if let Some(modal_handle) = self
-            .environments_page_handle
-            .as_ref(app)
-            .agent_assisted_environment_modal_handle(app)
-        {
-            stack.add_child(ChildView::new(modal_handle).finish());
-        }
 
         SavePosition::new(stack.finish(), POSITION_ID).finish()
     }
@@ -2111,7 +2090,6 @@ impl TypedActionView for SettingsView {
                     }
                 }
             }
-            SettingsAction::WarpifyPageToggle(_) => {}
             SettingsAction::Tab => self.input_tab(ctx),
             SettingsAction::Split(direction) => {
                 let event = match direction {

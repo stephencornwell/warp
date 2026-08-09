@@ -44,7 +44,6 @@ fn test_terminal_window_snapshot(vertical_tabs_panel_open: bool) -> WindowSnapsh
                     is_read_only: false,
                     input_config: None,
                     active_profile_id: None,
-                    active_conversation_id: None,
                 }),
             }),
             default_directory_color: None,
@@ -59,12 +58,10 @@ fn test_terminal_window_snapshot(vertical_tabs_panel_open: bool) -> WindowSnapsh
         universal_search_width: None,
         warp_ai_width: None,
         voltron_width: None,
-        warp_drive_index_width: None,
         left_panel_open: false,
         vertical_tabs_panel_open,
         left_panel_width: None,
         right_panel_width: None,
-        agent_management_filters: None,
     }
 }
 
@@ -80,7 +77,6 @@ fn test_sqlite_loads_legacy_vertical_tabs_panel_open_and_discards_it() {
             test_terminal_window_snapshot(true),
         ],
         active_window_index: Some(1),
-        block_lists: Default::default(),
         running_mcp_servers: Default::default(),
     };
 

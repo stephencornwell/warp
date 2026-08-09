@@ -332,22 +332,10 @@ impl LeftPanelView {
         pane_group_id: warpui::EntityId,
         ctx: &mut ViewContext<Self>,
     ) -> ViewHandle<GlobalSearchView> {
-        if let Some(view) = self
-            .working_directories_model
-            .as_ref(ctx)
-            .get_global_search_view(pane_group_id)
-        {
-            return view;
-        }
-
         let global_search_view = ctx.add_typed_action_view(GlobalSearchView::new);
 
         ctx.subscribe_to_view(&global_search_view, |me, _, event, ctx| {
             me.handle_global_search_event(event, ctx);
-        });
-
-        self.working_directories_model.update(ctx, |model, _ctx| {
-            model.store_global_search_view(pane_group_id, global_search_view.clone());
         });
 
         global_search_view
@@ -412,33 +400,10 @@ impl LeftPanelView {
             .any(|dir| dir.terminal_id.is_some());
 
         // Update GlobalSearchView root directories based on all working directories
-        let roots: Vec<PathBuf> = active_directories.iter().map(|d| d.path.clone()).collect();
-        let global_search_view =
-            self.get_or_create_global_search_view_for_pane_group(pane_group_id, ctx);
-        global_search_view.update(ctx, |view, view_ctx| {
-            view.set_root_directories(roots, view_ctx);
-        });
+        let _ = pane_group_id;
 
-        let directories: Vec<PathBuf> = active_directories
-            .iter()
-            .map(|dir| dir.path.clone())
-            .collect();
-        let directories = deduplicate_by_directory_name(directories);
-        let active_file_model = pane_group.as_ref(ctx).active_file_model().clone();
-
-        let file_tree_view = self.get_or_create_file_tree_view_for_pane_group(pane_group_id, ctx);
         let left_panel_open = pane_group.as_ref(ctx).left_panel_open;
-        let is_visible = left_panel_open && self.is_file_tree_active();
-        file_tree_view.update(ctx, |view, ctx| {
-            view.set_root_directories(directories, ctx);
-            view.set_has_terminal_session(has_terminal_session, ctx);
-            view.set_active_file_model(active_file_model, ctx);
-            view.set_is_active(is_visible, ctx);
-
-            if is_visible {
-                view.auto_expand_to_most_recent_directory(ctx);
-            }
-        });
+        let _ = (active_directories, ctx);
 
         self.on_left_panel_visibility_changed(left_panel_open, ctx);
 
@@ -450,14 +415,7 @@ impl LeftPanelView {
         enablement: CodingPanelEnablementState,
         ctx: &mut ViewContext<Self>,
     ) {
-        #[cfg(feature = "local_fs")]
-        {
-            if let Some(file_tree_view) = self.active_file_tree_view(ctx) {
-                file_tree_view.update(ctx, |view, ctx| {
-                    view.set_enablement_state(enablement, ctx);
-                });
-            }
-        }
+        let _ = enablement;
 
         if let Some(global_search_view) = self.active_global_search_view(ctx) {
             global_search_view.update(ctx, |view, view_ctx| {
@@ -468,14 +426,7 @@ impl LeftPanelView {
 
     pub fn focus_active_view_on_entry(&mut self, ctx: &mut ViewContext<Self>) {
         match self.active_view.get() {
-            ToolPanelView::ProjectExplorer => {
-                if let Some(file_tree_view) = self.active_file_tree_view(ctx) {
-                    file_tree_view.update(ctx, |view, ctx| {
-                        view.on_left_panel_focused(ctx);
-                    });
-                    ctx.focus(&file_tree_view);
-                }
-            }
+            ToolPanelView::ProjectExplorer => {}
             ToolPanelView::GlobalSearch { entry_focus } => {
                 if let Some(global_search_view) = self.active_global_search_view(ctx) {
                     global_search_view.update(ctx, |view, ctx| {
@@ -699,7 +650,7 @@ impl LeftPanelView {
 
     pub fn on_left_panel_visibility_changed(&self, _is_now_open: bool, ctx: &mut ViewContext<Self>) {
 
-        self.update_active_file_tree_subscription_state(ctx);
+        let _ = ctx;
     }
 
     fn deactivate_file_tree_view_for_pane_group(
@@ -707,38 +658,11 @@ impl LeftPanelView {
         pane_group_id: warpui::EntityId,
         ctx: &mut ViewContext<Self>,
     ) {
-        if let Some(view) = self
-            .working_directories_model
-            .as_ref(ctx)
-            .get_file_tree_view(pane_group_id)
-        {
-            view.update(ctx, |view, ctx| {
-                view.set_is_active(false, ctx);
-            });
-        }
+        let _ = (pane_group_id, ctx);
     }
 
     fn update_active_file_tree_subscription_state(&self, ctx: &mut ViewContext<Self>) {
-        let Some(active_pane_group) = self
-            .active_pane_group
-            .as_ref()
-            .and_then(|pane_group| pane_group.upgrade(ctx))
-        else {
-            return;
-        };
-
-        let is_visible = active_pane_group.as_ref(ctx).left_panel_open
-            && self.active_view.get() == ToolPanelView::ProjectExplorer;
-
-        if let Some(file_tree_view) = self
-            .working_directories_model
-            .as_ref(ctx)
-            .get_file_tree_view(active_pane_group.id())
-        {
-            file_tree_view.update(ctx, |view, ctx| {
-                view.set_is_active(is_visible, ctx);
-            });
-        }
+        let _ = ctx;
     }
 
 }
@@ -760,11 +684,7 @@ impl View for LeftPanelView {
         // Focus the active tool panel view on-left-panel-focus.
         if focus_ctx.is_self_focused() {
             match self.active_view.get() {
-                ToolPanelView::ProjectExplorer => {
-                    if let Some(view) = self.active_file_tree_view(ctx) {
-                        ctx.focus(&view);
-                    }
-                }
+                ToolPanelView::ProjectExplorer => {}
                 ToolPanelView::GlobalSearch { .. } => {
                     if let Some(view) = self.active_global_search_view(ctx) {
                         ctx.focus(&view);

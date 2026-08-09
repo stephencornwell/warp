@@ -9576,16 +9576,8 @@ impl TerminalView {
             + 2. * self.size_info.padding_x_px().as_f32();
         let pane_width = self.content_element_width_px(app);
 
-        // If this is a shared session viewer and the height required to display the entire
-        // terminal is larger than the height of the pane, we should make it vertically scrollable.
-        let should_be_vertical_scrollable = model.shared_session_status().is_active_viewer()
-            && required_terminal_height > pane_height;
-
-        // If this is a shared session viewer and the width required to display the entire
-        // terminal is larger than the width of the pane, we should make it horizontally scrollable.
-        let should_be_horizontal_scrollable = FeatureFlag::ViewingSharedSessions.is_enabled()
-            && model.shared_session_status().is_active_viewer()
-            && required_terminal_width > pane_width;
+        let should_be_vertical_scrollable = false;
+        let should_be_horizontal_scrollable = false;
 
         let theme = appearance.theme();
         let element = maybe_wrap_terminal_element_in_scrollable(
@@ -9756,7 +9748,7 @@ impl TerminalView {
             None,
             self.inline_banners_state.shared_session_banner_state,
             self.input_size_at_last_frame(app).unwrap_or_default(),
-            self.inline_menu_positioner.clone(),
+            None,
             None,
         );
 
@@ -9896,31 +9888,7 @@ impl TerminalView {
         // this necessarily means that the input is at the bottom of the viewport, so when the inline
         // menu renders it will necessarily push the blocklist element up because the element is ultimatelyx
         // wrapped in a Shrinkable.
-        if let Some(blocklist_inset_due_to_inline_menu) = is_waterfall_no_gap_mode
-            .then(|| {
-                self.inline_menu_positioner
-                    .as_ref(app)
-                    .blocklist_top_inset_when_in_waterfall_mode(app)
-            })
-            .flatten()
-        {
-            let total_blocklist_height = model
-                .block_list()
-                .block_heights()
-                .summary()
-                .height
-                .to_pixels(self.size_info.cell_height_px)
-                .as_f32();
-
-            let height = self.size_info.pane_height_px.min(
-                (total_blocklist_height - blocklist_inset_due_to_inline_menu.as_f32()).max(0.),
-            );
-            ConstrainedBox::new(element)
-                .with_max_height(height)
-                .finish()
-        } else {
-            element
-        }
+        element
     }
 
     #[allow(clippy::too_many_arguments)]

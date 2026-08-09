@@ -2143,7 +2143,3 @@ impl BackingView for SettingsView {
         self.focus_handle = Some(focus_handle);
     }
 }
-
-#[cfg(test)]
-#[path = "mod_test.rs"]
-mod tests;

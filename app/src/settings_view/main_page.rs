@@ -135,55 +135,12 @@ impl TypedActionView for MainSettingsPageView {
     type Action = MainPageAction;
 
     fn handle_action(&mut self, action: &Self::Action, ctx: &mut ViewContext<Self>) {
-        // Block anonymous users from upgrading
-        if AuthStateProvider::as_ref(ctx)
-            .get()
-            .is_anonymous_or_logged_out()
-            && action.blocked_for_anonymous_user()
-        {
-            AuthManager::handle(ctx).update(ctx, |auth_manager, ctx| {
-                auth_manager.attempt_login_gated_feature(
-                    action.into(),
-                    AuthViewVariant::RequireLoginCloseable,
-                    ctx,
-                )
-            });
-            return;
-        }
-
         match action {
             MainPageAction::Relaunch => {
             }
             MainPageAction::DownloadUpdate => {
             }
             MainPageAction::CheckForUpdate => {
-            }
-            MainPageAction::ToggleSettingsSync => {
-                let new_value =
-                    CloudPreferencesSettings::handle(ctx).update(ctx, |prefs_settings, ctx| {
-                        report_if_error!(prefs_settings
-                            .settings_sync_enabled
-                            .toggle_and_save_value(ctx));
-                        *prefs_settings.settings_sync_enabled
-                    });
-                ();
-                ctx.notify();
-            }
-            MainPageAction::Upgrade { team_uid, user_id } => match team_uid {
-                Some(team_uid) => {
-                    ctx.open_url(&UserWorkspaces::upgrade_link_for_team(*team_uid));
-                }
-                None => {
-                    ctx.open_url(&UserWorkspaces::upgrade_link(*user_id));
-                }
-            },
-            MainPageAction::GenerateStripeBillingPortalLink { team_uid } => {
-                UserWorkspaces::handle(ctx).update(ctx, |user_workspaces, ctx| {
-                    user_workspaces.generate_stripe_billing_portal_link(*team_uid, ctx);
-                });
-            }
-            MainPageAction::SignupAnonymousUser => {
-                ctx.emit(MainSettingsPageEvent::SignupAnonymousUser);
             }
             MainPageAction::OpenUrl(url) => {
                 ctx.open_url(url);
@@ -204,35 +161,17 @@ impl View for MainSettingsPageView {
 
 impl MainSettingsPageView {
     pub fn new(ctx: &mut ViewContext<MainSettingsPageView>) -> Self {
-        let auth_state = AuthStateProvider::as_ref(ctx).get().clone();
-
-        ctx.subscribe_to_model(&CloudPreferencesSettings::handle(ctx), |_, _, _, ctx| {
-            ctx.notify();
-        });
-
-        let auth_manager_handle = AuthManager::handle(ctx);
-        ctx.subscribe_to_model(&auth_manager_handle, |_, _, _, ctx| {
-            ctx.notify();
-        });
-
         let mut widgets: Vec<Box<dyn SettingsWidget<View = Self>>> = vec![
-            Box::new(AccountWidget::default()),
             Box::new(DividerWidget {}),
         ];
-
-        widgets.push(Box::new(SettingsSyncWidget::default()));
-
-        widgets.push(Box::new(EarnRewardsWidget::default()));
 
         if ChannelState::app_version().is_some() {
             widgets.push(Box::new(VersionInfoWidget::default()));
         }
 
-        widgets.push(Box::new(LogoutWidget::default()));
+        let page = PageType::new_uncategorized(widgets, None);
 
-        let page = PageType::new_uncategorized(widgets, Some("Account"));
-
-        MainSettingsPageView { page, auth_state }
+        MainSettingsPageView { page }
     }
 
 }

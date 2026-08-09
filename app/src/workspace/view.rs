@@ -2015,7 +2015,6 @@ impl Workspace {
                         NewSessionSource::Window,
                         None,  /* previous_active_window */
                         None,  /* chosen_shell */
-                        None,  /* ai_conversation */
                         false, /* hide_homepage */
                         ctx,
                     );
@@ -2143,7 +2142,6 @@ impl Workspace {
             NewSessionSource::Window,
             previous_active_window,
             shell,
-            None,
             false,
             ctx,
         );
@@ -3683,7 +3681,6 @@ impl Workspace {
                     NewSessionSource::Tab,
                     None,
                     None,
-                    None,
                     false,
                     ctx,
                 );
@@ -5201,7 +5198,6 @@ impl Workspace {
             NewSessionSource::Tab,
             Some(ctx.window_id()),
             None,
-            None,
             hide_homepage,
             ctx,
         );
@@ -5586,7 +5582,6 @@ impl Workspace {
         let is_tab_menu_open = self.show_tab_bar_overflow_menu
             || self.show_tab_right_click_menu.is_some()
             || self.show_new_session_dropdown_menu.is_some()
-            || (!FeatureFlag::AgentMode.is_enabled() && self.should_show_ai_assistant_warm_welcome)
             || self.is_user_menu_open
             || self.tab_bar_pinned_by_popup;
 
@@ -5782,23 +5777,6 @@ impl Workspace {
     fn close_all_overlays(&mut self, ctx: &mut ViewContext<Self>) {
         self.current_workspace_state.close_all_modals();
         self.close_tab_bar_overflow_menu(ctx);
-        self.close_all_chip_menus(ctx);
-
-    }
-
-    /// Close all chip menus across all inputs to prevent overlapping with modals.
-    /// This is a defensive measure to ensure chip menus don't stay open when focus-stealing modals appear.
-    fn close_all_chip_menus(&mut self, ctx: &mut ViewContext<Self>) {
-        if let Some(active_input_handle) = self.get_active_input_view_handle(ctx) {
-            active_input_handle.update(ctx, |input, ctx| {
-                input.prompt_render_helper.prompt_view().update(
-                    ctx,
-                    |prompt_display, prompt_ctx| {
-                        prompt_display.close_all_chip_menus(prompt_ctx);
-                    },
-                );
-            });
-        }
     }
 
     fn open_palette(
@@ -6209,6 +6187,7 @@ impl Workspace {
                     self.left_panel_view
                         .read(ctx, |left_panel, _| match target_view {
                             LeftPanelTargetView::FileTree => left_panel.is_file_tree_active(),
+                            LeftPanelTargetView::WarpDrive => false,
                         });
 
                 if self.active_tab_pane_group().as_ref(ctx).left_panel_open && is_target_active {
@@ -8758,7 +8737,6 @@ impl TypedActionView for Workspace {
                 self.add_new_session_tab_internal_with_default_session_mode_behavior(
                     NewSessionSource::Tab,
                     Some(window_id),
-                    None,
                     None,
                     *hide_homepage,
                     DefaultSessionModeBehavior::Ignore,

@@ -613,7 +613,7 @@ impl LeftPanelView {
     pub fn handle_action_with_force_open(
         &mut self,
         action: &LeftPanelAction,
-        force_open: bool,
+        _force_open: bool,
         ctx: &mut ViewContext<Self>,
     ) {
         match action {

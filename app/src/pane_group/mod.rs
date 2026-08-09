@@ -2004,55 +2004,8 @@ impl PaneGroup {
     /// process each pane as its task data arrives.
 
 
-    fn replace_pane_with_new_cloud_conversation(
-        &mut self,
-        pane_id: PaneId,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        let resources = TerminalViewResources {
-            tips_completed: self.tips_completed.clone(),
-            model_event_sender: self.model_event_sender.clone(),
-        };
-        let view_size = Self::estimated_view_bounds(ctx).size();
-        let (view, terminal_manager) =
-            Self::create_ambient_agent_terminal(resources, view_size, ctx);
-        let new_pane = TerminalPane::new(
-            Uuid::new_v4().as_bytes().to_vec(),
-            terminal_manager,
-            view,
-            self.model_event_sender.clone(),
-            ctx,
-        );
-        self.replace_pane(pane_id, new_pane, false, ctx);
-    }
 
-    /// Initial layout for a [`PaneGroup`] with a single ambient agent pane.
-    fn initial_ambient_agent_pane(
-        resources: TerminalViewResources,
-        view_bounds: RectF,
-        model_event_sender: Option<SyncSender<ModelEvent>>,
-        pane_contents: &mut HashMap<PaneId, Box<dyn AnyPaneContent>>,
-        pane_history: &mut Vec<PaneId>,
-        ctx: &mut ViewContext<Self>,
-    ) -> (PaneData, InitialFocus) {
-        let uuid = Uuid::new_v4();
 
-        let (terminal_view, terminal_manager) =
-            Self::create_ambient_agent_terminal(resources, view_bounds.size(), ctx);
-
-        Self::terminal_pane_data(
-            uuid.into_bytes().to_vec(),
-            terminal_view,
-            terminal_manager,
-            model_event_sender,
-            pane_contents,
-            pane_history,
-            ctx,
-        )
-    }
-
-    /// Initial layout for a [`PaneGroup`] with a single terminal pane.
-    #[allow(clippy::too_many_arguments)]
     fn initial_single_terminal_pane(
         options: NewTerminalOptions,
         resources: TerminalViewResources,

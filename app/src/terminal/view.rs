@@ -8465,8 +8465,6 @@ impl TerminalView {
         );
     }
 
-    /// Scrolls the view to the AI block associated with the given exchange ID.
-
     #[cfg(any(test, feature = "integration_tests"))]
     pub fn selected_blocks_tail_index(&self) -> Option<BlockIndex> {
         self.selected_blocks.tail()
@@ -8479,10 +8477,6 @@ impl TerminalView {
             .last()
             .map(|range| range.pivot())
     }
-
-    /// Inserts a dummy AI block with the given query and output strings.
-    /// The directory is set to ~.
-    #[cfg(any(test, feature = "integration_tests"))]
 
     /// Returns the environment setup mode selector view handle for tab-level rendering.
 

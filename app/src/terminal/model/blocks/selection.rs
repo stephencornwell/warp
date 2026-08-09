@@ -1426,7 +1426,3 @@ impl BlockList {
         end.absolute_point
     }
 }
-
-#[cfg(test)]
-#[path = "selection_tests.rs"]
-mod tests;

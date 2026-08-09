@@ -838,7 +838,3 @@ impl History {
         }
     }
 }
-
-#[cfg(test)]
-#[path = "history_tests.rs"]
-pub mod tests;

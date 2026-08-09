@@ -1792,11 +1792,6 @@ impl Workspace {
         self.palette.clone()
     }
 
-    #[cfg(any(test, feature = "integration_tests"))]
-    pub fn ai_fact_view(&self) -> ViewHandle<AIFactView> {
-        self.ai_fact_view.clone()
-    }
-
     /// Handles updating the tab status when an agent task status changes.
     fn workspace_contains_terminal_view(
         &self,

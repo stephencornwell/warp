@@ -2847,40 +2847,7 @@ impl Input {
     /// autosuggestion, due to the buffer content meaningfully changing.
     /// Helper function to replace "@" symbol and filter text with new text
     pub(super) fn replace_at_symbol_with_text(&mut self, text: &str, ctx: &mut ViewContext<Self>) {
-        let at_symbol_position = None;
-
-        if let Some(at_pos) = at_symbol_position {
-            let cursor_position = self.editor.read(ctx, |editor, ctx| {
-                editor.start_byte_index_of_last_selection(ctx)
-            });
-
-            let replacement_range =
-                ByteOffset::from(at_pos)..ByteOffset::from(cursor_position.as_usize());
-            self.editor.update(ctx, |editor, ctx| {
-                // Delete the range (@ symbol and any filter text) using system delete
-                editor.system_delete(replacement_range, ctx);
-
-                // Insert the text, optionally with a space in AI mode
-                editor.user_insert(text, ctx);
-            });
-        } else {
-            // Fallback: search for the most recent "@" symbol in the buffer
-            let buffer_text = self.editor.read(ctx, |editor, ctx| editor.buffer_text(ctx));
-            let cursor_position = self.editor.read(ctx, |editor, ctx| {
-                editor.start_byte_index_of_last_selection(ctx)
-            });
-
-            if let Some(at_position) = buffer_text[..cursor_position.as_usize()].rfind('@') {
-                let replacement_range =
-                    ByteOffset::from(at_position)..ByteOffset::from(cursor_position.as_usize());
-                self.editor.update(ctx, |editor, ctx| {
-                    // Delete the range (@ symbol and any filter text) using system delete
-                    editor.system_delete(replacement_range, ctx);
-
-                    editor.user_insert(text, ctx);
-                });
-            }
-        }
+        let _ = (text, ctx);
     }
 
     fn handle_editor_event(&mut self, event: &EditorEvent, ctx: &mut ViewContext<Self>) {

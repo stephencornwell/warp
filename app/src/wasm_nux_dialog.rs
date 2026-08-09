@@ -1,4 +1,4 @@
-use warp_core::errors::report_if_error;
+use crate::report_if_error;
 use crate::appearance::Appearance;
 use crate::settings::app_installation_detection::{
     UserAppInstallDetectionSettings, UserAppInstallStatus,

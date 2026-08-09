@@ -3,7 +3,7 @@
 
 //! TTY related functionality.
 use crate::terminal::bootstrap::raw_init_shell_script_for_shell;
-use warp_core::errors::report_if_error;
+use crate::report_if_error;
 use crate::terminal::cli_agent_sessions::event::current_protocol_version;
 use crate::terminal::local_tty::docker_sandbox::{
     DockerSandboxShellStarter, DOCKER_SANDBOX_HOME_DIR,

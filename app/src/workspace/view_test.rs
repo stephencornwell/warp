@@ -1,4 +1,4 @@
-use warp_core::errors::report_if_error;
+use crate::report_if_error;
 use super::*;
 use crate::ai::blocklist::{BlocklistAIHistoryModel, BlocklistAIPermissions};
 use crate::ai::document::ai_document_model::AIDocumentModel;

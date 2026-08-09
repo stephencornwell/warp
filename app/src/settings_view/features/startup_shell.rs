@@ -1,4 +1,4 @@
-use warp_core::errors::report_if_error;
+use crate::report_if_error;
 use crate::send_telemetry_from_ctx;
 use warpui::{
     elements::{CrossAxisAlignment, Fill, Flex, ParentElement, Shrinkable},

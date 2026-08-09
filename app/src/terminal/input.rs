@@ -1,4 +1,4 @@
-use warp_core::errors::report_if_error;
+use crate::report_if_error;
 pub mod buffer_model;
 mod classic;
 mod common;

@@ -1,4 +1,4 @@
-use warp_core::errors::report_if_error;
+use crate::report_if_error;
 use settings::{Setting as _, SettingsManager};
 use warp_core::features::FeatureFlag;
 use warpui::{rendering::GPUPowerPreference, AppContext, SingletonEntity};

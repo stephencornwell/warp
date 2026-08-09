@@ -248,7 +248,7 @@ use crate::terminal::event::UserBlockCompleted;
 use crate::terminal::find::{BlockGridMatch, BlockListMatch, TerminalFindModel};
 use crate::terminal::input::{InputState, MenuPositioning, MenuPositioningProvider};
 use crate::terminal::keys::TerminalKeybindings;
-use crate::terminal::model::block::{AgentInteractionMetadata, BlockMetadata};
+use crate::terminal::model::block::BlockMetadata;
 use crate::terminal::model::block::{Block, BlockId};
 use crate::terminal::model::blocks::{BlockFilter, BlockList};
 use crate::terminal::model::blocks::{BlockHeight, BlockHeightItem, BlockHeightSummary, Gap};

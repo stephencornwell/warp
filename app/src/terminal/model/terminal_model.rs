@@ -25,7 +25,7 @@ use super::ansi::{
     WarpificationUnavailableReason,
 };
 use super::block::{
-    AgentInteractionMetadata, Block, BlockId, BlockMetadata, BlockSize, BlocklistEnvVarMetadata,
+    Block, BlockId, BlockMetadata, BlockSize, BlocklistEnvVarMetadata,
     SerializedBlock,
 };
 use super::blockgrid::BlockGrid;
@@ -1530,38 +1530,6 @@ impl TerminalModel {
         self.block_list
             .active_block_mut()
             .set_env_var_metadata(env_var_metadata);
-    }
-
-    /// Starts the execution for a command in a shared session (sharer or viewer).
-    pub fn start_command_execution_for_shared_session(
-        &mut self,
-        participant_id: ParticipantId,
-        agent_metadata: Option<AgentInteractionMetadata>,
-    ) {
-        self.start_command_execution();
-
-        // If this command has AI metadata, attach it to the active block.
-        if let Some(ai_metadata) = &agent_metadata {
-            self.block_list
-                .active_block_mut()
-                .set_agent_interaction_mode(ai_metadata.clone());
-        }
-
-        // TODO (suraj): add participant ID to active block metadata.
-
-        let _ = (participant_id, agent_metadata);
-    }
-
-    /// Starts the command execution (per `Self::start_command_execution`) and additionally sets
-    /// the given `ai_metadata` on the active block.
-    pub fn start_command_execution_with_ai_metadata(
-        &mut self,
-        agent_metadata: AgentInteractionMetadata,
-    ) {
-        self.start_command_execution();
-        self.block_list
-            .active_block_mut()
-            .set_agent_interaction_mode(agent_metadata);
     }
 
     // Starts active block as a background block. Used in Alacritty integration tests to

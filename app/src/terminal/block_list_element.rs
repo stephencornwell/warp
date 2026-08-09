@@ -2291,23 +2291,7 @@ impl BlockListElement {
                     ctx,
                     terminal_view_id,
                     cursor_hint_text,
-                    if block.is_agent_blocked() {
-                        AnsiColorIdentifier::Yellow
-                            .to_ansi_color(
-                                &block_grid_params
-                                    .grid_render_params
-                                    .warp_theme
-                                    .terminal_colors()
-                                    .normal,
-                            )
-                            .into()
-                    } else {
-                        block_grid_params
-                            .grid_render_params
-                            .warp_theme
-                            .cursor()
-                            .into()
-                    },
+                    block_grid_params.grid_render_params.warp_theme.cursor().into(),
                     app,
                 );
             }

@@ -540,17 +540,8 @@ impl<T: EventLoopSender> PtyController<T> {
             let mut model = self.terminal_model.lock();
 
             // Explicitly start the block now that the command is executed.
-            match source {
-                CommandExecutionSource::AI { metadata } => {
-                    model.start_command_execution_with_ai_metadata(metadata)
-                }
-                CommandExecutionSource::SharedSession {
-                    participant_id,
-                    ai_metadata,
-                    ..
-                } => model.start_command_execution_for_shared_session(participant_id, ai_metadata),
-                CommandExecutionSource::User => model.start_command_execution(),
-            }
+            let CommandExecutionSource::User = source;
+            model.start_command_execution();
 
             // Ensure that the `TerminalModel` doesn't interpret any of the PTY output from the
             // following commands as in-band command output. If the in-band command output is not

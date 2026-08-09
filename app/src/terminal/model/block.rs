@@ -424,7 +424,7 @@ impl From<&Block> for BlockType {
                         command_with_obfuscated_secrets,
                         output_truncated,
                         output_truncated_with_obfuscated_secrets,
-                        was_part_of_agent_interaction: block.agent_interaction_metadata().is_some(),
+                        was_part_of_agent_interaction: false,
                         started_at: block.command_start_time(),
                         num_output_lines: block.output_grid().len() as u64,
                         num_output_lines_truncated: block
@@ -1167,7 +1167,6 @@ impl Block {
                 .as_ref()
                 .is_some_and(|metadata| metadata.should_hide_block)
             || (self.is_for_in_band_command && !self.show_in_band_command_blocks)
-            || self.interaction_mode.should_hide_block()
     }
 
     pub fn is_hidden(&self) -> bool {

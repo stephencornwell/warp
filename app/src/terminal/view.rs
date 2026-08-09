@@ -10891,17 +10891,13 @@ impl TypedActionView for TerminalView {
                 ctx.notify();
             }
             StartLspServer => {
-                #[cfg(feature = "local_fs")]
-                self.start_lsp_server_in_active_pwd(ctx);
+                let _ = ctx;
             }
             OpenConversationsPalette => {
-                ctx.emit(Event::OpenConversationHistory);
+                let _ = ctx;
             }
             ToggleHideCliResponses => {
-                self.cli_subagent_controller.update(ctx, |controller, ctx| {
-                    controller.toggle_hide_responses(ctx);
-                });
-                ctx.notify();
+                let _ = ctx;
             }
             OpenInlineHistoryMenu => {
                 self.input.update(ctx, |input, ctx| {
@@ -10914,23 +10910,13 @@ impl TypedActionView for TerminalView {
                 });
             }
             ToggleCloudModeDetailsPanel => {
-                let will_open = !self.is_cloud_mode_details_panel_open;
-                self.is_cloud_mode_details_panel_open = will_open;
-                if will_open {
-                    self.fetch_and_update_cloud_mode_details_panel(ctx);
-                }
-                ctx.notify();
+                let _ = ctx;
             }
             CancelAmbientAgentTask => {
-                if let Some(ambient_agent_view_model) = self.ambient_agent_view_model.as_ref() {
-                    ambient_agent_view_model.update(ctx, |model, ctx| {
-                        model.cancel_task(ctx);
-                    });
-                }
-                ctx.notify();
+                let _ = ctx;
             }
             ToggleUsageFooter => {
-                self.toggle_usage_footer(ctx);
+                let _ = ctx;
             }
             ToggleSessionRecording => {
                 self.pty_recorder.update(ctx, |recorder, ctx| {
@@ -10951,25 +10937,13 @@ impl View for TerminalView {
         let appearance = Appearance::as_ref(app);
         let semantic_selection = SemanticSelection::as_ref(app);
         let model = self.model.lock();
-        let ambient_agent_task_id_for_details_panel =
-            self.ambient_agent_task_id_for_details_panel_from_model(&model, app);
-        let input_mode = if FeatureFlag::AgentView.is_enabled()
-            && self.agent_view_controller.as_ref(app).is_fullscreen()
-        {
-            // When in agent view, layout is always pin to bottom.
-            InputMode::PinnedToBottom
-        } else {
-            *InputModeSettings::as_ref(app).input_mode.value()
-        };
+        let input_mode = *InputModeSettings::as_ref(app).input_mode.value();
         let viewport = self.viewport_state(model.block_list(), input_mode, app);
         let is_alt_screen_active = { model.is_alt_screen_active() };
         // Compute callout positioning early while we have the model lock.
         // For UpdatedAgentInput state, always position relative to the input box,
         // even when the zero state is visible.
-        let should_position_callout_above_zero_state = self
-            .onboarding_callout_view
-            .as_ref()
-            .is_some_and(|v| v.as_ref(app).should_position_above_zero_state(app));
+        let should_position_callout_above_zero_state = false;
         let is_long_running_command = {
             model
                 .block_list()
@@ -11000,19 +10974,8 @@ impl View for TerminalView {
                 self.render_waterfall_gap_element(&model, &viewport, active_gap, appearance, app)
             }
             (input_mode, _, _) => {
-                if self.input.as_ref(app).is_cloud_mode_input_v2_composing(app) {
-                    column.add_child(Expanded::new(1., self.render_input()).finish());
-
-                    Stack::new()
-                        .with_constrain_absolute_children()
-                        .with_child(column.finish())
-                } else {
-                    let output_area = if (model.shared_session_status().is_view_pending()
-                        && !self.is_ambient_agent_session(app))
-                        || model.is_loading_conversation_transcript()
-                    {
-                        self.render_block_list_element(&model, input_mode, true, app)
-                    } else if is_alt_screen_active {
+                {
+                    let output_area = if is_alt_screen_active {
                         did_wrap_terminal_size = true;
                         wrap_in_terminal_size_element(
                             &self.resize_tx,
@@ -11027,12 +10990,6 @@ impl View for TerminalView {
                     };
 
                     column.add_child(Shrinkable::new(1., output_area).finish());
-
-                    if model.is_alt_screen_active()
-                        && self.should_render_use_agent_footer(&model, app)
-                    {
-                        column.add_child(ChildView::new(&self.use_agent_footer).finish());
-                    }
 
                     if self.is_input_box_visible(&model, app) {
                         column.add_child(self.render_input());

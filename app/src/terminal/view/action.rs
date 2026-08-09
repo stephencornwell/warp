@@ -3,31 +3,18 @@ use std::fmt;
 use std::ops::Range;
 use std::path::PathBuf;
 
-use ai::skills::SkillReference;
 use command_corrections::Correction;
 use pathfinder_geometry::vector::Vector2F;
-use session_sharing_protocol::common::Role;
-use session_sharing_protocol::sharer::RoleUpdateReason;
 use warp_util::user_input::UserInput;
 use warpui::elements::HyperlinkUrl;
 use warpui::event::ModifiersState;
 use warpui::units::Lines;
 use warpui::EntityId;
 
-use crate::ai::agent::conversation::AIConversationId;
-use crate::ai::agent::AIAgentExchangeId;
-use crate::ai::blocklist::codebase_index_speedbump_banner::CodebaseIndexSpeedbumpBannerAction;
 use crate::terminal::available_shells::AvailableShell;
 use crate::terminal::model::completions::ShellCompletion;
-use crate::terminal::shared_session::SharedSessionActionSource;
-use crate::terminal::ssh::error::SshErrorBlockAction;
-use crate::terminal::view::inline_banner::AgentModeSetupSpeedbumpBannerAction;
-use crate::terminal::view::passive_suggestions::PromptSuggestionResolution;
 use crate::terminal::view::RichContentSecretTooltipInfo;
-use crate::workspace::PaletteSource;
-use crate::workflows::workflow::Workflow;
 use crate::{
-    server::ids::SyncId,
     terminal::{
         block_list_element::{
             BlockHoverAction, BlockListMenuSource, BlockSelectAction, BlockTextSelectAction,
@@ -43,17 +30,12 @@ use crate::{
     },
 };
 
-use super::inline_banner::{
-    AnonymousUserLoginBannerAction, AwsBedrockLoginBannerAction, AwsCliNotInstalledBannerAction,
-    OpenInWarpBannerAction, VimModeBannerAction,
-};
+use super::inline_banner::{OpenInWarpBannerAction, VimModeBannerAction};
 use super::{
     AliasExpansionBannerAction, ContextMenuAction, GridHighlightedLink, InputContextMenuAction,
     NotificationsDiscoveryBannerAction, NotificationsErrorBannerAction, RichContentLink,
-    SSHBannerAction, TerminalEditor,
+    TerminalEditor,
 };
-
-pub use onboarding::OnboardingIntention;
 
 /// Version of the agent onboarding flow (non-legacy).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

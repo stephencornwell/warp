@@ -12743,29 +12743,6 @@ impl TypedActionView for Workspace {
                 }
                 self.dismiss_older_toasts(toast_object_id, ctx);
             }
-            TabConfigSidecarMakeDefault {
-                mode,
-                tab_config_path,
-                #[cfg_attr(not(feature = "local_tty"), allow(unused_variables))]
-                shell,
-            } => {
-                AISettings::handle(ctx).update(ctx, |settings, ctx| {
-                    report_if_error!(settings.default_session_mode_internal.set_value(*mode, ctx));
-                    if let Some(path) = tab_config_path {
-                        report_if_error!(settings
-                            .default_tab_config_path
-                            .set_value(path.to_string_lossy().into_owned(), ctx));
-                    }
-                });
-                #[cfg(feature = "local_tty")]
-                if let Some(shell) = shell {
-                    use crate::terminal::available_shells::AvailableShells;
-                    AvailableShells::handle(ctx).update(ctx, |model, ctx| {
-                        let _ = model.set_user_preferred_shell(shell.clone(), ctx);
-                    });
-                }
-                self.close_new_session_dropdown_menu(ctx);
-            }
             TabConfigSidecarEditConfig {
                 #[cfg_attr(not(feature = "local_fs"), allow(unused_variables))]
                 path,
@@ -13130,20 +13107,6 @@ impl TypedActionView for Workspace {
             OpenFilePath { path } => {
                 ctx.open_file_path(path);
             }
-            NewTabInAgentMode {
-                entrypoint,
-                zero_state_prompt_suggestion_type,
-            } => {
-
-                self.add_terminal_tab_in_ai_mode(*zero_state_prompt_suggestion_type, ctx);
-            }
-            NewPaneInAgentMode {
-                entrypoint,
-                zero_state_prompt_suggestion_type,
-            } => {
-
-                self.add_terminal_pane_in_ai_mode(*zero_state_prompt_suggestion_type, ctx);
-            }
             OpenCloudAgentSetupGuide => {
                 if AISettings::as_ref(ctx).is_any_ai_enabled(ctx)
                     && FeatureFlag::AgentManagementView.is_enabled()
@@ -13349,18 +13312,6 @@ impl TypedActionView for Workspace {
                 self.navigate_pane_or_panel(PanePanelDirection::Next, ctx);
             }
             FocusLeftPanel => self.focus_left_panel(ctx),
-            ViewObjectInWarpDrive(item_id) => {
-                // Focus newly created object in WD
-                self.view_in_and_focus_warp_drive(*item_id, ctx);
-            }
-            OpenObjectSharingSettings { object_id, source } => {
-                self.open_object_sharing_settings(*object_id, None, *source, ctx);
-            }
-            UndoTrash(cloud_object_type_and_id) => {
-                self.update_warp_drive_view(ctx, |warp_drive, ctx| {
-                    warp_drive.undo_trash(cloud_object_type_and_id, ctx);
-                });
-            }
             TerminateApp => {
                 ctx.terminate_app(TerminationMode::Cancellable, None);
             }
@@ -13436,46 +13387,10 @@ impl TypedActionView for Workspace {
             OpenAIFactCollection => {
                 self.open_ai_fact_collection_pane(None, None, ctx);
             }
-            ToggleAIDocumentPane {
-                document_id,
-                document_version,
-            } => {
-                let conversation_id =
-                    AIDocumentModel::as_ref(ctx).get_conversation_id_for_document_id(document_id);
-
-                if let Some(conversation_id) = conversation_id {
-                    self.active_tab_pane_group().update(ctx, |pane_group, ctx| {
-                        pane_group.toggle_ai_document_pane(
-                            conversation_id,
-                            *document_id,
-                            *document_version,
-                            ctx,
-                        );
-                    });
-                }
-            }
             HideAIDocumentPanes => {
                 self.active_tab_pane_group().update(ctx, |pane_group, ctx| {
                     pane_group.close_all_ai_document_panes(ctx);
                 });
-            }
-            OpenAIDocumentPane {
-                document_id,
-                document_version,
-            } => {
-                let conversation_id =
-                    AIDocumentModel::as_ref(ctx).get_conversation_id_for_document_id(document_id);
-
-                if let Some(conversation_id) = conversation_id {
-                    self.active_tab_pane_group().update(ctx, |pane_group, ctx| {
-                        pane_group.open_ai_document_pane(
-                            conversation_id,
-                            *document_id,
-                            *document_version,
-                            ctx,
-                        );
-                    });
-                }
             }
             TabHoverWidthStart { width } => {
                 // Store the fixed width value for the tab to maintain consistent size during hover
@@ -13590,120 +13505,7 @@ impl TypedActionView for Workspace {
                 ctx,
                 true,
             ),
-            RunWorkflow {
-                workflow,
-                workflow_source,
-                workflow_selection_source,
-                argument_override,
-            } => self.run_workflow_in_active_input(
-                workflow,
-                *workflow_source,
-                *workflow_selection_source,
-                argument_override.clone(),
-                TerminalSessionFallbackBehavior::default(),
-                ctx,
-            ),
-            RestoreOrNavigateToConversation {
-                pane_view_locator,
-                window_id,
-                conversation_id,
-                terminal_view_id,
-                restore_layout,
-            } => {
-                self.restore_or_navigate_to_conversation(
-                    *conversation_id,
-                    *window_id,
-                    *pane_view_locator,
-                    *terminal_view_id,
-                    *restore_layout,
-                    ctx,
-                );
-            }
-            OpenAmbientAgentSession {
-                session_id,
-                task_id,
-            } => {
-                // Check if there's already a terminal viewing this task.
-                if let Some(tab_index) =
-                    self.find_tab_with_ambient_agent_conversation(*task_id, ctx)
-                {
-                    self.activate_tab(tab_index, ctx);
-                } else {
-                    self.add_tab_for_joining_shared_session(*session_id, ctx);
-                }
-            }
-            OpenConversationTranscriptViewer {
-                conversation_id,
-                ambient_agent_task_id,
-            } => {
-                // Check if there's already a terminal viewing this conversation's task.
-                if let Some(task_id) = ambient_agent_task_id {
-                    if let Some(tab_index) =
-                        self.find_tab_with_ambient_agent_conversation(*task_id, ctx)
-                    {
-                        self.activate_tab(tab_index, ctx);
-                        return;
-                    }
-                }
-                self.load_cloud_conversation_into_new_transcript_viewer(
-                    conversation_id.clone(),
-                    ctx,
-                );
-            }
-            ForkAIConversation {
-                conversation_id,
-                fork_from_exchange,
-                summarize_after_fork,
-                summarization_prompt,
-                initial_prompt,
-                destination,
-            } => {
-                self.fork_ai_conversation(
-                    *conversation_id,
-                    *fork_from_exchange,
-                    *summarize_after_fork,
-                    summarization_prompt.clone(),
-                    initial_prompt.clone(),
-                    *destination,
-                    ctx,
-                );
-            }
             #[cfg(not(target_family = "wasm"))]
-            ContinueConversationLocally { conversation_id } => {
-                self.fork_ai_conversation(
-                    *conversation_id,
-                    None,
-                    false,
-                    None,
-                    None,
-                    ForkedConversationDestination::SplitPane,
-                    ctx,
-                );
-            }
-            SummarizeAIConversation {
-                prompt,
-                initial_prompt,
-            } => {
-                self.summarize_active_ai_conversation(prompt.clone(), initial_prompt.clone(), ctx);
-            }
-            QueuePromptForConversation { prompt } => {
-                let Some(terminal_view) = self
-                    .active_tab_pane_group()
-                    .as_ref(ctx)
-                    .active_session_view(ctx)
-                else {
-                    return;
-                };
-
-                terminal_view.update(ctx, |terminal, ctx| {
-                    terminal.send_user_query_after_next_conversation_finished(
-                        prompt.clone(),
-                        /* show_close_button */ true,
-                        /* show_send_now_button */ true,
-                        ctx,
-                    );
-                });
-            }
             InsertForkSlashCommand => {
                 self.active_tab_pane_group().update(ctx, |pane_group, ctx| {
                     if let Some(terminal_view) = pane_group.active_session_view(ctx) {
@@ -14027,46 +13829,6 @@ impl TypedActionView for Workspace {
                         ctx,
                     );
                 }
-            }
-            ExecuteDeleteConversation {
-                conversation_id,
-                terminal_view_id,
-            } => {
-                // Exit agent view first if this conversation is currently expanded.
-                // This must happen before updating BlocklistAIHistoryModel to avoid
-                // circular model references.
-                if let Some(controller) = ActiveAgentViewsModel::as_ref(ctx)
-                    .get_controller_for_conversation(*conversation_id, ctx)
-                {
-                    let succesfully_exited_agent_view =
-                        controller.update(ctx, |controller, ctx| {
-                            controller.exit_agent_view(ctx);
-                            !controller.is_active()
-                        });
-
-                    if !succesfully_exited_agent_view {
-                        ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
-                            toast_stack.add_ephemeral_toast(
-                                DismissibleToast::error(
-                                    "Failed to delete conversation. Please exit the agent view and try again.".to_string(),
-                                ),
-                                window_id,
-                                ctx,
-                            );
-                        });
-                        return;
-                    }
-                }
-
-                conversation_utils::delete_conversation(*conversation_id, *terminal_view_id, ctx);
-
-                ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
-                    toast_stack.add_ephemeral_toast(
-                        DismissibleToast::success("Conversation deleted".to_string()),
-                        window_id,
-                        ctx,
-                    );
-                });
             }
             #[cfg(target_family = "wasm")]
             ToggleConversationTranscriptDetailsPanel => {

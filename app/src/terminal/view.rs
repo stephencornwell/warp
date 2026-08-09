@@ -10200,8 +10200,6 @@ impl TypedActionView for TerminalView {
                 "Use file picker to select a git repository".to_owned(),
                 WarpA11yRole::PopoverRole,
             )),
-            #[cfg(feature = "voice_input")]
-            ToggleCLIAgentVoiceInput(_) => Empty,
             // Below are actions that are most likely irrelevant to users or are very noisy and the
             // debug version shouldn't be announced.
             Scroll { .. }
@@ -10499,7 +10497,6 @@ impl TypedActionView for TerminalView {
             DragAndDropFiles(paths) => {
                 self.drag_and_drop_files(paths, ctx);
             }
-            #[cfg(feature = "voice_input")]
             HyperlinkClick(hyperlink) => {
                 ctx.notify();
                 ctx.open_url(&hyperlink.url);

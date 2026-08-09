@@ -2226,7 +2226,10 @@ impl FeaturesPageView {
             .linux_selection_clipboard
             .is_supported_on_current_platform()
         {
-            system_widgets.push(Box::new(LinuxSelectionClipboardWidget::default()));
+            system_widgets.push(Box::new(LinuxSelectionClipboardWidget {
+                additional_info_link: Default::default(),
+                switch_state: Default::default(),
+            }));
         }
 
         let gpu_settings = GPUSettings::as_ref(ctx);

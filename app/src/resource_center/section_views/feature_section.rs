@@ -236,7 +236,7 @@ impl FeatureSectionView {
             .wrappable_text(item.description.to_string(), true)
             .with_style(UiComponentStyles {
                 font_size: Some(DESCRIPTION_FONT_SIZE),
-                font_color: Some(color.into()),
+                font_color: Some(color.into_solid()),
                 ..Default::default()
             })
             .build()
@@ -283,7 +283,7 @@ impl FeatureSectionView {
         };
 
         // description
-        element.add_child(self.render_description(item, appearance, description_color));
+        element.add_child(self.render_description(item, appearance, description_color.into_solid()));
 
         let mut feature_item = Flex::row();
         if !is_completed && show_gamified {

@@ -786,9 +786,6 @@ impl View {
             CommandPaletteItemAction::ExecuteWorkflow { id } => {
                 ctx.emit(Event::ExecuteWorkflow { id })
             }
-            CommandPaletteItemAction::InvokeEnvironmentVariables { id } => {
-                ctx.emit(Event::InvokeEnvironmentVariables { id })
-            }
             CommandPaletteItemAction::OpenNotebook { id } => ctx.emit(Event::OpenNotebook { id }),
             CommandPaletteItemAction::NewSession { source } => {
                 self.dispatch_typed_action_on_view(source.action().deref(), ctx);

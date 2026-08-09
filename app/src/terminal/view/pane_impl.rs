@@ -119,39 +119,8 @@ impl TerminalView {
     /// Renders the back button for the pane header, or an empty element if the
     /// back button should not be shown.
     fn maybe_render_header_back_button(&self, app: &AppContext) -> Box<dyn Element> {
-        if !FeatureFlag::AgentView.is_enabled() || warpui::platform::is_mobile_device() {
-            return Flex::row().finish();
-        }
-
-        let in_nav_stack = self
-            .pane_stack
-            .as_ref()
-            .and_then(|h| h.upgrade(app))
-            .is_some_and(|stack| stack.as_ref(app).depth() > 1);
-
-        let is_transcript_viewer = self.model.lock().is_conversation_transcript_viewer();
-        let is_ambient_agent = self.is_ambient_agent_session(app);
-        let has_parent_terminal = (is_ambient_agent && self.is_nested_cloud_mode(app))
-            || (!is_ambient_agent && !is_transcript_viewer);
-        let is_fullscreen_agent_view = self.agent_view_controller.as_ref(app).is_fullscreen();
-
-        if in_nav_stack || (is_fullscreen_agent_view && has_parent_terminal) {
-            if FeatureFlag::Orchestration.is_enabled() {
-                Flex::row()
-                    .with_cross_axis_alignment(CrossAxisAlignment::Center)
-                    .with_child(ChildView::new(&self.agent_view_back_button).finish())
-                    .finish()
-            } else {
-                Flex::column()
-                    .with_main_axis_alignment(MainAxisAlignment::Center)
-                    .with_cross_axis_alignment(CrossAxisAlignment::Start)
-                    .with_main_axis_size(MainAxisSize::Max)
-                    .with_child(ChildView::new(&self.agent_view_back_button).finish())
-                    .finish()
-            }
-        } else {
-            Flex::row().finish()
-        }
+        let _ = app;
+        Flex::row().finish()
     }
 
     fn render_header_title(
@@ -163,25 +132,9 @@ impl TerminalView {
         let appearance = Appearance::as_ref(app);
         let pane_config = self.pane_configuration.as_ref(app);
         let title = pane_config.title().to_owned();
-        let clip_config = if self.is_using_conversation_for_pane_header_title {
-            ClipConfig::ellipsis()
-        } else {
-            ClipConfig::start()
-        };
+        let clip_config = ClipConfig::start();
 
-        let should_render_ambient_agent_indicator = {
-            let model = self.model.lock();
-            model.is_shared_ambient_agent_session()
-                || matches!(
-                    model.conversation_transcript_viewer_status(),
-                    Some(ConversationTranscriptViewerStatus::ViewingAmbientConversation(_))
-                )
-        };
-        let pane_indicator = if should_render_ambient_agent_indicator {
-            Some(self.render_ambient_agent_indicator(app))
-        } else {
-            self.render_terminal_mode_indicator(app)
-        };
+        let pane_indicator = self.render_terminal_mode_indicator(app);
 
         let is_pane_dragging = header_ctx.draggable_state.is_dragging();
         let mut center_row = Flex::row()
@@ -197,18 +150,7 @@ impl TerminalView {
             // from infinite constraints on flex children.
             center_row.add_child(title_text);
         } else {
-            let title_element =
-                if is_fullscreen_agent_view && self.is_using_conversation_for_pane_header_title {
-                    Shrinkable::new(
-                        1.0,
-                        ConstrainedBox::new(title_text)
-                            .with_max_width(400.0)
-                            .finish(),
-                    )
-                    .finish()
-                } else {
-                    Shrinkable::new(1.0, title_text).finish()
-                };
+                let title_element = Shrinkable::new(1.0, title_text).finish();
             center_row.add_child(title_element);
         }
 

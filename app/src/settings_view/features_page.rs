@@ -1,6 +1,5 @@
 use crate::report_if_error;
 use crate::global_resource_handles::GlobalResourceHandles;
-use crate::settings::cloud_preferences::CloudPreferencesSettings;
 use crate::themes;
 use crate::default_terminal::DefaultTerminal;
 use crate::gpu_state::{GPUState, GPUStateEvent};

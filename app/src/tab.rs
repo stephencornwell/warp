@@ -534,10 +534,6 @@ enum Indicator {
     Maximized,
     /// We should show a shell indicator for the tab.
     Shell(ShellIndicatorType),
-    Agent {
-        conversation_status: Option<ConversationStatus>,
-    },
-    AmbientAgent,
 }
 
 impl From<TerminalViewState> for Indicator {
@@ -677,9 +673,7 @@ impl<'a> TabComponent<'a> {
         // But if it's on, we want to show the synced indicator if this tab is being synced.
         // If we aren't showing the synced indicator (and we know the setting is on),
         // we will show long-running, error indicators, etc. as applicable.
-        let indicator = if active_pane_is_ambient_agent_session {
-            Indicator::AmbientAgent
-        } else if active_pane_has_unsaved_code_changes {
+        let indicator = if active_pane_has_unsaved_code_changes {
             Indicator::UnsavedChanges
         } else if FeatureFlag::CreatingSharedSessions.is_enabled() && is_being_shared {
             Indicator::Shared
@@ -687,8 +681,6 @@ impl<'a> TabComponent<'a> {
             Indicator::None
         } else if are_inputs_synced {
             Indicator::Synced
-        } else if let Some(agent) = Self::agent_indicator(tab, ctx) {
-            agent
         } else if let Some(shell_indicator_type) = shell_indicator_type {
             Indicator::Shell(shell_indicator_type)
         } else if has_active_pane_state_indicator {
@@ -725,35 +717,6 @@ impl<'a> TabComponent<'a> {
             is_drag_target,
             background_opacity,
         }
-    }
-
-    /// Returns the agent indicator for the focused session's active conversation,
-    /// or `None` if there is no non-empty, non-passive conversation to display.
-    /// When a shell command is long-running the status is overridden to
-    /// `InProgress`, matching vertical-tab behavior.
-    fn agent_indicator(tab: &TabData, app: &AppContext) -> Option<Indicator> {
-        let terminal_view = tab.pane_group.as_ref(app).focused_session_view(app)?;
-        let terminal_view_ref = terminal_view.as_ref(app);
-        let is_long_running = terminal_view_ref.is_long_running();
-        let conversation =
-            BlocklistAIHistoryModel::as_ref(app).active_conversation(terminal_view_ref.id())?;
-
-        // Show in-progress indicator when a shell command is running in the AgentView.
-        // This matches vertical-tab behavior.
-        if is_long_running {
-            return Some(Indicator::Agent {
-                conversation_status: Some(ConversationStatus::InProgress),
-            });
-        }
-
-        if conversation.is_empty() || conversation.is_entirely_passive() {
-            return None;
-        }
-
-        let conversation_status = Some(conversation.status().clone());
-        Some(Indicator::Agent {
-            conversation_status,
-        })
     }
 
     /// Determine if this tab is the active tab.

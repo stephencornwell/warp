@@ -1,7 +1,6 @@
 use warpui::{Entity, ModelContext, ModelHandle};
 
 use crate::terminal::input::buffer_model::InputBufferModel;
-use crate::terminal::input::inline_menu::InlineMenuType;
 
 use super::{BufferState, DynamicEnumSuggestionStatus, InputConfig, InputSuggestionsMode};
 
@@ -180,10 +179,6 @@ impl InputSuggestionsModeModel {
 
     pub fn is_plan_menu(&self) -> bool {
         matches!(self.mode, InputSuggestionsMode::PlanMenu { .. })
-    }
-
-    pub fn inline_menu_type(&self) -> Option<InlineMenuType> {
-        InlineMenuType::from_suggestions_mode(&self.mode)
     }
 
     pub fn is_inline_menu_open(&self) -> bool {

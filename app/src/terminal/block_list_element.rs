@@ -2600,8 +2600,7 @@ impl BlockListElement {
 
         result
     }
-
-
+}
 
 /// With a `WithinBlock<IndexPoint>`, the point will count rows with 0 starting with the beginning
 /// of the block grid. This function adjusts the row so that 0 starts at the first row visible in

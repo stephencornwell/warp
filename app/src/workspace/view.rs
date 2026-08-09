@@ -7651,10 +7651,6 @@ impl Workspace {
         ctx: &AppContext,
     ) -> Box<dyn Element> {
         let mut tab_bar = Flex::row().with_cross_axis_alignment(CrossAxisAlignment::Center);
-        let is_web_anonymous_user = self
-            .auth_state
-            .is_user_web_anonymous_user()
-            .unwrap_or_default();
 
         // Simplified mode for viewing Warp Drive objects, shared sessions, or conversation transcripts on WASM
         #[cfg(target_family = "wasm")]
@@ -7818,7 +7814,7 @@ impl Workspace {
         self.add_configurable_right_side_tab_bar_controls(
             &mut tab_bar,
             &config,
-            is_web_anonymous_user,
+            false,
             appearance,
             ctx,
         );
@@ -8382,13 +8378,7 @@ impl Workspace {
     ) -> Box<dyn Element> {
         let active_tab_data = &self.tabs[self.active_tab_index];
 
-        let active_content = if FeatureFlag::AgentManagementView.is_enabled()
-            && self.current_workspace_state.is_agent_management_view_open
-        {
-            ChildView::new(&self.agent_management_view).finish()
-        } else {
-            ChildView::new(&active_tab_data.pane_group).finish()
-        };
+        let active_content = ChildView::new(&active_tab_data.pane_group).finish();
 
         let terminal_content = match self.maybe_render_workspace_banner(app, appearance) {
             Some(banner_element) => Flex::column()
@@ -8458,12 +8448,8 @@ impl Workspace {
     // warning on mac)
     #[allow(clippy::let_and_return)]
     fn banner_fields(&self, app: &AppContext) -> Option<WorkspaceBannerFields> {
-        let banner_fields = self.render_reauth_banner_element();
-
-        #[cfg(enable_crash_recovery)]
-        let banner_fields = banner_fields.or_else(|| crash_recovery::banner_metadata(app));
-
-        banner_fields
+        let _ = app;
+        None
     }
 
     fn maybe_render_workspace_banner(

@@ -7340,85 +7340,6 @@ impl Workspace {
         ctx.notify();
     }
 
-    fn add_welcome_tab(&mut self, ctx: &mut ViewContext<Self>) {
-        let startup_directory = self.get_new_tab_startup_directory(
-            NewSessionSource::Tab,
-            Some(ctx.window_id()),
-            None,
-            ctx,
-        );
-        self.add_tab_with_pane_layout(
-            PanesLayout::Snapshot(Box::new(PaneNodeSnapshot::Leaf(LeafSnapshot {
-                is_focused: true,
-                custom_vertical_tabs_title: None,
-                contents: LeafContents::Welcome { startup_directory },
-            }))),
-            Arc::new(HashMap::new()),
-            None,
-            ctx,
-        );
-        ctx.notify();
-    }
-
-    fn add_get_started_tab(&mut self, ctx: &mut ViewContext<Self>) {
-        self.add_tab_with_pane_layout(
-            PanesLayout::Snapshot(Box::new(PaneNodeSnapshot::Leaf(LeafSnapshot {
-                is_focused: true,
-                custom_vertical_tabs_title: None,
-                contents: LeafContents::GetStarted,
-            }))),
-            Arc::new(HashMap::new()),
-            None,
-            ctx,
-        );
-        ctx.notify();
-    }
-
-    fn add_docker_sandbox_tab(&mut self, ctx: &mut ViewContext<Self>) {
-        if !FeatureFlag::LocalDockerSandbox.is_enabled() {
-            log::warn!("Local docker sandbox feature flag is disabled");
-            return;
-        }
-        // Docker sandboxes are inherently local — sbx resolution and the
-        // `AvailableShell::new_docker_sandbox_shell` constructor both require
-        // `local_tty`. Other builds (e.g. wasm/remote_tty) log and bail.
-        #[cfg(feature = "local_tty")]
-        {
-            // Resolve sbx via the user's interactive shell PATH (same mechanism
-            // MCP servers use) so we find it when installed via homebrew on Apple
-            // Silicon, `~/.local/bin`, `nvm`-style paths, etc. This is async
-            // because capturing the interactive PATH requires spawning the user's
-            // login shell.
-            let window_id = ctx.window_id();
-            let sbx_future = resolve_sbx_path_from_user_shell(ctx);
-            ctx.spawn(sbx_future, move |me, sbx_path, ctx| {
-                let Some(sbx_path) = sbx_path else {
-                    log::error!("sbx binary not found; cannot create Docker sandbox");
-                    return;
-                };
-                let shell = AvailableShell::new_docker_sandbox_shell(
-                    sbx_path,
-                    DEFAULT_DOCKER_SANDBOX_BASE_IMAGE.map(str::to_owned),
-                );
-                me.add_new_session_tab_internal_with_default_session_mode_behavior(
-                    NewSessionSource::Tab,
-                    Some(window_id),
-                    Some(shell),
-                    None,
-                    true, /* hide_homepage */
-                    DefaultSessionModeBehavior::Ignore,
-                    ctx,
-                );
-                ctx.notify();
-            });
-        }
-        #[cfg(not(feature = "local_tty"))]
-        {
-            let _ = ctx;
-            log::warn!("Docker sandbox requires the `local_tty` feature; ignoring request");
-        }
-    }
-
     // Adds a tab with a specific shell, only meant to be dispatched directly by actions.
     fn add_tab_with_shell(
         &mut self,
@@ -8553,21 +8474,6 @@ impl Workspace {
 
     pub fn is_left_panel_open(&self, ctx: &AppContext) -> bool {
         self.active_tab_pane_group().as_ref(ctx).left_panel_open
-    }
-
-    fn is_readonly_shared_session_active(&self, ctx: &mut ViewContext<Self>) -> bool {
-        let active_terminal_view = self
-            .active_tab_pane_group()
-            .as_ref(ctx)
-            .active_session_view(ctx);
-
-        active_terminal_view.is_some_and(|view| {
-            view.as_ref(ctx)
-                .model
-                .lock()
-                .shared_session_status()
-                .is_reader()
-        })
     }
 
     fn handle_settings_pane_event(
@@ -10812,22 +10718,6 @@ impl Workspace {
         };
     }
 
-    fn handle_openwarp_launch_modal_event(
-        &mut self,
-        event: &OpenWarpLaunchModalEvent,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        match event {
-            OpenWarpLaunchModalEvent::Close => {
-                OneTimeModalModel::handle(ctx).update(ctx, |model, ctx| {
-                    model.mark_openwarp_launch_modal_dismissed(ctx);
-                });
-                self.focus_active_tab(ctx);
-                ctx.notify();
-            }
-        }
-    }
-
     #[cfg(not(target_family = "wasm"))]
     /// Opens a new tab and enters agent view with a prompt from a Linear deeplink.
     pub fn open_linear_issue_work(
@@ -10900,11 +10790,6 @@ impl Workspace {
     /// Determines if the changelog is currently being shown or if the changelog request is
     /// in-flight
     ///
-    fn is_changelog_open_or_pending(&self, ctx: &mut ViewContext<Self>) -> bool {
-        self.current_workspace_state.is_resource_center_open
-            || self.changelog_model.as_ref(ctx).is_check_pending()
-    }
-
     fn focus_active_tab(&mut self, ctx: &mut ViewContext<Self>) {
         self.active_tab_pane_group().update(ctx, |tab, ctx| {
             tab.focus(ctx);
@@ -11914,54 +11799,6 @@ impl Workspace {
         SavePosition::new(Align::new(button).finish(), USER_AVATAR_BUTTON_POSITION_ID).finish()
     }
 
-    fn render_resource_center_button(
-        &self,
-        appearance: &Appearance,
-        ctx: &AppContext,
-    ) -> Box<dyn Element> {
-        // only show the unread indicator if the tips are NOT completed
-        let should_show_unread_indicator = !self.tips_completed.as_ref(ctx).skipped_or_completed;
-        let mut button = self
-            .render_tab_bar_icon_button(
-                appearance,
-                icons::Icon::Lightbulb,
-                &self.mouse_states.resource_center_icon,
-                WorkspaceAction::ToggleResourceCenter,
-                "Warp Essentials".to_string(),
-                self.cached_keybindings[TOGGLE_RESOURCE_CENTER_KEYBINDING_NAME].clone(),
-                false,
-                false,
-            )
-            .finish();
-
-        if should_show_unread_indicator {
-            const INDICATOR_DIAMETER: f32 = 6.;
-            let indicator = Container::new(
-                ConstrainedBox::new(
-                    WarpUiIcon::new(ELLIPSE_SVG_PATH, appearance.theme().accent()).finish(),
-                )
-                .with_height(INDICATOR_DIAMETER)
-                .with_width(INDICATOR_DIAMETER)
-                .finish(),
-            )
-            .finish();
-            let mut stack = Stack::new();
-            stack.add_child(button);
-            stack.add_positioned_child(
-                indicator,
-                OffsetPositioning::offset_from_parent(
-                    Vector2F::zero(),
-                    ParentOffsetBounds::WindowByPosition,
-                    ParentAnchor::TopRight,
-                    ChildAnchor::TopRight,
-                ),
-            );
-            button = stack.finish();
-        }
-
-        Align::new(button).finish()
-    }
-
     fn render_settings_button(&self, appearance: &Appearance) -> Box<dyn Element> {
         Align::new(
             self.render_tab_bar_icon_button(
@@ -12252,12 +12089,6 @@ impl Workspace {
     }
 
     #[cfg(not(target_family = "wasm"))]
-    fn render_resource_center(&self) -> Box<dyn Element> {
-        ConstrainedBox::new(ChildView::new(&self.resource_center_view).finish())
-            .with_width(RESOURCE_CENTER_WIDTH)
-            .finish()
-    }
-
     // Allow let and return because of the conditional linux compilation (otherwise we get a clippy
     // warning on mac)
     #[allow(clippy::let_and_return)]

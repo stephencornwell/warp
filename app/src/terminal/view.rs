@@ -2329,7 +2329,6 @@ impl TerminalView {
         // Re-evaluate git status subscription when the prompt configuration
         // changes (e.g. chips added/removed, input type toggled).
         ctx.subscribe_to_model(&Prompt::handle(ctx), |me, _, _, ctx| {
-            me.update_git_status_subscription(ctx);
         });
 
         ctx.subscribe_to_model(&AltScreenReporting::handle(ctx), move |me, _, evt, ctx| {
@@ -2542,57 +2541,6 @@ impl TerminalView {
     /// Re-evaluate whether this terminal view should be subscribed to git
     /// status updates and subscribe/unsubscribe accordingly.
     #[cfg(feature = "local_fs")]
-    fn update_git_status_subscription(&mut self, ctx: &mut ViewContext<Self>) {
-        let should_subscribe = self.should_subscribe_to_git_status(ctx);
-        if should_subscribe {
-            // Subscribe if we have a repo path but no active subscription.
-            if self.git_repo_status.is_none() {
-                if let Some(repo_path) = self.current_repo_path.clone() {
-                    let result = GitStatusUpdateModel::handle(ctx)
-                        .update(ctx, |model, ctx| model.subscribe(&repo_path, ctx));
-                    match result {
-                        Ok(handle) => {
-                            ctx.subscribe_to_model(&handle, |me, _, _, ctx| {
-                                me.handle_git_repo_status_event(ctx);
-                            });
-                            let weak_for_prompt = handle.downgrade();
-                            self.git_repo_status = Some(handle);
-                            self.current_prompt.update(ctx, |prompt_type, ctx| {
-                                if let PromptType::Dynamic { prompt } = prompt_type {
-                                    prompt.update(ctx, |current_prompt, ctx| {
-                                        current_prompt
-                                            .set_git_repo_status(Some(weak_for_prompt), ctx);
-                                    });
-                                }
-                            });
-                        }
-                        Err(err) => {
-                            log::warn!("GitStatusUpdateModel subscribe failed: {err}");
-                        }
-                    }
-                }
-            }
-        } else if self.git_repo_status.is_some() {
-            self.clear_git_repo_status_subscription(ctx);
-        }
-    }
-
-
-
-
-
-
-
-
-
-
-
-    /// Handle the opening and closing of the usage footer.
-    /// We insert the usage footer as a rich content view into the blocklist
-    /// below the block that triggered the toggle event.
-
-
-    /// Returns true if the window is wide enough to auto-open side panels.
     pub fn can_auto_open_panel(&self) -> bool {
         self.size_info.pane_width_px().as_f32() > MINIMUM_WIDTH_TO_AUTO_OPEN_PANE
     }
@@ -3032,8 +2980,6 @@ impl TerminalView {
             });
         } else if is_long_running {
             self.user_write_ctrl_c_to_pty(ctx);
-        } else {
-            self.maybe_handle_ctrl_c_in_rich_content_block(ctx);
         }
     }
 
@@ -3053,37 +2999,6 @@ impl TerminalView {
     ///
     /// TODO(CORE-3415): We should probably remove the FixedBindings for ctrl-c
     /// in the SSH warpification blocks and handle them here as well.
-    fn maybe_handle_ctrl_c_in_rich_content_block(&mut self, ctx: &mut ViewContext<Self>) {
-        if self.active_ai_block(ctx).is_some() {
-            self.cancel_active_conversation_via_status_bar(ctx);
-        } else if BlocklistAIHistoryModel::as_ref(ctx)
-            .active_conversation(self.view_id)
-            .is_some_and(|c| c.status().is_in_progress())
-        {
-            // No unfinished AI block, but the conversation is still in progress.
-            // This happens when a server-side subagent (e.g., conversation search)
-            // is running — the parent AI block is already finished but the response
-            // stream is still active. Route Ctrl+C to the status bar to cancel it.
-            self.cancel_active_conversation_via_status_bar(ctx);
-        } else if self.has_active_init_project(ctx) {
-            if let Some(model) = &self.active_init_project_model {
-                model.update(ctx, |m, ctx| m.cancel(ctx));
-            }
-        } else if self
-            .passive_suggestions_models
-            .legacy
-            .as_ref(ctx)
-            .is_passive_code_diff_being_generated()
-        {
-            // Handle Ctrl-C for passive code generation blocks ("Generating fix..." state)
-            self.abort_prompt_and_code_suggestions(ctx);
-        } else if let Some(active_env_var_block) = self.active_env_var_collection_block(ctx) {
-            active_env_var_block.update(ctx, |env_var_block, ctx| {
-                env_var_block.handle_ctrl_c(ctx);
-            });
-        }
-    }
-
     fn ctrl_d(&mut self, ctx: &mut ViewContext<Self>) {
         let arc = self.model.clone();
         let mut model = arc.lock();
@@ -3160,7 +3075,6 @@ impl TerminalView {
 
     fn control_sequence_on_terminal(&mut self, bytes: &[u8], ctx: &mut ViewContext<Self>) {
         if self.is_long_running() {
-            self.on_ssh_warpification_key_event(Some(SshKeyEvent::from_bytes(bytes)), ctx);
             self.write_user_bytes_to_pty(bytes.to_owned(), ctx);
         } else {
             safe_warn!(
@@ -3229,7 +3143,6 @@ impl TerminalView {
     /// Generally, this should be control characters rather than printable characters.
     fn keydown_on_terminal(&mut self, characters: &str, ctx: &mut ViewContext<Self>) {
         if self.is_long_running() {
-            self.on_ssh_warpification_key_event(Some(SshKeyEvent::from_chars(characters)), ctx);
             self.highlighted_link.invalidate();
             self.report_possible_typeahead(characters);
             self.write_user_bytes_to_pty(characters.as_bytes().to_vec(), ctx);
@@ -3273,8 +3186,6 @@ impl TerminalView {
     /// We can assume `characters` consists of all printable characters, and therefore,
     /// can go into the input box.
     fn typed_characters_on_terminal(&mut self, characters: &str, ctx: &mut ViewContext<Self>) {
-        self.on_ssh_warpification_key_event(Some(SshKeyEvent::from_chars(characters)), ctx);
-
         if self.should_write_typed_chars_to_pty(ctx) {
             self.highlighted_link.invalidate();
             self.report_possible_typeahead(characters);
@@ -4922,8 +4833,7 @@ impl TerminalView {
                                         if old_repo_path.as_ref() != Some(repo_path) {
                                             // Drop old handle (unsubscribes automatically).
                                             me.git_repo_status = None;
-                                            me.update_git_status_subscription(ctx);
-                                        }
+                                                                        }
 
                                         // Notify chips of the new repo path.
                                         me.input.update(ctx, |input, ctx| {
@@ -8728,45 +8638,6 @@ impl TerminalView {
         }
     }
 
-    fn context_menu_open_share_block_modal(
-        &mut self,
-        block_index: BlockIndex,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        if AuthStateProvider::as_ref(ctx)
-            .get()
-            .is_anonymous_or_logged_out()
-        {
-            AuthManager::handle(ctx).update(ctx, |auth_manager, ctx| {
-                auth_manager.attempt_login_gated_feature(
-                    "Share Block",
-                    AuthViewVariant::ShareRequirementCloseable,
-                    ctx,
-                )
-            });
-            return;
-        }
-
-        ();
-        self.tips_completed.update(ctx, |tips, ctx| {
-            mark_feature_used_and_write_to_user_defaults(
-                Tip::Hint(TipHint::BlockAction),
-                tips,
-                ctx,
-            );
-            ctx.notify();
-        });
-        ctx.emit(Event::ShareModalOpened(block_index));
-        self.close_context_menu(ctx, true);
-        ctx.notify();
-    }
-
-    fn open_share_block_modal(&mut self, ctx: &mut ViewContext<Self>) {
-        if let Some(selected_index) = self.selected_blocks.tail() {
-            self.context_menu_open_share_block_modal(selected_index, ctx);
-        }
-    }
-
     fn context_menu_copy_blocks(&mut self, ctx: &mut ViewContext<Self>) {
         self.copy_blocks(BlockEntity::CommandAndOutput, ctx);
     }
@@ -9288,33 +9159,6 @@ impl TerminalView {
             }
         }
     }
-
-    pub(crate) fn enter_ambient_agent_setup(
-        &mut self,
-        initial_prompt: Option<String>,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        if !FeatureFlag::CloudMode.is_enabled()
-            || !self.model.lock().shared_session_status().is_view_pending()
-        {
-            // Ambient agent setup can only be done inside a shared session viewer; otherwise the backing terminal manager is incorrect.
-            return;
-        }
-
-        // Don't pass an initial prompt, which auto-sends the request.
-        self.enter_agent_view_for_new_conversation(None, AgentViewEntryOrigin::CloudAgent, ctx);
-
-        if let Some(prompt) = initial_prompt {
-            self.input.update(ctx, |input, ctx| {
-                input.replace_buffer_content(&prompt, ctx);
-            });
-        }
-        self.focus_input_box(ctx);
-    }
-
-
-    /// Returns true when there exists an AgentViewBlock with origin LongRunningCommand that matches
-    /// the given conversation id.
 
     fn update_block_filter_for_block_with_active_editor(
         &mut self,

@@ -15,8 +15,6 @@ use warpui::{
     ViewContext, ViewHandle, WeakViewHandle,
 };
 
-#[cfg(feature = "local_fs")]
-use crate::code::file_tree::FileTreeEvent;
 use crate::coding_panel_enablement_state::CodingPanelEnablementState;
 use crate::pane_group::working_directories::WorkingDirectory;
 use crate::pane_group::{PaneGroup, WorkingDirectoriesEvent, WorkingDirectoriesModel};
@@ -38,17 +36,19 @@ use crate::workspace::view::{
 };
 use crate::{
     appearance::Appearance,
-    code::file_tree::FileTreeView,
     pane_group::pane::view::header::{components::HEADER_EDGE_PADDING, PANE_HEADER_HEIGHT},
     pane_group::{self},
     terminal::resizable_data::{ModalType, ResizableData},
     ui_components::{
         buttons::{icon_button, icon_button_with_color},
-        icons,
+        icons::{self, Icon},
     },
     util::bindings::keybinding_name_to_display_string,
     workspace::WorkspaceAction,
 };
+
+const MIN_SIDEBAR_WIDTH: f32 = 240.;
+const MAX_SIDEBAR_WIDTH_RATIO: f32 = 0.5;
 
 #[derive(Default)]
 struct MouseStateHandles {
@@ -370,33 +370,6 @@ impl LeftPanelView {
         global_search_view
     }
 
-    fn get_or_create_file_tree_view_for_pane_group(
-        &mut self,
-        pane_group_id: warpui::EntityId,
-        ctx: &mut ViewContext<Self>,
-    ) -> ViewHandle<FileTreeView> {
-        if let Some(view) = self
-            .working_directories_model
-            .as_ref(ctx)
-            .get_file_tree_view(pane_group_id)
-        {
-            return view;
-        }
-
-        let file_tree_view = ctx.add_typed_action_view(FileTreeView::new);
-
-        #[cfg(feature = "local_fs")]
-        ctx.subscribe_to_view(&file_tree_view, |me, _, event, ctx| {
-            me.handle_file_tree_event(event, ctx);
-        });
-
-        self.working_directories_model.update(ctx, |model, _ctx| {
-            model.store_file_tree_view(pane_group_id, file_tree_view.clone());
-        });
-
-        file_tree_view
-    }
-
     pub fn active_global_search_view(
         &self,
         app: &AppContext,
@@ -411,34 +384,12 @@ impl LeftPanelView {
             .get_global_search_view(pane_group_id)
     }
 
-    fn active_file_tree_view(&self, app: &AppContext) -> Option<ViewHandle<FileTreeView>> {
-        let pane_group_id = self
-            .active_pane_group
-            .as_ref()
-            .and_then(|pane_group| pane_group.upgrade(app))
-            .map(|pane_group| pane_group.id())?;
-        self.working_directories_model
-            .as_ref(app)
-            .get_file_tree_view(pane_group_id)
-    }
-
     pub fn active_view(&self) -> ToolPanelView {
         self.active_view.get()
     }
 
     pub fn is_file_tree_active(&self) -> bool {
         self.active_view.get() == ToolPanelView::ProjectExplorer
-    }
-
-    pub(crate) fn auto_expand_active_file_tree_to_most_recent_directory(
-        &mut self,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        if let Some(file_tree_view) = self.active_file_tree_view(ctx) {
-            file_tree_view.update(ctx, |view, ctx| {
-                view.auto_expand_to_most_recent_directory(ctx);
-            });
-        }
     }
 
     pub fn restore_active_view_from_snapshot(
@@ -468,7 +419,6 @@ impl LeftPanelView {
 
         if let Some(previous_pane_group_id) = previous_pane_group_id {
             if previous_pane_group_id != pane_group_id {
-                self.deactivate_file_tree_view_for_pane_group(previous_pane_group_id, ctx);
             }
         }
 
@@ -612,48 +562,6 @@ impl LeftPanelView {
         }
     }
 
-    #[cfg(feature = "local_fs")]
-    fn handle_file_tree_event(&mut self, event: &FileTreeEvent, ctx: &mut ViewContext<Self>) {
-        match event {
-            FileTreeEvent::FileRenamed { old_path, new_path } => {
-                ctx.emit(LeftPanelEvent::FileTree(pane_group::Event::FileRenamed {
-                    old_path: old_path.clone(),
-                    new_path: new_path.clone(),
-                }));
-            }
-            FileTreeEvent::FileDeleted { path } => {
-                ctx.emit(LeftPanelEvent::FileTree(pane_group::Event::FileDeleted {
-                    path: path.clone(),
-                }));
-            }
-            FileTreeEvent::AttachAsContext { path } => {
-                ctx.emit(LeftPanelEvent::FileTree(
-                    pane_group::Event::AttachPathAsContext { path: path.clone() },
-                ));
-            }
-            FileTreeEvent::OpenFile {
-                path,
-                target,
-                line_col,
-            } => {
-                ctx.emit(LeftPanelEvent::OpenFileWithTarget {
-                    path: path.clone(),
-                    target: target.clone(),
-                    line_col: *line_col,
-                });
-            }
-            FileTreeEvent::CDToDirectory { path } => {
-                ctx.emit(LeftPanelEvent::FileTree(pane_group::Event::CDToDirectory {
-                    path: path.clone(),
-                }));
-            }
-            FileTreeEvent::OpenDirectoryInNewTab { path } => {
-                ctx.emit(LeftPanelEvent::FileTree(
-                    pane_group::Event::OpenDirectoryInNewTab { path: path.clone() },
-                ));
-            }
-        }
-    }
 }
 
 impl Entity for LeftPanelView {
@@ -918,18 +826,7 @@ impl View for LeftPanelView {
 
         let content_area: Box<dyn Element> = match self.active_view.get() {
             ToolPanelView::ProjectExplorer => {
-                if let Some(file_tree_view) = self.active_file_tree_view(app) {
-                    Shrinkable::new(
-                        1.0,
-                        Container::new(ChildView::new(&file_tree_view).finish())
-                            .with_padding_left(2.)
-                            .with_padding_right(2.)
-                            .finish(),
-                    )
-                    .finish()
-                } else {
-                    Shrinkable::new(1.0, Container::new(Empty::new().finish()).finish()).finish()
-                }
+                Shrinkable::new(1.0, Container::new(Empty::new().finish()).finish()).finish()
             }
             ToolPanelView::GlobalSearch { .. } => {
                 if let Some(global_search_view) = self.active_global_search_view(app) {

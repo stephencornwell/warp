@@ -11,8 +11,6 @@ use warpui::{AppContext, SingletonEntity as _};
 use warpui::{Entity, EntityId, ModelContext};
 use warpui::{ModelHandle, ViewHandle};
 
-#[cfg(feature = "local_fs")]
-use crate::code::file_tree::FileTreeView;
 use crate::code_review::comments::{
     AttachedReviewComment, PendingImportedReviewComment, ReviewCommentBatch,
 };
@@ -95,7 +93,6 @@ pub struct WorkingDirectoriesModel {
     /// Per-pane-group tracking of the focused repository root path.
     focused_repo: HashMap<EntityId, Option<PathBuf>>,
     global_search_views: HashMap<EntityId, ViewHandle<GlobalSearchView>>,
-    file_tree_views: HashMap<EntityId, ViewHandle<FileTreeView>>,
 }
 
 #[derive(Default)]
@@ -286,18 +283,6 @@ impl WorkingDirectoriesModel {
         self.global_search_views.get(&pane_group_id).cloned()
     }
 
-    pub fn store_file_tree_view(
-        &mut self,
-        pane_group_id: EntityId,
-        view: ViewHandle<FileTreeView>,
-    ) {
-        self.file_tree_views.insert(pane_group_id, view);
-    }
-
-    pub fn get_file_tree_view(&self, pane_group_id: EntityId) -> Option<ViewHandle<FileTreeView>> {
-        self.file_tree_views.get(&pane_group_id).cloned()
-    }
-
     /// Permanently removes all state associated with a pane group.
     /// This should be called when a tab is closed (pane group is destroyed),
     /// as opposed to handle_empty_pane_group which is called when working directories
@@ -309,7 +294,6 @@ impl WorkingDirectoriesModel {
         // Clean up views that should persist in handle_empty_pane_group e.g. there's only a settings pane in the pane group
         // but need to be removed when the pane group is destroyed
         self.global_search_views.remove(&pane_group_id);
-        self.file_tree_views.remove(&pane_group_id);
         self.code_review_views.remove(&pane_group_id);
         self.focused_repo.remove(&pane_group_id);
     }
@@ -684,20 +668,6 @@ impl WorkingDirectoriesModel {
         &self,
         _pane_group_id: EntityId,
     ) -> Option<ViewHandle<GlobalSearchView>> {
-        None
-    }
-
-    pub fn store_file_tree_view(
-        &mut self,
-        _pane_group_id: EntityId,
-        _view: ViewHandle<crate::code::file_tree::FileTreeView>,
-    ) {
-    }
-
-    pub fn get_file_tree_view(
-        &self,
-        _pane_group_id: EntityId,
-    ) -> Option<ViewHandle<crate::code::file_tree::FileTreeView>> {
         None
     }
 

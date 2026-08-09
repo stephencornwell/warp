@@ -99,7 +99,6 @@ pub enum SaveOutcome {
     Succeeded,
 }
 
-pub mod file_tree;
 pub mod footer;
 mod icon;
 
@@ -113,7 +112,6 @@ pub mod view;
 
 pub fn init(app: &mut AppContext) {
     self::view::init(app);
-    self::file_tree::init(app);
     #[cfg(not(target_family = "wasm"))]
     self::find_references_view::init(app);
 }

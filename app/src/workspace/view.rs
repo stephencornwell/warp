@@ -9,8 +9,6 @@ mod startup_directory;
 #[cfg(test)]
 #[path = "view_test.rs"]
 mod tests;
-#[cfg(target_family = "wasm")]
-mod wasm_view;
 
 use crate::app_state::{
     LeafContents, LeafSnapshot, LeftPanelDisplayedTab, LeftPanelSnapshot, NotebookPaneSnapshot,

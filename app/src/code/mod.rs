@@ -9,7 +9,6 @@ use warpui::AppContext;
 pub mod editor;
 pub mod editor_management;
 pub mod global_buffer_model;
-#[cfg(not(target_family = "wasm"))]
 pub mod lsp_logs;
 
 #[derive(Debug, thiserror::Error)]

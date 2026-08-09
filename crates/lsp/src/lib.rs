@@ -8,14 +8,12 @@ pub mod install;
 mod manager;
 mod model;
 
-#[cfg_attr(not(target_family = "wasm"), path = "server_repo_watcher.rs")]
-#[cfg_attr(target_family = "wasm", path = "server_repo_watcher_wasm.rs")]
+#[path = "server_repo_watcher.rs"]
 mod server_repo_watcher;
 
 pub mod servers;
 mod service;
 pub mod supported_servers;
-#[cfg(not(target_arch = "wasm32"))]
 mod transport;
 pub mod types;
 

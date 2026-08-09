@@ -2331,24 +2331,6 @@ impl Input {
         });
     }
 
-    fn should_block_cloud_mode_setup_submission(&self, app: &AppContext) -> bool {
-        if !FeatureFlag::CloudModeSetupV2.is_enabled() {
-            return false;
-        }
-
-        self.ambient_agent_view_model()
-            .is_some_and(|ambient_agent_model| {
-                let ambient_agent_model = ambient_agent_model.as_ref(app);
-                ambient_agent_model.is_ambient_agent()
-                    && !ambient_agent_model.is_configuring_ambient_agent()
-                    && !ambient_agent_model.is_agent_running()
-            })
-    }
-
-    /// Try to execute a command in the local session that was
-    /// requested by a shared session participant (sharer or viewer).
-    ///
-    /// Returns `true` if the command was executed, `false` otherwise.
     pub fn try_execute_command_on_behalf_of_shared_session_participant(
         &mut self,
         command: &str,
@@ -2702,28 +2684,6 @@ impl Input {
     }
 
     /// Closes the workflows panel.
-    fn clear_selected_workflow(&mut self, ctx: &mut ViewContext<Self>) {
-        // Clear the env var state if we had one.
-        // `take()` closes the Workflows panel because the panel is only
-        // rendered if `selected_workflow_state` is Some(..).
-        if let Some(state) = self.workflows_state.selected_workflow_state.take() {
-            self.update_workflows_info_box_expanded_setting(ctx, &state);
-        }
-        ctx.notify();
-    }
-
-    /// Hides the workflows panel, persisting the shift-tab UX.
-    fn hide_workflows_info_box(&mut self, ctx: &mut ViewContext<Self>) {
-        if let Some(state) = &mut self.workflows_state.selected_workflow_state {
-            state.should_show_more_info_view = false;
-        }
-        if let Some(state) = self.workflows_state.selected_workflow_state.clone() {
-            self.update_workflows_info_box_expanded_setting(ctx, &state);
-        }
-        ctx.notify();
-    }
-
-    /// Returns the starting byte index position of the last selection.
     fn start_byte_index_of_last_selection(&self, ctx: &ViewContext<Self>) -> ByteOffset {
         self.editor
             .as_ref(ctx)

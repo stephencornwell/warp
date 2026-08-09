@@ -34,12 +34,6 @@ use crate::util::file::external_editor::{settings::EditorLayout, EditorSettings}
 use crate::util::truncation::truncate_from_end;
 
 use crate::projects::ProjectManagementModel;
-use crate::terminal::view::init_environment::{
-    mode_selector::{
-        EnvironmentSetupMode, EnvironmentSetupModeSelector, EnvironmentSetupModeSelectorEvent,
-    },
-    InitEnvironmentBlock, InitEnvironmentBlockEvent,
-};
 
 pub use self::link_detection::GridHighlightedLink;
 pub use self::link_detection::{RichContentLink, RichContentLinkTooltipInfo};

@@ -414,7 +414,6 @@ pub enum Event {
     OpenAutoReloadModal {
         purchased_credits: i32,
     },
-    AskAIAssistant(AskAIType),
     /// Pass input sync event up from underlying TerminalViews
     /// to the Workspace to sync throughout the window.
     SyncInput(SyncEvent),
@@ -425,43 +424,12 @@ pub enum Event {
     TerminalViewStateChanged,
     /// Event used to propagate guided onboarding tutorial completion to the workspace.
     OnboardingTutorialCompleted,
-    // Tell the workspace to open the workflow modal.
-    OpenWorkflowModalWithCommand(String),
-    // Tell the workspace to open the workflow for edit.
-    OpenCloudWorkflowForEdit(SyncId),
-    // Tell the workspace to open the share dialog for the given drive object. The share dialog will
-    // open in the index. If the invitee email is provided, it will be added to the share dialog.
-    OpenDriveObjectShareDialog {
-        cloud_object_type_and_id: CloudObjectTypeAndId,
-        invitee_email: Option<String>,
-        source: SharingDialogSource,
-    },
-    // Tell the workspace to open the workflow modal with an unsaved workflow.
-    OpenPromptEditor,
-    OpenAgentToolbarEditor,
-    OpenCLIAgentToolbarEditor,
     /// tell the workspace to open a file within Warp.
     OpenFileInWarp {
         /// The file path to open.
         path: PathBuf,
         /// The session that the path was opened from.
         session: Arc<Session>,
-    },
-    OpenWarpDriveLink {
-        open_warp_drive_args: OpenWarpDriveObjectArgs,
-    },
-    #[cfg(feature = "local_fs")]
-    OpenCodeInWarp {
-        source: CodeSource,
-        layout: crate::util::file::external_editor::settings::EditorLayout,
-        line_col: Option<LineAndColumnArg>,
-    },
-    #[cfg(feature = "local_fs")]
-    PreviewCodeInWarp {
-        source: CodeSource,
-    },
-    OpenCodeDiff {
-        view: ViewHandle<CodeDiffView>,
     },
     /// Tell the workspace to run a workflow in the active tab's active session.
     RunWorkflow {
@@ -489,16 +457,6 @@ pub enum Event {
     FocusPaneInWorkspace {
         locator: PaneViewLocator,
     },
-    ViewInWarpDrive(WarpDriveItemId),
-    MoveToSpace {
-        cloud_object_type_and_id: CloudObjectTypeAndId,
-        space: Space,
-    },
-    PaneFocused,
-    DroppedOnTabBar {
-        origin: ActionOrigin,
-        pane_id: PaneId,
-    },
     /// Switches the focus to the specified tab and moves the given
     /// pane_id into the tab as a hidden pane. This will insert it into the pane
     /// group, but it will not yet render it
@@ -516,65 +474,20 @@ pub enum Event {
     },
     /// Clears the hovered tab index so it no longer appears as highlighted drop target
     ClearHoveredTabIndex,
-    OpenWarpDriveObjectInPane(ObjectUid),
-    OpenSuggestedAgentModeWorkflowModal {
-        workflow_and_id: SuggestedAgentModeWorkflowAndId,
-    },
-    OpenSuggestedRuleModal {
-        rule_and_id: SuggestedRuleAndId,
-    },
-    OpenAIFactCollection {
-        /// If set, open the fact collection to the specific rule.
-        sync_id: Option<SyncId>,
-    },
-    AnonymousUserSignup,
     /// Request that the workspace open the command palette.
     OpenPalette {
         mode: PaletteMode,
         source: PaletteSource,
         query: Option<String>,
     },
-    /// A terminal pane SSHed into a remote host has initiated a file upload
-    /// using a local session.
-    FileUploadCommand {
-        upload_id: FileUploadId,
-        command: String,
-        remote_pane_id: TerminalPaneId,
-        local_pane_id: TerminalPaneId,
-    },
-    /// A local terminal pane managing a file upload is requesting a password.
-    FileUploadPasswordPending {
-        local_pane_id: TerminalPaneId,
-    },
-    /// A local terminal pane managing a file upload has completed its task.
-    FileUploadFinished {
-        local_pane_id: TerminalPaneId,
-        exit_code: ExitCode,
-    },
-    OpenFileUploadSession {
-        remote_pane_id: TerminalPaneId,
-        upload_id: FileUploadId,
-    },
-    TerminateFileUploadSession {
-        remote_pane_id: TerminalPaneId,
-        upload_id: FileUploadId,
-    },
     ShowToast {
         message: String,
         flavor: ToastFlavor,
         pane_id: Option<PaneId>,
     },
-    SignupAnonymousUser {
-        entrypoint: AnonymousUserSignupEntrypoint,
-    },
     OpenThemeChooser,
     InvalidatedActiveConversation,
     OpenConversationHistory,
-    OpenAddPromptPane {
-        /// The initial prompt body content.
-        initial_content: Option<String>,
-    },
-    OpenAddRulePane,
     OpenFilesPalette {
         source: PaletteSource,
     },
@@ -598,9 +511,6 @@ pub enum Event {
     #[cfg(feature = "local_fs")]
     FileDeleted {
         path: PathBuf,
-    },
-    OpenAgentProfileEditor {
-        profile_id: ClientProfileId,
     },
     RepoChanged,
     AttachPathAsContext {

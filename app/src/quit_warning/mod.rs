@@ -66,11 +66,10 @@ impl QuitScope<'_> {
                 pane_id,
                 pane_group_id,
                 window_id,
-            } => pane_group
-                .terminal_view_from_pane_id(*pane_id, ctx)
-                .map(|pane| pane.session_navigation_data(*pane_group_id, *window_id, ctx))
-                .into_iter()
-                .collect_vec(),
+            } => {
+                let _ = (pane_group, pane_id, pane_group_id, window_id);
+                SessionNavigationData::all_sessions(ctx).collect_vec()
+            }
             Self::Tabs(ref tabs) => {
                 // We can't use SessionNavigationData::all_sessions here, as the caller is likely
                 // updating the tab's Workspace. This temporarily removes it from the app context,

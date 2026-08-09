@@ -24,7 +24,7 @@ use crate::view_components::action_button::ActionButton;
 use crate::{
     menu::MenuItem,
     settings::PaneSettings,
-    settings_view::{environments_page::EnvironmentsPageView, SettingsView},
+    settings_view::SettingsView,
     terminal::{available_shells::AvailableShell, TerminalView},
 };
 use serde::{Deserialize, Serialize};
@@ -173,32 +173,6 @@ impl PaneId {
     }
 
     /// Creates a [`PaneId`] from a [`ViewContext<PaneView<FileNotebookView>>`]
-    pub fn from_file_pane_ctx(ctx: &ViewContext<PaneView<FileNotebookView>>) -> Self {
-        Self::new_from_ctx(IPaneType::File, ctx)
-    }
-
-    /// Creates a [`PaneId`] from a [`ViewContext<PaneView<NotebookView>>`]
-    pub fn from_notebook_pane_ctx(ctx: &ViewContext<PaneView<NotebookView>>) -> Self {
-        Self::new_from_ctx(IPaneType::Notebook, ctx)
-    }
-
-
-    /// Creates a [`PaneId`] from a [`ViewContext<PaneView<EnvironmentsPageView>>`]
-    pub fn from_environment_management_pane_ctx(
-        ctx: &ViewContext<PaneView<EnvironmentsPageView>>,
-    ) -> Self {
-        Self::new_from_ctx(IPaneType::EnvironmentManagement, ctx)
-    }
-
-    /// Creates a [`PaneId`] from a [`ViewContext<PaneView<TextView>>`]
-    pub fn from_code_pane_ctx(ctx: &ViewContext<PaneView<CodeView>>) -> Self {
-        Self::new_from_ctx(IPaneType::Code, ctx)
-    }
-
-    /// Creates a [`PaneId`] from a [`ViewContext<PaneView<CodeDiffView>>`]
-    pub fn from_code_diff_pane_ctx(ctx: &ViewContext<PaneView<CodeDiffView>>) -> Self {
-        Self::new_from_ctx(IPaneType::CodeDiff, ctx)
-    }
 
     /// Creates a [`PaneId`] from a [`ViewContext<PaneView<SettingsView>>`]
     pub fn from_settings_pane_ctx(ctx: &ViewContext<PaneView<SettingsView>>) -> Self {
@@ -220,40 +194,6 @@ impl PaneId {
         Self::new(IPaneType::Terminal, terminal_pane_view)
     }
 
-    /// Creates a [`PaneId`] from a [`PaneView<NotebookView>`] entity ID.
-    pub fn from_notebook_pane_view(
-        notebook_pane_view: &ViewHandle<PaneView<NotebookView>>,
-    ) -> Self {
-        Self::new(IPaneType::Notebook, notebook_pane_view)
-    }
-
-    /// Creates a [`PaneId`] from a [`PaneView<FileNotebookView>`] entity ID.
-    pub fn from_file_pane_view(file_pane_view: &ViewHandle<PaneView<FileNotebookView>>) -> Self {
-        Self::new(IPaneType::File, file_pane_view)
-    }
-
-    /// Creates a [`PaneId`] from a [`PaneView<TextView>`] entity ID.
-    pub fn from_code_pane_view(code_pane_view: &ViewHandle<PaneView<CodeView>>) -> Self {
-        Self::new(IPaneType::Code, code_pane_view)
-    }
-
-    /// Creates a [`PaneId`] from a [`PaneView<CodeDiffView>`] entity ID.
-    pub fn from_code_diff_pane_view(
-        code_diff_pane_view: &ViewHandle<PaneView<CodeDiffView>>,
-    ) -> Self {
-        Self::new(IPaneType::CodeDiff, code_diff_pane_view)
-    }
-
-
-    /// Creates a [`PaneId`] from a [`PaneView<EnvironmentsPageView>`] entity ID.
-    pub fn from_environment_management_pane_view(
-        environment_management_pane_view: &ViewHandle<PaneView<EnvironmentsPageView>>,
-    ) -> Self {
-        Self::new(
-            IPaneType::EnvironmentManagement,
-            environment_management_pane_view,
-        )
-    }
 
     /// Creates a [`PaneId`] from a [`PaneView<SettingsView>`] entity ID.
     pub fn from_settings_pane_view(
@@ -346,29 +286,11 @@ impl PaneId {
             IPaneType::Terminal => {
                 ChildView::<PaneView<TerminalView>>::with_id(self.0.pane_view_id).finish()
             }
-            IPaneType::Notebook => {
-                ChildView::<PaneView<NotebookView>>::with_id(self.0.pane_view_id).finish()
-            }
-            IPaneType::File => {
-                ChildView::<PaneView<FileNotebookView>>::with_id(self.0.pane_view_id).finish()
-            }
-            IPaneType::Code => {
-                ChildView::<PaneView<CodeView>>::with_id(self.0.pane_view_id).finish()
-            }
-            IPaneType::CodeDiff => {
-                ChildView::<PaneView<CodeDiffView>>::with_id(self.0.pane_view_id).finish()
-            }
-            IPaneType::EnvironmentManagement => {
-                ChildView::<PaneView<EnvironmentsPageView>>::with_id(self.0.pane_view_id).finish()
-            }
             IPaneType::Settings => {
                 ChildView::<PaneView<SettingsView>>::with_id(self.0.pane_view_id).finish()
             }
             IPaneType::GetStarted => {
                 ChildView::<PaneView<GetStartedView>>::with_id(self.0.pane_view_id).finish()
-            }
-            IPaneType::NetworkLog => {
-                ChildView::<PaneView<NetworkLogView>>::with_id(self.0.pane_view_id).finish()
             }
             IPaneType::Welcome => {
                 ChildView::<PaneView<WelcomeView>>::with_id(self.0.pane_view_id).finish()

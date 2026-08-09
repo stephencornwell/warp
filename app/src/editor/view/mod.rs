@@ -4077,24 +4077,7 @@ impl EditorView {
         let is_agent_responding = false;
 
         // If there is a pending passive ai block, we don't want ctrl+c to clear the buffer.
-        let is_pending_passive_ai_block = terminal_view.is_some_and(|terminal_view| {
-            let terminal_model = terminal_view.as_ref(ctx).model.lock();
-            terminal_model
-                .block_list()
-                .last_non_hidden_ai_block_handle(ctx)
-                .is_some_and(|ai_block| {
-                    let block = ai_block.as_ref(ctx);
-                    // Ctrl+c should dismiss the passive ai block only if the keybindings for the block are not hidden.
-                    let is_pending_code_diff = block.find_undismissed_code_diff(ctx).is_some();
-                    let is_pending_suggested_prompt = block
-                        .pending_unit_test_suggestion(ctx)
-                        .is_some_and(|suggested_prompt| {
-                            !suggested_prompt.as_ref(ctx).is_keybindings_hidden()
-                        });
-                    block.is_passive_conversation(ctx)
-                        && (is_pending_code_diff || is_pending_suggested_prompt)
-                })
-        });
+        let is_pending_passive_ai_block = false;
 
         let mut cleared_buffer_len = 0;
         if (!self.vim_mode_enabled(ctx)
@@ -4684,9 +4667,9 @@ impl EditorView {
 
         let file_picker_config = FilePickerConfiguration::new().allow_multi_select();
 
-        let is_unsupported_model = self.image_context_options.is_unsupported_model();
-        let num_images_attached = self.image_context_options.num_images_attached();
-        let num_images_in_conversation = self.image_context_options.num_images_in_conversation();
+        let is_unsupported_model = false;
+        let num_images_attached = 0;
+        let num_images_in_conversation = 0;
 
         ctx.open_file_picker(
             move |result, ctx| {
@@ -4811,8 +4794,8 @@ impl EditorView {
         file_paths: Vec<String>,
         ctx: &mut ViewContext<Self>,
     ) {
-        if !self.image_context_options.is_enabled() {
-            if self.image_context_options.is_unsupported_model() {
+        if false {
+            if false {
                 let window_id = ctx.window_id();
                 ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                     toast_stack.add_ephemeral_toast(
@@ -4926,8 +4909,8 @@ impl EditorView {
         pending_images: Vec<AttachedImage>,
         ctx: &mut ViewContext<Self>,
     ) {
-        if !self.image_context_options.is_enabled() {
-            if self.image_context_options.is_unsupported_model() {
+        if false {
+            if false {
                 let window_id = ctx.window_id();
                 ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                     toast_stack.add_ephemeral_toast(
@@ -5028,11 +5011,7 @@ impl EditorView {
                     });
                 }
 
-                if let Some(context_model) = &this.context_model {
-                    context_model.update(ctx, |context_model, ctx| {
-                        context_model.append_pending_images(pending_images, ctx);
-                    });
-                }
+                let _ = pending_images;
 
                 ctx.emit(Event::ProcessingAttachedImages(false));
             },
@@ -7720,39 +7699,8 @@ impl EditorView {
         icon_size: f32,
         appearance: &Appearance,
     ) -> Option<Box<dyn Element>> {
-        let Some(ai_context_menu_state) = &self.ai_context_menu_state else {
-            return None;
-        };
-
-        let button = icon_button(
-            appearance,
-            icons::Icon::AtSign,
-            false,
-            ai_context_menu_state
-                .at_context_menu_button_mouse_handle
-                .clone(),
-        )
-        .with_style(UiComponentStyles {
-            width: Some(icon_size),
-            height: Some(icon_size),
-            padding: Some(Coords::uniform(icon_size / 10.)),
-            ..Default::default()
-        });
-        let button =
-            button
-                .with_tooltip_position(ButtonTooltipPosition::Above)
-                .with_tooltip(self.render_menu_button_tooltip(
-                    "Search files and directories".to_string(),
-                    appearance,
-                ))
-                .build()
-                .with_cursor(Cursor::PointingHand)
-                .on_click(move |ctx, _, _| {
-                    ctx.dispatch_typed_action(EditorAction::SetAIContextMenuOpen(true));
-                })
-                .finish();
-
-        Some(button)
+        let _ = (icon_size, appearance);
+        None
     }
 
     /// Commits the currently composed text from the IME (if there is any) to properly handle one of the following:
@@ -7840,31 +7788,8 @@ impl EditorView {
         let input_settings = InputSettings::as_ref(ctx);
         let is_universal_input_enabled = input_settings.is_universal_developer_input_enabled(ctx);
         let is_any_ai_enabled = false;
-        let should_show_image = !FeatureFlag::AgentView.is_enabled()
-            && self.image_context_options.should_show_button()
-            && !is_universal_input_enabled;
-        let should_show_at_context_menu = !FeatureFlag::AgentView.is_enabled()
-            && !is_universal_input_enabled
-            && is_any_ai_enabled
-            && {
-                if !self.is_ai_input {
-                    // In terminal mode, check the setting
-                    if !*InputSettings::as_ref(ctx).at_context_menu_in_terminal_mode {
-                        false
-                    } else {
-                        self.ai_context_menu_state
-                            .as_ref()
-                            .map(|state| state.ai_context_menu.as_ref(ctx).should_render(ctx))
-                            .unwrap_or(false)
-                    }
-                } else {
-                    // In AI mode, always allow if available
-                    self.ai_context_menu_state
-                        .as_ref()
-                        .map(|state| state.ai_context_menu.as_ref(ctx).should_render(ctx))
-                        .unwrap_or(false)
-                }
-            };
+        let should_show_image = false;
+        let should_show_at_context_menu = false;
 
         if !should_show_voice && !should_show_image && !should_show_at_context_menu {
             return None;
@@ -7890,8 +7815,8 @@ impl EditorView {
         if should_show_image {
             controls.add_child(
                 Container::new(self.render_image_context_button(
-                    !self.image_context_options.is_enabled(),
-                    self.image_context_options.tooltip_text(),
+                    true,
+                    String::new(),
                     icon_size,
                     appearance,
                 ))
@@ -8113,9 +8038,7 @@ impl TypedActionView for EditorView {
                 file_paths.clone(),
                 ctx,
             ),
-            ProcessNonImageFiles { file_paths } => {
-                self.process_non_image_files(file_paths.clone(), ctx);
-            }
+            ProcessNonImageFiles { .. } => {}
             Tab => self.tab(ctx),
             ShiftTab => self.shift_tab(ctx),
             Copy => self.copy(ctx),
@@ -8245,19 +8168,6 @@ impl TypedActionView for EditorView {
             DragAndDropFiles(paths) => {
                 self.drag_and_drop_files(paths, ctx);
             }
-            SetAIContextMenuOpen(open) => {
-                if !self.is_ai_input && *open {
-                    // In terminal mode, check the setting before opening
-                    let input_settings = InputSettings::as_ref(ctx);
-                    if *input_settings.at_context_menu_in_terminal_mode {
-                        ctx.emit(Event::SetAIContextMenuOpen(*open));
-                    }
-                    // If setting is false, don't emit the event to open the menu
-                } else {
-                    // In AI mode or when closing, always allow
-                    ctx.emit(Event::SetAIContextMenuOpen(*open));
-                }
-            }
             ImeCommit(text) => self.ime_commit(text, ctx),
             SetMarkedText {
                 marked_text,
@@ -8374,9 +8284,6 @@ impl View for EditorView {
             }
         }
 
-        if self.is_ai_input {
-            context.set.insert("AIInput");
-        }
 
         // Allow parent views to add additional flags to the context
         if let Some(modifier) = &self.keymap_context_modifier {

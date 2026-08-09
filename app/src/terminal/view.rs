@@ -12263,7 +12263,7 @@ impl TerminalView {
                 }
                 CodeDiffViewEvent::EditModeChanged { enabled } => {
                     if *enabled {
-                        me.open_code_diff(view.clone(), ctx);
+                        let _ = (view, ctx);
                     }
                     ctx.notify();
                 }
@@ -15248,10 +15248,6 @@ impl TerminalView {
         ctx.emit(Event::OpenCodeInWarp { source, layout })
     }
 
-    fn open_code_diff(&self, view: ViewHandle<CodeDiffView>, ctx: &mut ViewContext<Self>) {
-        ctx.emit(Event::OpenCodeDiff { view });
-    }
-
     fn toggle_grid_secret(
         &mut self,
         secret_handle: &WithinModel<SecretHandle>,
@@ -16818,7 +16814,7 @@ impl TerminalView {
                 if is_restored {
                     return;
                 }
-                self.open_code_diff(view.clone(), ctx);
+                let _ = (view, ctx);
                 ctx.notify();
             }
             AIBlockEvent::DismissedPassiveBlock => {

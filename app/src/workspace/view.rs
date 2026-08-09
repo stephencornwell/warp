@@ -108,7 +108,6 @@ use crate::resource_center::{
     mark_feature_used_and_write_to_user_defaults, skip_tips_and_write_to_user_defaults,
     ResourceCenterEvent, ResourceCenterPage, ResourceCenterView, Tip, TipAction, TipsCompleted,
 };
-use crate::reward_view::{RewardEvent, RewardKind, RewardView};
 use crate::root_view::{quake_mode_window_id, NewWorkspaceSource, OpenLaunchConfigArg};
 use crate::search::command_search::searcher::{AcceptedHistoryItem, CommandSearchItemAction};
 use crate::search::command_search::view::{CommandSearchEvent, CommandSearchView};

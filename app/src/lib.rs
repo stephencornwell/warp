@@ -52,7 +52,6 @@ mod quit_warning;
 mod referral_theme_status;
 #[allow(dead_code)]
 mod resource_limits;
-mod reward_view;
 mod safe_triangle;
 mod search_bar;
 mod session_management;
@@ -1169,7 +1168,6 @@ fn initialize_app(
     themes::theme_creator_modal::init(ctx);
     themes::theme_deletion_modal::init(ctx);
     root_view::init(ctx);
-    reward_view::init(ctx);
     crate::view_components::find::init(ctx);
     undo_close::init(ctx);
     tab_configs::params_modal::init(ctx);

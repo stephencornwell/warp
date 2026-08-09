@@ -1380,7 +1380,6 @@ impl NewWorkspaceSource {
 #[derive(Clone)]
 struct WorkspaceArgs {
     global_resource_handles: GlobalResourceHandles,
-    server_time: Option<Arc<ServerTime>>,
     workspace_setting: NewWorkspaceSource,
 }
 
@@ -1391,13 +1390,8 @@ enum AuthOnboardingState {
 
 pub struct RootView {
     auth_onboarding_state: AuthOnboardingState,
-    server_time: Option<Arc<ServerTime>>,
-    auth_view: ViewHandle<AuthView>,
-    auth_override_view: ViewHandle<AuthOverrideWarningModal>,
-    needs_sso_link_view: ViewHandle<NeedsSsoLinkView>,
     #[cfg(target_family = "wasm")]
     web_handoff_view: ViewHandle<WebHandoffView>,
-    pub server_api: Arc<ServerApi>,
     pub model_event_sender: Option<SyncSender<ModelEvent>>,
     mouse_states: TrafficLightMouseStates,
     /// The window ID is needed because the "maximize" button needs to change its icon based on
@@ -1405,7 +1399,6 @@ pub struct RootView {
     /// in the [`Self::render`] method, but there is no [`ViewContext`] available there. So, we
     /// need to store it in a field instead.
     window_id: WindowId,
-    paste_auth_token_modal: Option<ViewHandle<PasteAuthTokenModalView>>,
 }
 
 impl RootView {
@@ -1414,38 +1407,14 @@ impl RootView {
         workspace_setting: NewWorkspaceSource,
         ctx: &mut ViewContext<Self>,
     ) -> Self {
-        let server_api_provider = ServerApiProvider::as_ref(ctx);
-        let server_api = server_api_provider.get();
-        ctx.subscribe_to_model(&AuthManager::handle(ctx), |me, _, event, ctx| {
-            me.handle_auth_manager_event(event, ctx);
-        });
-
-        ctx.subscribe_to_model(&CloudPreferencesSyncer::handle(ctx), |me, _, event, ctx| {
-            me.handle_cloud_preferences_syncer_event(event, ctx);
-        });
-
-        let auth_view =
-            ctx.add_typed_action_view(|ctx| AuthView::new(AuthViewVariant::Initial, ctx));
-
-        let auth_override_view: ViewHandle<_> = ctx.add_typed_action_view(|ctx| {
-            AuthOverrideWarningModal::new(ctx, AuthOverrideWarningModalVariant::OnboardingView)
-        });
-
-        ctx.subscribe_to_view(&auth_override_view, |me, _, event, ctx| {
-            me.handle_auth_override_warning_modal_event(event, ctx);
-        });
-
         let model_event_sender = global_resource_handles.model_event_sender.clone();
         let workspace_args = WorkspaceArgs {
             global_resource_handles,
-            server_time: None,
             workspace_setting,
         };
 
         let auth_onboarding_state =
             AuthOnboardingState::Terminal(workspace_args.create_workspace(ctx));
-
-        let needs_sso_link_view = ctx.add_typed_action_view(|_| NeedsSsoLinkView::new());
 
         #[cfg(target_family = "wasm")]
         let web_handoff_view = {
@@ -1456,17 +1425,11 @@ impl RootView {
 
         let root_view = Self {
             auth_onboarding_state,
-            server_time: None,
-            auth_view,
-            auth_override_view,
-            needs_sso_link_view,
             #[cfg(target_family = "wasm")]
             web_handoff_view,
-            server_api: server_api.clone(),
             model_event_sender,
             mouse_states: Default::default(),
             window_id: ctx.window_id(),
-            paste_auth_token_modal: None,
         };
 
         match &root_view.auth_onboarding_state {

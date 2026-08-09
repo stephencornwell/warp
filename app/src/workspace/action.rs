@@ -603,8 +603,6 @@ pub enum WorkspaceAction {
     FixSettingsWithOz {
         error_description: String,
     },
-    /// Opens (or focuses) the in-app network log pane as a right-split of the
-    /// active pane group. Gated on `ContextFlag::NetworkLogConsole`.
 }
 
 impl From<&WorkspaceAction> for LoginGatedFeature {

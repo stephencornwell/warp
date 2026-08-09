@@ -3111,6 +3111,7 @@ impl Workspace {
         }
 
         match target {
+            FileTarget::CodeEditor(_) => {}
             FileTarget::MarkdownViewer(layout) => {
                 let _ = (path, layout);
             }
@@ -6222,6 +6223,7 @@ impl Workspace {
                     self.left_panel_view.update(ctx, |left_panel, ctx| {
                         let action = match target_view {
                             LeftPanelTargetView::FileTree => LeftPanelAction::ProjectExplorer,
+                            LeftPanelTargetView::WarpDrive => return,
                         };
                         left_panel.handle_action_with_force_open(&action, *force_open, ctx);
                     });
@@ -6254,6 +6256,7 @@ impl Workspace {
                     });
                 }
             }
+            _ => {}
         }
     }
 

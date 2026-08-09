@@ -720,9 +720,6 @@ pub struct BlockListElement {
     /// If `Some()`, lays out and renders the element next to the cursor.
     cursor_hint_text_element: Option<Box<dyn Element>>,
 
-    /// Voice input toggle key code for CLI agent footer integration.
-    #[cfg(feature = "voice_input")]
-    voice_input_toggle_key_code: Option<KeyCode>,
 }
 
 #[derive(Debug)]
@@ -941,13 +938,9 @@ impl BlockListElement {
             input_size_at_last_frame,
             block_footer_elements: HashMap::new(),
             cursor_hint_text_element,
-            #[cfg(feature = "voice_input")]
-            voice_input_toggle_key_code: None,
         }
     }
 
-    /// Sets the voice input toggle key code for CLI agent footer integration.
-    #[cfg(feature = "voice_input")]
     pub fn with_voice_input_toggle_key(mut self, key_code: Option<KeyCode>) -> Self {
         self.voice_input_toggle_key_code = key_code;
         self
@@ -2608,36 +2601,7 @@ impl BlockListElement {
         result
     }
 
-    #[cfg(feature = "voice_input")]
-    fn maybe_handle_voice_toggle(
-        &self,
-        key_code: &KeyCode,
-        state: &KeyState,
-        ctx: &mut EventContext,
-    ) -> bool {
-        use crate::terminal::view::TerminalAction;
 
-        if let Some(voice_input_toggle_key_code) = self.voice_input_toggle_key_code {
-            if *key_code == voice_input_toggle_key_code {
-                ctx.dispatch_typed_action(TerminalAction::ToggleCLIAgentVoiceInput(
-                    voice_input::VoiceInputToggledFrom::Key { state: *state },
-                ));
-                return true;
-            }
-        }
-        false
-    }
-
-    #[cfg(not(feature = "voice_input"))]
-    fn maybe_handle_voice_toggle(
-        &self,
-        _key_code: &KeyCode,
-        _state: &KeyState,
-        _ctx: &mut EventContext,
-    ) -> bool {
-        false
-    }
-}
 
 /// With a `WithinBlock<IndexPoint>`, the point will count rows with 0 starting with the beginning
 /// of the block grid. This function adjusts the row so that 0 starts at the first row visible in
@@ -3890,7 +3854,7 @@ impl Element for BlockListElement {
                         ctx.dispatch_typed_action(TerminalAction::ControlSequence(escape_sequence));
                         return true;
                     }
-                    self.maybe_handle_voice_toggle(key_code, state, ctx)
+                    false
                 } else {
                     false
                 }

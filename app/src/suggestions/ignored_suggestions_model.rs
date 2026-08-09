@@ -3,7 +3,6 @@ use std::collections::HashSet;
 use serde::{Deserialize, Serialize};
 use warpui::{Entity, ModelContext, SingletonEntity};
 
-use crate::{persistence::ModelEvent, GlobalResourceHandlesProvider};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Hash)]
 pub enum SuggestionType {
@@ -70,18 +69,6 @@ impl IgnoredSuggestionsModel {
 
         self.ignored_suggestions.insert(key);
 
-        let global_resource_handles = GlobalResourceHandlesProvider::as_ref(ctx).get();
-
-        if let Some(sender) = &global_resource_handles.model_event_sender {
-            let event = ModelEvent::AddIgnoredSuggestion {
-                suggestion,
-                suggestion_type,
-            };
-            if let Err(err) = sender.send(event) {
-                log::error!("Failed to save ignored suggestion to database: {err}");
-            }
-        }
-
         ctx.emit(IgnoredSuggestionsModelEvent::SuggestionIgnored);
     }
 
@@ -102,17 +89,6 @@ impl IgnoredSuggestionsModel {
 
         self.ignored_suggestions.remove(&key);
 
-        let global_resource_handles = GlobalResourceHandlesProvider::as_ref(ctx).get();
-
-        if let Some(sender) = &global_resource_handles.model_event_sender {
-            let event = ModelEvent::RemoveIgnoredSuggestion {
-                suggestion,
-                suggestion_type,
-            };
-            if let Err(err) = sender.send(event) {
-                log::error!("Failed to remove ignored suggestion from database: {err}");
-            }
-        }
     }
 
     pub fn is_ignored(&self, suggestion: &str, suggestion_type: SuggestionType) -> bool {

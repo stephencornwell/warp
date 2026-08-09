@@ -1,3 +1,4 @@
+use crate::send_telemetry_on_executor;
 use std::sync::Arc;
 use warpui::r#async::executor::Background;
 

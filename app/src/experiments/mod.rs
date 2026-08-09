@@ -5,6 +5,7 @@
 //! that we are not able to assert through automated testing.
 //! https://www.notion.so/warpdev/Experiment-Framework-Guide-88954c36a0c3469ea57b427b58249d5f?pvs=4
 
+use crate::send_telemetry_sync_from_app_ctx;
 mod block_onboarding_layer;
 mod login_layer;
 mod rendering;

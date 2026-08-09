@@ -1,3 +1,4 @@
+use crate::report_if_error;
 use crate::send_telemetry_from_ctx;
 use anyhow::Context;
 use async_channel::Sender;

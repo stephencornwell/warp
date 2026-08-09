@@ -1,3 +1,4 @@
+use crate::report_if_error;
 pub mod buffer_model;
 mod classic;
 mod common;

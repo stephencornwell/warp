@@ -1,3 +1,4 @@
+use crate::report_if_error;
 use std::collections::HashMap;
 
 use futures_util::FutureExt as _;
@@ -6,7 +7,6 @@ use warpui::{r#async::executor::BackgroundTask, AppContext, SingletonEntity};
 use zbus::{interface, proxy, zvariant};
 
 use crate::channel::ChannelState;
-use crate::report_if_error;
 
 /// Initializes application services.
 pub fn init(ctx: &mut AppContext) {

@@ -1,3 +1,4 @@
+use crate::report_if_error;
 use super::*;
 use crate::{
     ai::request_usage_model::{RequestLimitInfo, RequestLimitRefreshDuration},

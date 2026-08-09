@@ -1,3 +1,4 @@
+use crate::report_if_error;
 #[cfg(enable_crash_recovery)]
 mod crash_recovery;
 pub mod global_search;
@@ -167,7 +168,6 @@ use crate::terminal::shell::ShellType;
 use crate::terminal::{self, SizeInfo, TerminalView};
 #[cfg(target_os = "macos")]
 use crate::workspace::cli_install;
-use crate::report_if_error;
 use ::settings::{Setting, ToggleableSetting};
 use warp_core::features::FeatureFlag;
 

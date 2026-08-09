@@ -1,3 +1,4 @@
+use crate::report_if_error;
 // The code in this file is adapted from the alacritty_terminal crate under the
 // Apache license; see: crates/warp_terminal/src/model/LICENSE-ALACRITTY.
 
@@ -15,7 +16,6 @@ use crate::terminal::shell::ShellType;
 use crate::ASSETS;
 use warp_core::features::FeatureFlag;
 
-use crate::report_if_error;
 use itertools::Itertools;
 
 use super::event_loop::{PTY_TOKEN, SIGNALS_TOKEN};

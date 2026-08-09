@@ -1,9 +1,9 @@
+use crate::report_if_error;
 use crate::appearance::Appearance;
 use crate::interval_timer::IntervalTimer;
 use crate::launch_configs::launch_config;
 
 use crate::persistence::ModelEvent;
-use crate::report_if_error;
 use crate::settings::QuakeModeSettings;
 use crate::settings::ThemeSettings;
 use crate::settings_view::flags;

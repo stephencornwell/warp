@@ -1,3 +1,4 @@
+use crate::report_if_error;
 use crate::send_telemetry_from_ctx;
 #[cfg(feature = "local_fs")]
 use crate::code::editor_management::CodeSource;
@@ -77,7 +78,6 @@ use crate::drive::items::WarpDriveItemId;
 use crate::features::FeatureFlag;
 use crate::launch_configs::launch_config::{self, PaneMode, PaneTemplateType};
 use crate::persistence::ModelEvent;
-use crate::report_if_error;
 use crate::resource_center::{
     mark_feature_used_and_write_to_user_defaults, Tip, TipAction, TipsCompleted,
 };

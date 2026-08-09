@@ -1,3 +1,4 @@
+use crate::report_if_error;
 use crate::send_telemetry_from_ctx;
 #[cfg(feature = "local_fs")]
 use super::features::external_editor::ExternalEditorView;

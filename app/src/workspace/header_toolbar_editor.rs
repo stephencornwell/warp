@@ -1,3 +1,4 @@
+use crate::report_if_error;
 use warpui::keymap::FixedBinding;
 
 use warpui::{AppContext, Element, Entity, SingletonEntity, TypedActionView, View, ViewContext};
@@ -7,7 +8,6 @@ use crate::chip_configurator::{
     ChipConfiguratorAction, ChipConfiguratorLayout, ChipEditorModalConfig, ChipEditorMouseHandles,
     ChipEditorSectionsConfig, ConfigurableItem, ControlItemRenderer,
 };
-use crate::report_if_error;
 use crate::settings::AISettings;
 use crate::workspace::header_toolbar_item::HeaderToolbarItemKind;
 use crate::workspace::tab_settings::{

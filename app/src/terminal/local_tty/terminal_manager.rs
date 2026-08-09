@@ -1,3 +1,4 @@
+use crate::send_telemetry_on_executor;
 use crate::send_telemetry_from_ctx;
 use crate::terminal::model::terminal_model::ExitReason;
 use crate::terminal::shell::ShellName;

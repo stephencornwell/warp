@@ -1,3 +1,4 @@
+use crate::report_if_error;
 use crate::send_telemetry_from_ctx;
 mod action;
 mod block_banner;
@@ -144,7 +145,6 @@ use crate::workspace::sync_inputs::SyncedInputState;
 use crate::workspace::{CommandSearchOptions, OneTimeModalModel, ToastStack, WorkspaceAction};
 use crate::workspace::ForkedConversationDestination;
 use crate::ActiveSession as WindowActiveSession;
-use crate::report_if_error;
 
 use async_channel::{Receiver, Sender};
 use chrono::{DateTime, Local, NaiveDateTime};

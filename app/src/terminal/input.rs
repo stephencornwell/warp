@@ -2632,7 +2632,6 @@ impl Input {
         }
     }
 
-    // Whether a workflow info box is open or not
     fn handle_suggestions_event(
         &mut self,
         event: &InputSuggestionsEvent,
@@ -2641,187 +2640,51 @@ impl Input {
         if !self.suggestions_mode_model.as_ref(ctx).is_visible() {
             return;
         }
-
         match event {
-            InputSuggestionsEvent::ConfirmSuggestion {
-                suggestion,
-                match_type,
-            } => {
-                if !self.confirm_suggestion(suggestion, ctx) {
-                    return;
+            InputSuggestionsEvent::ConfirmSuggestion { suggestion, .. } => {
+                if self.confirm_suggestion(suggestion, ctx) {
+                    self.close_input_suggestions(true, ctx);
                 }
-
-                self.close_input_suggestions(/*should_focus_input=*/ true, ctx);
             }
-            InputSuggestionsEvent::ConfirmAndExecuteSuggestion {
-                suggestion,
-                match_type,
-            } => {
-                if !self.confirm_and_execute_suggestion(suggestion, ctx) {
-                    return;
+            InputSuggestionsEvent::ConfirmAndExecuteSuggestion { suggestion, .. } => {
+                if self.confirm_and_execute_suggestion(suggestion, ctx) {
+                    self.close_input_suggestions(true, ctx);
+                    let command = self.get_command(ctx);
+                    self.try_execute_command(&command, ctx);
                 }
-
-
-                self.close_input_suggestions(/*should_focus_input=*/ true, ctx);
-
-                let command = self.get_command(ctx);
-                self.try_execute_command(&command, ctx);
-
-                ctx.emit_a11y_content(AccessibilityContent::new_without_help(
-                    format!("Executed: {command}"),
-                    WarpA11yRole::UserAction,
-                ));
             }
             InputSuggestionsEvent::CloseSuggestion {
                 should_restore_buffer_before_history_up,
-            } => {
-                self.close_input_suggestions_and_restore_buffer(
-                    true,
-                    *should_restore_buffer_before_history_up,
-                    ctx,
-                );
-            }
+            } => self.close_input_suggestions_and_restore_buffer(
+                true,
+                *should_restore_buffer_before_history_up,
+                ctx,
+            ),
             InputSuggestionsEvent::Select(selected_item) => {
-                let mode = self.suggestions_mode_model.as_ref(ctx).mode().clone();
-                match &mode {
-                    InputSuggestionsMode::HistoryUp { .. } => {
-                        if let Some((workflow_type, workflow_source)) = selected_item
-                            .linked_workflow_data()
-                            .and_then(|linked_workflow_data| {
-                                linked_workflow_data.linked_workflow(ctx)
-                            })
-                        {
-                            self.insert_workflow_into_input(
-                                workflow_type,
-                                workflow_source,
-                                WorkflowSelectionSource::UpArrowHistory,
-                                None,
-                                Some(selected_item.text()),
-                                /*should_show_more_info_view=*/ false,
-                                ctx,
-                            );
-                        } else {
-                            self.editor.update(ctx, |editor, ctx| {
-                                editor.set_buffer_text_ignoring_undo(selected_item.text(), ctx);
-                            });
-                        }
-
-                        self.ai_input_model.update(ctx, |ai_input_model, ctx| {
-                            let input_type = if selected_item.is_ai_query() {
-                                InputType::Shell
-                            } else {
-                                InputType::Shell
-                            };
-                            ai_input_model.set_input_type(input_type, ctx);
-                        });
-                    }
-                    InputSuggestionsMode::CompletionSuggestions {
-                        replacement_start, ..
-                    } => {
-                        let replacement_start = *replacement_start;
-                        if self.is_classic_completions_enabled(ctx) {
-                            self.editor.update(ctx, |editor, ctx| {
-                                let cursor_end_offset =
-                                    editor.end_byte_index_of_last_selection(ctx);
-                                editor.select_and_replace(
-                                    selected_item.text(),
-                                    [ByteOffset::from(replacement_start)..cursor_end_offset],
-                                    PlainTextEditorViewAction::CycleCompletionSuggestion,
-                                    ctx,
-                                );
-                                ctx.notify();
-                            });
-                            ctx.notify();
-                        }
-                    }
-                    InputSuggestionsMode::StaticWorkflowEnumSuggestions { .. }
-                    | InputSuggestionsMode::DynamicWorkflowEnumSuggestions { .. } => {
-                        // If in the future we want to replace the selected arguments with suggestion options as we cycle, this is where we do it
-                    }
-                    InputSuggestionsMode::AIContextMenu { .. } => {
-                        // AI context menu selection is handled separately
-                        // This shouldn't be reached since AI context menu doesn't use InputSuggestions
-                    }
-                    InputSuggestionsMode::SlashCommands => {
-                        // Slash commands selection is handled separately
-                        // This shouldn't be reached since slash commands doesn't use InputSuggestions
-                    }
-                    InputSuggestionsMode::ConversationMenu => {
-                        // Conversation menu selection is handled separately
-                        // This shouldn't be reached since conversation menu doesn't use InputSuggestions
-                    }
-                    InputSuggestionsMode::ModelSelector => {
-                        // Model selector selection is handled separately
-                        // This shouldn't be reached since model selector doesn't use InputSuggestions
-                    }
-                    InputSuggestionsMode::ProfileSelector => {
-                        // Profile selector selection is handled separately.
-                        // This shouldn't be reached since profile selector doesn't use InputSuggestions
-                    }
-                    InputSuggestionsMode::PromptsMenu => {
-                        // Prompts menu selection is handled via InlinePromptsMenuView
-                    }
-                    InputSuggestionsMode::SkillMenu => {
-                        // Skill menu selection is handled via InlineSkillSelectorView
-                    }
-                    InputSuggestionsMode::UserQueryMenu { .. } => {
-                        // User query menu selection is handled separately
-                    }
-                    InputSuggestionsMode::InlineHistoryMenu { .. } => {
-                        // Inline history menu selection is handled separately
-                        // This shouldn't be reached since inline history menu doesn't use InputSuggestions
-                    }
-                    InputSuggestionsMode::IndexedReposMenu => {
-                        // Repos menu selection is handled separately
-                    }
-                    InputSuggestionsMode::PlanMenu { .. } => {
-                        // Plan menu selection is handled via InlinePlanMenuView
-                    }
-                    InputSuggestionsMode::Closed => {
-                        log::warn!("Got a InputSuggestionsEvent::Select when the mode was Closed!");
-                    }
-                }
-            }
-            InputSuggestionsEvent::IgnoreItem { item } => {
-                let command_text = item.text();
-                let suggestion_type = if item.is_ai_query() {
-                    SuggestionType::AIQuery
-                } else {
-                    SuggestionType::ShellCommand
-                };
-
-                IgnoredSuggestionsModel::handle(ctx).update(ctx, |model, ctx| {
-                    model.add_ignored_suggestion(command_text.to_string(), suggestion_type, ctx);
-                });
-
-                // Refresh the history suggestions menu and keep it open
-                if matches!(
+                if let InputSuggestionsMode::CompletionSuggestions {
+                    replacement_start, ..
+                } = self.suggestions_mode_model.as_ref(ctx).mode()
+                {
+                    let replacement_start = *replacement_start;
+                    self.editor.update(ctx, |editor, ctx| {
+                        let cursor_end_offset = editor.end_byte_index_of_last_selection(ctx);
+                        editor.select_and_replace(
+                            selected_item.text(),
+                            [ByteOffset::from(replacement_start)..cursor_end_offset],
+                            PlainTextEditorViewAction::CycleCompletionSuggestion,
+                            ctx,
+                        );
+                    });
+                } else if matches!(
                     self.suggestions_mode_model.as_ref(ctx).mode(),
                     InputSuggestionsMode::HistoryUp { .. }
                 ) {
-                    let history = if self.model.lock().shared_session_status().is_executor() {
-                        self.shared_session_history(ctx)
-                    } else {
-                        self.collate_ai_and_command_history(ctx)
-                    };
-                    let original_buffer = if let InputSuggestionsMode::HistoryUp {
-                        original_buffer,
-                        ..
-                    } = self.suggestions_mode_model.as_ref(ctx).mode()
-                    {
-                        original_buffer.clone()
-                    } else {
-                        String::new()
-                    };
-
-                    let matches =
-                        InputSuggestions::history_prefix_search(&original_buffer, history);
-                    self.input_suggestions
-                        .update(ctx, move |input_suggestions, ctx| {
-                            input_suggestions.set_history_matches(matches, ctx);
-                        });
+                    self.editor.update(ctx, |editor, ctx| {
+                        editor.set_buffer_text_ignoring_undo(selected_item.text(), ctx);
+                    });
                 }
             }
+            InputSuggestionsEvent::IgnoreItem { .. } => {}
         }
     }
 

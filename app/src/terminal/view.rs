@@ -1165,71 +1165,6 @@ pub enum ContextMenuAction {
     },
     CopyRprompt,
     EditPrompt,
-    EditAgentToolbar,
-    EditCLIAgentToolbar,
-    /// Ask AI about the current context. Handled by blocklist AI if its feature flag is enabled and
-    /// the AI assistant panel otherwise.
-    AskAI(AskAISource),
-    OpenWorkflowModal,
-    CopyAIDebuggingLink {
-        conversation_token: ServerConversationToken,
-        request_id: Option<ServerOutputId>,
-    },
-    CopyExternalDebuggingId {
-        request_id: Option<ServerOutputId>,
-        conversation_id: ServerConversationToken,
-    },
-    CopyConversationId {
-        conversation_id: ServerConversationToken,
-    },
-    CopyServerRequestId {
-        request_id: ServerConversationToken,
-    },
-    /// Opens the sharing dialog for a conversation from the AI block context menu
-    OpenConversationShareDialog {
-        conversation_id: AIConversationId,
-    },
-    OpenShareSessionModal,
-    StopSharing,
-    /// Copy the AI block prompt text
-    CopyAIBlockQuery {
-        ai_block_view_id: EntityId,
-    },
-    /// Copy the AI block output text
-    CopyAIBlockOutput {
-        ai_block_view_id: EntityId,
-    },
-    /// Copy both AI block prompt and output text
-    CopyAIBlock {
-        ai_block_view_id: EntityId,
-    },
-    /// Copy the complete AI conversation history
-    CopyAIBlockConversation {
-        ai_block_view_id: EntityId,
-    },
-    CopyAgentCommand {
-        ai_block_view_id: EntityId,
-    },
-    CopyAgentGitBranch {
-        ai_block_view_id: EntityId,
-    },
-    /// Fork the AI conversation from the block corresponding to this AI block.
-    /// Forks at the query boundary (includes all exchanges up to the next user query).
-    ForkAIConversationFromBlock {
-        ai_block_view_id: EntityId,
-        exchange_id: AIAgentExchangeId,
-        conversation_id: AIConversationId,
-    },
-    /// Fork the AI conversation from the exact exchange that was clicked on.
-    ForkAIConversationFromExactExchange {
-        ai_block_view_id: EntityId,
-        exchange_id: AIAgentExchangeId,
-        conversation_id: AIConversationId,
-    },
-    /// Save the AI block prompt as an agent mode workflow (saved prompt)
-    SavePromptAsAgentModeWorkflow {
-        ai_block_view_id: EntityId,
-    },
 }
 
 #[derive(Clone)]
@@ -1239,26 +1174,7 @@ pub enum InputContextMenuAction {
     SelectAll,
     Paste,
     ShowCommandSearch,
-    ShowAICommandSearch,
-    AskWarpAI,
-    SaveAsWorkflow,
     ToggleInputHintText,
-}
-
-/// Where a user's question for AI originated. Handled by blocklist AI if the feature flag is
-/// enabled and the AI Assistant panel otherwise.
-#[derive(Clone)]
-pub enum AskAISource {
-    Block(BlockIndex),
-    LastBlock,
-    /// The source is some selected text or selected block, but we're not yet sure which.
-    /// There should never be any cases where both are simultaneously selected.
-    SelectedBlockOrText,
-    /// Question for block list AI about text selected form the terminal or input.
-    SelectedInputText,
-    SelectedTerminalText,
-    /// Question for block list AI about block(s).
-    SelectedBlocks,
 }
 
 // Manually implementing Debug to avoid leaking sensitive information in logs
@@ -1286,29 +1202,7 @@ impl fmt::Debug for ContextMenuAction {
             // CopyUrl's debug output is limited, since the URLs come from command output
             CopyUrl { .. } => f.write_str("CopyUrl"),
             EditPrompt => f.write_str("EditPrompt"),
-            EditAgentToolbar => f.write_str("EditAgentToolbar"),
-            EditCLIAgentToolbar => f.write_str("EditCLIAgentToolbar"),
-            AskAI(_) => f.write_str("AskAIAssistant"),
-            OpenWorkflowModal => f.write_str("OpenWorkflowModal"),
-            OpenShareSessionModal => f.write_str("OpenShareSessionModal"),
             CopyBlockFilteredOutputs => f.write_str("CopyBlockFilteredOutput"),
-            StopSharing => f.write_str("StopSharing"),
-            CopyAIDebuggingLink { .. } => f.write_str("CopyAIDebuggingLink"),
-            CopyAIBlockQuery { .. } => f.write_str("CopyAIBlockPrompt"),
-            CopyAIBlockOutput { .. } => f.write_str("CopyAIBlockOutput"),
-            CopyAIBlock { .. } => f.write_str("CopyAIBlockBoth"),
-            CopyAIBlockConversation { .. } => f.write_str("CopyAIBlockConversation"),
-            CopyAgentCommand { .. } => f.write_str("CopyAgentCommand"),
-            CopyAgentGitBranch { .. } => f.write_str("CopyAgentGitBranch"),
-            CopyExternalDebuggingId { .. } => f.write_str("CopyExternalDebuggingId"),
-            CopyConversationId { .. } => f.write_str("CopyConversationId"),
-            CopyServerRequestId { .. } => f.write_str("CopyServerRequestId"),
-            OpenConversationShareDialog { .. } => f.write_str("OpenConversationShareDialog"),
-            ForkAIConversationFromBlock { .. } => f.write_str("ForkAIConversationFromBlock"),
-            ForkAIConversationFromExactExchange { .. } => {
-                f.write_str("ForkAIConversationFromExactExchange")
-            }
-            SavePromptAsAgentModeWorkflow { .. } => f.write_str("SavePromptAsAgentModeWorkflow"),
         }
     }
 }
@@ -1797,13 +1691,6 @@ pub enum ContextMenuType {
     /// Opened via right-clicking on the input box.
     Input { position: Vector2F },
 
-    /// Lists the block(s) or text attached as context to the query represented in the AI block
-    /// whose view id is the given [`EntityId`]. The menu is opened by clicking on the attached
-    /// context chip inside the AI block.
-    AIBlockAttachedContext { ai_block_view_id: EntityId },
-    /// Shows the overflow menu with copy options for an AI block. The menu is opened by clicking
-    /// on the overflow (three dots) button inside the AI block header.
-    AIBlockOverflowMenu { ai_block_view_id: EntityId },
 }
 
 impl ContextMenuType {
@@ -1833,8 +1720,6 @@ impl ContextMenuType {
             ContextMenuType::AltScreen { position } => Some(*position),
             ContextMenuType::Prompt { position } => Some(*position),
             ContextMenuType::Input { position } => Some(*position),
-            ContextMenuType::AIBlockAttachedContext { .. } => None,
-            ContextMenuType::AIBlockOverflowMenu { .. } => None,
         }
     }
 }

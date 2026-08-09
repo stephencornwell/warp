@@ -1,7 +1,6 @@
 //! This module contains the implementation of `BackingView` for `TerminalView`, as well as
 //! business logic for integrating the terminal view with the pane infra (`crate::pane_group`).
-use super::shared_session::adapter::Kind as SharedSessionKind;
-use super::{Event, PaneConfiguration, TerminalAction, TerminalViewState, Viewer};
+use super::{Event, PaneConfiguration, TerminalAction, TerminalViewState};
 use crate::appearance::Appearance;
 use crate::features::FeatureFlag;
 use crate::menu::{MenuItem, MenuItemFields};
@@ -17,9 +16,6 @@ use crate::settings::app_installation_detection::{
     UserAppInstallDetectionSettings, UserAppInstallStatus,
 };
 use crate::terminal::model::terminal_model::ConversationTranscriptViewerStatus;
-use crate::terminal::shared_session::participant_avatar_view::render_participants_and_role_elements;
-use crate::terminal::shared_session::render_util::shared_session_indicator_color;
-use crate::terminal::shared_session::SharedSessionActionSource;
 use crate::terminal::TerminalManager;
 use crate::terminal::TerminalView;
 use crate::ui_components::blended_colors;
@@ -662,62 +658,6 @@ impl TerminalView {
                 );
             })
             .finish()
-    }
-
-    fn render_agent_indicator(
-        &self,
-        conversation_id: crate::ai::agent::conversation::AIConversationId,
-        status: ConversationStatus,
-        is_long_running: bool,
-        app: &AppContext,
-    ) -> Box<dyn Element> {
-        let Some(conversation) =
-            BlocklistAIHistoryModel::as_ref(app).conversation(&conversation_id)
-        else {
-            return warpui::elements::Empty::new().finish();
-        };
-
-        let appearance = Appearance::as_ref(app);
-        let theme = appearance.theme();
-
-        // Check if we're configuring or waiting on an ambient agent
-        let is_ambient_agent = self.is_ambient_agent_session(app);
-
-        // When a long-running command is active, show InProgress
-        // instead of the conversation's actual status.
-        let status = if is_long_running {
-            ConversationStatus::InProgress
-        } else {
-            status
-        };
-
-        if FeatureFlag::AgentView.is_enabled()
-            && conversation.exchange_count() == 0
-            && !is_long_running
-        {
-            ConstrainedBox::new(
-                if is_ambient_agent {
-                    WarpIcon::OzCloud
-                } else {
-                    WarpIcon::Oz
-                }
-                .to_warpui_icon(blended_colors::text_sub(theme, theme.background()).into())
-                .finish(),
-            )
-            .with_height(appearance.ui_font_size())
-            .with_width(appearance.ui_font_size())
-            .finish()
-        } else if FeatureFlag::NewTabStyling.is_enabled() {
-            ConstrainedBox::new(status.render_icon(appearance).finish())
-                .with_height(appearance.ui_font_size())
-                .with_width(appearance.ui_font_size())
-                .finish()
-        } else {
-            ConstrainedBox::new(status.render_icon(appearance).finish())
-                .with_height(appearance.ui_font_size())
-                .with_width(appearance.ui_font_size())
-                .finish()
-        }
     }
 
     /// Render the indicator for terminal mode (no conversation selected).

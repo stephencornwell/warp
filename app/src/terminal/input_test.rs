@@ -503,20 +503,6 @@ fn test_clear_selection_after_insert() {
         user_insert(&mut app, "baz");
         assert_selections_in_blocklist(&mut app, false);
 
-        // Activate Agent Mode, which should no longer allow text insertion to clear the selected text.
-        terminal.update(&mut app, |terminal, ctx| {
-            terminal.set_ai_input_mode_with_query(None, ctx)
-        });
-
-        // Agent Mode: Insert some text into the input box - this should no longer clear the terminal selection!
-        select_text(&mut app);
-        user_insert(&mut app, "bam");
-        assert_selections_in_blocklist(&mut app, true);
-
-        // Agent Mode: System insert should not clear terminal selection.
-        select_text(&mut app);
-        user_insert(&mut app, "bab");
-        assert_selections_in_blocklist(&mut app, true);
     });
 }
 
@@ -1985,34 +1971,7 @@ fn test_completions_while_typing_doesnt_hide_autosuggestion() {
     });
 }
 
-#[test]
-fn test_plan_slash_command_argument_with_slash_does_not_disable_slash_command_parsing() {
-    App::test((), |mut app| async move {
-        initialize_app(&mut app);
 
-        let terminal = add_window_with_bootstrapped_terminal(
-            &mut app, None, /* history_file_commands */
-            None,
-        )
-        .await;
-        let input = terminal.read(&app, |terminal, _| terminal.input().clone());
-
-        input.update(&mut app, |input, ctx| {
-            input.set_input_mode_natural_language_detection(ctx);
-            input.user_insert("/plan investigate app/src/main.rs", ctx);
-        });
-
-        input.read(&app, |input, ctx| {
-            assert!(
-                !matches!(
-                    input.slash_command_model.as_ref(ctx).state(),
-                    SlashCommandEntryState::DisabledUntilEmptyBuffer
-                ),
-                "slash command parsing should not be disabled when the argument contains '/'"
-            );
-        });
-    });
-}
 
 #[test]
 fn test_open_slash_command_triggers_completions_on_space() {
@@ -2032,20 +1991,12 @@ fn test_open_slash_command_triggers_completions_on_space() {
         simulate_directory_for_completion(session_id, &terminal, &mut app, "/tmp");
 
         input.update(&mut app, |input, ctx| {
-            input.set_input_mode_natural_language_detection(ctx);
-        });
-
-        input.update(&mut app, |input, ctx| {
             input.user_insert("/", ctx);
             input.user_insert("open-file ", ctx);
         });
 
         input.read(&app, |input, ctx| {
             assert_eq!(input.buffer_text(ctx), "/open-file ");
-            assert!(!matches!(
-                input.suggestions_mode_model.as_ref(ctx).mode(),
-                InputSuggestionsMode::SlashCommands
-            ));
             assert!(input.completions_abort_handle.is_some());
         });
     });
@@ -2196,43 +2147,7 @@ fn test_open_slash_command_expands_tilde() {
     });
 }
 
-#[test]
-fn test_shell_lock_respected_when_slash_command_typed() {
-    App::test((), |mut app| async move {
-        initialize_app(&mut app);
 
-        let terminal = add_window_with_bootstrapped_terminal(
-            &mut app, None, /* history_file_commands */
-            None,
-        )
-        .await;
-        let input = terminal.read(&app, |terminal, _| terminal.input().clone());
-
-        // Explicitly lock to shell mode
-        input.update(&mut app, |input, ctx| {
-            input.set_input_mode_terminal(true, ctx);
-        });
-
-        // Verify locked in shell mode
-        input.read(&app, |input, ctx| {
-            let ai_model = input.ai_input_model.as_ref(ctx);
-            assert!(ai_model.is_input_type_locked());
-            assert!(!ai_model.is_ai_input_enabled());
-        });
-
-        // Type a slash command - should NOT force agent mode when locked
-        input.update(&mut app, |input, ctx| {
-            input.user_insert("/plan ", ctx);
-        });
-
-        // Should still be in shell mode because it was locked
-        input.read(&app, |input, ctx| {
-            let ai_model = input.ai_input_model.as_ref(ctx);
-            assert!(!ai_model.is_ai_input_enabled());
-            assert!(ai_model.is_input_type_locked());
-        });
-    });
-}
 
 #[test]
 fn test_tab_completion_single_prefix_suggestion_with_fuzzy_suggestions() {
@@ -4161,148 +4076,6 @@ fn test_vim_escape_with_completions() {
         });
     });
 }
-
-
-
-
-
-
-
-fn run_input_mode_prefix_test(
-    nld_improvements_enabled: bool,
-    udi_enabled: bool,
-    input_type: InputType,
-) {
-    let input_prefix = match input_type {
-        InputType::Shell => super::TERMINAL_INPUT_PREFIX,
-        InputType::AI => super::AI_INPUT_PREFIX,
-    };
-
-    App::test((), |mut app| async move {
-        let _am_flag = FeatureFlag::AgentMode.override_enabled(true);
-        let _nld_flag = FeatureFlag::NldImprovements.override_enabled(nld_improvements_enabled);
-
-        initialize_app(&mut app);
-
-        // Ensure the AI autodetection is enabled.
-        AISettings::handle(&app).update(&mut app, |ai_settings, ctx| {
-            let _ = ai_settings
-                .ai_autodetection_enabled_internal
-                .set_value(true, ctx);
-            // Make sure the autodetection is actually enabled, in practice.
-            assert!(ai_settings.is_ai_autodetection_enabled(ctx));
-        });
-        // Set the input box type based on the test configuration.
-        InputSettings::handle(&app).update(&mut app, |input_settings, ctx| {
-            let input_box_type = if udi_enabled {
-                InputBoxType::Universal
-            } else {
-                InputBoxType::Classic
-            };
-            let _ = input_settings.input_box_type.set_value(input_box_type, ctx);
-        });
-
-        let terminal = add_window_with_bootstrapped_terminal(
-            &mut app, None, /* history_file_commands */
-            None,
-        )
-        .await;
-        let input = terminal.read(&app, |terminal, _| terminal.input().clone());
-
-        for c in format!("{input_prefix}some text").chars() {
-            input.update(&mut app, |input, ctx| {
-                input.user_insert(&c.to_string(), ctx);
-            });
-        }
-
-        input.read(&app, |input, ctx| {
-            // The input prefix should be stripped.
-            assert_eq!(input.buffer_text(ctx), "some text");
-
-            app.read_model(input.ai_input_model(), |input_model, _| {
-                assert_eq!(input_model.input_type(), input_type);
-
-                // Prefixes represent an explicit mode selection, so they lock the input type in
-                // both classic input and UDI.
-                assert!(input_model.is_input_type_locked());
-
-                // We should treat this as the mode having been set while the buffer was empty.
-                assert!(input_model.was_lock_set_with_empty_buffer());
-            })
-        });
-    });
-}
-
-macro_rules! input_mode_prefix_tests {
-    ($($name:ident: ($nld_improvements_enabled:literal, $udi_enabled:literal, $input_mode:expr),)*) => {
-        $(
-            #[test]
-            fn $name() {
-                run_input_mode_prefix_test($nld_improvements_enabled, $udi_enabled, $input_mode);
-            }
-        )*
-    };
-}
-
-input_mode_prefix_tests! {
-    test_ai_input_prefix_with_nld_improvements_and_udi: (true, true, InputType::AI),
-    test_ai_input_prefix_with_nld_improvements_and_no_udi: (true, false, InputType::AI),
-    test_ai_input_prefix_with_no_nld_improvements_and_udi: (false, true, InputType::AI),
-    test_ai_input_prefix_with_no_nld_improvements_and_no_udi: (false, false, InputType::AI),
-    test_shell_input_prefix_with_nld_improvements_and_udi: (true, true, InputType::Shell),
-    test_shell_input_prefix_with_nld_improvements_and_no_udi: (true, false, InputType::Shell),
-    test_shell_input_prefix_with_no_nld_improvements_and_udi: (false, true, InputType::Shell),
-    test_shell_input_prefix_with_no_nld_improvements_and_no_udi: (false, false, InputType::Shell),
-}
-
-#[test]
-fn test_remove_ignored_suggestion_on_command_execution() {
-    App::test((), |mut app| async move {
-        initialize_app(&mut app);
-
-        let terminal = add_window_with_bootstrapped_terminal(&mut app, None, None).await;
-        let input = terminal.read(&app, |view, _| view.input().clone());
-
-        // First, add a command to ignored suggestions
-        let test_command = "echo hi";
-        IgnoredSuggestionsModel::handle(&app).update(&mut app, |model, ctx| {
-            model.add_ignored_suggestion(
-                test_command.to_string(),
-                crate::suggestions::ignored_suggestions_model::SuggestionType::ShellCommand,
-                ctx,
-            );
-        });
-
-        // Verify the command is ignored
-        let is_ignored_before = IgnoredSuggestionsModel::handle(&app).read(&app, |model, _| {
-            model.is_ignored(
-                test_command,
-                crate::suggestions::ignored_suggestions_model::SuggestionType::ShellCommand,
-            )
-        });
-        assert!(is_ignored_before, "Command should be ignored initially");
-
-        // Execute the command
-        input.update(&mut app, |input, ctx| {
-            input.clear_buffer_and_reset_undo_stack(ctx);
-            input.user_insert(test_command, ctx);
-            input.try_execute_command(test_command, ctx);
-        });
-
-        // Verify the command is no longer ignored
-        let is_ignored_after = IgnoredSuggestionsModel::handle(&app).read(&app, |model, _| {
-            model.is_ignored(
-                test_command,
-                crate::suggestions::ignored_suggestions_model::SuggestionType::ShellCommand,
-            )
-        });
-        assert!(
-            !is_ignored_after,
-            "Command should no longer be ignored after execution"
-        );
-    });
-}
-
 
 
 

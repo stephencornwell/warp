@@ -2518,6 +2518,11 @@ impl TerminalView {
                         }
 
                         match rich_content.metadata() {
+                            Some(RichContentMetadata::InitEnvironment { block_handle })
+                                if !block_handle.as_ref(ctx).completed() =>
+                            {
+                                block_handle.update(ctx, |block, ctx| block.handle_ctrl_c(ctx));
+                            }
                             Some(RichContentMetadata::EnvVarCollectionBlock {
                                 env_var_collection_block_handle,
                             }) if !env_var_collection_block_handle
@@ -5880,6 +5885,12 @@ impl TerminalView {
             return false;
         }
 
+        if FeatureFlag::CreateEnvironmentSlashCommand.is_enabled()
+            && self.active_init_environment_block(app).is_some()
+        {
+            return false;
+        }
+
         if self.active_env_var_collection_block(app).is_some() {
             return false;
         }
@@ -6329,6 +6340,10 @@ impl TerminalView {
             if let Some(model) = &self.active_init_project_model {
                 model.update(ctx, |m, ctx| m.cancel(ctx));
             }
+        } else if let Some(active_init_env_block) = self.active_init_environment_block(ctx) {
+            active_init_env_block.update(ctx, |init_env_block, ctx| {
+                init_env_block.handle_ctrl_c(ctx);
+            });
         } else if self
             .passive_suggestions_models
             .legacy
@@ -11564,6 +11579,32 @@ impl TerminalView {
                 ("Create environment without any repos".to_string(), false)
             }
         };
+
+        let init_env_block = ctx.add_typed_action_view(move |ctx| {
+            InitEnvironmentBlock::new(button_label, repos, use_current_dir, ctx)
+        });
+        ctx.subscribe_to_view(&init_env_block, move |me, block, event, ctx| match event {
+            InitEnvironmentBlockEvent::StartSetup(repos, use_current_dir) => {
+                log::info!("TerminalView: received StartSetup event from InitEnvironmentBlock");
+                me.model
+                    .lock()
+                    .block_list_mut()
+                    .remove_rich_content(block.id());
+                me.start_cloud_environment_setup(repos.to_vec(), *use_current_dir, ctx);
+            }
+        });
+
+        self.insert_rich_content(
+            None,
+            init_env_block.clone(),
+            Some(RichContentMetadata::InitEnvironment {
+                block_handle: init_env_block,
+            }),
+            RichContentInsertionPosition::Append {
+                insert_below_long_running_block: true,
+            },
+            ctx,
+        );
 
         self.redetermine_global_focus(ctx);
     }
@@ -17606,6 +17647,31 @@ impl TerminalView {
         last_visible_block.is_some_and(|rc| rc.is_init_step())
     }
 
+    fn active_init_environment_block(
+        &self,
+        ctx: &AppContext,
+    ) -> Option<&ViewHandle<InitEnvironmentBlock>> {
+        let last_visible_block = if FeatureFlag::AgentView.is_enabled() {
+            let visible_conversation_id = self
+                .agent_view_controller
+                .as_ref(ctx)
+                .agent_view_state()
+                .active_conversation_id();
+            self.rich_content_views
+                .iter()
+                .rev()
+                .find(|rc| rc.agent_view_conversation_id() == visible_conversation_id)
+        } else {
+            self.rich_content_views.last()
+        }?;
+        if let Some(RichContentMetadata::InitEnvironment { block_handle }) =
+            last_visible_block.metadata()
+        {
+            return (!block_handle.as_ref(ctx).completed()).then_some(block_handle);
+        }
+        None
+    }
+
     fn ai_block_for_exchange(
         &self,
         exchange_id: &AIAgentExchangeId,
@@ -17762,6 +17828,11 @@ impl TerminalView {
             ctx.focus(active_ai_block_view_handle);
         } else if self.has_active_init_project(ctx) && self.is_last_block_init_step(ctx) {
             self.try_focus_active_init_step(ctx);
+        } else if let Some(active_init_environment_block_handle) =
+            self.active_init_environment_block(ctx)
+        {
+            active_init_environment_block_handle
+                .update(ctx, |block, ctx| block.try_steal_focus(ctx));
         } else if let Some(env_var_collection_block_handle) =
             self.active_env_var_collection_block(ctx)
         {

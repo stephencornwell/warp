@@ -557,6 +557,7 @@ pub fn run() -> Result<()> {
                 #[cfg(target_family = "wasm")]
                 panic!("Worker process not supported on WASM: {worker:?}")
             }
+            warp_cli::Command::Worker(_) => {}
             warp_cli::Command::Completions { shell } => {
                 return warp_cli::completions::generate_to_stdout(*shell);
             }
@@ -1030,23 +1031,16 @@ fn initialize_app(
         })
     });
 
-    let (app_state, command_history, experiments, workspace_language_servers, persisted_projects, mcp_servers_to_restore) = sqlite_data
+    let (app_state, command_history, persisted_projects) = sqlite_data
         .map(|sqlite_data| {
             (
                 Some(sqlite_data.app_state),
                 sqlite_data.command_history,
-                sqlite_data.experiments,
-                sqlite_data.workspace_language_servers,
                 sqlite_data.projects,
-                sqlite_data.mcp_server_installations,
-                sqlite_data.mcp_servers_to_restore,
             )
         })
         .unwrap_or_else(|| {
             (
-                Default::default(),
-                Default::default(),
-                Default::default(),
                 Default::default(),
                 Default::default(),
                 Default::default(),
@@ -1269,7 +1263,6 @@ fn initialize_app(
     ctx.add_singleton_model(move |_| persistence_writer);
 
 
-    ctx.add_singleton_model(move |_| IgnoredSuggestionsModel::new(persisted_ignored_suggestions));
 
 
     // When running natively, add the http server singleton to the application.

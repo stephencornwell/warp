@@ -99,7 +99,6 @@ pub enum ConversationTranscriptViewerStatus {
     /// Viewing a local conversation (not from ambient agent).
     ViewingLocalConversation,
     /// Viewing an ambient agent conversation with the associated task ID.
-    ViewingAmbientConversation(AmbientAgentTaskId),
 }
 
 #[derive(Debug, Clone, Default)]
@@ -559,11 +558,9 @@ pub struct TerminalModel {
     /// Whether or not to respect secrets that are obfuscated, respecting the Safe Mode/Secret Redaction setting.
     obfuscate_secrets: ObfuscateSecrets,
 
-    shared_session_status: SharedSessionStatus,
 
     /// The source type of the shared session (if this is a shared session).
     /// If it is not a shared session, this will be `None`.
-    shared_session_source_type: Option<SessionSourceType>,
 
     /// Whether this terminal model was created as a cloud mode dummy session
     /// (no local shell process, deferred shared-session viewer backing).
@@ -581,12 +578,10 @@ pub struct TerminalModel {
     /// This field is only [`Some`] if this session is shared.
     /// TODO: consider combining this with `shared_session_status` because
     /// the state can technically diverge.
-    ordered_terminal_events_for_shared_session_tx: Option<Sender<OrderedTerminalEventType>>,
 
     /// A sender for write to pty events for a shared session viewer.
     ///
     /// This field is only [`Some`] if this session is shared.
-    write_to_pty_events_for_shared_session_tx: Option<Sender<Vec<u8>>>,
 
     /// Whether this viewer is currently receiving historical agent conversation replay.
     /// Used to suppress live-conversation-specific actions (e.g. tombstone insertion)
@@ -1150,12 +1145,8 @@ impl TerminalModel {
             env_var_collection_name: None,
             shell_launch_state: shell_state,
             obfuscate_secrets,
-            shared_session_status,
-            shared_session_source_type: None,
             is_dummy_cloud_mode_session,
             conversation_transcript_viewer_status: None,
-            ordered_terminal_events_for_shared_session_tx: None,
-            write_to_pty_events_for_shared_session_tx: None,
             is_receiving_agent_conversation_replay: false,
             tmux_background_outputs: HashMap::new(),
             tmux_control_mode_context: None,

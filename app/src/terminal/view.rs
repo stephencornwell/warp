@@ -2662,22 +2662,6 @@ impl TerminalView {
             me.handle_terminal_event(event, ctx);
         });
 
-        ctx.subscribe_to_model(&ai_controller, |me, handle, event, ctx| {
-            me.handle_ai_controller_event(handle, event, ctx);
-            // Refresh cloud mode details panel when agent output completes (may include new artifacts)
-            if matches!(
-                event,
-                BlocklistAIControllerEvent::FinishedReceivingOutput { .. }
-            ) && me.is_cloud_mode_details_panel_open
-                && me
-                    .ambient_agent_view_model
-                    .as_ref()
-                    .is_some_and(|model| model.as_ref(ctx).is_ambient_agent())
-            {
-                me.fetch_and_update_cloud_mode_details_panel(ctx);
-            }
-        });
-
         // Subscribe to agent conversations model for task status updates
         ctx.subscribe_to_model(
             &AgentConversationsModel::handle(ctx),
@@ -2744,10 +2728,6 @@ impl TerminalView {
                 ctx,
             )
         });
-        ctx.subscribe_to_model(
-            &cli_subagent_controller,
-            Self::handle_cli_subagent_controller_event,
-        );
         let terminal_content_element_position_id =
             format!("terminal_content_element_{}", ctx.view_id());
 
@@ -2807,13 +2787,6 @@ impl TerminalView {
         }
 
 
-        ctx.subscribe_to_model(&ai_context_model, Self::handle_ai_context_model_event);
-        ctx.subscribe_to_model(
-            &BlocklistAIHistoryModel::handle(ctx),
-            Self::handle_ai_history_model_event,
-        );
-        ctx.subscribe_to_model(&ai_input_model, Self::handle_ai_input_model_event);
-        ctx.subscribe_to_model(&ai_action_model, Self::handle_ai_action_model_event);
         ctx.subscribe_to_model(&CLIAgentSessionsModel::handle(ctx), |me, _, event, ctx| {
             if let CLIAgentSessionsModelEvent::Ended {
                 terminal_view_id, ..
@@ -3632,6 +3605,7 @@ impl TerminalView {
         }
     }
 
+    #[cfg(any())]
     fn handle_ai_controller_event(
         &mut self,
         _: ModelHandle<BlocklistAIController>,
@@ -3835,6 +3809,7 @@ impl TerminalView {
         });
     }
 
+    #[cfg(any())]
     fn handle_ai_context_model_event(
         &mut self,
         context_model: ModelHandle<BlocklistAIContextModel>,
@@ -3985,6 +3960,7 @@ impl TerminalView {
         }
     }
 
+    #[cfg(any())]
     fn handle_ai_history_model_event(
         &mut self,
         history_model: ModelHandle<BlocklistAIHistoryModel>,
@@ -4342,6 +4318,7 @@ impl TerminalView {
         ctx.notify();
     }
 
+    #[cfg(any())]
     fn handle_cli_subagent_controller_event(
         &mut self,
         _: ModelHandle<CLISubagentController>,
@@ -4851,6 +4828,7 @@ impl TerminalView {
         let _ = ctx;
     }
 
+    #[cfg(any())]
     fn handle_ai_input_model_event(
         &mut self,
         _ai_input_model: ModelHandle<BlocklistAIInputModel>,
@@ -4870,6 +4848,7 @@ impl TerminalView {
         }
     }
 
+    #[cfg(any())]
     fn handle_ai_action_model_event(
         &mut self,
         action_model: ModelHandle<BlocklistAIActionModel>,

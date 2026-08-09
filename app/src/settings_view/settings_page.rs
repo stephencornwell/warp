@@ -12,7 +12,6 @@ use super::{
     features_page::FeaturesPageView,
     keybindings::KeybindingsView,
     main_page::MainSettingsPageView,
-    mcp_servers_page::MCPServersSettingsPageView,
     privacy_page::PrivacyPageView,
     show_blocks_view::ShowBlocksView,
     warp_drive_page::WarpDriveSettingsPageView,
@@ -104,7 +103,6 @@ pub enum SettingsPageViewHandle {
     About(ViewHandle<AboutPageView>),
     Code(ViewHandle<CodeSettingsPageView>),
     Privacy(ViewHandle<PrivacyPageView>),
-    MCPServers(ViewHandle<MCPServersSettingsPageView>),
     WarpDrive(ViewHandle<WarpDriveSettingsPageView>),
 }
 
@@ -120,17 +118,11 @@ impl SettingsPageViewHandle {
             About(view_handle) => ChildView::new(view_handle).finish(),
             Code(view_handle) => ChildView::new(view_handle).finish(),
             Privacy(view_handle) => ChildView::new(view_handle).finish(),
-            MCPServers(view_handle) => ChildView::new(view_handle).finish(),
             WarpDrive(view_handle) => ChildView::new(view_handle).finish(),
         }
     }
 }
 
-impl From<ViewHandle<MCPServersSettingsPageView>> for SettingsPageViewHandle {
-    fn from(view_handle: ViewHandle<MCPServersSettingsPageView>) -> Self {
-        SettingsPageViewHandle::MCPServers(view_handle)
-    }
-}
 
 impl SettingsPage {
     pub fn new<V>(view_handle: ViewHandle<V>) -> Self

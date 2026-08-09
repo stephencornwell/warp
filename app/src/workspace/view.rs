@@ -6779,34 +6779,6 @@ impl Workspace {
         ctx.notify();
     }
 
-    fn handle_auth_manager_event(
-        &mut self,
-        _handle: ModelHandle<AuthManager>,
-        event: &AuthManagerEvent,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        match event {
-            AuthManagerEvent::AttemptedLoginGatedFeature { auth_view_variant } => {
-                self.open_require_login_modal(*auth_view_variant, ctx)
-            }
-            AuthManagerEvent::LoginOverrideDetected(interrupted_auth_payload) => {
-                self.open_auth_override_warning_modal(interrupted_auth_payload.clone(), ctx);
-            }
-            AuthManagerEvent::AuthComplete => {
-                // Only show the telemetry banner if the user is an existing user. The new user flow
-                // for this is handled in the onboarding flow.
-                if self.auth_state.is_onboarded().unwrap_or_default() {
-                    // Need to check this AFTER we fetch any billing metadata associated with the team,
-                    // to make sure we don't show the banner if the user is an enterprise user.
-                    self.check_and_trigger_telemetry_banner_for_existing_users(ctx);
-                }
-            }
-            _ => {
-                ctx.notify();
-            }
-        }
-    }
-
     pub fn toggle_block_snackbar(&mut self, ctx: &mut ViewContext<Self>) {
         BlockListSettings::handle(ctx).update(ctx, |blocklist_settings, ctx| {
             report_if_error!(blocklist_settings
@@ -8587,24 +8559,6 @@ impl Workspace {
 
     /// Implements the WorkspaceAction::OpenPalette. This method makes sure the palette is open and
     /// has up-to-date sources. Use this if you don't want toggle semantics.
-    fn open_palette_action(
-        &mut self,
-        palette_mode: PaletteMode,
-        source: PaletteSource,
-        with_content: Option<&str>,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        // ensure the palette sources are up-to-date, e.g. maybe there is already a navigation
-        // palette open and then new sessions were opened after that
-        self.set_palette_sources(source, ctx);
-        self.open_palette(palette_mode, source, ctx);
-        if let Some(text) = with_content {
-            self.palette.update(ctx, |palette, ctx| {
-                palette.insert_query_text(text, ctx);
-            });
-        }
-    }
-
     pub fn is_palette_mode_enabled(&self, palette_mode: PaletteMode, app: &AppContext) -> bool {
         self.palette.as_ref(app).is_mode_enabled(palette_mode, app)
     }
@@ -10775,29 +10729,6 @@ impl Workspace {
                 // A resize of universal search should write the app snapshot to sqlite.
                 ctx.dispatch_global_action("workspace:save_app", ());
             }
-        }
-    }
-
-    fn handle_window_settings_changed_event(
-        &mut self,
-        event: &WindowSettingsChangedEvent,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        match event {
-            WindowSettingsChangedEvent::BackgroundOpacity { .. } => {
-                ctx.notify();
-            }
-            WindowSettingsChangedEvent::LeftPanelVisibilityAcrossTabs { .. } => {
-                if self.left_panel_visibility_across_tabs_enabled(ctx) {
-                    self.left_panel_open = self
-                        .active_tab_pane_group()
-                        .read(ctx, |pane_group, _| pane_group.left_panel_open);
-                }
-            }
-            WindowSettingsChangedEvent::ZoomLevel { .. } => {
-                self.update_titlebar_height(ctx);
-            }
-            _ => {}
         }
     }
 
@@ -13272,30 +13203,6 @@ impl Workspace {
         // Logging out should mimic the same behaviour as closing a window.
         // This gives views a chance to clean up any state through on_view_detached before being dropped.
         self.on_window_closed(ctx);
-    }
-
-    fn focus_openwarp_launch_modal(&mut self, ctx: &mut ViewContext<Self>) {
-        ctx.focus(&self.openwarp_launch_modal);
-    }
-
-    fn open_tab_and_focus_oz_launch_modal(&mut self, ctx: &mut ViewContext<Self>) {
-        // Create a new tab with one terminal session titled "Introducing Oz"
-        self.add_tab_with_pane_layout(
-            PanesLayout::SingleTerminal(Box::new(NewTerminalOptions {
-                shell: None,
-                initial_directory: None,
-                hide_homepage: false,
-                ..Default::default()
-            })),
-            Arc::new(HashMap::new()),
-            Some("Introducing Oz".to_string()),
-            ctx,
-        );
-        self.oz_launch_modal.tab_pane_group_id = self
-            .tabs
-            .get(self.active_tab_index)
-            .map(|tab| tab.pane_group.id());
-        ctx.focus(&self.oz_launch_modal.view);
     }
 
     fn open_left_panel_view(&mut self, action: &LeftPanelAction, ctx: &mut ViewContext<Self>) {

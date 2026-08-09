@@ -289,6 +289,396 @@ impl TerminalManager {
             CurrentPrompt::new_with_model_events(sessions.clone(), Some(&model_events), ctx)
         });
         let prompt_type = ctx.add_model(|ctx| PromptType::new_dynamic(current_prompt.clone(), ctx));
+        let session_sharer_clone = session_sharer.clone();
+
+        // Send warp prompt updates.
+        ctx.observe_model(&current_prompt, move |current_prompt, ctx| {
+            // If for some reason ctx.notify() was called on the warp prompt but we're using ps1, do nothing.
+            if *SessionSettings::as_ref(ctx).honor_ps1 {
+                return
+            }
+            let prompt_snapshot = current_prompt.read(ctx, |current_prompt, ctx| {
+                PromptSnapshot::from_current_prompt(current_prompt, ctx)
+            });
+            if let Some(network) = session_sharer_clone.borrow().as_ref() {
+                let Ok(serialized_prompt) = serde_json::to_string(&prompt_snapshot) else {
+                    log::error!("Failed to serialize prompt snapshot to send active prompt update to shared session server");
+                    return
+                };
+                network.update(ctx, |network, _| {
+                    network.send_active_prompt_update_if_changed(session_sharing_protocol::common::ActivePrompt::WarpPrompt(serialized_prompt))
+                });
+            }
+        });
+
+        let has_restored_command_blocks = all_restored_blocks
+            .as_ref()
+            .is_some_and(|blocks| !blocks.is_empty());
+        let has_conversation_restoration = matches!(
+            &conversation_restoration,
+            Some(
+                ConversationRestorationInNewPaneType::Startup { .. }
+                    | ConversationRestorationInNewPaneType::Historical { .. }
+            )
+        );
+        let is_historical = matches!(
+            &conversation_restoration,
+            Some(ConversationRestorationInNewPaneType::Historical { .. })
+        );
+        // Create the view.
+        let cloned_model = model.clone();
+        let should_use_live_appearance = conversation_restoration
+            .as_ref()
+            .map(|restoration| restoration.should_use_live_appearance())
+            .unwrap_or(false);
+        let view = ctx.add_typed_action_view(window_id, |ctx| {
+            let size_info = cloned_model.lock().block_list().size().to_owned();
+            TerminalView::new(
+                resources,
+                wakeups_rx,
+                model_events.clone(),
+                cloned_model,
+                sessions.clone(),
+                size_info,
+                colors,
+                model_event_sender.clone(),
+                prompt_type.clone(),
+                initial_input_config,
+                conversation_restoration,
+                Some(inactive_pty_reads_rx.clone()),
+                false,
+                ctx,
+            )
+        });
+
+        // We need to append the session restoration separator to the block list if there are any
+        // restored blocks (command blocks or AI conversations) to show.
+        // Add separator if we have restored command blocks or we're restoring from historical or startup.
+        let should_show_restoration_separator = (has_conversation_restoration
+            || has_restored_command_blocks)
+            && !should_use_live_appearance;
+
+        if should_show_restoration_separator {
+            model
+                .lock()
+                .block_list_mut()
+                .append_session_restoration_separator_to_block_list(is_historical);
+        }
+
+        // In unit tests, we know we aren't going to bootstrap a shell
+        // so if we're waiting on starting a shared session until bootstrapped,
+        // just attempt to start it now.
+        #[cfg(test)]
+        if matches!(
+            model.lock().shared_session_status(),
+            SharedSessionStatus::SharePendingPreBootstrap { .. }
+        ) {
+            view.update(ctx, |view, ctx| {
+                view.attempt_to_share_session(
+                    SharedSessionScrollbackType::All,
+                    None,
+                    SessionSourceType::default(),
+                    false,
+                    ctx,
+                )
+            });
+        }
+
+        wire_up_pty_controller_with_view(
+            &pty_controller,
+            &view,
+            model.clone(),
+            sessions,
+            model_event_sender,
+            ctx,
+        );
+
+        let session_sharer_clone = session_sharer.clone();
+        ctx.subscribe_to_model(&SessionSettings::handle(ctx), move |_, event, ctx| {
+            if let SessionSettingsChangedEvent::HonorPS1 { .. } = event {
+                if !*SessionSettings::as_ref(ctx).honor_ps1 {
+                    // We don't need to send a WarpPrompt message here when turning off PS1 because this will be sent
+                    // as part of observing the warp prompt and sending messages on updates.
+                    return;
+                }
+                if let Some(network) = session_sharer_clone.borrow().as_ref() {
+                    network.update(ctx, |network, _| {
+                        network.send_active_prompt_update_if_changed(
+                            session_sharing_protocol::common::ActivePrompt::PS1,
+                        )
+                    });
+                }
+            }
+        });
+
+        let sharer_remote_update_guard = RemoteUpdateGuard::new();
+
+        // Send model selection updates during session sharing
+        let session_sharer_for_models = session_sharer.clone();
+        let terminal_view_id = view.id();
+        let model_remote_update_guard = sharer_remote_update_guard.clone();
+        ctx.subscribe_to_model(&LLMPreferences::handle(ctx), move |_prefs, event, ctx| {
+            // Only react to agent mode LLM changes
+            if !matches!(event, LLMPreferencesEvent::UpdatedActiveAgentModeLLM) {
+                return;
+            }
+
+            if !model_remote_update_guard.should_broadcast() {
+                return;
+            }
+
+            if let Some(network) = session_sharer_for_models.borrow().as_ref() {
+                let llm_prefs = LLMPreferences::as_ref(ctx);
+                let selected_model_id: String = llm_prefs
+                    .get_active_base_model(ctx, Some(terminal_view_id))
+                    .id
+                    .clone()
+                    .into();
+
+                // The send method will check if it actually changed and skip if not
+                network.update(ctx, |network, _| {
+                    network.send_universal_developer_input_context_update(
+                        UniversalDeveloperInputContextUpdate {
+                            selected_model: Some(SelectedAgentModel::new(selected_model_id)),
+                            ..Default::default()
+                        },
+                    )
+                });
+            }
+        });
+
+        // Send input mode updates during session sharing.
+        // When AgentView is enabled, we only send updates when in an active agent view.
+        // For ambient agent sessions, input mode is controlled locally, so we skip sending updates.
+        let session_sharer_for_input_mode = session_sharer.clone();
+        let ai_input_model = view.as_ref(ctx).ai_input_model().clone();
+        let agent_view_controller_for_input_mode = view.as_ref(ctx).agent_view_controller().clone();
+        let model_for_input_mode = model.clone();
+        let input_mode_remote_update_guard = sharer_remote_update_guard.clone();
+        ctx.subscribe_to_model(&ai_input_model, move |_, event, ctx| {
+            if !input_mode_remote_update_guard.should_broadcast() {
+                return;
+            }
+
+            // In ambient agent sessions, input mode is controlled locally.
+            if model_for_input_mode
+                .lock()
+                .is_shared_ambient_agent_session()
+            {
+                return;
+            }
+
+            // When AgentView is enabled, only send input mode updates when in an active agent view.
+            if FeatureFlag::AgentView.is_enabled()
+                && !agent_view_controller_for_input_mode.as_ref(ctx).is_active()
+            {
+                return;
+            }
+
+            let config = event.updated_config();
+            if let Some(network) = session_sharer_for_input_mode.borrow().as_ref() {
+                // The send method will check if it actually changed and skip if not
+                network.update(ctx, |network, _| {
+                    network.send_universal_developer_input_context_update(
+                        UniversalDeveloperInputContextUpdate {
+                            input_mode: Some((*config).into()),
+                            ..Default::default()
+                        },
+                    )
+                });
+            }
+        });
+
+        let agent_view_controller = view.as_ref(ctx).agent_view_controller().clone();
+        let active_session = view.as_ref(ctx).active_session().clone();
+        ActiveAgentViewsModel::handle(ctx).update(ctx, |model, ctx| {
+            model.register_agent_view_controller(
+                &agent_view_controller,
+                &active_session,
+                terminal_view_id,
+                ctx,
+            );
+        });
+
+        let ai_context_model = view.as_ref(ctx).ai_context_model().clone();
+
+        // Send selected conversation updates during session sharing.
+        if FeatureFlag::AgentView.is_enabled() {
+            // When agent view is enabled, we listen to the agent view controller
+            // as the authoritative source for which conversation is selected.
+            let session_sharer_for_conversation = session_sharer.clone();
+            let ai_context_model_for_conversation = ai_context_model.clone();
+            let conversation_remote_update_guard = sharer_remote_update_guard.clone();
+            ctx.subscribe_to_model(
+                &agent_view_controller,
+                move |agent_view_controller, event, ctx| match event {
+                    AgentViewControllerEvent::EnteredAgentView { .. } => {
+                        if conversation_remote_update_guard.should_broadcast() {
+                            Self::send_selected_conversation_update_for_sharer(
+                                &session_sharer_for_conversation,
+                                &agent_view_controller,
+                                &ai_context_model_for_conversation,
+                                ctx,
+                            );
+                        }
+                    }
+                    AgentViewControllerEvent::ExitedAgentView {
+                        origin,
+                        final_exchange_count,
+                        ..
+                    } => {
+                        if conversation_remote_update_guard.should_broadcast() {
+                            Self::send_selected_conversation_update_for_sharer(
+                                &session_sharer_for_conversation,
+                                &agent_view_controller,
+                                &ai_context_model_for_conversation,
+                                ctx,
+                            );
+                        }
+                        ();
+                    }
+                    AgentViewControllerEvent::ExitConfirmed { .. } => {}
+                },
+            );
+        } else {
+            // When agent view is disabled, we fallback to the legacy behavior
+            // of listening for pending query state changes to know which conversation is selected.
+            let session_sharer_for_conversation = session_sharer.clone();
+            let agent_view_controller_for_conversation = agent_view_controller.clone();
+            let conversation_remote_update_guard = sharer_remote_update_guard.clone();
+            ctx.subscribe_to_model(&ai_context_model, move |ai_context_model, event, ctx| {
+                if !matches!(event, BlocklistAIContextEvent::PendingQueryStateUpdated) {
+                    return;
+                }
+
+                if !conversation_remote_update_guard.should_broadcast() {
+                    return;
+                }
+
+                Self::send_selected_conversation_update_for_sharer(
+                    &session_sharer_for_conversation,
+                    &agent_view_controller_for_conversation,
+                    &ai_context_model,
+                    ctx,
+                );
+            });
+        }
+        // Also send after a request is submitted so viewers stay pinned to the intended conversation
+        let session_sharer_for_sent_request = session_sharer.clone();
+        let agent_view_controller_for_sent_request = agent_view_controller.clone();
+        let ai_context_model_for_sent_request = ai_context_model.clone();
+        let ai_controller_for_sent_request = view.as_ref(ctx).ai_controller().clone();
+        ctx.subscribe_to_model(&ai_controller_for_sent_request, move |_, event, ctx| {
+            if let BlocklistAIControllerEvent::SentRequest { .. } = event {
+                Self::send_selected_conversation_update_for_sharer(
+                    &session_sharer_for_sent_request,
+                    &agent_view_controller_for_sent_request,
+                    &ai_context_model_for_sent_request,
+                    ctx,
+                );
+            }
+        });
+        // Finally, when the server assigns a token, resend with the concrete token,
+        // & when the user toggles auto-approve, fan out an update.
+        let session_sharer_for_stream_init = session_sharer.clone();
+        let view_id_for_stream_init = view.id();
+        let weak_view_for_stream_init = view.downgrade();
+        let auto_approve_remote_update_guard = sharer_remote_update_guard.clone();
+        ctx.subscribe_to_model(
+            &BlocklistAIHistoryModel::handle(ctx),
+            move |_, event, ctx| {
+                match event {
+                    BlocklistAIHistoryEvent::UpdatedStreamingExchange {
+                        terminal_view_id,
+                        conversation_id,
+                        ..
+                    } => {
+                        if *terminal_view_id != view_id_for_stream_init {
+                            return;
+                        }
+
+                        let Some(view) = weak_view_for_stream_init.upgrade(ctx) else {
+                            return;
+                        };
+                        let ai_context_model = view.as_ref(ctx).ai_context_model().clone();
+                        let agent_view_controller =
+                            view.as_ref(ctx).agent_view_controller().clone();
+
+                        let history_model = BlocklistAIHistoryModel::handle(ctx);
+
+                        // if the conversation is not selected or does not have a token,
+                        // don't emit an update.
+                        if !ai_context_model
+                            .as_ref(ctx)
+                            .selected_conversation_id(ctx)
+                            .is_some_and(|sel| sel == *conversation_id)
+                        {
+                            return;
+                        }
+                        if history_model
+                            .as_ref(ctx)
+                            .conversation(conversation_id)
+                            .and_then(|c| c.server_conversation_token())
+                            .is_none()
+                        {
+                            return;
+                        }
+
+                        Self::send_selected_conversation_update_for_sharer(
+                            &session_sharer_for_stream_init,
+                            &agent_view_controller,
+                            &ai_context_model,
+                            ctx,
+                        );
+                    }
+                    BlocklistAIHistoryEvent::UpdatedAutoexecuteOverride { terminal_view_id } => {
+                        if *terminal_view_id != view_id_for_stream_init {
+                            return;
+                        }
+
+                        if !auto_approve_remote_update_guard.should_broadcast() {
+                            return;
+                        }
+
+                        let Some(view) = weak_view_for_stream_init.upgrade(ctx) else {
+                            return;
+                        };
+                        let ai_context_model = view.as_ref(ctx).ai_context_model().clone();
+
+                        if let Some(network) = session_sharer_for_stream_init.borrow().as_ref() {
+                            let auto_approve = ai_context_model
+                                .as_ref(ctx)
+                                .pending_query_autoexecute_override(ctx)
+                                .is_autoexecute_any_action();
+
+                            network.update(ctx, |network, _| {
+                                network.send_universal_developer_input_context_update(
+                                    UniversalDeveloperInputContextUpdate {
+                                        auto_approve_agent_actions: Some(auto_approve),
+                                        ..Default::default()
+                                    },
+                                );
+                            });
+                        }
+                    }
+                    _ => {}
+                }
+            },
+        );
+
+        // Always wire up the model but check the flag when a share is attempted.
+        Self::wire_up_session_sharer_with_view(
+            &view,
+            prompt_type,
+            session_sharer.clone(),
+            model.clone(),
+            window_id,
+            sharer_remote_update_guard,
+            ctx,
+        );
+
+        Self::handle_network_status_events(&view, session_sharer.clone(), ctx);
+
         #[cfg(windows)]
         let event_loop_tx_clone = event_loop_tx.clone();
 

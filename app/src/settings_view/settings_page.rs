@@ -14,7 +14,6 @@ use super::{
     main_page::MainSettingsPageView,
     privacy_page::PrivacyPageView,
     show_blocks_view::ShowBlocksView,
-    warp_drive_page::WarpDriveSettingsPageView,
     SettingsSection,
 };
 use crate::{
@@ -103,7 +102,6 @@ pub enum SettingsPageViewHandle {
     About(ViewHandle<AboutPageView>),
     Code(ViewHandle<CodeSettingsPageView>),
     Privacy(ViewHandle<PrivacyPageView>),
-    WarpDrive(ViewHandle<WarpDriveSettingsPageView>),
 }
 
 impl SettingsPageViewHandle {
@@ -118,7 +116,6 @@ impl SettingsPageViewHandle {
             About(view_handle) => ChildView::new(view_handle).finish(),
             Code(view_handle) => ChildView::new(view_handle).finish(),
             Privacy(view_handle) => ChildView::new(view_handle).finish(),
-            WarpDrive(view_handle) => ChildView::new(view_handle).finish(),
         }
     }
 }

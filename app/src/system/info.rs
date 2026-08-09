@@ -98,10 +98,6 @@ impl SystemInfo {
     /// Unlike [`used_memory`] (RSS), this includes memory that has been
     /// swapped out or compressed by the OS.  On macOS this matches the value
     /// shown by Activity Monitor.
-    pub fn memory_footprint(&self) -> Byte {
-        memory_footprint::memory_footprint_bytes().into()
-    }
-
     /// Returns the average CPU usage over the refresh interval.
     ///
     /// If one CPU core is utilized at 100%, this will return 1.  It may return
@@ -145,14 +141,11 @@ impl SystemInfo {
         });
 
         let rss = self.used_memory();
-        let footprint = self.memory_footprint();
+        let footprint = rss;
         self.check_for_excessive_memory_usage(rss, footprint, ctx);
 
         // Once we have a full buffer of statistics, consider sending a report
         // each time we store new resource usage data.
-        if self.stats.is_full() {
-            self.resource_usage_reporter.maybe_send_report(ctx);
-        }
     }
 
     /// Checks for excessive memory usage.  This may send a telemetry event
@@ -181,24 +174,6 @@ impl SystemInfo {
         }
 
         // Collect a detailed memory breakdown for diagnostics.
-        let memory_breakdown = memory_footprint::memory_breakdown();
-
-        // If we're tracking heap usage and detect excessive memory usage,
-        // dump and upload the current heap profiling data.
-        #[cfg(feature = "heap_usage_tracking")]
-        {
-            let breakdown_for_sentry = memory_breakdown.clone();
-            ctx.spawn(
-                crate::profiling::dump_jemalloc_heap_profile(breakdown_for_sentry),
-                |_, _, _| {},
-            );
-        }
-
-        // Send a telemetry event indicating that memory usage is extreme.
-        // Report RSS here to keep Rudderstack dashboards consistent.
-        let total_application_usage_bytes = rss.as_u64();
-        ();
-
         ctx.emit(SystemInfoEvent::MemoryUsageHigh);
         self.has_emitted_memory_warning_event = true;
     }
@@ -376,21 +351,6 @@ impl ResourceUsageReporter {
         }
 
         let now = Local::now();
-
-        // Loop over all terminal views, collecting information about how
-        // many blocks they contain, number of lines, amount of memory,
-        // and the active/inactive breakdown.
-        for window_id in ctx.window_ids().collect_vec() {
-            for terminal_view in ctx
-                .views_of_type::<TerminalView>(window_id)
-                .into_iter()
-                .flatten()
-                .map(|handle| handle.as_ref(ctx))
-            {
-                let model = terminal_view.model.lock();
-                stats.add_blocks(now, model.block_list().blocks().iter());
-            }
-        }
 
         stats
     }

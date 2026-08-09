@@ -3228,12 +3228,6 @@ fn ctrl_c_does_not_accept_prompt_suggestion_banner() {
 /// send it.
 
 
-/// The critical regression guard for GH703: even when the user is already in
-/// fullscreen agent view, a Linear deeplink prompt must not be auto-submitted to
-/// the LLM. `LinearDeepLink` returns `AutoTriggerBehavior::Never`, so even the
-/// `was_in_agent_view_already` shortcut cannot promote it to auto-submit.
 
 
-/// `LinearDeepLink` returns `AutoTriggerBehavior::Never`, so it must not
-/// auto-submit regardless of prior agent-view state.
 

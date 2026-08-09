@@ -6427,50 +6427,6 @@ impl Input {
         }
     }
 
-    fn start_xray_at_offset(
-        &mut self,
-        pos: ByteOffset,
-        trigger: CommandXRayTrigger,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        if let Some(completion_context) = self.completion_session_context(ctx) {
-            let buffer_text = self.buffer_text(ctx);
-            let _ =
-                ctx.spawn(
-                    async move {
-                        completer::describe(buffer_text.as_str(), pos, &completion_context).await
-                    },
-                    |input, description, ctx| {
-                        input.show_xray(description, trigger, ctx);
-                    },
-                );
-        }
-    }
-
-    fn show_xray(
-        &mut self,
-        description: Option<Description>,
-        trigger: CommandXRayTrigger,
-        ctx: &mut ViewContext<'_, Self>,
-    ) {
-        let description = description.map(Arc::new);
-        self.command_x_ray_description.clone_from(&description);
-        if let Some(description) = description {
-            if trigger == CommandXRayTrigger::Keystroke {
-                ctx.emit_a11y_content(AccessibilityContent::new_without_help(
-                    description.a11y_text(),
-                    WarpA11yRole::UserAction,
-                ));
-            }
-            ctx.notify();
-            self.editor.update(ctx, move |editor, ctx| {
-                editor.set_command_x_ray(description);
-                ctx.notify();
-            });
-        }
-        ctx.notify();
-    }
-
     fn active_block_session_id(&self) -> Option<SessionId> {
         self.active_block_metadata
             .as_ref()

@@ -10817,27 +10817,6 @@ impl TerminalView {
                 }
             }
             ModelEvent::ExitShell { session_id } => {
-                // Drop the remote server client for this session before the
-                // user's outer ssh tunnel starts closing. The last
-                // `Arc<RemoteServerClient>` carries an owned `Child` for the
-                // `ssh … remote-server-proxy` subprocess; dropping it kills
-                // that child via `kill_on_drop`, which closes the
-                // multiplexed channel on the ControlMaster so the foreground
-                // ssh can exit cleanly instead of hanging.
-                #[cfg(not(target_family = "wasm"))]
-                if FeatureFlag::SshRemoteServer.is_enabled() {
-                    use crate::remote_server::manager::RemoteServerManager;
-                    RemoteServerManager::handle(ctx).update(
-                        ctx,
-                        |mgr: &mut RemoteServerManager, ctx| {
-                            mgr.deregister_session(*session_id, ctx);
-                        },
-                    );
-                }
-                // The remote-server manager only exists on non-wasm targets,
-                // so this handler is a no-op on wasm.
-                #[cfg(target_family = "wasm")]
-                let _ = session_id;
             }
             // Handled by RemoteServerController via model subscription.
             ModelEvent::SshInitShell { .. } => {}

@@ -1,4 +1,3 @@
-use sharing::SharedPaneContent;
 use std::fmt::Debug;
 use crate::{
     appearance::Appearance,
@@ -41,8 +40,6 @@ use warpui::{
 };
 
 use super::PaneDropTargetData;
-
-mod sharing;
 
 pub(crate) mod components;
 

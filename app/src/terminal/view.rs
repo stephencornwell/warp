@@ -33,9 +33,6 @@ use crate::util::file::external_editor::{settings::EditorLayout, EditorSettings}
 use crate::util::truncation::truncate_from_end;
 
 use crate::projects::ProjectManagementModel;
-use crate::remote_server::manager::{
-    RemoteServerInitPhase, RemoteServerManager, RemoteServerManagerEvent,
-};
 use crate::settings_view::mcp_servers_page::MCPServersSettingsPage;
 use crate::terminal::view::init_environment::{
     mode_selector::{
@@ -43,15 +40,6 @@ use crate::terminal::view::init_environment::{
     },
     InitEnvironmentBlock, InitEnvironmentBlockEvent,
 };
-use crate::terminal::view::ssh_remote_server_choice_view::{
-    SshRemoteServerChoiceView, SshRemoteServerChoiceViewEvent,
-};
-use crate::terminal::view::ssh_remote_server_failed_banner::{
-    SshRemoteServerFailedBanner, SshRemoteServerFailedBannerEvent, SshRemoteServerFailureKind,
-};
-use crate::terminal::view::telemetry::PromptSuggestionFallbackReason;
-use crate::workspace::view::cloud_agent_capacity_modal::CloudAgentCapacityModalVariant;
-use crate::workspaces::user_workspaces::UserWorkspacesEvent;
 
 pub use self::link_detection::GridHighlightedLink;
 pub use self::link_detection::{RichContentLink, RichContentLinkTooltipInfo};
@@ -68,7 +56,6 @@ pub use inline_banner::{NotificationsDiscoveryBannerAction, NotificationsErrorBa
 use repo_metadata::repositories::{DetectedRepositories, RepoDetectionSource};
 use session_sharing_protocol::common::LongRunningCommandAgentInteractionState;
 use session_sharing_protocol::sharer::{RoleUpdateReason, SessionEndedReason, SessionSourceType};
-use ssh_file_upload::{FileUpload, FileUploadEvent};
 use uuid::Uuid;
 use warp_core::channel::ChannelState;
 use warpui::elements::{shimmering_text::ShimmeringTextStateHandle, Border, ChildView};
@@ -111,22 +98,12 @@ use crate::ai::{
     execution_profiles::profiles::{AIExecutionProfilesModel, ClientProfileId},
     get_relevant_files::controller::GetRelevantFilesController,
 };
-use crate::auth::auth_manager::AuthManager;
-use crate::auth::auth_state::AuthState;
-use crate::auth::auth_view_modal::AuthViewVariant;
-use crate::auth::{AuthStateProvider, UserUid};
 use crate::autoupdate::{self, get_update_state, AutoupdateStage};
-use crate::cloud_object::model::actions::ObjectActionType;
-use crate::cloud_object::model::persistence::CloudModel;
-use crate::cloud_object::{CloudObject, GenericStringObjectFormat, JsonObjectType};
 #[cfg(feature = "local_fs")]
 use crate::code::editor_management::CodeSource;
 use crate::context_chips::prompt::Prompt;
 use crate::context_chips::prompt_type::PromptType;
 use crate::context_chips::ContextChipKind;
-use crate::drive::settings::WarpDriveSettings;
-use crate::drive::sharing::ShareableObject;
-use crate::drive::CloudObjectTypeAndId;
 use crate::env_vars::{
     env_var_collection_block::{EnvVarCollectionBlock, EnvVarCollectionBlockEvent},
     CloudEnvVarCollection, EnvVar,
@@ -134,9 +111,7 @@ use crate::env_vars::{
 use crate::pane_group::focus_state::PaneFocusHandle;
 use crate::persistence::{self, FinishedCommandMetadata};
 use crate::safe_warn;
-use crate::server::cloud_objects::update_manager::UpdateManager;
 use crate::server::ids::{ObjectUid, SyncId};
-use crate::server::telemetry::SharingDialogSource;
 #[cfg(feature = "local_fs")]
 use crate::settings::import::model::ImportedConfigModel;
 use crate::settings::import::view::{SettingsImportEvent, SettingsImportView};
@@ -187,17 +162,6 @@ use crate::terminal::session_settings::{
     SessionSettingsChangedEvent, DEFAULT_THRESHOLD_FOR_LONG_RUNNING_NOTIFICATION,
 };
 use crate::terminal::settings::{TerminalSettings, TerminalSettingsChangedEvent};
-use crate::terminal::shared_session::role_change_modal::{
-    RoleChangeCloseSource, RoleChangeOpenSource,
-};
-use crate::terminal::shared_session::{
-    SharedSessionActionSource, SharedSessionScrollbackType, SharedSessionStatus,
-};
-use crate::terminal::ssh::ssh_detection::SshInteractiveSessionDetected;
-use crate::terminal::view::block_onboarding::onboarding_prompt_block::OnboardingPromptBlock;
-use crate::terminal::warpify::{
-    render::render_subshell_separator, settings::WarpifySettings, SubshellSource,
-};
 use crate::terminal::ShellLaunchData;
 use crate::terminal::{element_size_at_last_frame, HistoryEntry};
 use crate::terminal::{height_in_range_approx, heights_approx_gt, SizeUpdate};
@@ -214,15 +178,11 @@ use crate::util::clipboard::clipboard_content_with_escaped_paths;
 #[cfg(feature = "local_fs")]
 use crate::util::openable_file_type::{is_markdown_file, resolve_file_target, FileTarget};
 use crate::view_components::{DismissibleToast, ToastFlavor};
-use crate::workflows::workflow::Workflow;
-use crate::workflows::WorkflowSelectionSource;
 use crate::workspace::sync_inputs::SyncedInputState;
 use crate::workspace::{CommandSearchOptions, OneTimeModalModel, ToastStack, WorkspaceAction};
 use crate::workspace::{ForkAIConversationParams, ForkFromExchange, ForkedConversationDestination};
-use crate::workspaces::{user_workspaces::UserWorkspaces, workspace::CustomerType};
-use crate::AIRequestUsageModel;
 use crate::ActiveSession as WindowActiveSession;
-use crate::{report_if_error, AIAgentActionResultType};
+use crate::report_if_error;
 
 use async_channel::{Receiver, Sender};
 use chrono::{DateTime, Local, NaiveDateTime};
@@ -243,7 +203,6 @@ use session_sharing_protocol::common::{
     ServerConversationToken as SessionSharingServerConversationToken,
     WindowSize as SessionSharingWindowSize,
 };
-use shared_session::{SharedSessionAdapter, Viewer};
 use std::any::Any;
 use std::borrow::Cow;
 use std::cell::RefCell;

@@ -2843,39 +2843,9 @@ impl TerminalView {
         cleared_buffer_len: usize,
         ctx: &mut ViewContext<Self>,
     ) {
-        let did_resolve_prompt_suggestion = self
-            .resolve_passive_suggestion(PromptSuggestionResolution::Reject { ctrl_c: true }, ctx);
-        if did_resolve_prompt_suggestion {
-            if FeatureFlag::AgentView.is_enabled()
-                && self.agent_view_controller.as_ref(ctx).is_active()
-            {
-                self.agent_view_controller.update(ctx, |controller, ctx| {
-                    controller.clear_pending_exit_confirmation(ctx);
-                });
-            }
+        if cleared_buffer_len > 0 {
             return;
         }
-
-        if FeatureFlag::AgentView.is_enabled() && self.agent_view_controller.as_ref(ctx).is_active()
-        {
-            if cleared_buffer_len > 0 {
-                self.agent_view_controller.update(ctx, |controller, ctx| {
-                    controller.clear_pending_exit_confirmation(ctx);
-                });
-                return;
-            }
-
-            if self.should_ctrl_c_exit_agent_view(ctx) {
-                self.agent_view_controller.update(ctx, |controller, ctx| {
-                    controller.exit_agent_view_with_required_confirmation(
-                        ExitConfirmationTrigger::CtrlC,
-                        ctx,
-                    );
-                });
-                return;
-            }
-        }
-
         self.ctrl_c(ctx);
     }
 
@@ -2886,19 +2856,16 @@ impl TerminalView {
             has_block_list_selection,
             has_alt_screen_selection,
             is_long_running,
-            is_agent_in_control_of_command,
         ) = {
             let model = self.model.lock();
             let has_alt_screen_selection = model.alt_screen().selection().is_some();
             let has_block_list_selection = model.block_list().selection().is_some();
             let active_block = model.block_list().active_block();
             let is_long_running = active_block.is_active_and_long_running();
-            let is_agent_in_control_of_command = active_block.is_agent_in_control();
             (
                 has_block_list_selection,
                 has_alt_screen_selection,
                 is_long_running,
-                is_agent_in_control_of_command,
             )
         };
         // We don't want to copy blocks in AI input mode because those are
@@ -2911,7 +2878,6 @@ impl TerminalView {
             has_block_list_selection,
             has_alt_screen_selection,
             is_long_running,
-            is_agent_in_control_of_command,
             ctx,
         );
 
@@ -2929,7 +2895,6 @@ impl TerminalView {
         has_block_list_selection: bool,
         has_alt_screen_selection: bool,
         is_long_running: bool,
-        is_agent_in_control_of_command: bool,
         ctx: &mut ViewContext<Self>,
     ) {
         if has_block_list_selection {
@@ -2947,7 +2912,7 @@ impl TerminalView {
             self.clear_selections_when_shell_mode_without_focusing_input(ctx);
         }
 
-        self.ctrl_c_to_active_block(is_long_running, is_agent_in_control_of_command, ctx);
+        self.ctrl_c_to_active_block(is_long_running, ctx);
     }
 
     #[cfg(not(windows))]
@@ -2957,7 +2922,6 @@ impl TerminalView {
         has_block_list_selection: bool,
         has_alt_screen_selection: bool,
         is_long_running: bool,
-        is_agent_in_control_of_command: bool,
         ctx: &mut ViewContext<Self>,
     ) {
         if has_block_list_selection || has_copiable_block_selection {
@@ -2965,20 +2929,15 @@ impl TerminalView {
         } else if has_alt_screen_selection {
             self.model.lock().alt_screen_mut().clear_selection();
         }
-        self.ctrl_c_to_active_block(is_long_running, is_agent_in_control_of_command, ctx);
+        self.ctrl_c_to_active_block(is_long_running, ctx);
     }
 
     fn ctrl_c_to_active_block(
         &mut self,
         is_long_running: bool,
-        is_agent_in_control_of_command: bool,
         ctx: &mut ViewContext<Self>,
     ) {
-        if is_agent_in_control_of_command {
-            self.cli_subagent_controller.update(ctx, |controller, ctx| {
-                controller.switch_control_to_user(UserTakeOverReason::Stop, ctx);
-            });
-        } else if is_long_running {
+        if is_long_running {
             self.user_write_ctrl_c_to_pty(ctx);
         }
     }
@@ -5508,10 +5467,6 @@ impl TerminalView {
         // https://github.com/warpdotdev/command-corrections/blob/df7848d4fb3da7883623e959889a296a07d88053/src/rules/cd/mod.rs#L31-L36
         // We don't currently support dynamic rules over SSH, so we should not attempt to correct commands if
         // inside ssh session.
-        let is_ssh_command = SshWarpifyCommand::matches(input).is_some();
-        if is_ssh_command {
-            return vec![];
-        }
         if FeatureFlag::CommandCorrectionsHistoryRule.is_enabled() {
             correct_command(command, &session_metadata, std::iter::empty())
         } else {
@@ -5532,22 +5487,6 @@ impl TerminalView {
     ///
     /// Hidden AI blocks are only generated when generating passive codegen suggestions after a
     /// compiler error.
-
-    #[cfg(not(target_family = "wasm"))]
-    pub(crate) fn remove_plugin_instructions_block(
-        &mut self,
-        block_handle: ViewHandle<plugin_instructions_block::PluginInstructionsBlock>,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        let block_id = block_handle.id();
-        self.rich_content_views
-            .retain(|rich_content| rich_content.view_id() != block_id);
-        self.model
-            .lock()
-            .block_list_mut()
-            .remove_rich_content(block_id);
-        ctx.notify();
-    }
 
     /// Removes AI blocks from `rich_content_views` that match the given conversation and exchange IDs.
     /// This handles cleanup of the block, removal from the block list model, and notifying the
@@ -10404,14 +10343,7 @@ impl TerminalView {
         // the sharer's size exactly. We don't want to render an alt-screen
         // larger than the sharer's since that would look janky.
         // TODO: we should have more ergonomic ways of getting Viewer / Sharer from the session.
-        let (rows, columns) = if let Some(Viewer { sharer_size, .. }) = self.shared_session_viewer()
-        {
-            sharer_size
-                .map(|s| (s.num_rows, s.num_cols))
-                .unwrap_or((self.size_info.rows(), self.size_info.columns()))
-        } else {
-            (self.size_info.rows(), self.size_info.columns())
-        };
+        let (rows, columns) = (self.size_info.rows(), self.size_info.columns());
 
         // Note: The Alt screen relies on the accuracy of the `padding` elements of SizeInfo
         // for things like hit detection and selection. Since we are taking into account the
@@ -10511,38 +10443,6 @@ impl TerminalView {
         )
         .finish()
     }
-
-    fn render_viewer_loading(&self, app: &AppContext) -> Box<dyn Element> {
-        let appearance = Appearance::as_ref(app);
-        let color = appearance
-            .theme()
-            .sub_text_color(appearance.theme().background());
-
-        SavePosition::new(
-            Align::new(
-                Flex::column()
-                    .with_child(
-                        ConstrainedBox::new(Icon::new("bundled/svg/refresh.svg", color).finish())
-                            .with_height(16.)
-                            .with_width(16.)
-                            .finish(),
-                    )
-                    .with_child(
-                        Text::new_inline("Loading session...", appearance.ui_font_family(), 14.)
-                            .with_color(color.into())
-                            .finish(),
-                    )
-                    .with_cross_axis_alignment(CrossAxisAlignment::Center)
-                    .finish(),
-            )
-            .finish(),
-            &self.content_element_position_id,
-        )
-        .finish()
-    }
-
-    /// Returns true when cursor rendering should be suppressed because the
-    /// CLI agent rich input is open.
 
     fn render_block_list_element(
         &self,
@@ -11787,7 +11687,6 @@ impl TypedActionView for TerminalView {
             | ToggleQueueNextPrompt
             | ToggleTodoPopup
             | CloseTodoPopup
-            | ToggleCodeReviewPane { .. }
             | OpenProjectRulesPane
             | InitProject
             | IndexProjectSpeedbump
@@ -12474,7 +12373,7 @@ impl TypedActionView for TerminalView {
                         && !self.is_ambient_agent_session(app))
                         || model.is_loading_conversation_transcript()
                     {
-                        self.render_viewer_loading(app)
+                        self.render_block_list_element(&model, input_mode, true, app)
                     } else if is_alt_screen_active {
                         did_wrap_terminal_size = true;
                         wrap_in_terminal_size_element(
@@ -12916,63 +12815,6 @@ impl TypedActionView for TerminalView {
         }
     }
 
-}
-
-impl Drop for TerminalView {
-    fn drop(&mut self) {
-        if let Some((is_bootstrapped, pending_shell, has_pending_ssh_session)) =
-            self.model.try_lock().map(|model| {
-                (
-                    model.block_list().is_bootstrapped(),
-                    model.pending_shell_type(),
-                    model.has_pending_ssh_session(),
-                )
-            })
-        {
-            if has_pending_ssh_session || !is_bootstrapped {
-                // Only treat session abandonment as an error if the session was
-                // visible to the user at some point.  This filters out
-                // bootstrap "failures" such as oh-my-zsh prompting the user
-                // about an update while we're sourcing their rcfiles - we'll
-                // never technically finish bootstrapping the shell.  If that
-                // occurs in some non-visible tab, we don't want to conflate it
-                // (an unanswered prompt) with an actual failure to bootstrap
-                // the shell.
-                let log_level = if self.was_ever_visible {
-                    log::Level::Error
-                } else {
-                    log::Level::Warn
-                };
-                log::log!(
-                    log_level,
-                    "Session abandoned before bootstrap for shell {pending_shell:?} on ssh {has_pending_ssh_session}"
-                );
-
-                let was_ever_visible = self.was_ever_visible;
-                let duration_since_start =
-                    self.bootstrap_start.unwrap_or_else(Instant::now).elapsed();
-                let server_api = self.server_api.clone();
-                let privacy_settings_snapshot = self.privacy_settings_snapshot;
-                let task = self.background_executor.spawn(async move {
-                    if let Err(error) = server_api
-                        .send_telemetry_event(
-                            TelemetryEvent::SessionAbandonedBeforeBootstrap {
-                                pending_shell,
-                                has_pending_ssh_session,
-                                was_ever_visible,
-                                duration_since_start,
-                            },
-                            privacy_settings_snapshot,
-                        )
-                        .await
-                    {
-                        log::warn!("Error occurred with sending telemetry event: {error}");
-                    }
-                });
-                task.detach();
-            }
-        };
-    }
 }
 
 /// Returns an instance of [`SizeInfo`] that is to be used

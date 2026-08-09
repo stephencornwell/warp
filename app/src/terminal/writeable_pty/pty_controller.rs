@@ -647,11 +647,6 @@ impl<T: EventLoopSender> PtyController<T> {
                 on_write_fn,
                 false,
             ),
-            PtyWrite::AgentInput { bytes, mode } => {
-                let decorated_bytes =
-                    mode.decorate_bytes(bytes.into_owned(), self.is_bracketed_paste_enabled);
-                (decorated_bytes.into(), false, None, false)
-            }
             PtyWrite::Bytes { bytes } => (bytes, false, None, false),
             PtyWrite::TmuxCommand(command) => {
                 let command = command.get_command_string();

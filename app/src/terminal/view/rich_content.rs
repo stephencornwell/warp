@@ -121,7 +121,6 @@ impl TerminalView {
         let item = RichContentItem::new(
             content_type,
             handle.id(),
-            None,
             false,
         );
 
@@ -153,8 +152,6 @@ impl TerminalView {
             rich_content = rich_content.with_metadata(metadata);
         }
         self.rich_content_views.push(rich_content);
-
-        self.update_input_prompt_suggestions_banner_state(ctx);
 
         // Scroll to bottom
         self.update_scroll_position_locking(ScrollPositionUpdate::AfterRichBlockInserted, ctx);

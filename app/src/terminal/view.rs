@@ -1421,37 +1421,6 @@ pub struct ContextMenuInfo {
 }
 
 impl ContextMenuInfo {
-    // This function should only be used for telemetry
-    pub fn type_for_telemetry(&self) -> &'static str {
-        match self.menu_type {
-            ContextMenuType::BlockList { .. } => "Block",
-            ContextMenuType::Prompt { .. } => "Prompt",
-            ContextMenuType::Input { .. } => "Input",
-            ContextMenuType::AltScreen { .. } => "AltScreen",
-            ContextMenuType::AIBlockAttachedContext { .. } => "AIBlockContextList",
-            ContextMenuType::AIBlockOverflowMenu { .. } => "AIBlockOverflowMenu",
-        }
-    }
-
-    // This function should only be used for telemetry
-    pub fn open_method_for_telemetry(&self) -> &'static str {
-        match self.menu_type {
-            ContextMenuType::BlockList { menu_source } => match menu_source {
-                BlockListMenuSource::BlockOverflowButton { .. } => "BlockOverflowButton",
-                BlockListMenuSource::BlockKeybinding { .. } => "Keybinding",
-                BlockListMenuSource::RegularBlockRightClick { .. } => "RightClick",
-                BlockListMenuSource::RegularTextRightClick { .. } => "RightClick",
-                BlockListMenuSource::RichContentBlockRightClick { .. } => "OutsideBlockRightClick",
-                BlockListMenuSource::RichContentTextRightClick { .. } => "OutsideBlockRightClick",
-                BlockListMenuSource::OutsideBlockRightClick { .. } => "OutsideBlockRightClick",
-            },
-            ContextMenuType::Prompt { .. } => "RightClick",
-            ContextMenuType::Input { .. } => "RightClick",
-            ContextMenuType::AltScreen { .. } => "AltScreen",
-            ContextMenuType::AIBlockAttachedContext { .. } => "AIBlockAttachedBlockChipLeftClick",
-            ContextMenuType::AIBlockOverflowMenu { .. } => "AIBlockOverflowMenuClick",
-        }
-    }
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -3202,14 +3171,6 @@ impl TerminalView {
             .active_block()
             .is_active_and_long_running()
             && !model.is_read_only()
-    }
-
-    /// Returns `true` when an interactive SSH command has been detected at
-    /// preexec and the SSH block is still running (long-running). Used by
-    /// the workspace to derive `PendingRemoteSession` without storing
-    /// mutable state on the workspace itself.
-    pub fn has_pending_ssh_command(&self) -> bool {
-        self.warpify_state.get_pending_ssh_host().is_some() && self.is_long_running()
     }
 
     /// Like `is_long_running`, but also requires the user to be in control of the command
@@ -13127,32 +13088,6 @@ impl TerminalView {
             }
         }
 
-    }
-
-    // Invokes the on_next_frame_drawn API to time from the provided block started at to the moment
-    // the frame is drawn.
-    // It doesn't matter when this method is called, as long as it's before the next frame is drawn.
-    fn install_block_latency_telemetry_callback(
-        &mut self,
-        block_latency_data: BlockLatencyData,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        let session_info = self
-            .active_block_session_id()
-            .and_then(|session_id| self.sessions.as_ref(ctx).get(session_id))
-            .map(|session| {
-                let shell_name = session.shell().shell_type().name();
-                (session.is_legacy_ssh_session(), shell_name)
-            });
-
-        if let Some((is_ssh, shell)) = session_info {
-            let executor = ctx.background_executor().clone();
-            ctx.on_next_frame_drawn(move || {
-                let _ = (block_latency_data, shell, is_ssh, executor);
-            })
-        } else {
-            log::warn!("Could not log block latency telemetry since session info was none");
-        }
     }
 
     /// Toggles the block filter on the last selected block, or the last non-hidden

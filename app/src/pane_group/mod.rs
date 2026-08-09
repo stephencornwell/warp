@@ -2747,39 +2747,7 @@ impl PaneGroup {
     /// Returns `true` if the conversation metadata was found and the async load
     /// was kicked off, or `false` if the metadata isn't available yet (caller
     /// should defer and retry later).
-    fn fetch_and_load_transcript(
-        target_view: ViewHandle<TerminalView>,
-        server_conversation_token: ServerConversationToken,
-        ctx: &mut ViewContext<Self>,
-    ) -> bool {
-        let history_model_handle = BlocklistAIHistoryModel::handle(ctx);
-        let ai_conversation_id = history_model_handle
-            .as_ref(ctx)
-            .find_conversation_id_by_server_token(&server_conversation_token);
 
-        let Some(ai_conversation_id) = ai_conversation_id else {
-            return false;
-        };
-
-        let future = history_model_handle
-            .as_ref(ctx)
-            .load_conversation_data(ai_conversation_id, ctx);
-        ctx.spawn(future, move |group, conversation, ctx| {
-            if let Some(conversation) = conversation {
-                group.load_data_into_transcript_viewer(target_view, conversation, ctx);
-            } else if let Some(pane_id) =
-                group.find_pane_id_for_terminal_view(target_view.id(), ctx)
-            {
-                log::error!(
-                    "Failed to restore ambient agent pane, replacing with new cloud conversation"
-                );
-                group.replace_pane_with_new_cloud_conversation(pane_id, ctx);
-            }
-        });
-        true
-    }
-
-    /// Replaces a pane with a new cloud conversation.
     fn replace_pane_with_new_cloud_conversation(
         &mut self,
         pane_id: PaneId,
@@ -3052,108 +3020,6 @@ impl PaneGroup {
     }
 
     /// Create a new pane group for a view-only cloud conversation.
-    pub fn new_for_conversation_transcript_viewer(
-        conversation: AIConversation,
-        ambient_agent_task_id: Option<AmbientAgentTaskId>,
-        tips_completed: ModelHandle<TipsCompleted>,
-        user_default_shell_unsupported_banner_model_handle: ModelHandle<BannerState>,
-            model_event_sender: Option<SyncSender<ModelEvent>>,
-        ctx: &mut ViewContext<Self>,
-    ) -> Self {
-        let model_event_sender_clone = model_event_sender.clone();
-        let initial_layout = move |resources,
-                                   pane_contents: &mut HashMap<PaneId, Box<dyn AnyPaneContent>>,
-                                   pane_history: &mut Vec<PaneId>,
-                                   view_bounds: RectF,
-                                   ctx: &mut ViewContext<Self>| {
-            let (view, terminal_manager) = PaneGroup::create_conversation_viewer(
-                conversation.clone(),
-                ambient_agent_task_id,
-                resources,
-                view_bounds.size(),
-                ctx,
-            );
-
-            Self::terminal_pane_data(
-                Uuid::new_v4().as_bytes().to_vec(),
-                view,
-                terminal_manager,
-                model_event_sender_clone,
-                pane_contents,
-                pane_history,
-                ctx,
-            )
-        };
-        Self::new_internal(
-            tips_completed,
-            user_default_shell_unsupported_banner_model_handle,
-            model_event_sender,
-            Box::new(initial_layout),
-            ctx,
-        )
-    }
-
-    /// Create a new pane group with a loading state for a conversation viewer.
-    /// The actual conversation data will be loaded asynchronously.
-    pub fn new_for_conversation_transcript_viewer_loading(
-        tips_completed: ModelHandle<TipsCompleted>,
-        user_default_shell_unsupported_banner_model_handle: ModelHandle<BannerState>,
-            model_event_sender: Option<SyncSender<ModelEvent>>,
-        ctx: &mut ViewContext<Self>,
-    ) -> Self {
-        let model_event_sender_clone = model_event_sender.clone();
-        let initial_layout = move |resources,
-                                   pane_contents: &mut HashMap<PaneId, Box<dyn AnyPaneContent>>,
-                                   pane_history: &mut Vec<PaneId>,
-                                   view_bounds: RectF,
-                                   ctx: &mut ViewContext<Self>| {
-            let (terminal_view, terminal_manager) = Self::create_loading_terminal_manager_and_view(
-                resources,
-                view_bounds.size(),
-                ctx.window_id(),
-                ctx,
-            );
-
-            BlocklistAIHistoryModel::handle(ctx).update(ctx, |history_model, _ctx| {
-                history_model
-                    .mark_terminal_view_as_conversation_transcript_viewer(terminal_view.id());
-            });
-
-            Self::terminal_pane_data(
-                Uuid::new_v4().as_bytes().to_vec(),
-                terminal_view,
-                terminal_manager,
-                model_event_sender_clone,
-                pane_contents,
-                pane_history,
-                ctx,
-            )
-        };
-        Self::new_internal(
-            tips_completed,
-            user_default_shell_unsupported_banner_model_handle,
-            model_event_sender,
-            Box::new(initial_layout),
-            ctx,
-        )
-    }
-
-    /// Load conversation data into a conversation viewer that was created with a loading state.
-    /// Uses the active session view as the target.
-    pub fn load_data_into_conversation_transcript_viewer(
-        &mut self,
-        conversation: CloudConversationData,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        // Get the active terminal view
-        let Some(terminal_view) = self.active_session_view(ctx) else {
-            log::error!("No active terminal view to load conversation into");
-            return;
-        };
-        self.load_data_into_transcript_viewer(terminal_view, conversation, ctx);
-    }
-
-    /// Load conversation data into a specific transcript viewer terminal view.
 
     fn handle_windowing_state_update(
         &mut self,

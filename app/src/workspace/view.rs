@@ -5827,7 +5827,7 @@ impl Workspace {
             // Reset mixer with correct file data source before setting filter
             let mixer = view.search_bar.as_ref(ctx).mixer().clone();
             view.data_source_store.update(ctx, |store, ctx| {
-                store.reset_search_mixer(mixer, self.is_shared_session_viewer_focused(ctx), ctx);
+                store.reset_search_mixer(mixer, false, ctx);
             });
             view.set_active_query_filter(QueryFilter::Files, ctx);
         });
@@ -5878,8 +5878,6 @@ impl Workspace {
         self.close_tab_bar_overflow_menu(ctx);
         self.close_all_chip_menus(ctx);
 
-        self.active_tab_pane_group()
-            .update(ctx, |pane_group, ctx| pane_group.close_overlays(ctx));
     }
 
     /// Close all chip menus across all inputs to prevent overlapping with modals.
@@ -5965,7 +5963,6 @@ impl Workspace {
             if is_palette_mode_already_open {
                 self.close_palette(true, None, ctx);
             } else {
-                self.set_palette_sources(source, ctx);
                 self.open_palette(palette_mode, source, ctx);
             }
         }
@@ -5976,18 +5973,6 @@ impl Workspace {
             CommandPaletteEvent::Close {
                 accepted_action_type,
             } => self.close_palette(true, *accepted_action_type, ctx),
-            CommandPaletteEvent::OpenDirectory { path } => {
-                let active_terminal_view = self
-                    .active_tab_pane_group()
-                    .as_ref(ctx)
-                    .active_session_view(ctx);
-
-                if let Some(terminal_view) = active_terminal_view {
-                    terminal_view.update(ctx, |terminal_view, ctx| {
-                        terminal_view.open_repo_folder(path.to_string(), false, ctx);
-                    });
-                }
-            }
         }
     }
 
@@ -5996,13 +5981,6 @@ impl Workspace {
     /// This function is used when we want to view an item in Warp Drive AND focus Warp Drive.
     /// Updates the left panel's warp drive view.
     /// View an object in Warp Drive and open its sharing settings.
-    fn set_focused_index(&mut self, index: Option<usize>, ctx: &mut ViewContext<Self>) {
-        self.update_warp_drive_view(ctx, |warp_drive, ctx| {
-            warp_drive.set_focused_index(index, ctx);
-        });
-        ctx.notify();
-    }
-
     fn manual_check_for_update(&self, ctx: &mut ViewContext<Self>) {
         let _ = ctx;
     }

@@ -202,28 +202,12 @@ pub enum TerminalAction {
         position: Vector2F,
     },
     InputContextMenuItem(InputContextMenuAction),
-    /// Open the menu on the specified [`crate::ai::blocklist::AIBlock`] that lists the blocks that
-    /// were attached to the query in the specifed [`crate::ai::blocklist::AIAgentExchange`] which
-    /// is part of the specified [`crate::ai::blocklist::AIConversation`].
-    OpenAIBlockAttachedBlocksMenu {
-        ai_block_view_id: EntityId,
-        exchange_id: AIAgentExchangeId,
-        conversation_id: AIConversationId,
-    },
-    /// Open the overflow context menu for an AI block with copy options
-    OpenAIBlockOverflowMenu {
-        ai_block_view_id: EntityId,
-        exchange_id: AIAgentExchangeId,
-        conversation_id: AIConversationId,
-        is_restored: bool,
-    },
     SelectAllBlocks,
     ExpandBlockSelectionAbove,
     ExpandBlockSelectionBelow,
     NotificationsDiscoveryBanner(NotificationsDiscoveryBannerAction),
     BookmarkBlock(BlockIndex),
     NotificationsErrorBanner(NotificationsErrorBannerAction),
-    LegacySSHBanner(SSHBannerAction),
     JumpToBookmark(BlockIndex),
     OpenGridLink(GridHighlightedLink),
     OpenRichContentLink(RichContentLink),
@@ -246,12 +230,6 @@ pub enum TerminalAction {
         line_col: Option<warp_util::path::LineAndColumnArg>,
     },
     OpenWorkflowModal,
-    OpenWorkflowModalForAIWorkflow(Workflow),
-    OpenWorkflowModalForBlock(BlockIndex),
-    OpenWorkflowModalWithCloudWorkflow(SyncId),
-    AskAIAssistant {
-        block_index: BlockIndex,
-    },
     /// Starts a subshell in the active session.
     TriggerSubshellBootstrap,
     /// If the user says "no" to Warpification, possibly requesting not to be asked again
@@ -266,35 +244,13 @@ pub enum TerminalAction {
     AliasExpansionBanner(AliasExpansionBannerAction),
     OpenInWarpBanner(OpenInWarpBannerAction),
     OpenBlockFilterEditor(BlockIndex),
-    OnboardingFlow(OnboardingVersion),
     ImportSettings,
-    StopSharingCurrentSession {
-        source: SharedSessionActionSource,
-    },
-    OpenSharedSessionOnDesktop {
-        source: SharedSessionActionSource,
-    },
-    ToggleBlockFilterOnSelectedOrLastBlock(ToggleBlockFilterSource),
-    OpenShareSessionModal {
-        source: SharedSessionActionSource,
-    },
-    CopySharedSessionLink {
-        source: SharedSessionActionSource,
-    },
     VimModeBanner(VimModeBannerAction),
     ToggleSnackbarInActivePane,
-    MakeAllParticipantsReaders {
-        reason: RoleUpdateReason,
-    },
-    OpenSharedSessionViewerRoleMenu,
-    RequestSharedSessionRole(Role),
     /// User selected a block inside an AI block's attached block menu so we jump to it and select
     /// it if possible.
-    SelectAIAttachedBlock(BlockIndex),
     DragAndDropFiles(Vec<String>),
     /// Triggers an ssh session to warpify, even if there is no Warpify Block.
-    WarpifySSHSession,
-    NotifySshErrorBlock(SshErrorBlockAction),
     /// Sets the input mode to Agent Mode
     SetInputModeAgent,
     /// Sets the input mode to Terminal Mode
@@ -313,28 +269,6 @@ pub enum TerminalAction {
         selected_range: Range<usize>,
     },
     ClearMarkedText,
-    SelectAgenticSuggestion(i32),
-    HideTelemetryBannerPermanently,
-    ShowInitializationBlock,
-    GenerateCodebaseIndex,
-    /// This is for debugging, dev only for now
-    LoadAgentModeConversation,
-    ShowWarpifySettings,
-    /// Removes a pending attachment (image or file) by index in the unified list.
-    DeleteAttachment {
-        index: usize,
-    },
-    WriteCodebaseIndex,
-    ToggleAutoexecuteMode,
-    ToggleQueueNextPrompt,
-    CodebaseIndexSpeedbumpBanner(CodebaseIndexSpeedbumpBannerAction),
-    AgentModeSetupSpeedbumpBanner(AgentModeSetupSpeedbumpBannerAction),
-    AnonymousUserAISignUpBanner(AnonymousUserLoginBannerAction),
-    ResumeConversation,
-    ForkConversationFromLastKnownGoodState,
-    ToggleAIDocumentPane,
-    ToggleTodoPopup,
-    CloseTodoPopup,
     InitProject,
     SummarizeConversation,
     IndexProjectSpeedbump,
@@ -344,12 +278,7 @@ pub enum TerminalAction {
     OpenAddMCPPane,
     OpenAddRulePane,
     OpenRulesPane,
-    OpenEditSkillPane {
-        skill_reference: SkillReference,
-    },
     OpenAddPromptPane,
-    OpenBillingAndUsagePane,
-    OpenConversationsPalette,
     PickRepoToOpen,
     OpenFilesPalette {
         source: PaletteSource,
@@ -359,31 +288,8 @@ pub enum TerminalAction {
     StartLspServer,
     ToggleLongRunningCommandControl,
     ToggleHideCliResponses,
-    ExitAgentView,
-    EnterCloudAgentView,
-    StartNewAgentConversation,
-    /// Toggle the cloud mode conversation details panel
-    ToggleCloudModeDetailsPanel,
-    /// Cancel the ambient agent task while it's loading
-    CancelAmbientAgentTask,
     OpenInlineHistoryMenu,
     OpenModelSelector,
-    ResolvePromptSuggestion(PromptSuggestionResolution),
-    AwsBedrockLoginBanner(AwsBedrockLoginBannerAction),
-    AwsCliNotInstalledBanner(AwsCliNotInstalledBannerAction),
-    /// Toggle the usage footer on the last AI block in the active conversation.
-    ToggleUsageFooter,
-    /// Reveal a hidden child agent pane from the orchestrator status card.
-    RevealChildAgent {
-        conversation_id: AIConversationId,
-    },
-    /// Switch the active terminal view's agent view to display the given
-    /// conversation in place, without spawning or revealing a separate pane.
-    /// Used by the orchestration pill bar to navigate the current pane to a
-    /// sibling/parent conversation.
-    SwitchAgentViewToConversation {
-        conversation_id: AIConversationId,
-    },
     /// Toggle PTY recording for this session.
     ToggleSessionRecording,
     /// Open the rich input editor for composing a prompt to send to a CLI agent.

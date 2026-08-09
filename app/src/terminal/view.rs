@@ -11536,66 +11536,8 @@ impl TerminalView {
     }
 }
 
-/// Constructs the keybindings struct for the onboarding callout.
-///
-/// Gets display strings for:
-/// - Toggle input mode: from TerminalKeybindings (editable binding)
-/// - Submit to local agent: fixed binding (cmd-enter / ctrl-shift-enter)
-/// - Submit to cloud agent: fixed binding (cmd-alt-enter / ctrl-alt-enter)
-fn build_onboarding_keybindings(ctx: &AppContext) -> OnboardingKeybindings {
-    let toggle_input_mode = TerminalKeybindings::handle(ctx)
-        .as_ref(ctx)
-        .set_input_mode_agent_keybinding()
-        .unwrap_or_else(|| {
-            if OperatingSystem::get().is_mac() {
-                "⌘-I".to_string()
-            } else {
-                "Ctrl-I".to_string()
-            }
-        });
-
-    // EditorAction::CmdEnter is a fixed binding, not editable
-    let submit_to_local_agent = if OperatingSystem::get().is_mac() {
-        Keystroke::parse("cmd-enter")
-    } else {
-        Keystroke::parse("ctrl-shift-enter")
-    }
-    .map(|k| k.displayed())
-    .unwrap_or_else(|_| "⌘-⏎".to_string());
-
-    // TerminalAction::EnterCloudAgentView is a fixed binding, not editable
-    let submit_to_cloud_agent = if OperatingSystem::get().is_mac() {
-        Keystroke::parse("cmd-alt-enter")
-    } else {
-        Keystroke::parse("ctrl-alt-enter")
-    }
-    .map(|k| k.displayed())
-    .unwrap_or_else(|_| "⌘-⌥-⏎".to_string());
-
-    OnboardingKeybindings {
-        toggle_input_mode,
-        submit_to_local_agent,
-        submit_to_cloud_agent,
-    }
-}
-
-/// Builds the context-menu label for forking an AI conversation from a given query.
-fn fork_label_for_query(query: &str) -> String {
-    if query.is_empty() {
-        "Fork from last query".to_string()
-    } else {
-        let first_line = query.lines().next().unwrap_or(query).trim();
-        let chars: Vec<char> = first_line.chars().take(21).collect();
-        let (truncated, suffix) = if chars.len() > 20 {
-            (chars[..20].iter().collect::<String>(), "…")
-        } else {
-            (chars.iter().collect::<String>(), "")
-        };
-        format!("Fork from \"{truncated}{suffix}\"")
-    }
-}
-
 impl TerminalView {
+    #[cfg(any())]
     fn start_agent_onboarding_tutorial(
         &mut self,
         version: AgentOnboardingVersion,
@@ -11681,6 +11623,7 @@ impl TerminalView {
         ctx.notify();
     }
 
+    #[cfg(any())]
     fn handle_onboarding_callout_view_event(
         &mut self,
         callout_view: &ViewHandle<OnboardingCalloutView>,

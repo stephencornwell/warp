@@ -9,7 +9,6 @@ use crate::{
     appearance,
     banner::BannerState,
     drive::settings::WarpDriveSettings,
-    report_if_error,
     resource_center::TipsCompleted,
     search::command_search::settings::CommandSearchSettings,
     terminal::{

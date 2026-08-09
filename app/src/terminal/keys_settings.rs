@@ -5,7 +5,6 @@ use settings::{
 use warpui::{keymap::Keystroke, AppContext, DisplayIdx, ModelContext};
 
 use crate::{
-    report_if_error,
     root_view::{update_quake_window_bounds, QuakeModePinPosition},
     settings::{
         CtrlTabBehavior, ExtraMetaKeys as ExtraMetaKeysEnum, GlobalHotkeyMode, SizePercentages,

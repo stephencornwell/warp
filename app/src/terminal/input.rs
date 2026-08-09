@@ -71,7 +71,6 @@ use crate::{
     network::NetworkStatus,
     pane_group::PaneGroupAction,
     prefix::longest_common_prefix,
-    report_if_error,
     resource_center::{
         mark_feature_used_and_write_to_user_defaults, Tip, TipAction, TipHint, TipsCompleted,
     },

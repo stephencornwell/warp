@@ -62,7 +62,7 @@ use crate::{
     features::FeatureFlag,
     view_components::{Dropdown, DropdownItem, FilterableDropdown},
 };
-use crate::{report_error, report_if_error, themes};
+use crate::{report_error, themes};
 use ::settings::{Setting, SettingSection, ToggleableSetting};
 use enum_iterator::all;
 use std::borrow::Cow;

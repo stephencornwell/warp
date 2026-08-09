@@ -4,7 +4,7 @@ use std::collections::HashSet;
 use settings::Setting as _;
 
 use crate::{
-    report_if_error, terminal::general_settings::GeneralSettings,
+    terminal::general_settings::GeneralSettings,
     util::bindings::trigger_to_keystroke,
 };
 

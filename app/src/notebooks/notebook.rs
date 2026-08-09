@@ -71,7 +71,7 @@ use crate::{
         pane::view,
         BackingView, PaneConfiguration, PaneEvent,
     },
-    report_if_error, safe_info, send_telemetry_from_ctx,
+    safe_info, send_telemetry_from_ctx,
     server::{
         cloud_objects::update_manager::{FetchSingleObjectOption, UpdateManager},
         ids::{ClientId, ServerId, SyncId},

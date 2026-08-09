@@ -32,7 +32,6 @@ use crate::{
         Event as EditorEvent, PropagateAndNoOpNavigationKeys, SingleLineEditorOptions, TextOptions,
     },
     referral_theme_status::ReferralThemeStatus,
-    report_if_error,
     settings::{respect_system_theme, ThemeSettings},
     themes::theme::SelectedSystemThemes,
     user_config::{load_theme_configs, themes_dir, WarpConfig, WarpConfigUpdateEvent},

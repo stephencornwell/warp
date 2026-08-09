@@ -3,7 +3,7 @@
 use std::collections::HashSet;
 
 use super::ServerExperiment;
-use crate::{persistence::ModelEvent, report_if_error, GlobalResourceHandlesProvider};
+use crate::{persistence::ModelEvent, GlobalResourceHandlesProvider};
 use anyhow::Context;
 use warpui::{Entity, ModelContext, SingletonEntity};
 

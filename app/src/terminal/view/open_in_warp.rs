@@ -16,7 +16,6 @@ use warpui::{
 #[cfg(feature = "local_fs")]
 use crate::code::editor_management::CodeSource;
 use crate::{
-    report_if_error,
     terminal::{
         event::UserBlockCompleted,
         general_settings::GeneralSettings,

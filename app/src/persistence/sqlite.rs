@@ -64,7 +64,7 @@ use crate::{
         TabSnapshot, TerminalPaneSnapshot, WindowSnapshot,
     },
 };
-use crate::{report_error, report_if_error, safe_info};
+use crate::{report_error, safe_info};
 use lsp::supported_servers::LSPServerType;
 
 diesel::define_sql_function! {

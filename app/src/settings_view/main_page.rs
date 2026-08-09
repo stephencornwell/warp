@@ -13,7 +13,6 @@ use crate::workspaces::user_workspaces::UserWorkspaces;
 use crate::{
     appearance::Appearance,
     auth::{auth_state::AuthState, auth_view_modal::AuthViewVariant},
-    report_if_error,
     settings::cloud_preferences::CloudPreferencesSettings,
     TelemetryEvent,
 };

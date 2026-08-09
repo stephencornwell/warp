@@ -7,7 +7,6 @@ use warpui::{Entity, ModelContext, SingletonEntity};
 use crate::settings::{FontSettings, ThemeSettings};
 use crate::{
     auth::auth_state::AuthState,
-    report_if_error,
     settings::input::InputBoxType,
     settings::{InputSettings, PrivacySettings},
     terminal::session_settings::SessionSettings,

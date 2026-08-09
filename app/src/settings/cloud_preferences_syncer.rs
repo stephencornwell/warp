@@ -25,7 +25,6 @@ use crate::{
     },
     debounce::debounce,
     drive::CloudObjectTypeAndId,
-    report_if_error,
     server::{
         cloud_objects::update_manager::{
             GenericStringObjectInput, InitiatedBy, UpdateManager, UpdateManagerEvent,

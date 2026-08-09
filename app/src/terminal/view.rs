@@ -8084,34 +8084,9 @@ impl TerminalView {
 
                 ctx.emit(Event::ExecuteCommand(event.as_ref().clone()));
 
-                if self.block_onboarding_active {
-                    self.interrupt_onboarding_blocks(ctx);
-                }
-            }
-            InputEvent::SendAgentPrompt {
-                server_conversation_token,
-                prompt,
-                attachments,
-            } => {
-                ctx.emit(Event::SendAgentPrompt {
-                    server_conversation_token: *server_conversation_token,
-                    prompt: prompt.clone(),
-                    attachments: attachments.clone(),
-                });
-            }
-            InputEvent::CancelSharedSessionConversation {
-                server_conversation_token,
-            } => {
-                ctx.emit(Event::CancelSharedSessionConversation {
-                    server_conversation_token: *server_conversation_token,
-                });
             }
             InputEvent::ClearSelectedBlock => self.clear_selected_blocks(ctx),
             InputEvent::SelectRecentBlocks { count } => {
-                let is_first_selection = self.selected_blocks.is_empty();
-                if is_first_selection && self.ai_input_model.as_ref(ctx).is_ai_input_enabled() {
-                    ();
-                }
                 self.select_most_recent_blocks(*count, ctx)
             }
             InputEvent::Copy => self.copy(ctx),
@@ -8135,18 +8110,7 @@ impl TerminalView {
                 ctx.notify()
             }
             InputEvent::InputStateChanged(_) => {}
-            InputEvent::InputEmptyStateChanged { is_empty, reason } => {
-                // Update the universal developer input button bar with the new empty state
-                let universal_developer_input_button_bar = self
-                    .input
-                    .as_ref(ctx)
-                    .universal_developer_input_button_bar()
-                    .clone();
-                universal_developer_input_button_bar.update(ctx, |button_bar, ctx| {
-                    button_bar.update_input_empty_state(*is_empty, ctx);
-                });
-
-            }
+            InputEvent::InputEmptyStateChanged { .. } => {}
             InputEvent::SyncInput(input) => {
                 if !SyncedInputState::as_ref(ctx).is_syncing_any_inputs(ctx.window_id()) {
                     return;
@@ -8187,15 +8151,6 @@ impl TerminalView {
                     self.show_emacs_bindings_banner(ctx);
                 }
             }
-            InputEvent::EditorUpdated {
-                block_id,
-                operations,
-            } => {
-                ctx.emit(Event::InputEditorUpdated {
-                    block_id: block_id.clone(),
-                    operations: operations.clone(),
-                });
-            }
             InputEvent::InputFocusedFromMiddleClick => {
                 self.focus_input_box(ctx);
             }
@@ -8227,10 +8182,6 @@ impl TerminalView {
                     message: message.clone(),
                     flavor: *flavor,
                 });
-            }
-            #[cfg(not(target_family = "wasm"))]
-            InputEvent::OpenPluginInstructionsPane(agent, kind) => {
-                ctx.emit(Event::OpenPluginInstructionsPane(*agent, *kind));
             }
         }
     }
@@ -10943,8 +10894,8 @@ impl TypedActionView for TerminalView {
             CtrlD => self.ctrl_d(ctx),
             CtrlC => self.handle_ctrl_c_input_event(0, ctx),
             ClearSelectionsWhenShellMode => self.clear_selections_when_shell_mode(ctx),
-            ContextMenu(context_action) => self.context_menu_action(context_action, ctx),
-            Close => ctx.emit(Event::CloseRequested),
+            ContextMenu(_) => {}
+            Close => {}
             SplitRight(chosen_shell) => {
                 ctx.emit(Event::Pane(PaneEvent::SplitRight(chosen_shell.to_owned())))
             }
@@ -10962,7 +10913,7 @@ impl TypedActionView for TerminalView {
                 position_offset_from_prompt,
             } => self.show_prompt_context_menu(*position_offset_from_prompt, ctx),
             OpenInputContextMenu { position } => self.show_input_context_menu(*position, ctx),
-            InputContextMenuItem(action) => self.handle_input_context_menu_action(action, ctx),
+            InputContextMenuItem(_) => {}
             SelectAllBlocks => self.select_all_blocks(ctx),
             BookmarkBlock(index) => self.bookmark_block(index, ctx),
             ExpandBlockSelectionAbove => {
@@ -11151,7 +11102,7 @@ impl TypedActionView for TerminalView {
             PickRepoToOpen => {
                 ctx.dispatch_typed_action(&WorkspaceAction::OpenRepository { path: None });
             }
-            OpenFilesPalette { source } => ctx.emit(Event::OpenFilesPalette { source: *source }),
+            OpenFilesPalette { .. } => {}
             DismissCodeToolbeltTooltip => {
                 CodeSettings::handle(ctx).update(ctx, |settings, ctx| {
                     if let Err(e) = settings

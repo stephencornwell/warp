@@ -987,9 +987,4 @@ pub enum PaneEvent {
         path: std::path::PathBuf,
         source: Option<crate::code::editor_management::CodeSource>,
     },
-    #[cfg(feature = "local_fs")]
-    ReplaceWithFilePane {
-        path: std::path::PathBuf,
-        source: Option<crate::code::editor_management::CodeSource>,
-    },
 }

@@ -969,16 +969,6 @@ impl SettingsView {
             me.handle_features_page_event(event, ctx);
         });
 
-        // Shared blocks page
-        let block_client = ServerApiProvider::as_ref(ctx).get_block_client();
-
-                ctx.emit(SettingsViewEvent::ShowToast {
-                    message: message.clone(),
-                    flavor: *flavor,
-                })
-            }
-        });
-
         // About page
         let about_page_handle = ctx.add_view(AboutPageView::new);
 

@@ -9165,78 +9165,6 @@ impl Input {
         }
     }
 
-    fn render_attachment_chips(&self, appearance: &Appearance) -> Option<Box<dyn Element>> {
-        if self.attachment_chips.is_empty() {
-            None
-        } else {
-            let chips = self
-                .attachment_chips
-                .iter()
-                .map(|chip| self.render_attached_chip(chip, appearance));
-
-            Some(
-                Wrap::row()
-                    .with_run_spacing(spacing::UDI_CHIP_MARGIN)
-                    .with_main_axis_alignment(MainAxisAlignment::Start)
-                    .with_main_axis_size(MainAxisSize::Min)
-                    .with_children(chips)
-                    .finish(),
-            )
-        }
-    }
-
-    fn render_attached_chip(
-        &self,
-        chip: &AttachmentChip,
-        appearance: &Appearance,
-    ) -> Box<dyn Element> {
-        let chip_index = chip.index;
-        let close_button = appearance
-            .ui_builder()
-            .close_button(
-                appearance.monospace_font_size(),
-                chip.mouse_state_handle.clone(),
-            )
-            .build()
-            .on_click(move |ctx, _, _| {
-                ctx.dispatch_typed_action(TerminalAction::DeleteAttachment { index: chip_index });
-            })
-            .finish();
-
-        let icon = match chip.attachment_type {
-            AttachmentType::Image => Icon::Image,
-            AttachmentType::File => Icon::File,
-        };
-
-        Chip::new(
-            chip.file_name.clone(),
-            UiComponentStyles {
-                margin: Some(Coords {
-                    top: 0.,
-                    bottom: 0.,
-                    left: 0.,
-                    right: 6.,
-                }),
-                font_family_id: Some(appearance.ui_font_family()),
-                font_size: Some(appearance.monospace_font_size()),
-                font_color: Some(blended_colors::text_main(
-                    appearance.theme(),
-                    appearance.theme().background(),
-                )),
-                border_width: Some(1.),
-                border_color: Some(internal_colors::neutral_4(appearance.theme()).into()),
-                border_radius: Some(CornerRadius::with_all(Radius::Pixels(5.))),
-                ..Default::default()
-            },
-        )
-        .with_icon(icon.to_warpui_icon(
-            blended_colors::text_main(appearance.theme(), appearance.theme().background()).into(),
-        ))
-        .with_close_button(close_button)
-        .build()
-        .finish()
-    }
-
     fn render_input_box(
         &self,
         show_vim_status: bool,
@@ -9430,40 +9358,10 @@ impl Input {
     }
 
     /// Returns a reference to the universal developer input button bar, if it exists
-    pub fn universal_developer_input_button_bar(
-        &self,
-    ) -> &ViewHandle<UniversalDeveloperInputButtonBar> {
-        &self.universal_developer_input_button_bar
-    }
-
     pub fn should_show_universal_developer_input(&self, app: &AppContext) -> bool {
         InputSettings::as_ref(app).is_universal_developer_input_enabled(app)
     }
 
-    fn handle_prompt_suggestions_event(
-        &mut self,
-        event: &PromptSuggestionsEvent,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        match event {
-            PromptSuggestionsEvent::SignupAnonymousUser => ctx.emit(Event::SignupAnonymousUser {
-                entrypoint: AnonymousUserSignupEntrypoint::SignUpAIPrompt,
-            }),
-            PromptSuggestionsEvent::OpenBillingAndUsagePage => {
-                ctx.emit(Event::OpenSettings(SettingsSection::BillingAndUsage))
-            }
-            PromptSuggestionsEvent::OpenPrivacyPage => {
-                ctx.emit(Event::OpenSettings(SettingsSection::Privacy))
-            }
-            PromptSuggestionsEvent::OpenBillingPortal { team_uid } => {
-                UserWorkspaces::handle(ctx).update(ctx, |user_workspaces, ctx| {
-                    user_workspaces.generate_stripe_billing_portal_link(*team_uid, ctx);
-                });
-            }
-        }
-    }
-
-    /// Returns whether the input box is currently pinned to the top of the screen.
     fn is_input_at_top(&self, model: &TerminalModel, ctx: &AppContext) -> bool {
         match InputModeSettings::as_ref(ctx).input_mode.value() {
             InputMode::PinnedToBottom => false,

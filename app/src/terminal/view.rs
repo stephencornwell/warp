@@ -173,8 +173,8 @@ use warpui::{
     },
     fonts::{Cache as FontCache, FamilyId},
     ui_components::components::UiComponent,
-    AppContext, Element, Entity, ModelHandle, TypedActionView, UpdateView, View, ViewAsRef,
-    ViewContext, WeakViewHandle,
+    AppContext, Element, Entity, ModelHandle, TypedActionView, UpdateView, View, ViewContext,
+    WeakViewHandle,
 };
 use warpui::{
     elements::Stack,
@@ -2637,8 +2637,6 @@ impl TerminalView {
 
     /// Give the agent control of the active long running command
     /// (which was started outside of a conversation).
-    // Take control back from the agent for the active long running command
-    // (which was started outside of a conversation).
 
     /// Shuts down the pty and event loop, terminating the shell process.
     /// Also marks this view as manually shut down for telemetry attribution.
@@ -3744,7 +3742,6 @@ impl TerminalView {
     ///
     /// For some organizations, we accept a regex list that we run against commands to
     /// further make the determination.
-    // Abort any pending prompt or code suggestions, which may now be irrelevant.
 
     /// Cleans up and removes the conversation associated with the given AI block.
     ///
@@ -4418,17 +4415,7 @@ impl TerminalView {
         ps1_grid_info
     }
 
-    #[cfg_attr(not(feature = "local_fs"), allow(dead_code))]
-    #[cfg_attr(not(feature = "local_fs"), allow(dead_code))]
-    /// Opens a folder that the user may or may not have opened in the past
-    // Initialize project for a path and suppress the agent mode setup banner for that path. This also auto-opens
-    // the code-review pane after the initialization step completes.
-
-    // Show or hide codebase index speedbump depending when a settings change happens.
-
-    /// Insert an InitStepBlock for the given step kind
-    /// Try to focus the most recent init step block that's awaiting user input
-    /// Check if completed command was `warp environment create` and emit event if successful
+    /// Opens a folder that the user may or may not have opened in the past.
     #[cfg(feature = "local_fs")]
     fn update_repo_banner_state(&mut self, directory: PathBuf, ctx: &mut ViewContext<Self>) {
         let _ = (directory, ctx);

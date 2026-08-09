@@ -27,7 +27,7 @@ use num_traits::FromPrimitive;
 use pathfinder_geometry::{rect::RectF, vector::Vector2F};
 use persistence::model::AMBIENT_AGENT_PANE_KIND;
 use warpui::platform::FullscreenState;
-use warpui::{AppContext, SingletonEntity};
+use warpui::AppContext;
 
 use super::block_list::{delete_blocks, save_block};
 use super::model::{

@@ -75,7 +75,6 @@ use std::{
     any::Any,
     borrow::Cow,
     collections::HashMap,
-    fmt::Write,
     ops::Range,
     path::{Path, PathBuf},
     rc::Rc,
@@ -381,7 +380,7 @@ pub struct BufferState {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-enum InputType {
+pub enum InputType {
     #[default]
     Shell,
 }

@@ -1,3 +1,4 @@
+use warp_core::errors::report_if_error;
 use std::sync::Arc;
 
 use warp_core::{features::FeatureFlag, settings::Setting};

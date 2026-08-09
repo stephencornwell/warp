@@ -6,6 +6,7 @@
 //! Windows 10/11. It doesn't require admin elevation and is scoped to the
 //! current user, matching the UX of macOS's `SMAppService`.
 
+use warp_core::errors::report_if_error;
 use crate::terminal::general_settings::GeneralSettings;
 use ::settings::Setting;
 use std::path::{Path, PathBuf};

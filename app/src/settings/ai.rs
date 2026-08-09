@@ -3,6 +3,7 @@
 //! These settings are currently used to configure the underlying model/API used to power the AI
 //! UX, as well as small UX configurations.
 
+use warp_core::errors::report_if_error;
 use std::collections::HashMap;
 use std::path::PathBuf;
 

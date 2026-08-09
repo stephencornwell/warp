@@ -1,3 +1,4 @@
+use warp_core::errors::report_if_error;
 use crate::send_telemetry_from_ctx;
 use crate::default_terminal::DefaultTerminal;
 use crate::gpu_state::{GPUState, GPUStateEvent};

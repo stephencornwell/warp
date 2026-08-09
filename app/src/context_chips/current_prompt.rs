@@ -1,3 +1,4 @@
+use warp_core::errors::report_if_error;
 use crate::features::FeatureFlag;
 use crate::settings::{InputSettings, WarpPromptSeparator};
 use crate::terminal::event::{BlockType, UserBlockCompleted};

@@ -1,3 +1,4 @@
+use warp_core::errors::report_if_error;
 // The code in this file is adapted from the alacritty_terminal crate under the
 // Apache license; see: crates/warp_terminal/src/model/LICENSE-ALACRITTY.
 

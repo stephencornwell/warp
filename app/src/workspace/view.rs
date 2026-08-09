@@ -3808,21 +3808,7 @@ impl Workspace {
     }
 
     pub fn toggle_resource_center(&mut self, ctx: &mut ViewContext<Self>) {
-        // Close AI Assistant panel when resource center is opened
-        if !self.current_workspace_state.is_resource_center_open {
-            self.current_workspace_state.is_ai_assistant_panel_open = false;
-            self.focus_active_tab(ctx);
-        }
-
-        if !self.current_workspace_state.is_resource_center_open {
-            self.open_resource_center_main_page(ctx);
-        } else {
-            // Close side panel
-            self.current_workspace_state.is_resource_center_open = false;
-        }
-
-        self.update_resource_center_action_target(ctx);
-        ctx.notify();
+        self.open_settings_pane(None, None, ctx);
     }
 
     fn open_left_panel(&mut self, ctx: &mut ViewContext<Self>) {
@@ -3890,16 +3876,6 @@ impl Workspace {
                 }
             }
 
-            // Auto-expand the file tree when the left panel is opened and the project explorer is
-            // the active view.
-            let file_tree_active = self
-                .left_panel_view
-                .read(ctx, |lp, _| lp.is_file_tree_active());
-            if file_tree_active {
-                self.left_panel_view.update(ctx, |left_panel, ctx| {
-                    left_panel.auto_expand_active_file_tree_to_most_recent_directory(ctx);
-                });
-            }
         }
 
         if !new_state {
@@ -3992,38 +3968,7 @@ impl Workspace {
     }
 
     pub fn toggle_keybindings_page(&mut self, ctx: &mut ViewContext<Self>) {
-        let current_page = self
-            .resource_center_view
-            .read(ctx, |resource_center_view, _ctx| {
-                resource_center_view.get_current_page()
-            });
-
-        if !self.current_workspace_state.is_resource_center_open {
-            // Set current page to Keybindings
-            self.resource_center_view
-                .update(ctx, |resource_center_view, ctx| {
-                    resource_center_view.set_current_page(ResourceCenterPage::Keybindings, ctx)
-                });
-
-            // Ensure other right panels are closed
-            self.current_workspace_state.is_ai_assistant_panel_open = false;
-            // Open side panel
-            self.current_workspace_state.is_resource_center_open = true;
-        } else if current_page != ResourceCenterPage::Keybindings
-            && self.current_workspace_state.is_resource_center_open
-        {
-            // Navigate to keybindings page
-            self.resource_center_view
-                .update(ctx, |resource_center_view, ctx| {
-                    resource_center_view.set_current_page(ResourceCenterPage::Keybindings, ctx)
-                });
-        } else {
-            // Close side panel
-            self.current_workspace_state.is_resource_center_open = false;
-            self.focus_active_tab(ctx);
-        }
-
-        ctx.notify();
+        self.open_settings_pane(None, None, ctx);
     }
 
     fn handle_tab_right_click_menu_event(
@@ -6154,7 +6099,6 @@ impl Workspace {
             pane_group::Event::AppStateChanged => {
                 ctx.dispatch_global_action("workspace:save_app", ());
                 self.refresh_working_directories_for_pane_group(&pane_group, ctx);
-                self.update_resource_center_action_target(ctx);
                 self.update_active_session(ctx);
 
                 if FeatureFlag::DirectoryTabColors.is_enabled() {
@@ -6255,49 +6199,14 @@ impl Workspace {
                 self.update_active_session(ctx);
                 ctx.notify();
             }
-            pane_group::Event::ExecuteCommand(execute_event) => {
-                // Clear the task status indicator as soon as the user runs a command. If a command is
-                // run as part of the task, leave the task marked as in-progress.
-                if !execute_event.source.is_ai_command() {
-                    self.handle_task_status_reset(pane_group.id(), ctx);
-                }
-            }
             pane_group::Event::OpenFileInWarp { path, session } => {
                 let _ = (path, session);
-            }
-            #[cfg(feature = "local_fs")]
-            pane_group::Event::OpenCodeInWarp {
-                source,
-                layout,
-                line_col,
-            } => {
-                self.open_code(source.clone(), *layout, *line_col, false, &[], ctx);
-            }
-            #[cfg(feature = "local_fs")]
-            pane_group::Event::PreviewCodeInWarp { source } => {
-                self.open_code(
-                    source.clone(),
-                    EditorLayout::SplitPane, // preview always uses split pane
-                    None,                    // no line/column for preview
-                    true,                    // preview
-                    &[],
-                    ctx,
-                );
-            }
-            pane_group::Event::OpenCodeDiff { view } => {
-                self.open_code_diff(view.clone(), ctx);
-            }
-            pane_group::Event::AttachPathAsContext { path } => {
-                self.attach_path_as_context(path.clone(), ctx);
             }
             pane_group::Event::CDToDirectory { path } => {
                 self.cd_to_directory(path.clone(), ctx);
             }
             pane_group::Event::OpenDirectoryInNewTab { path } => {
                 self.open_directory_in_new_tab(path.clone(), ctx);
-            }
-            pane_group::Event::RunTabConfigSkill { path } => {
-                self.run_tab_config_skill(path, ctx);
             }
             pane_group::Event::CloseSharedSessionPaneRequested { pane_id } => {
                 if *SessionSettings::as_ref(ctx).should_confirm_close_session {
@@ -6349,31 +6258,6 @@ impl Workspace {
             pane_group::Event::FocusPaneInWorkspace { locator } => {
                 // Focus an existing pane by its locator (used when avoiding duplicate file panes during undo close pane)
                 self.focus_pane(*locator, ctx);
-            }
-            pane_group::Event::ViewInWarpDrive(id) => {
-                self.view_in_and_focus_warp_drive(*id, ctx);
-            }
-            // If focused pane contains an object, then set selected state in WD to that object
-            pane_group::Event::PaneFocused => {
-                self.current_workspace_state.close_all_modals();
-
-                // Re-evaluate which region is focused and update pane dimming accordingly.
-                self.update_pane_dimming_for_current_focus_region(ctx);
-
-                let focused_terminal_view_id = {
-                    let pane_group = self.active_tab_pane_group().as_ref(ctx);
-                    pane_group
-                        .terminal_view_from_pane_id(pane_group.focused_pane_id(ctx), ctx)
-                        .map(|tv| tv.id())
-                };
-                let ambient_agent_task_id = self
-                    .get_active_session_terminal_model(ctx)
-                    .and_then(|model| model.lock().ambient_agent_task_id());
-                self.notify_terminal_focus_change(
-                    focused_terminal_view_id,
-                    ambient_agent_task_id,
-                    ctx,
-                );
             }
             pane_group::Event::RepoChanged => {
                 self.refresh_working_directories_for_pane_group(&pane_group, ctx);
@@ -6748,7 +6632,6 @@ impl Workspace {
             ThemeChooserEvent::Click => self.focus_theme_chooser(ctx),
             ThemeChooserEvent::Close(mode) => {
                 self.save_theme_chooser(mode, ctx);
-                self.restore_previous_workspace_state(ctx);
             }
             ThemeChooserEvent::OpenThemeCreatorModal => {
                 self.open_theme_creator_modal(ctx);
@@ -6765,11 +6648,6 @@ impl Workspace {
         init_content: &InitContent,
         ctx: &mut ViewContext<Self>,
     ) {
-        // View-only sessions should not show command search
-        if self.is_readonly_shared_session_active(ctx) {
-            return;
-        }
-
         // Close all overlays including chip menus before opening command search
         self.close_all_overlays(ctx);
 
@@ -7038,10 +6916,6 @@ impl Workspace {
                     input.replace_buffer_content(content, ctx);
                 } else {
                     input.append_to_buffer(content, ctx);
-                }
-
-                if ensure_agent_mode {
-                    input.ensure_agent_mode_for_ai_features(true, ctx);
                 }
 
                 if should_submit {
@@ -10278,11 +10152,7 @@ impl View for Workspace {
                     )
                     .finish();
 
-                    let render_left = self.should_render_sidecar_left(
-                        &anchor_label,
-                        NEW_SESSION_SIDECAR_WIDTH,
-                        app,
-                    );
+                    let render_left = false;
                     let (offset, parent_anchor, child_anchor) = if render_left {
                         (
                             vec2f(-4., 0.),

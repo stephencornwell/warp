@@ -30,7 +30,6 @@ use crate::projects::ProjectManagementModel;
 
 pub use self::link_detection::GridHighlightedLink;
 pub use self::link_detection::{RichContentLink, RichContentLinkTooltipInfo};
-use crate::settings::CodeSettings;
 pub use action::TerminalAction;
 pub use block_banner::{WithinBlockBanner, BLOCK_BANNER_HEIGHT};
 pub use init::{
@@ -76,7 +75,7 @@ use crate::terminal::block_list_viewport::ScrollState;
 use crate::terminal::general_settings::GeneralSettings;
 use crate::terminal::grid_size_util::grid_cell_dimensions;
 use crate::terminal::input::decorations::InputBackgroundJobOptions;
-use crate::terminal::input::{CommandExecutionSource, InputAction};
+use crate::terminal::input::CommandExecutionSource;
 use crate::terminal::ligature_settings::{should_use_ligature_rendering, LigatureSettings};
 #[cfg(feature = "local_tty")]
 #[cfg(feature = "local_tty")]
@@ -110,7 +109,7 @@ use crate::util::clipboard::clipboard_content_with_escaped_paths;
 use crate::util::openable_file_type::{is_markdown_file, resolve_file_target, FileTarget};
 use crate::view_components::{DismissibleToast, ToastFlavor};
 use crate::workspace::sync_inputs::SyncedInputState;
-use crate::workspace::{CommandSearchOptions, OneTimeModalModel, ToastStack, WorkspaceAction};
+use crate::workspace::{CommandSearchOptions, OneTimeModalModel, ToastStack};
 use crate::ActiveSession as WindowActiveSession;
 
 use async_channel::{Receiver, Sender};
@@ -4272,6 +4271,7 @@ impl TerminalView {
                 }
             }
             ModelEvent::ExitShell { session_id: _ } => {} // Handled by RemoteServerController via model subscription.
+            _ => {}
         }
     }
 
@@ -10143,6 +10143,7 @@ impl TypedActionView for TerminalView {
             | OpenModelSelector
             | OpenCLIAgentRichInput
             | ToggleSessionRecording => Empty,
+            _ => ActionAccessibilityContent::from_debug(),
         }
     }
 
@@ -10458,6 +10459,7 @@ impl TypedActionView for TerminalView {
                     });
                 }
             }
+            _ => {}
         }
     }
 }

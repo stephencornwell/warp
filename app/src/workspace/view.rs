@@ -7437,9 +7437,6 @@ impl Workspace {
             pane_group::Event::AttachPathAsContext { path } => {
                 self.attach_path_as_context(path.clone(), ctx);
             }
-            pane_group::Event::AttachPlanAsContext { ai_document_id } => {
-                self.attach_plan_as_context(*ai_document_id, ctx);
-            }
             pane_group::Event::CDToDirectory { path } => {
                 self.cd_to_directory(path.clone(), ctx);
             }
@@ -8483,43 +8480,6 @@ impl Workspace {
             {
             }
         }
-    }
-
-    fn attach_plan_as_context(&mut self, id: AIDocumentId, ctx: &mut ViewContext<Self>) {
-        let Some(view) = self.active_session_view(ctx) else {
-            let window_id = ctx.window_id();
-            WorkspaceToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
-                let toast = DismissibleToast::default(
-                    "No terminal pane open. Open a new pane to attach as context.".to_owned(),
-                );
-                toast_stack.add_ephemeral_toast(toast, window_id, ctx);
-            });
-            return;
-        };
-
-        // Check if the plan's conversation is already selected in the target terminal before
-        // attaching as context. This is to stop users from reattaching plans to conversations that already
-        // have them in context.
-        if let Some(conversation_id) =
-            AIDocumentModel::as_ref(ctx).get_conversation_id_for_document_id(&id)
-        {
-            if view
-                .as_ref(ctx)
-                .is_conversation_selected(&conversation_id, ctx)
-            {
-                let window_id = ctx.window_id();
-                WorkspaceToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
-                    let toast =
-                        DismissibleToast::default("This plan is already in context.".to_owned());
-                    toast_stack.add_ephemeral_toast(toast, window_id, ctx);
-                });
-                return;
-            }
-        }
-
-        view.update(ctx, |session, ctx| {
-            session.attach_plan_as_context(id, ctx);
-        });
     }
 
     /// Runs a cloud workflow in whichever input is currently active.

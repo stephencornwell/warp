@@ -1659,18 +1659,8 @@ impl Input {
             }
         }
 
-        if input.model.lock().shared_session_status().is_viewer() {
-            input.editor.update(ctx, |editor, ctx| {
-                editor.set_interaction_state(InteractionState::Selectable, ctx);
-            });
-        } else {
-            input.set_zero_state_hint_text(ctx);
-        }
-
         #[cfg(feature = "voice_input")]
         input.update_voice_transcription_options(ctx);
-        input.update_image_context_options(ctx);
-        input.update_ai_context_menu(ctx);
         input
     }
 
@@ -1990,9 +1980,7 @@ impl Input {
         // It's confusing and might actually be implied
         // (session history is only queryable if the session is bootstrapped).
 
-        // We also return true for shared session executors since they're able to view the history
-        // of a shared session without yet being hooked up to the history model.
-        is_bootstrapped && (is_history_queryable || model.shared_session_status().is_executor())
+        is_bootstrapped && is_history_queryable
     }
 
     /// Returns enum indicating if we can execute a command in the active session.
@@ -2015,8 +2003,7 @@ impl Input {
             && !active_block.is_in_band_command_block()
         {
             CanExecuteCommand::No(DenyExecutionReason::ExistingActiveCommand)
-        } else if !model.shared_session_status().is_executor()
-            && active_block
+        } else if active_block
                 .session_id()
                 .is_none_or(|session_id| !History::as_ref(ctx).is_appendable(&session_id))
         {
@@ -2404,28 +2391,12 @@ impl Input {
                 original_buffer,
                 original_cursor_point,
                 original_input_was_locked,
-                original_input_type,
                 ..
             } = self.suggestions_mode_model.as_ref(ctx).mode()
             {
                 let original_buffer = original_buffer.clone();
                 let original_cursor_point = *original_cursor_point;
                 let original_input_was_locked = *original_input_was_locked;
-                let original_input_type = *original_input_type;
-                // If the user closes the input suggestions menu, we want to reset the AI input mode
-                // to the exact same state it was originally, which includes the mode itself and
-                // whether it was locked to that mode.
-                self.ai_input_model.update(ctx, |ai_input_model, ctx| {
-                    ai_input_model.set_input_config(
-                        InputConfig {
-                            input_type: original_input_type,
-                            is_locked: original_input_was_locked,
-                        },
-                        original_buffer.is_empty(),
-                        ctx,
-                    );
-                });
-
                 self.editor.update(ctx, |editor, ctx| {
                     editor.set_buffer_text_ignoring_undo(&original_buffer, ctx);
                     if let Some(original_cursor_point) = original_cursor_point {

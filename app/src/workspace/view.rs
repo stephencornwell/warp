@@ -5973,6 +5973,7 @@ impl Workspace {
             CommandPaletteEvent::Close {
                 accepted_action_type,
             } => self.close_palette(true, *accepted_action_type, ctx),
+            _ => {}
         }
     }
 

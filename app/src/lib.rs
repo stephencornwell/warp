@@ -584,6 +584,7 @@ pub fn run() -> Result<()> {
             warp_cli::Command::DumpDebugInfo => {
                 return debug_dump::run();
             }
+            warp_cli::Command::PrintTelemetryEvents => {}
         }
     }
 

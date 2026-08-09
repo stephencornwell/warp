@@ -30,7 +30,7 @@ use warpui::{
     AppContext, SingletonEntity,
 };
 
-use super::{should_render_prompt_using_editor_decorator_elements, Input, SubshellRenderState};
+use super::{should_render_prompt_using_editor_decorator_elements, Input};
 
 impl Input {
     /// Renders the classic input. This is used when the user has 'Honor PS1' enabled in settings,
@@ -144,41 +144,6 @@ impl Input {
             {
                 column.add_child(banner);
             }
-        }
-
-        let subshell_flag = self.get_subshell_flag_render_state(&model, is_compact_mode, app);
-
-        let should_extend_flag = subshell_flag.is_some();
-
-        if should_extend_flag {
-            let max_height = self.size_info(app).pane_height_px().as_f32();
-            stack.add_positioned_child(
-                render_subshell_flag_pole(max_height, theme.subshell_background()),
-                OffsetPositioning::offset_from_parent(
-                    vec2f(0.0, 0.0),
-                    ParentOffsetBounds::ParentBySize,
-                    ParentAnchor::TopLeft,
-                    ChildAnchor::TopLeft,
-                ),
-            );
-        }
-
-        if let Some(SubshellRenderState::Flag(command)) = subshell_flag {
-            let flag = render_subshell_flag(
-                command,
-                appearance.monospace_font_family(),
-                appearance.monospace_font_size(),
-                theme,
-            );
-            stack.add_positioned_child(
-                flag,
-                OffsetPositioning::offset_from_parent(
-                    vec2f(0.0, 0.0),
-                    ParentOffsetBounds::Unbounded,
-                    ParentAnchor::TopLeft,
-                    ChildAnchor::TopLeft,
-                ),
-            );
         }
 
         if !FeatureFlag::AgentView.is_enabled() {

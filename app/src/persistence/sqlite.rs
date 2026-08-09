@@ -1,7 +1,6 @@
 use std::ffi::OsString;
 use std::path::Path;
 use std::str::FromStr;
-use std::sync::mpsc::SyncSender;
 use std::sync::Once;
 use std::{
     collections::{HashMap, VecDeque},
@@ -10,14 +9,13 @@ use std::{
     path::PathBuf,
     thread,
 };
-use warp_core::report_if_error;
 
 use anyhow::{anyhow, Context, Result};
 use diesel::{
     connection::{DefaultLoadingMode, SimpleConnection},
     result::Error,
     sqlite::SqliteConnection,
-    BelongingToDsl, BoolExpressionMethods, Connection, ExpressionMethods, GroupedBy,
+    BelongingToDsl, Connection, ExpressionMethods, GroupedBy,
     OptionalExtension, QueryDsl, RunQueryDsl, SelectableHelper,
 };
 use diesel_migrations::MigrationHarness;
@@ -48,7 +46,6 @@ use crate::app_state::{
 use crate::app_state::{LeftPanelSnapshot, SettingsPaneSnapshot};
 use crate::persistence::model::{CODE_REVIEW_PANE_KIND, GET_STARTED_PANE_KIND};
 use crate::settings_view::SettingsSection;
-use crate::suggestions::ignored_suggestions_model::SuggestionType;
 use crate::tab::SelectedTabColor;
 use crate::terminal::history::PersistedCommand;
 use crate::terminal::ShellLaunchData;
@@ -324,23 +321,6 @@ pub fn database_file_path() -> PathBuf {
     warp_core::paths::secure_state_dir()
         .unwrap_or_else(warp_core::paths::state_dir)
         .join(WARP_SQLITE_FILE_NAME)
-}
-
-pub(super) fn remove(sender: SyncSender<ModelEvent>) {
-    // Instruct the writer thread to remove the database and pause processing
-    // events.
-    // Ideally, we'd drop any other events in the channel, but it's not worth the complexity right
-    // now. Having the writer thread remove the database file prevents race conditions if the
-    // thread is in the middle of another update.
-    report_if_error!(sender
-        .send(ModelEvent::PauseAndRemoveDatabase)
-        .context("Error requesting database deletion"));
-}
-
-pub(super) fn reconstruct(sender: SyncSender<ModelEvent>) {
-    report_if_error!(sender
-        .send(ModelEvent::ReconstructAndResume)
-        .context("Error resuming SQLite thread"));
 }
 
 fn reconstruct_database(path: &Path) -> Result<SqliteConnection> {
@@ -860,27 +840,6 @@ fn save_pane_state(
     Ok(())
 }
 
-/// Update the content, version, and title of an AI document pane in SQLite.
-fn save_ai_document_content(
-    conn: &mut SqliteConnection,
-    doc_id: &str,
-    doc_content: &str,
-    doc_version: i32,
-    doc_title: &str,
-) -> Result<()> {
-    use schema::ai_document_panes::dsl::*;
-
-    diesel::update(ai_document_panes.filter(document_id.eq(doc_id)))
-        .set((
-            content.eq(Some(doc_content)),
-            version.eq(doc_version),
-            title.eq(Some(doc_title)),
-        ))
-        .execute(conn)?;
-
-    Ok(())
-}
-
 /// Encode a path into a platform-specific byte representation for persistence.
 fn encode_path(path: PathBuf) -> Vec<u8> {
     if path == PathBuf::new() {
@@ -924,15 +883,6 @@ fn decode_path(bytes: Vec<u8>) -> PathBuf {
     }
 }
 
-fn delete_codebase_index_metadata(conn: &mut SqliteConnection, index_path: &Path) -> Result<()> {
-    use schema::workspace_metadata::dsl::*;
-
-    let target_path = index_path.to_string_lossy().to_string();
-    diesel::delete(workspace_metadata.filter(repo_path.eq(target_path))).execute(conn)?;
-
-    Ok(())
-}
-
 fn save_project(conn: &mut SqliteConnection, project: Project) -> Result<()> {
     use schema::projects::dsl::*;
 
@@ -959,76 +909,6 @@ fn delete_project(conn: &mut SqliteConnection, project_path: &str) -> Result<()>
     use schema::projects::dsl::*;
 
     diesel::delete(projects.filter(path.eq(project_path))).execute(conn)?;
-
-    Ok(())
-}
-
-fn delete_project_rules(conn: &mut SqliteConnection, rules_paths: Vec<PathBuf>) -> Result<()> {
-    use schema::project_rules::dsl::*;
-
-    // Convert PathBuf to String for comparison
-    let path_strings: Vec<String> = rules_paths
-        .into_iter()
-        .map(|p| p.to_string_lossy().to_string())
-        .collect();
-
-    diesel::delete(project_rules.filter(path.eq_any(path_strings))).execute(conn)?;
-
-    Ok(())
-}
-
-fn get_all_ignored_suggestions(
-    conn: &mut SqliteConnection,
-) -> Result<Vec<(String, SuggestionType)>, diesel::result::Error> {
-    use schema::ignored_suggestions::dsl::*;
-
-    Ok(ignored_suggestions
-        .select((suggestion, suggestion_type))
-        .load::<(String, String)>(conn)?
-        .into_iter()
-        .filter_map(|(suggestion_text, suggestion_type_str)| {
-            SuggestionType::from_str(&suggestion_type_str)
-                .map(|parsed_suggestion_type| (suggestion_text, parsed_suggestion_type))
-        })
-        .collect())
-}
-
-fn add_ignored_suggestion(
-    conn: &mut SqliteConnection,
-    suggestion_text: String,
-    suggestion_type_param: SuggestionType,
-) -> Result<()> {
-    use schema::ignored_suggestions::dsl::*;
-
-    let new_suggestion = model::NewIgnoredSuggestion {
-        suggestion: suggestion_text,
-        suggestion_type: suggestion_type_param.as_str().to_string(),
-    };
-
-    diesel::insert_into(ignored_suggestions)
-        .values(&new_suggestion)
-        .on_conflict((suggestion, suggestion_type))
-        .do_nothing()
-        .execute(conn)?;
-
-    Ok(())
-}
-
-fn remove_ignored_suggestion(
-    conn: &mut SqliteConnection,
-    suggestion_text: String,
-    suggestion_type_param: SuggestionType,
-) -> Result<()> {
-    use schema::ignored_suggestions::dsl::*;
-
-    diesel::delete(
-        ignored_suggestions.filter(
-            suggestion
-                .eq(suggestion_text)
-                .and(suggestion_type.eq(suggestion_type_param.as_str())),
-        ),
-    )
-    .execute(conn)?;
 
     Ok(())
 }

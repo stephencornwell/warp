@@ -92,20 +92,6 @@ fn add_mock_config_with_name(name: &str, configs: &mut Vec<LaunchConfig>) {
     configs.push(new_config);
 }
 
-and(parens'."))
-    );
-    assert_eq!(
-        get_launch_config_path("/%F0%9F%8D%9E"),
-        Some(String::from("🍞"))
-    );
-    assert_eq!(
-        get_launch_config_path("/..filename_.with_dots.."),
-        Some(String::from("..filename_.with_dots.."))
-    );
-}
-
-
-
 #[test]
 fn test_remove_extension() {
     assert_eq!(remove_extension(""), None);

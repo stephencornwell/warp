@@ -1947,8 +1947,6 @@ impl Workspace {
         let prompt_editor_modal = Self::build_prompt_editor_modal(ctx);
         let agent_toolbar_editor_modal = Self::build_agent_toolbar_editor_modal(ctx);
 
-        let import_modal = Self::build_import_modal(ctx);
-
         Self::observe_server_api(ctx);
 
         Self::subscribe_to_workspace_toast_stack(toast_stack.clone(), ctx);
@@ -1969,26 +1967,6 @@ impl Workspace {
         });
 
         let native_modal = Self::build_native_modal_view(ctx);
-
-        ctx.subscribe_to_model(&AISettings::handle(ctx), |me, _, event, ctx| match event {
-            AISettingsChangedEvent::IsAnyAIEnabled { .. }
-            | AISettingsChangedEvent::ShowConversationHistory { .. } => {
-                me.update_left_panel_available_views(ctx);
-                ctx.notify();
-            }
-            AISettingsChangedEvent::IsActiveAIEnabled { .. }
-            | AISettingsChangedEvent::ThinkingDisplayMode { .. } => {
-                ctx.notify();
-            }
-            AISettingsChangedEvent::ShowAgentNotifications { .. } => {
-                // When agent notifications are turned off, close the mailbox if it's open.
-                if !*AISettings::as_ref(ctx).show_agent_notifications {
-                    me.current_workspace_state.is_notification_mailbox_open = false;
-                }
-                ctx.notify();
-            }
-            _ => (),
-        });
 
         ctx.subscribe_to_model(&OneTimeModalModel::handle(ctx), |me, model, event, ctx| {
             let OneTimeModalEvent::VisibilityChanged { is_open } = event;
@@ -2049,7 +2027,6 @@ impl Workspace {
             settings_error_banner_dismissed: false,
             theme_creator_modal,
             theme_deletion_modal,
-            import_modal,
             window_id: ctx.window_id(),
             toast_stack,
             agent_toast_stack,

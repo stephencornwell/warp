@@ -1556,7 +1556,10 @@ impl BlockList {
     {
         block_indices.into_iter().find(|index| {
             self.block_at(*index)
-                .is_some_and(|block| filter.matches(block))
+                        .is_some_and(|block| {
+                            (filter.include_hidden || block.is_visible())
+                                && (filter.include_background || !block.is_background())
+                        })
         })
     }
 
@@ -1794,7 +1797,7 @@ impl BlockList {
                             content_type: *content_type,
                             view_id: *view_id,
                             last_laid_out_height: updated_height,
-                            should_hide,
+                            should_hide: false,
                         }));
                     }
                     BlockHeightItem::RestoredBlockSeparator {
@@ -2235,7 +2238,6 @@ impl BlockList {
             false,
             self.obfuscate_secrets,
             self.is_ai_ugc_telemetry_enabled,
-            None,
         )
     }
 
@@ -2542,12 +2544,6 @@ impl BlockList {
         // Set the completed_ts to the saved completed_ts _after_ `finish`ing the block (which would have set its own completed_ts).
         self.active_block_mut().override_completed_ts(completed_ts);
 
-        if let Some(prompt_snapshot) = &block.prompt_snapshot {
-            if let Ok(prompt_snapshot) = serde_json::from_str(prompt_snapshot) {
-                log::debug!("Restored prompt: {prompt_snapshot:?}");
-                self.active_block_mut().set_prompt_snapshot(prompt_snapshot);
-            }
-        }
     }
 
     /// This is the main function that marks the end of a block, and the beginning of a new block.

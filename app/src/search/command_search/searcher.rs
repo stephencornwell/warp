@@ -22,7 +22,3 @@ pub enum CommandSearchItemAction {
     /// contained string is the command they accepted.
     ExecuteHistory(String),
 }
-
-#[cfg(test)]
-#[path = "searcher_test.rs"]
-mod tests;

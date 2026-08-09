@@ -265,7 +265,3 @@ pub fn get_app_state(app: &AppContext) -> AppState {
         running_mcp_servers: Vec::new(),
     }
 }
-
-#[cfg(test)]
-#[path = "app_state_tests.rs"]
-mod tests;

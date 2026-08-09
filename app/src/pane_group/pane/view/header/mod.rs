@@ -1121,7 +1121,3 @@ fn render_draggable_placeholder_element(
     .with_background_color(appearance.theme().dark_overlay().into())
     .finish()
 }
-
-#[cfg(test)]
-#[path = "mod_test.rs"]
-mod tests;

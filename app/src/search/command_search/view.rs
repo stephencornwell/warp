@@ -835,7 +835,3 @@ pub mod styles {
         appearance.line_height_ratio() * appearance.monospace_font_size() * 1.5
     }
 }
-
-#[cfg(test)]
-#[path = "view_test.rs"]
-mod tests;

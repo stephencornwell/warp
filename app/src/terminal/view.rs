@@ -3720,6 +3720,7 @@ impl TerminalView {
         }
     }
 
+    #[cfg(any())]
     fn handle_legacy_passive_suggestions_event(
         &mut self,
         _: ModelHandle<LegacyPassiveSuggestionsModel>,
@@ -3754,6 +3755,7 @@ impl TerminalView {
         }
     }
 
+    #[cfg(any())]
     fn build_agent_todos_popup(
         ai_context_model: ModelHandle<BlocklistAIContextModel>,
         ctx: &mut ViewContext<Self>,
@@ -3770,6 +3772,7 @@ impl TerminalView {
         agent_todos_popup
     }
 
+    #[cfg(any())]
     pub fn attach_path_as_context(&mut self, path: &Path, ctx: &mut ViewContext<Self>) {
         // If a CLI agent is running, write the path directly to the PTY.
         if self.active_cli_agent(ctx).is_some() {
@@ -3786,6 +3789,7 @@ impl TerminalView {
         });
     }
 
+    #[cfg(any())]
     pub fn attach_plan_as_context(
         &mut self,
         ai_document_id: AIDocumentId,
@@ -4463,6 +4467,7 @@ impl TerminalView {
         }
     }
 
+    #[cfg(any())]
     fn handle_continue_conversation(
         &mut self,
         conversation_id: &AIConversationId,
@@ -4498,6 +4503,7 @@ impl TerminalView {
         self.redetermine_global_focus(ctx);
     }
 
+    #[cfg(any())]
     fn handle_resume_conversation(
         &mut self,
         conversation_id: &AIConversationId,
@@ -4529,6 +4535,7 @@ impl TerminalView {
     /// Handle the opening and closing of the usage footer.
     /// We insert the usage footer as a rich content view into the blocklist
     /// below the block that triggered the toggle event.
+    #[cfg(any())]
     fn handle_usage_footer_toggled(
         &mut self,
         source_ai_block_view_id: EntityId,
@@ -4631,6 +4638,7 @@ impl TerminalView {
         ctx.notify();
     }
 
+    #[cfg(any())]
     fn toggle_usage_footer(&mut self, ctx: &mut ViewContext<Self>) {
         let conversation_id = self
             .agent_view_controller

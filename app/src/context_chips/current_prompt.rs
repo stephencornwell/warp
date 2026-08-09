@@ -39,8 +39,6 @@ use super::{
     ChipValue, ContextChipKind,
 };
 #[cfg(feature = "local_fs")]
-use crate::code_review::git_status_update::{GitRepoStatusEvent, GitRepoStatusModel};
-#[cfg(feature = "local_fs")]
 use crate::context_chips::GitLineChanges;
 use std::collections::{HashMap, HashSet};
 use std::hash::{Hash as _, Hasher as _};
@@ -1392,75 +1390,6 @@ impl CurrentPrompt {
                     Some(chip_result)
                 }),
         )
-    }
-
-    /// Set the per-repo git status model handle. When `Some`, subscribes to
-    /// metadata-changed events so `ShellGitBranch` and `GitDiffStats` are updated
-    /// by filesystem events instead of the 30s periodic timer.
-    #[cfg(feature = "local_fs")]
-    pub fn set_git_repo_status(
-        &mut self,
-        handle: Option<WeakModelHandle<GitRepoStatusModel>>,
-        ctx: &mut ModelContext<Self>,
-    ) {
-        // Unsubscribe from the previous model, if any.
-        if let Some(old_weak) = self.git_repo_status.take() {
-            if let Some(old_strong) = old_weak.upgrade(ctx) {
-                ctx.unsubscribe_from_model(&old_strong);
-            }
-        }
-
-        if let Some(weak) = handle {
-            if let Some(strong) = weak.upgrade(ctx) {
-                self.git_repo_status = Some(weak);
-                ctx.subscribe_to_model(&strong, |me, event, ctx| match event {
-                    GitRepoStatusEvent::MetadataChanged => {
-                        let metadata = me
-                            .git_repo_status
-                            .as_ref()
-                            .and_then(|w| w.upgrade(ctx))
-                            .and_then(|h| h.as_ref(ctx).metadata().cloned());
-
-                        let Some(metadata) = metadata else {
-                            return;
-                        };
-
-                        // Update ShellGitBranch.
-                        let new_branch = ChipValue::Text(metadata.current_branch_name.clone());
-                        let current_branch = me
-                            .latest_chip_value(&ContextChipKind::ShellGitBranch)
-                            .cloned();
-                        if current_branch.as_ref() != Some(&new_branch) {
-                            me.update_chip_value(
-                                &ContextChipKind::ShellGitBranch,
-                                Some(new_branch),
-                            );
-                            // Refresh the branch dropdown so it stays in sync.
-                            let chip_kind = ContextChipKind::ShellGitBranch;
-                            if let Some(chip) = chip_kind.to_chip() {
-                                if let Some(on_click_gen) = chip.on_click_generator().cloned() {
-                                    me.refresh_on_click_values(&chip_kind, on_click_gen, ctx);
-                                }
-                            }
-                        }
-
-                        // Update GitDiffStats with structured data directly.
-                        let new_diff_stats = ChipValue::GitDiffStats(
-                            GitLineChanges::from_diff_stats(&metadata.stats_against_head),
-                        );
-                        let current_diff_stats = me
-                            .latest_chip_value(&ContextChipKind::GitDiffStats)
-                            .cloned();
-                        if current_diff_stats.as_ref() != Some(&new_diff_stats) {
-                            me.update_chip_value(
-                                &ContextChipKind::GitDiffStats,
-                                Some(new_diff_stats),
-                            );
-                        }
-                    }
-                });
-            }
-        }
     }
 
     /// Returns `true` when the given chip's value is updated externally

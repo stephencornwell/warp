@@ -17,7 +17,6 @@ use crate::workflows::WorkflowType;
 use crate::{
     cloud_object::model::persistence::CloudModel, workspaces::user_workspaces::UserWorkspaces,
 };
-use crate::{editor::Event as EditorEvent, send_telemetry_from_ctx};
 use crate::{
     themes::theme::{self, Blend, WarpTheme},
     user_config::WarpConfigUpdateEvent,

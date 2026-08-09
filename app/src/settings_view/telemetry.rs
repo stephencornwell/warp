@@ -1,8 +1,6 @@
 use serde_json::Value;
 use strum_macros::EnumDiscriminants;
 use strum_macros::EnumIter;
-use warp_core::telemetry::{EnablementState, TelemetryEvent, TelemetryEventDesc};
-
 #[derive(Debug, EnumDiscriminants)]
 #[strum_discriminants(derive(EnumIter))]
 pub enum SettingsTelemetryEvent {

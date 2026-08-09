@@ -2,8 +2,6 @@ use std::collections::HashMap;
 
 use crate::interval_timer::IntervalTimer;
 use crate::settings::import::config::{Config, ConfigError};
-use crate::{send_telemetry_from_ctx, TelemetryEvent};
-
 use serde::Serialize;
 use strum::IntoEnumIterator;
 use strum_macros::{EnumDiscriminants, EnumIter};

@@ -24,8 +24,6 @@ use warpui::platform::Cursor;
 use warpui::ui_components::button::ButtonVariant;
 use warpui::ui_components::components::{UiComponent, UiComponentStyles};
 use warpui::{AppContext, Element, Entity, SingletonEntity, TypedActionView, View, ViewContext};
-use crate::TelemetryEvent;
-
 const MODAL_WIDTH: f32 = 360.;
 const MODAL_HEIGHT: f32 = 532.;
 const COMPACT_MODAL_HEIGHT: f32 = 360.;

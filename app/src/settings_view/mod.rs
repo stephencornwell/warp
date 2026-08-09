@@ -1,6 +1,4 @@
-use self::telemetry::SettingsTelemetryEvent;
 use crate::pane_group::focus_state::PaneFocusHandle;
-use crate::TelemetryEvent;
 use crate::{
     appearance::Appearance,
     editor::{

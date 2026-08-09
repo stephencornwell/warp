@@ -1,5 +1,3 @@
-use warp_core::telemetry::TelemetryEventDesc;
-
 #[derive(Debug)]
 enum TelemetryEventPropertyError {
     // The variant data is never directly read, but it's used for error formatting if the test

@@ -38,7 +38,6 @@ use crate::{
     util::traffic_lights::{TrafficLightData, TrafficLightSide},
     window_settings::WindowSettings,
 };
-use crate::{appearance::AppearanceManager, send_telemetry_from_ctx};
 use crate::{editor::EditorView, resource_center::TipsCompleted};
 use crate::{
     themes::theme::WarpThemeConfig,

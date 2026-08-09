@@ -92,7 +92,6 @@ use super::editor::{
 };
 use super::find_references_view::{FindReferencesView, FindReferencesViewEvent};
 use super::language_server_extension::ProcessedDiagnostic;
-use super::lsp_telemetry::LspTelemetryEvent;
 use super::ImmediateSaveError;
 type SaveCallback =
     Box<dyn FnOnce(SaveOutcome, &mut ViewContext<LocalCodeEditorView>) + Send + Sync + 'static>;

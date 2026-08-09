@@ -77,9 +77,6 @@ use super::{
     editor_management::{CodeManager, CodeSource},
     local_code_editor::{LocalCodeEditorEvent, LocalCodeEditorView},
 };
-
-use crate::{send_telemetry_from_ctx, TelemetryEvent};
-
 type SaveCallback =
     Box<dyn FnOnce(SaveOutcome, &mut CodeView, &mut ViewContext<CodeView>) + Send + Sync + 'static>;
 

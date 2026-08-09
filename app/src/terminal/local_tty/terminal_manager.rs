@@ -61,8 +61,6 @@ use crate::context_chips::prompt_type::PromptType;
 use crate::features::FeatureFlag;
 use crate::pane_group::TerminalViewResources;
 use crate::persistence::ModelEvent;
-
-use crate::send_telemetry_on_executor;
 use crate::settings::DebugSettings;
 use crate::settings::{PrivacySettings, SshSettings};
 use crate::terminal::model::session::Sessions;

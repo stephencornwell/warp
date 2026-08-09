@@ -1,4 +1,3 @@
-use crate::antivirus::telemetry::AntivirusInfoTelemetryEvent;
 use crate::antivirus::{AntivirusInfo, AntivirusInfoEvent};
 use warpui::ModelContext;
 use windows::Win32::System::Com::{

@@ -1,8 +1,6 @@
 use serde::Serialize;
 use serde_json::{json, Value};
 use strum_macros::{EnumDiscriminants, EnumIter};
-use warp_core::telemetry::{EnablementState, TelemetryEvent, TelemetryEventDesc};
-
 use crate::tab_configs::session_config::SessionType;
 
 #[derive(Clone, Copy, Debug, Serialize)]

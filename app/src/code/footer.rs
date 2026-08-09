@@ -6,7 +6,6 @@ use lsp::{
     LanguageId, LanguageServerId, LspManagerModel, LspManagerModelEvent, LspServerModel,
     LspState as LspModelState,
 };
-use crate::code::lsp_telemetry::{LspControlActionType, LspEnablementSource, LspTelemetryEvent};
 use pathfinder_color::ColorU;
 use pathfinder_geometry::vector::vec2f;
 use warp_core::ui::theme::color::internal_colors;

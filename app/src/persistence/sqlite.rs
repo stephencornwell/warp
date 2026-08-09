@@ -1241,138 +1241,6 @@ fn get_all_ignored_suggestions(
         .collect())
 }
 
-fn get_all_mcp_server_installations(
-    conn: &mut SqliteConnection,
-) -> Result<HashMap<Uuid, TemplatableMCPServerInstallation>, diesel::result::Error> {
-    use schema::mcp_server_installations::dsl::*;
-
-    let rows: Vec<(String, String, String)> = mcp_server_installations
-        .select((id, templatable_mcp_server, variable_values))
-        .load::<(String, String, String)>(conn)?;
-    let rows_len = rows.len();
-
-    let result: HashMap<Uuid, TemplatableMCPServerInstallation> = rows
-        .into_iter()
-        .filter_map(|(id_str, templ_mcp, vars_json)| {
-            let uuid = uuid::Uuid::parse_str(&id_str).ok()?;
-
-            // Parse variable_values JSON into a flat HashMap<String, String>
-            let vars: HashMap<String, VariableValue> =
-                match serde_json::from_str::<HashMap<String, VariableValue>>(&vars_json) {
-                    Ok(map) => map,
-                    Err(_) => return None,
-                };
-
-            let mcp_server = match serde_json::from_str::<TemplatableMCPServer>(&templ_mcp) {
-                Ok(map) => map,
-                Err(_) => return None,
-            };
-
-            Some((
-                uuid,
-                TemplatableMCPServerInstallation::new(uuid, mcp_server, vars),
-            ))
-        })
-        .collect();
-
-    let improper_rows = rows_len - result.len();
-    if improper_rows > 0 {
-        log::warn!("Skipping {improper_rows} rows from mcp_server_installations table due to malformation.");
-    }
-
-    Ok(result)
-}
-
-fn upsert_mcp_server_installation(
-    conn: &mut SqliteConnection,
-    mcp_server_installation: TemplatableMCPServerInstallation,
-) -> Result<()> {
-    use schema::mcp_server_installations::dsl::*;
-
-    let new_installation = model::NewMCPServerInstallation {
-        id: mcp_server_installation.uuid().to_string(),
-        templatable_mcp_server: serde_json::to_string(
-            mcp_server_installation.templatable_mcp_server(),
-        )?,
-        // TODO(pei): Change this to be the timestamp of the Cloud object
-        template_version_ts: Utc::now().naive_utc(),
-        variable_values: serde_json::to_string(mcp_server_installation.variable_values())?,
-        restore_running: false,
-        last_modified_at: Utc::now().naive_utc(),
-    };
-
-    conn.transaction::<_, Error, _>(|conn| {
-        diesel::insert_into(mcp_server_installations)
-            .values(&new_installation)
-            .on_conflict(id)
-            .do_update()
-            .set(&new_installation)
-            .execute(conn)?;
-
-        Ok(())
-    })?;
-
-    Ok(())
-}
-
-fn delete_mcp_server_installations(conn: &mut SqliteConnection, uuids: Vec<Uuid>) -> Result<()> {
-    use schema::mcp_server_installations::dsl::*;
-
-    let id_strings: Vec<String> = uuids.iter().map(|uuid| uuid.to_string()).collect();
-    diesel::delete(mcp_server_installations.filter(id.eq_any(id_strings))).execute(conn)?;
-
-    Ok(())
-}
-
-fn delete_mcp_server_installations_by_template_uuid(
-    conn: &mut SqliteConnection,
-    target_template_uuid: Uuid,
-) -> Result<()> {
-    use schema::mcp_server_installations::dsl::*;
-
-    diesel::delete(mcp_server_installations.filter(
-        json_extract(templatable_mcp_server, "$.uuid").eq(target_template_uuid.to_string()),
-    ))
-    .execute(conn)?;
-
-    Ok(())
-}
-
-fn get_mcp_servers_to_restore(
-    conn: &mut SqliteConnection,
-) -> Result<Vec<Uuid>, diesel::result::Error> {
-    use schema::mcp_server_installations::dsl::*;
-
-    let rows = mcp_server_installations
-        .filter(restore_running.eq(true))
-        .select(id)
-        .load::<String>(conn)?;
-
-    let installation_uuid = rows
-        .iter()
-        .filter_map(|uuid| uuid::Uuid::parse_str(uuid).ok())
-        .collect();
-
-    Ok(installation_uuid)
-}
-
-fn update_mcp_server_running(
-    conn: &mut SqliteConnection,
-    installation_uuid: Uuid,
-    running: bool,
-) -> Result<(), diesel::result::Error> {
-    use schema::mcp_server_installations::dsl::*;
-
-    diesel::update(mcp_server_installations.find(installation_uuid.to_string()))
-        .set((
-            restore_running.eq(running),
-            last_modified_at.eq(Utc::now().naive_utc()),
-        ))
-        .execute(conn)?;
-
-    Ok(())
-}
-
 fn add_ignored_suggestion(
     conn: &mut SqliteConnection,
     suggestion_text: String,
@@ -2394,13 +2262,10 @@ fn read_sqlite_data(
         })
         .collect();
 
-    // Load active MCP servers from database
-    let running_mcp_servers = load_active_mcp_servers(conn)?;
-
     let app_state = AppState {
         windows: saved_windows,
         active_window_index,
-        running_mcp_servers,
+        running_mcp_servers: Vec::new(),
     };
 
     // Find the smallest refresh timestamp to pass into CloudModel.
@@ -2709,36 +2574,6 @@ fn upsert_current_user_information(
             .execute(conn)?;
         Ok(())
     })
-}
-
-fn upsert_mcp_server_environment_variables(
-    conn: &mut SqliteConnection,
-    mcp_server_uuid: Vec<u8>,
-    environment_variables: String,
-) -> Result<(), Error> {
-    conn.transaction::<(), Error, _>(|conn| {
-        let env_vars = MCPEnvironmentVariables {
-            mcp_server_uuid,
-            environment_variables,
-        };
-        diesel::insert_into(schema::mcp_environment_variables::dsl::mcp_environment_variables)
-            .values(&env_vars)
-            .on_conflict(schema::mcp_environment_variables::dsl::mcp_server_uuid)
-            .do_update()
-            .set(&env_vars)
-            .execute(conn)?;
-        Ok(())
-    })
-}
-
-fn load_active_mcp_servers(conn: &mut SqliteConnection) -> Result<Vec<uuid::Uuid>, Error> {
-    use schema::active_mcp_servers::dsl::*;
-
-    Ok(active_mcp_servers
-        .load::<ActiveMCPServer>(conn)?
-        .into_iter()
-        .filter_map(|active_server| uuid::Uuid::parse_str(&active_server.mcp_server_uuid).ok())
-        .collect())
 }
 
 /// Converts the ObjectAction type into a uniform type that can be inserted into

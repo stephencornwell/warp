@@ -208,29 +208,6 @@ impl TerminalView {
         };
         let pane_indicator = if should_render_ambient_agent_indicator {
             Some(self.render_ambient_agent_indicator(app))
-        } else if let Some(shared_session) = self.shared_session.as_ref() {
-            if let Some(Viewer {
-                sharer: Some(sharer),
-                ..
-            }) = shared_session.kind().as_viewer()
-            {
-                Some(
-                    Container::new(ChildView::new(&sharer.avatar).finish())
-                        .with_margin_right(4.)
-                        .finish(),
-                )
-            } else {
-                Some(
-                    ConstrainedBox::new(
-                        icons::Icon::Sharing
-                            .to_warpui_icon(shared_session_indicator_color(appearance).into())
-                            .finish(),
-                    )
-                    .with_height(appearance.ui_font_size())
-                    .with_width(appearance.ui_font_size())
-                    .finish(),
-                )
-            }
         } else {
             self.render_terminal_mode_indicator(app)
         };
@@ -480,52 +457,7 @@ impl BackingView for TerminalView {
         &self,
         ctx: &AppContext,
     ) -> Vec<MenuItem<Self::PaneHeaderOverflowMenuAction>> {
-        let model = self.model.lock();
         let mut items = vec![];
-        let source = SharedSessionActionSource::PaneHeader;
-
-        // Shared-session related items.
-        let shared_session_status = model.shared_session_status();
-        let is_ambient_agent = self.is_ambient_agent_session(ctx);
-        if shared_session_status.is_sharer_or_viewer() {
-            if !is_ambient_agent {
-                items.push(
-                    MenuItemFields::new("Copy link")
-                        .with_on_select_action(TerminalAction::CopySharedSessionLink { source })
-                        .into_item(),
-                );
-            }
-
-            if shared_session_status.is_sharer() {
-                items.push(
-                    MenuItemFields::new("Stop sharing session")
-                        .with_on_select_action(TerminalAction::StopSharingCurrentSession { source })
-                        .into_item(),
-                );
-            }
-            if !ContextFlag::HideOpenOnDesktopButton.is_enabled()
-                && *UserAppInstallDetectionSettings::as_ref(ctx)
-                    .user_app_installation_detected
-                    .value()
-                    == UserAppInstallStatus::Detected
-            {
-                items.push(
-                    MenuItemFields::new("Open on Desktop")
-                        .with_on_select_action(TerminalAction::OpenSharedSessionOnDesktop {
-                            source,
-                        })
-                        .into_item(),
-                );
-            }
-        } else if FeatureFlag::CreatingSharedSessions.is_enabled()
-            && ContextFlag::CreateSharedSession.is_enabled()
-        {
-            items.push(
-                MenuItemFields::new("Share session")
-                    .with_on_select_action(TerminalAction::OpenShareSessionModal { source })
-                    .into_item(),
-            );
-        }
 
         // Split-pane related items.
         if self.split_pane_state(ctx).is_in_split_pane() {
@@ -545,17 +477,8 @@ impl BackingView for TerminalView {
     }
 
     fn should_render_header(&self, app: &AppContext) -> bool {
-        let is_shared = self
-            .model
-            .lock()
-            .shared_session_status()
-            .is_sharer_or_viewer();
-        let is_fullscreen_agent_view = FeatureFlag::AgentView.is_enabled()
-            && self.agent_view_controller.as_ref(app).is_fullscreen();
-        is_shared
-            || is_fullscreen_agent_view
-            || FeatureFlag::ContextWindowUsageV2.is_enabled()
-                && self.split_pane_state(app).is_in_split_pane()
+        FeatureFlag::ContextWindowUsageV2.is_enabled()
+            && self.split_pane_state(app).is_in_split_pane()
     }
 
     fn render_header_content(
@@ -741,46 +664,6 @@ impl TerminalView {
         .finish()
     }
 
-    /// Render shared session header content (participant avatars and role controls).
-    fn render_shared_session_header_content(&self, app: &AppContext) -> Option<Box<dyn Element>> {
-        let Some(shared_session) = &self.shared_session else {
-            return None;
-        };
-
-        let presence_manager = shared_session.presence_manager();
-        let role = presence_manager.as_ref(app).role();
-
-        // Get viewer avatars to render
-        let viewers = shared_session.pane_header_viewer_avatars(app);
-
-        // Get role change menu info based on session kind
-        let (role_change_menu, is_role_change_menu_open, mouse_state_handle) =
-            match shared_session.kind() {
-                SharedSessionKind::Viewer(viewer) => (
-                    Some(viewer.role_change_menu.clone()),
-                    viewer.is_role_change_menu_open,
-                    viewer.role_change_menu_button.clone(),
-                ),
-                SharedSessionKind::Sharer(sharer) => {
-                    (None, false, sharer.revoke_all_mouse_state_handle().clone())
-                }
-            };
-
-        // Hide role change button in cloud mode conversations
-        let hide_role_change_button = self.model.lock().is_shared_ambient_agent_session();
-
-        // Render participant avatars and role elements
-        Some(render_participants_and_role_elements(
-            viewers,
-            role,
-            mouse_state_handle,
-            role_change_menu,
-            is_role_change_menu_open,
-            hide_role_change_button,
-            app,
-        ))
-    }
-
     pub fn is_ambient_agent_session(&self, ctx: &AppContext) -> bool {
         FeatureFlag::CloudMode.is_enabled()
             && self
@@ -789,111 +672,4 @@ impl TerminalView {
                 .is_some_and(|model| model.as_ref(ctx).is_ambient_agent())
     }
 
-    fn selected_conversation_for_user_facing_chrome<'a>(
-        &'a self,
-        ctx: &'a AppContext,
-    ) -> Option<&'a AIConversation> {
-        self.ai_context_model
-            .as_ref(ctx)
-            .selected_conversation(ctx)
-            .filter(|conversation| {
-                !conversation.is_entirely_passive()
-                    && (conversation.title().is_some_and(|title| !title.is_empty())
-                        || FeatureFlag::AgentView.is_enabled())
-            })
-    }
-
-    fn selected_conversation_display_title_for_chrome(
-        &self,
-        conversation: &AIConversation,
-        is_ambient_agent: bool,
-    ) -> String {
-        if FeatureFlag::AgentView.is_enabled() {
-            conversation
-                .title()
-                .filter(|title| !title.is_empty())
-                .unwrap_or_else(|| default_agent_conversation_title(is_ambient_agent))
-        } else {
-            conversation
-                .title()
-                .expect("checked above that title exists")
-        }
-    }
-
-    /// Selected conversation status for chrome, or [`ConversationStatus::InProgress`] while the
-    /// active block is long-running (terminal-derived; not mirrored in history events).
-    pub fn selected_conversation_status(&self, ctx: &AppContext) -> Option<ConversationStatus> {
-        let long_running = self.is_long_running();
-
-        let Some(conversation) = self.selected_conversation_for_user_facing_chrome(ctx) else {
-            // Ambient agent tabs can show Oz chrome without a filtered "chrome" conversation;
-            // still surface busy while a long-running shell command is active.
-            if long_running && self.is_ambient_agent_session(ctx) {
-                return Some(ConversationStatus::InProgress);
-            }
-            return None;
-        };
-
-        if long_running {
-            return Some(ConversationStatus::InProgress);
-        }
-
-        if self.selected_conversation_is_empty(ctx) {
-            return None;
-        }
-
-        Some(conversation.status().clone())
-    }
-
-    pub fn selected_conversation_is_empty(&self, ctx: &AppContext) -> bool {
-        self.selected_conversation_for_user_facing_chrome(ctx)
-            .is_some_and(|conversation| conversation.is_empty())
-    }
-
-    /// Returns the conversation status for display purposes, suppressing the status when the
-    /// conversation is empty (no exchanges yet). This avoids showing a misleading "In progress"
-    /// indicator when a new conversation hasn't started streaming, except when a shell command
-    /// is actively long-running — that InProgress is real and should always surface.
-    pub fn selected_conversation_status_for_display(
-        &self,
-        ctx: &AppContext,
-    ) -> Option<ConversationStatus> {
-        if self.selected_conversation_is_empty(ctx) && !self.is_long_running() {
-            None
-        } else {
-            self.selected_conversation_status(ctx)
-        }
-    }
-
-    pub fn selected_conversation_display_title(&self, ctx: &AppContext) -> Option<String> {
-        let is_ambient_agent = self.is_ambient_agent_session(ctx);
-        self.selected_conversation_for_user_facing_chrome(ctx)
-            .map(|conversation| {
-                self.selected_conversation_display_title_for_chrome(conversation, is_ambient_agent)
-            })
-    }
-
-    pub fn selected_conversation_latest_user_prompt_for_tab_name(
-        &self,
-        ctx: &AppContext,
-    ) -> Option<String> {
-        self.selected_conversation_for_user_facing_chrome(ctx)
-            .and_then(AIConversation::latest_user_query)
-    }
-
-    fn selected_cli_agent_title_for_chrome(&self, ctx: &AppContext) -> Option<String> {
-        let session = CLIAgentSessionsModel::as_ref(ctx)
-            .session(self.view_id)
-            .filter(|session| session.listener.is_some())?;
-
-        session.session_context.title_like_text()
-    }
-}
-
-fn default_agent_conversation_title(is_ambient_agent: bool) -> String {
-    if is_ambient_agent {
-        "New cloud agent".to_owned()
-    } else {
-        "New agent conversation".to_owned()
-    }
 }

@@ -24,13 +24,13 @@ use warpui::{
 
 use super::super::palette_styles as styles;
 use crate::appearance::Appearance;
-use crate::cloud_object::model::persistence::CloudModel;
 use crate::palette::PaletteMode;
 use crate::pane_group::pane::welcome_view::WelcomeViewAction;
 use crate::search::action::search_item::MatchedBinding;
 use crate::search::action::{CommandBindingDataSource, Event as CommandBindingDataSourceEvent};
 use crate::search::binding_source::BindingSource;
 use crate::search::command_palette::mixer::CommandPaletteItemAction;
+use crate::search::command_palette::CommandPaletteMixer;
 use crate::search::command_palette::new_session::{AllowedSessionKinds, NewSessionDataSource};
 use crate::search::command_search::projects::project_data_source::ProjectDataSource;
 use crate::search::command_search::projects::{ProjectSearchItem, SuggestedProjectsDataSource};
@@ -70,21 +70,6 @@ pub enum Event {
         action: WelcomeViewAction,
     },
     /// Execute the workflow identified by `id`.
-    ExecuteWorkflow {
-        id: SyncId,
-    },
-    /// Invoke the env vars identified by `id`.
-    InvokeEnvironmentVariables {
-        id: SyncId,
-    },
-    /// Open a notebook identified by `id`.
-    OpenNotebook {
-        id: SyncId,
-    },
-    /// View the relevant object in the Warp Drive sidebar.
-    ViewInWarpDrive {
-        id: CloudObjectTypeAndId,
-    },
     /// Open a file at the given path.
     OpenFile {
         path: String,
@@ -223,23 +208,16 @@ impl WelcomePalette {
 
         let project_data_source = ctx.add_model(ProjectDataSource::new);
         let suggested_projects_data_source = ctx.add_model(SuggestedProjectsDataSource::new);
-        let launch_config_data_source = ctx.add_model(launch_config::DataSource::new);
         let new_session_data_source = ctx.add_model(|ctx| {
             NewSessionDataSource::new(binding_source.clone(), ctx)
                 .with_allowed_kinds(AllowedSessionKinds::tabs_only())
         });
-        let warp_drive_data_source = ctx.add_model(warp_drive::DataSource::new);
 
         let mixer = ctx.add_model(|_ctx| {
             let mut mixer = CommandPaletteMixer::new();
             mixer.add_sync_source(actions_data_source.clone(), HashSet::new());
             mixer.add_sync_source(project_data_source.clone(), HashSet::new());
             mixer.add_sync_source(suggested_projects_data_source.clone(), HashSet::new());
-            mixer.add_sync_source(warp_drive_data_source.clone(), HashSet::new());
-
-            if ContextFlag::LaunchConfigurations.is_enabled() {
-                mixer.add_sync_source(launch_config_data_source.clone(), HashSet::new());
-            }
             if FeatureFlag::ShellSelector.is_enabled() && cfg!(feature = "local_tty") {
                 mixer.add_sync_source(new_session_data_source.clone(), HashSet::new());
             }
@@ -547,20 +525,7 @@ impl WelcomePalette {
     fn close(&mut self, ctx: &mut ViewContext<Self>, accepted_action_type: Option<&'static str>) {
         let buffer_length = self.search_bar.as_ref(ctx).query(ctx).len();
         let filter = self.active_query_filter(ctx);
-        let event = if let Some(result_type) = accepted_action_type {
-            TelemetryEvent::PaletteSearchResultAccepted {
-                result_type,
-                filter,
-                buffer_length,
-            }
-        } else {
-            TelemetryEvent::PaletteSearchExited {
-                filter,
-                buffer_length,
-            }
-        };
-
-        ();
+        let _ = (accepted_action_type, filter, buffer_length);
 
         self.state_handles.clipped_scroll_state = Default::default();
         self.reset(ctx);
@@ -768,27 +733,6 @@ impl WelcomePalette {
                 project_name: _,
             } => {
                 ctx.emit(Event::NewConversationInProject { path: path.clone() });
-            }
-            CommandPaletteItemAction::OpenNotebook { id } => {
-                self.dispatch_typed_action_on_view(&WorkspaceAction::OpenNotebook { id: *id }, ctx);
-                self.close(ctx, Some(result_action.result_type()));
-            }
-            CommandPaletteItemAction::ExecuteWorkflow { id } => {
-                let Some(workflow) = CloudModel::as_ref(ctx).get_workflow(id) else {
-                    log::warn!("Tried to execute workflow for id {id:?} but it does not exist");
-                    return;
-                };
-
-                self.dispatch_typed_action_on_view(
-                    &WorkspaceAction::RunWorkflow {
-                        workflow: Arc::new(WorkflowType::Cloud(Box::new(workflow.clone()))),
-                        workflow_source: WorkflowSource::Global,
-                        workflow_selection_source: WorkflowSelectionSource::CommandPalette,
-                        argument_override: None,
-                    },
-                    ctx,
-                );
-                self.close(ctx, Some(result_action.result_type()));
             }
             CommandPaletteItemAction::NewSession { source } => {
                 self.dispatch_typed_action_on_view(source.action().deref(), ctx);

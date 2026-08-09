@@ -3529,66 +3529,6 @@ impl Input {
             .value()
     }
 
-    /// Returns true if an AI context menu should be enabled at the current cursor position based
-    /// on the buffer text and surrounding context. This is triggered when the user just typed '@'
-    /// in a valid context and the menu is not disabled for other reasons.
-    fn should_enable_ai_context(
-        &self,
-        buffer_text: &str,
-        cursor_position: usize,
-        is_alias_expansion_enabled: bool,
-        session_context: Option<&SessionContext>,
-        shell_family: ShellFamily,
-        app: &AppContext,
-    ) -> bool {
-        if cursor_position == 0 {
-            return false;
-        }
-
-        if buffer_text.chars().nth(cursor_position.saturating_sub(1)) != Some('@') {
-            return false;
-        }
-
-        // Check if '@' is at beginning of line or after non-alphanumeric
-        let is_valid_context = if cursor_position == 1 {
-            true // '@' is the first character
-        } else {
-            buffer_text
-                .chars()
-                .nth(cursor_position.saturating_sub(2))
-                .is_some_and(|c| !c.is_alphanumeric())
-        };
-
-        if !is_valid_context {
-            return false;
-        }
-
-        let is_disabled = AtContextMenuDisabledReason::get_disable_reason(
-            self.active_block_metadata.as_ref(),
-            self.sessions.as_ref(app),
-            &self.ai_input_model.as_ref(app).input_config(),
-            app,
-        )
-        .is_some();
-
-        if is_disabled {
-            return false;
-        }
-
-        // Don't trigger in shell mode for common package installer prefixes, where '@' is valid input.
-        let is_shell_mode = !self.ai_input_model.as_ref(app).is_ai_input_enabled();
-        let looks_like_package_install = is_shell_mode
-            && command_at_cursor_has_common_package_installer_prefix(
-                buffer_text,
-                cursor_position - 1,
-                shell_family,
-                is_alias_expansion_enabled,
-                session_context,
-            );
-
-        !looks_like_package_install
-    }
-
     fn is_classic_completions_enabled(&self, ctx: &AppContext) -> bool {
         (FeatureFlag::ClassicCompletions.is_enabled()
             && *InputSettings::as_ref(ctx).classic_completions_mode)
@@ -4806,24 +4746,6 @@ impl Input {
                 if self.deferred_remote_operations.latest_block_id != latest_block_id {
                     self.deferred_remote_operations.latest_block_id = latest_block_id;
                 }
-            }
-
-            // Make sure the viewer's interaction state is correct based on their role.
-            // We may have locked up their input if they tried to execute a command.
-            if let SharedSessionStatus::ActiveViewer { role } =
-                self.model.lock().shared_session_status()
-            {
-                self.editor.update(ctx, |editor, ctx| {
-                    editor.set_interaction_state(role.into(), ctx);
-
-                    // Also need to set the text colors back to normal.
-                    let appearance: &Appearance = Appearance::as_ref(ctx);
-                    editor.set_text_colors(TextColors::from_appearance(appearance), ctx);
-                });
-
-                if let Some(shared_session_input_state) = self.shared_session_input_state.as_mut() {
-                    shared_session_input_state.pending_command_execution_request = None;
-                };
             }
 
             // Update the segmented control disabled state based on the new state.

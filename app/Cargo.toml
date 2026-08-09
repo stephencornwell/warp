@@ -98,7 +98,6 @@ enclose = "1.1.8"
 enum-iterator.workspace = true
 event-listener = "5.4.0"
 field_mask.workspace = true
-firebase.workspace = true
 flate2 = "1.0.17"
 float-cmp.workspace = true
 futures-lite.workspace = true
@@ -426,7 +425,6 @@ default = [
     "tab_configs",
     "trim_trailing_blank_lines",
     "open_warp_new_settings_modes",
-    "skip_firebase_anonymous_user",
     "resize_fix",
     "system_theme",
     "tab_close_button_on_left",
@@ -722,7 +720,6 @@ oz_handoff = []
 hoa_notifications = []
 open_code_notifications = []
 transfer_control_tool = []
-skip_firebase_anonymous_user = []
 solo_user_byok = []
 configurable_toolbar = []
 warpify_footer = []

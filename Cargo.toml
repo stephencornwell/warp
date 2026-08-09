@@ -5,11 +5,6 @@ members = [
 ]
 resolver = "2"
 exclude = [
-  "crates/graphql",
-  "crates/warp_graphql_schema",
-  "crates/warp_server_client",
-  "crates/managed_secrets",
-  "crates/remote_server",
 ]
 
 # Include the default application and core library members in regular builds.
@@ -40,7 +35,6 @@ channel_versions = { path = "crates/channel_versions", default-features = false 
 command = { path = "crates/command" }
 command-signatures-v2 = { path = "crates/command-signatures-v2" }
 field_mask = { path = "crates/field_mask" }
-firebase = { path = "crates/firebase" }
 fuzzy_match = { path = "crates/fuzzy_match" }
 handlebars = { path = "crates/handlebars" }
 http_client = { path = "crates/http_client" }

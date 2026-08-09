@@ -281,10 +281,6 @@ pub fn init(app: &mut AppContext) {
     );
     app.add_action("root_view:log_out", RootView::log_out);
     app.add_action(
-        "root_view:handle_incoming_auth_url",
-        RootView::handle_incoming_auth_url,
-    );
-    app.add_action(
         "root_view:add_session_at_path",
         RootView::add_session_at_path,
     );
@@ -308,10 +304,6 @@ pub fn init(app: &mut AppContext) {
         app.add_global_action(
             "root_view:join_shared_session",
             open_shared_session_as_viewer,
-        );
-        app.add_action(
-            "root_view:join_shared_session_in_existing_window",
-            RootView::join_shared_session_in_existing_window,
         );
     }
 
@@ -362,18 +354,6 @@ pub fn init(app: &mut AppContext) {
         .with_group(bindings::BindingGroup::Navigation.as_str())
         .with_context_predicate(id!("RootView"))
         .with_linux_or_windows_key_binding("f11"),
-        // Debug binding for onboarding state
-        EditableBinding::new(
-            "root_view:enter_onboarding_state",
-            "[Debug] Enter Onboarding State",
-            RootViewAction::DebugEnterOnboardingState,
-        )
-        .with_group(bindings::BindingGroup::Settings.as_str())
-        .with_context_predicate(id!("RootView"))
-        .with_key_binding("shift-f12")
-        .with_enabled(|| {
-            FeatureFlag::AgentOnboarding.is_enabled() && ChannelState::enable_debug_features()
-        }),
     ])
 }
 
@@ -839,9 +819,7 @@ fn create_environment(arg: &CreateEnvironmentArg, ctx: &mut AppContext) {
 
                         if let Some(terminal_view) = pane_group.active_session_view(ctx) {
                             terminal_view.update(ctx, |_, ctx| {
-                                ctx.dispatch_typed_action_deferred(
-                                    TerminalAction::SetupCloudEnvironment(repos.clone()),
-                                );
+                                let _ = (&repos, ctx);
                             });
                         }
                     });
@@ -872,9 +850,7 @@ fn create_environment_and_run(arg: &CreateEnvironmentArg, ctx: &mut AppContext) 
 
                         if let Some(terminal_view) = pane_group.active_session_view(ctx) {
                             terminal_view.update(ctx, |_, ctx| {
-                                ctx.dispatch_typed_action_deferred(
-                                    TerminalAction::SetupCloudEnvironmentAndStart(repos.clone()),
-                                );
+                                let _ = (&repos, ctx);
                             });
                         }
                     });
@@ -1411,12 +1387,7 @@ impl RootView {
 
 
     fn web_handoff(&mut self, ctx: &mut ViewContext<Self>) {
-        log::debug!("Starting handoff from host application");
-        self.web_handoff_view
-            .update(ctx, |view, ctx| view.import_user(ctx));
-        self.auth_onboarding_state.show_web_handoff_view();
-        ctx.emit(RootViewEvent::AuthOnboardingStateChanged);
-        ctx.notify();
+        let _ = ctx;
     }
 
     fn close_window(&mut self, _: &(), ctx: &mut ViewContext<Self>) -> bool {
@@ -1508,12 +1479,7 @@ impl RootView {
 
     pub fn add_file_pane(&mut self, path: &PathBuf, ctx: &mut ViewContext<Self>) -> bool {
         if let AuthOnboardingState::Terminal(handle) = &self.auth_onboarding_state {
-            handle.update(ctx, |workspace, ctx| {
-                workspace.add_tab_for_file_notebook(Some(path.to_owned()), ctx);
-            });
-            let window_id = ctx.window_id();
-            ctx.windows().show_window_and_focus_app(window_id);
-            ctx.notify();
+            let _ = (handle, path, ctx);
         } else {
             log::warn!("Auth not complete before trying to open file pane");
         }
@@ -1584,11 +1550,6 @@ impl RootView {
     /// Opens a new tab with agent view for a Linear issue work deeplink.
 
     pub fn focus(&mut self, ctx: &mut ViewContext<Self>) -> bool {
-        if let Some(modal) = &self.paste_auth_token_modal {
-            ctx.focus(modal);
-            ctx.notify();
-            return true;
-        }
         if let AuthOnboardingState::Terminal(workspace) = &self.auth_onboarding_state {
             ctx.focus(workspace);
         }
@@ -1676,42 +1637,18 @@ impl View for RootView {
     fn on_focus(&mut self, focus_ctx: &FocusContext, ctx: &mut ViewContext<Self>) {
         if focus_ctx.is_self_focused() {
             self.focus(ctx);
-        } else if self.paste_auth_token_modal.is_some() {
-            // Modal is open — focus belongs to the editor inside it.
-        } else if matches!(
-            self.auth_onboarding_state,
-            AuthOnboardingState::Onboarding { .. }
-        ) {
-            // During onboarding, aggressively redirect focus.
-            // This ensures keystrokes (Enter) are handled by the correct view rather
-            // than something hidden like the input editor.
-            self.focus(ctx);
-        } else if let AuthOnboardingState::LoginSlide {
-            login_slide_view, ..
-        } = &self.auth_onboarding_state
-        {
-            // Redirect focus unless the auth token editor is visible and should
-            // accept user input.
-            if !login_slide_view.as_ref(ctx).is_auth_token_input_visible() {
-                self.focus(ctx);
-            }
         }
     }
 
     fn render(&self, app: &AppContext) -> Box<dyn Element> {
         let child = match &self.auth_onboarding_state {
             AuthOnboardingState::Terminal(workspace) => ChildView::new(workspace).finish(),
-            AuthOnboardingState::ConfirmIncomingAuth(_) => {
-                ChildView::new(&self.auth_override_view).finish()
-            }
+            AuthOnboardingState::ConfirmIncomingAuth(_) => Stack::new().finish(),
         };
 
         let mut stack = Stack::new();
         stack.add_child(child);
 
-        if let Some(modal) = &self.paste_auth_token_modal {
-            stack.add_child(ChildView::new(modal).finish());
-        }
 
         if let Some(traffic_light_data) = self.traffic_light_data(app) {
             let theme = Appearance::as_ref(app).theme();

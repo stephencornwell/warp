@@ -697,25 +697,6 @@ impl PaneConfiguration {
         ctx.emit(PaneConfigurationEvent::HeaderContentChanged);
     }
 
-    /// Sets the shareable object in the current pane. If `None`, the share button is removed.
-    pub fn set_shareable_object(
-        &mut self,
-        shareable_object: Option<ShareableObject>,
-        ctx: &mut ModelContext<Self>,
-    ) {
-        ctx.emit(PaneConfigurationEvent::ShareableObjectChanged(
-            shareable_object,
-        ));
-    }
-
-    pub fn toggle_sharing_dialog(
-        &mut self,
-        source: SharingDialogSource,
-        ctx: &mut ModelContext<Self>,
-    ) {
-        ctx.emit(PaneConfigurationEvent::ToggleSharingDialog(source));
-    }
-
     /// Notifies that the header content has changed and the pane header should re-render.
     /// Use this when the backing view's state has changed in a way that affects the header
     /// content returned by `render_header_content()`.
@@ -739,8 +720,6 @@ pub enum PaneConfigurationEvent {
     ShowAccentBorderUpdated,
     OpenModalUpdated,
     RefreshPaneHeaderOverflowMenuItems,
-    ShareableObjectChanged(Option<ShareableObject>),
-    ToggleSharingDialog(SharingDialogSource),
     DimEvenIfFocusedUpdated,
     /// The header content has changed and should be re-rendered.
     /// This is used when the backing view's state changes in a way that

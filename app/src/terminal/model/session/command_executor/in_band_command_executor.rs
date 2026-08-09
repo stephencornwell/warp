@@ -7,6 +7,7 @@ use std::{collections::VecDeque, fmt};
 use anyhow::Result;
 use async_channel::{self, Receiver, Sender};
 use async_trait::async_trait;
+use chrono::DateTime;
 use parking_lot::{Mutex, MutexGuard};
 use warp_core::command::ExitCode;
 use warp_terminal::model::Point;

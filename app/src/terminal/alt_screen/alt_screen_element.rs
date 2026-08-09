@@ -29,6 +29,7 @@ use warp_core::features::FeatureFlag;
 use warp_util::user_input::UserInput;
 use warpui::elements::new_scrollable::{NewScrollableElement, ScrollableAxis};
 use warpui::event::{KeyState, ModifiersState};
+use warpui::platform::keyboard::KeyCode;
 use warpui::text::SelectionType;
 
 use super::{should_intercept_mouse, should_intercept_scroll};

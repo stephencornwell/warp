@@ -4,6 +4,7 @@ use settings::Setting as _;
 use std::{any::Any, path::PathBuf, sync::Arc};
 use warpui::{AppContext, SingletonEntity, ViewHandle};
 
+use crate::PrivacySettings;
 use crate::{
     appearance::Appearance,
     settings::{BlockVisibilitySettings, DebugSettings, InputModeSettings},

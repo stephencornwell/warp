@@ -14,7 +14,7 @@ use crate::{
 use settings::Setting;
 use warpui::{
     elements::{
-        Border, Container, CornerRadius, DropTarget, Element, Flex, Hoverable,
+        Border, ChildView, Container, CornerRadius, DropTarget, Element, Flex, Hoverable,
         ParentElement, Radius, SavePosition, Stack,
     },
     AppContext, SingletonEntity,

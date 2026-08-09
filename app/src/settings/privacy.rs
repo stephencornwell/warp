@@ -1,5 +1,6 @@
 use std::fmt::Display;
 
+use anyhow::Result;
 use regex::Regex;
 use warp_core::features::FeatureFlag;
 use warpui::{AppContext, Entity, ModelContext, SingletonEntity, UpdateModel};
@@ -347,7 +348,7 @@ impl PrivacySettings {
     ///
     /// The returned snapshot is not stateful, thus its values should be used shortly after the
     /// snapshot is returned.
-    pub fn get_snapshot(&self, _app: &AppContext) -> PrivacySettingsSnapshot {
+    pub fn get_snapshot(&self, app: &AppContext) -> PrivacySettingsSnapshot {
         PrivacySettingsSnapshot {
             cloud_conversation_storage_enabled: (!self.is_cloud_conversation_storage_enabled)
                 .then_some(false),

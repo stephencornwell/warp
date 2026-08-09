@@ -258,7 +258,7 @@ impl Element for WaterfallGapElement {
 }
 
 impl ScrollableElement for WaterfallGapElement {
-    fn scroll_data(&self, _app: &AppContext) -> Option<warpui::elements::ScrollData> {
+    fn scroll_data(&self, app: &AppContext) -> Option<warpui::elements::ScrollData> {
         // You might be wondering - 'what is this blocklist top inset'?
         //
         // This is the height of the inline menu when it is open and rendered above the input.

@@ -7,14 +7,14 @@ use std::{
 };
 
 use warp_core::command::ExitCode;
-use warpui::{Entity, ModelContext, SingletonEntity};
+use warpui::{AppContext, Entity, ModelContext, SingletonEntity};
 
 use super::{
     model::block::{Block, SerializedBlock},
     shell::ShellType,
 };
 use crate::{
-    sync_ids::HashableId as _,
+    sync_ids::{ClientId, HashableId as _, SyncId},
     terminal::model::session::{Session, SessionId},
     util::dedupe_from_last,
 };

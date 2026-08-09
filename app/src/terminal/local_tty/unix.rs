@@ -13,6 +13,7 @@ use crate::terminal::local_tty::shell::{
 use crate::terminal::model::session::command_executor::shell_escape_single_quotes;
 use crate::terminal::shell::ShellType;
 use crate::ASSETS;
+use warp_core::features::FeatureFlag;
 
 use itertools::Itertools;
 

@@ -1,6 +1,6 @@
 use crate::report_if_error;
 use crate::{
-    pane_group::{PaneGroup, PaneId},
+    pane_group::{PaneGroup, PaneId, TerminalPane},
     session_management::{RunningSessionSummary, SessionNavigationData},
     terminal::general_settings::GeneralSettings,
     workspace::Workspace,
@@ -96,8 +96,8 @@ impl QuitScope<'_> {
     fn shared_sessions(&self, ctx: &AppContext) -> usize {
         match self {
             Self::Pane {
-                pane_group: _,
-                pane_id: _,
+                pane_group,
+                pane_id,
                 ..
             } => 0,
             Self::Tabs(ref tabs) => tabs

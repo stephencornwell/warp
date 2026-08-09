@@ -183,7 +183,7 @@ fn new_command_executor_for_local_tty_session(
     let should_force_disable_in_band_generators =
         debug_settings.force_disable_in_band_generators.value();
 
-    let _is_legacy_ssh_session = matches!(
+    let is_legacy_ssh_session = matches!(
         &session_info.is_legacy_ssh_session,
         IsLegacySSHSession::Yes { .. }
     );

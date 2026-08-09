@@ -3,6 +3,7 @@ use std::ffi::OsStr;
 
 use byte_unit::Byte;
 use chrono::{DateTime, Local, Utc};
+use itertools::Itertools as _;
 use num_traits::Zero;
 use ordered_float::OrderedFloat;
 use serde::Serialize;
@@ -156,7 +157,7 @@ impl SystemInfo {
     /// dashboards are unaffected.
     fn check_for_excessive_memory_usage(
         &mut self,
-        _rss: Byte,
+        rss: Byte,
         memory_footprint: Byte,
         ctx: &mut ModelContext<Self>,
     ) {
@@ -296,8 +297,8 @@ impl ResourceUsageReporter {
         samples: impl Iterator<Item = &'a Sample>,
         ctx: &mut AppContext,
     ) {
-        let _cpu_usage_stats = Self::compute_cpu_usage_stats(samples);
-        let _memory_usage_stats = Self::compute_memory_usage_stats(total_application_usage, ctx);
+        let cpu_usage_stats = Self::compute_cpu_usage_stats(samples);
+        let memory_usage_stats = Self::compute_memory_usage_stats(total_application_usage, ctx);
 
         // We send two different events at the moment, as one contains general
         // resource usage information, and one contains more detailed info
@@ -340,16 +341,16 @@ impl ResourceUsageReporter {
 
     fn compute_memory_usage_stats(
         total_application_usage: Byte,
-        _ctx: &mut AppContext,
+        ctx: &mut AppContext,
     ) -> MemoryUsageStats {
-        let stats = MemoryUsageStats::new(total_application_usage);
+        let mut stats = MemoryUsageStats::new(total_application_usage);
 
         // Don't compute detailed memory usage statistics outside of debug builds.
         if !ChannelState::enable_debug_features() {
             return stats;
         }
 
-        let _now = Local::now();
+        let now = Local::now();
 
         stats
     }

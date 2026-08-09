@@ -14,6 +14,7 @@ use warp_core::settings::{
 };
 
 use crate::context_chips::prompt::PromptSelection;
+use crate::context_chips::ContextChipKind;
 
 lazy_static! {
     pub static ref DEFAULT_THRESHOLD_FOR_LONG_RUNNING_NOTIFICATION: Duration =

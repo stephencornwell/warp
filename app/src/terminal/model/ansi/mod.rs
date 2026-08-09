@@ -637,7 +637,7 @@ impl<'a, H: Handler + 'a, W: io::Write> Performer<'a, H, W> {
             Ok(DProtoHook::TmuxInstallFailed { value }) => self.handler.tmux_install_failed(value),
             Ok(DProtoHook::ExitShell { value }) => self.handler.exit_shell(value),
 
-            Err(_e) => safe_error!(
+            Err(e) => safe_error!(
                 safe: ("Error when deserializing escape sequence data"),
                 full: ("Error when deserializing escape sequence data: {:?}", e)
             ),
@@ -688,7 +688,7 @@ impl<'a, H: Handler + 'a, W: io::Write> Performer<'a, H, W> {
                 }
                 self.handle_decoded_hook(hook);
             }
-            Err(_e) => safe_error!(
+            Err(e) => safe_error!(
                 safe: ("Error when decoding payload"),
                 full: ("Error when decoding payload: {:?}", e)
             ),

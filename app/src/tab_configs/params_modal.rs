@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, path::PathBuf};
 
 use warp_core::ui::theme::color::internal_colors;
 use warp_core::ui::Icon;

@@ -9,6 +9,7 @@ use warp_util::user_input::UserInput;
 use warpui::elements::HyperlinkUrl;
 use warpui::event::ModifiersState;
 use warpui::units::Lines;
+use warpui::EntityId;
 
 use crate::terminal::available_shells::AvailableShell;
 use crate::terminal::model::completions::ShellCompletion;
@@ -446,13 +447,13 @@ impl fmt::Debug for TerminalAction {
                 selected_range,
             } => write!(f, "SetMarkedText {{{marked_text:?}, {selected_range:?}}}"),
             ClearMarkedText => write!(f, "ClearMarkedText"),
-            _ResumeConversation => write!(f, "ResumeConversation"),
-            _ForkConversationFromLastKnownGoodState => {
+            ResumeConversation => write!(f, "ResumeConversation"),
+            ForkConversationFromLastKnownGoodState => {
                 write!(f, "ForkConversationFromLastKnownGoodState")
             }
-            _ToggleAIDocumentPane => write!(f, "ToggleAIDocumentPane"),
-            _ToggleTodoPopup => write!(f, "ToggleTodoPopup"),
-            _CloseTodoPopup => write!(f, "CloseTodoPopup"),
+            ToggleAIDocumentPane => write!(f, "ToggleAIDocumentPane"),
+            ToggleTodoPopup => write!(f, "ToggleTodoPopup"),
+            CloseTodoPopup => write!(f, "CloseTodoPopup"),
             InitProject => write!(f, "InitProject"),
             IndexProjectSpeedbump => write!(f, "IndexProject"),
             AddProjectAtCurrentDirectory => write!(f, "AddProjectAtCurrentDirectory"),
@@ -463,7 +464,7 @@ impl fmt::Debug for TerminalAction {
             OpenRulesPane => write!(f, "OpenRulesPane"),
             OpenAddPromptPane => write!(f, "OpenAddPromptPane"),
             PickRepoToOpen => write!(f, "PickRepoToOpen"),
-            OpenFilesPalette => write!(f, "OpenFilesPalette"),
+            OpenFilesPalette { .. } => write!(f, "OpenFilesPalette"),
             DismissCodeToolbeltTooltip => write!(f, "DismissCodeToolbeltTooltip"),
             StartLspServer => write!(f, "StartLspServer"),
             SummarizeConversation => write!(f, "SummarizeConversation"),

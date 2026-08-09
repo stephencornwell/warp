@@ -18,7 +18,7 @@ use warp_completer::completer::{
 use warp_completer::signatures::CommandRegistry;
 use warp_core::features::FeatureFlag;
 use warp_util::path::{EscapeChar, ShellFamily};
-use warpui::AppContext;
+use warpui::{AppContext, SingletonEntity};
 
 use crate::safe_warn;
 use crate::terminal::model::session::{ExecuteCommandOptions, Session, SessionType};

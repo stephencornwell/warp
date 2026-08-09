@@ -1,4 +1,5 @@
 use crate::terminal::model::session::SessionId;
+use crate::ui_components::icons::Icon as UIComponentsIcon;
 use async_channel::Sender;
 use chrono::{DateTime, Local};
 use fuzzy_match::match_indices;
@@ -12,6 +13,7 @@ use warp_completer::completer::{
     MatchType, PathSeparators, Suggestion, SuggestionResults, SuggestionType,
 };
 use warp_core::features::FeatureFlag;
+use warp_core::ui::theme::AnsiColorIdentifier;
 use warpui::elements::{
     ChildAnchor, DispatchEventResult, Expanded, Hoverable, MouseStateHandle, ParentAnchor,
     ParentOffsetBounds, ScrollbarWidth,
@@ -700,7 +702,7 @@ impl InputSuggestions {
             .finish();
         }
         let handle = self.handle.clone();
-        let _em_width = self.em_width(ctx.font_cache(), appearance);
+        let em_width = self.em_width(ctx.font_cache(), appearance);
 
         let list = UniformList::new(
             self.list_state.clone(),

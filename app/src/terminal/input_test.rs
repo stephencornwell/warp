@@ -524,7 +524,155 @@ fn test_clear_selection_after_insert() {
     });
 }
 
+#[test]
+fn test_merge_ai_and_command_history() {
+    App::test((), |mut app| async move {
+        initialize_app(&mut app);
 
+        let now = Local::now();
+        let current_session_id = SessionId::from(0);
+        let other_session_id = SessionId::from(1);
+        let all_live_session_ids = HashSet::from([current_session_id, other_session_id]);
+
+        // Create entries in chronological order (from earliest to most recent)
+        // Restored commands are now treated as CurrentSession
+        let entry_30s = HistoryEntry::command_at_time(
+            "echo 30 sec earlier [restored]".into(),
+            now - Duration::from_secs(30),
+            Some(current_session_id),
+            true,
+        );
+        let entry_20s = HistoryEntry::command_at_time(
+            "echo 20 sec earlier [different session]".into(),
+            now - Duration::from_secs(20),
+            None,
+            false,
+        );
+        let entry_10s = HistoryEntry::command_at_time(
+            "echo 10 sec earlier [current session]".into(),
+            now - Duration::from_secs(10),
+            Some(current_session_id),
+            false,
+        );
+        let entry_5s = HistoryEntry::command_at_time(
+            "echo 5 sec earlier [other session]".into(),
+            now - Duration::from_secs(5),
+            Some(other_session_id),
+            false,
+        );
+        let entry_now =
+            HistoryEntry::command_at_time("echo now [different session]".into(), now, None, false);
+
+        let history_commands = vec![
+            HistoryInputSuggestion::Command { entry: &entry_20s },
+            HistoryInputSuggestion::Command { entry: &entry_now },
+            HistoryInputSuggestion::Command { entry: &entry_30s },
+            HistoryInputSuggestion::Command { entry: &entry_10s },
+            HistoryInputSuggestion::Command { entry: &entry_5s },
+        ];
+        let only_history_commands = history_commands
+            .clone()
+            .into_iter()
+            .sorted_by(|a, b| a.cmp(b, Some(current_session_id), &all_live_session_ids))
+            .collect::<Vec<_>>();
+        assert_eq!(only_history_commands.len(), 5);
+        // DifferentSession items sorted by timestamp
+        assert_eq!(
+            only_history_commands[0].text(),
+            "echo 20 sec earlier [different session]"
+        );
+        assert_eq!(
+            only_history_commands[1].text(),
+            "echo 5 sec earlier [other session]"
+        );
+        assert_eq!(
+            only_history_commands[2].text(),
+            "echo now [different session]"
+        );
+        // CurrentSession items sorted by timestamp (restored + current session)
+        assert_eq!(
+            only_history_commands[3].text(),
+            "echo 30 sec earlier [restored]"
+        );
+        assert_eq!(
+            only_history_commands[4].text(),
+            "echo 10 sec earlier [current session]"
+        );
+
+        let ai_queries = vec![
+            HistoryInputSuggestion::AIQuery {
+                entry: AIQueryHistory::new_for_test(
+                    "ai 35 sec earlier [different session]",
+                    now - Duration::from_secs(35),
+                    HistoryOrder::DifferentSession,
+                ),
+            },
+            HistoryInputSuggestion::AIQuery {
+                entry: AIQueryHistory::new_for_test(
+                    "ai 25 sec earlier [different session]",
+                    now - Duration::from_secs(25),
+                    HistoryOrder::DifferentSession,
+                ),
+            },
+            HistoryInputSuggestion::AIQuery {
+                entry: AIQueryHistory::new_for_test(
+                    "ai 15 sec earlier [current session]",
+                    now - Duration::from_secs(15),
+                    HistoryOrder::CurrentSession,
+                ),
+            },
+            HistoryInputSuggestion::AIQuery {
+                entry: AIQueryHistory::new_for_test(
+                    "ai 7 sec earlier [current session]",
+                    now - Duration::from_secs(7),
+                    HistoryOrder::CurrentSession,
+                ),
+            },
+        ];
+        let only_ai_commands = ai_queries
+            .clone()
+            .into_iter()
+            .sorted_by(|a, b| a.cmp(b, Some(current_session_id), &all_live_session_ids))
+            .collect::<Vec<_>>();
+        assert_eq!(only_ai_commands.len(), 4);
+        // DifferentSession items sorted by timestamp
+        assert_eq!(
+            only_ai_commands[0].text(),
+            "ai 35 sec earlier [different session]"
+        );
+        assert_eq!(
+            only_ai_commands[1].text(),
+            "ai 25 sec earlier [different session]"
+        );
+        // CurrentSession items sorted by timestamp
+        assert_eq!(
+            only_ai_commands[2].text(),
+            "ai 15 sec earlier [current session]"
+        );
+        assert_eq!(
+            only_ai_commands[3].text(),
+            "ai 7 sec earlier [current session]"
+        );
+
+        let merged = history_commands
+            .into_iter()
+            .chain(ai_queries)
+            .sorted_by(|a, b| a.cmp(b, Some(current_session_id), &all_live_session_ids))
+            .collect::<Vec<_>>();
+        assert_eq!(merged.len(), 9);
+        // DifferentSession items sorted by timestamp
+        assert_eq!(merged[0].text(), "ai 35 sec earlier [different session]");
+        assert_eq!(merged[1].text(), "ai 25 sec earlier [different session]");
+        assert_eq!(merged[2].text(), "echo 20 sec earlier [different session]");
+        assert_eq!(merged[3].text(), "echo 5 sec earlier [other session]");
+        assert_eq!(merged[4].text(), "echo now [different session]");
+        // CurrentSession items sorted by timestamp
+        assert_eq!(merged[5].text(), "echo 30 sec earlier [restored]");
+        assert_eq!(merged[6].text(), "ai 15 sec earlier [current session]");
+        assert_eq!(merged[7].text(), "echo 10 sec earlier [current session]");
+        assert_eq!(merged[8].text(), "ai 7 sec earlier [current session]");
+    });
+}
 
 #[test]
 fn test_history_up() {
@@ -741,7 +889,83 @@ fn test_history_up_buffer_restoration() {
     });
 }
 
+#[test]
+fn test_history_up_for_shared_session_executor() {
+    App::test((), |mut app| async move {
+        initialize_app(&mut app);
 
+        // Initialize as shared session executor
+        // such that the history model isn't also initialized during bootstrapping
+        // TODO(maggs): Improve testing utils for session sharing
+        let tips_model = app.add_model(|_| TipsCompleted::default());
+        let (_, terminal) = app.add_window(WindowStyle::NotStealFocus, move |ctx| {
+            TerminalView::new_for_test(tips_model, None, ctx)
+        });
+        terminal.update(&mut app, |view, _| {
+            let mut model = view.model.lock();
+            model.block_list_mut().set_bootstrapped();
+            model
+                .block_list_mut()
+                .active_block_for_test()
+                .set_session_id(SessionId::from(0));
+            model.set_shared_session_status(SharedSessionStatus::ActiveViewer {
+                role: Role::Executor,
+            });
+        });
+
+        let (input, suggestions) = terminal.read(&app, |view, _ctx| {
+            let input = view.input().clone();
+            let input_suggestions = input.read(&app, |input, _ctx| input.input_suggestions.clone());
+            (input, input_suggestions)
+        });
+
+        input.update(&mut app, |input, ctx| {
+            // Initialize shared session history model
+            let shared_session_history_model = ctx.add_model(|_| SharedSessionHistoryModel::new());
+
+            // Simulate blocks
+            shared_session_history_model.update(ctx, |history_model, _ctx| {
+                history_model.push(HistoryEntry::for_completed_block(
+                    "echo foo".into(),
+                    &SerializedBlock::new_for_test("echo foo".as_bytes().to_vec(), vec![]),
+                ));
+
+                history_model.push(HistoryEntry::for_completed_block(
+                    "cd ~".into(),
+                    &SerializedBlock::new_for_test("cd ~".as_bytes().to_vec(), vec![]),
+                ));
+            });
+
+            input.shared_session_input_state = Some(SharedSessionInputState {
+                history_model: shared_session_history_model,
+                pending_command_execution_request: None,
+            });
+            input.editor_up(ctx);
+        });
+
+        // Arrow up displays history in the correct order for an empty buffer
+        suggestions.read(&app, |suggestions, _ctx| {
+            assert_eq!(suggestions.items().len(), 2);
+            assert_eq!(suggestions.item_text(0).as_str(), "echo foo");
+            assert_eq!(suggestions.item_text(1).as_str(), "cd ~");
+        });
+
+        // The buffer should contain the text of the last item
+        input.read(&app, |input, ctx| {
+            assert_eq!(input.buffer_text(ctx), "cd ~");
+        });
+
+        // Shared session executor should be able to navigate through history
+        input.update(&mut app, |input, ctx| {
+            input.editor_up(ctx);
+        });
+
+        // The buffer should contain the text of the second last item after another arrow-up
+        input.read(&app, |input, ctx| {
+            assert_eq!(input.buffer_text(ctx), "echo foo");
+        });
+    });
+}
 
 #[test]
 fn test_history_up_multiline() {
@@ -1993,7 +2217,54 @@ fn test_completions_while_typing_doesnt_hide_autosuggestion() {
     });
 }
 
+#[test]
+fn test_agent_mode_set_while_typing_slash_command() {
+    App::test((), |mut app| async move {
+        initialize_app(&mut app);
 
+        let terminal = add_window_with_bootstrapped_terminal(
+            &mut app, None, /* history_file_commands */
+            None,
+        )
+        .await;
+        let input = terminal.read(&app, |terminal, _| terminal.input().clone());
+
+        // Start with natural language detection
+        input.update(&mut app, |input, ctx| {
+            input.set_input_mode_natural_language_detection(ctx);
+            assert!(!input.ai_input_model.as_ref(ctx).is_ai_input_enabled());
+        });
+
+        // Open slash commands menu by typing "/"
+        input.update(&mut app, |input, ctx| {
+            input.user_insert("/", ctx);
+        });
+
+        // Verify slash commands menu is open and agent mode is forced
+        input.read(&app, |input, ctx| {
+            assert!(matches!(
+                input.suggestions_mode_model.as_ref(ctx).mode(),
+                InputSuggestionsMode::SlashCommands
+            ));
+            // Should be in agent mode now
+            assert!(input.ai_input_model.as_ref(ctx).is_ai_input_enabled());
+        });
+
+        // Add a command with a space
+        input.update(&mut app, |input, ctx| {
+            input.user_insert("plan ", ctx);
+        });
+
+        // Verify menu is closed and we're still in agent mode
+        input.read(&app, |input, ctx| {
+            assert!(matches!(
+                input.suggestions_mode_model.as_ref(ctx).mode(),
+                InputSuggestionsMode::Closed
+            ));
+            assert!(input.ai_input_model.as_ref(ctx).is_ai_input_enabled());
+        });
+    });
+}
 
 #[test]
 fn test_plan_slash_command_argument_with_slash_does_not_disable_slash_command_parsing() {
@@ -2087,8 +2358,59 @@ fn test_open_slash_command_requires_path() {
     });
 }
 
+#[test]
+fn test_changelog_slash_command_clears_buffer_on_success() {
+    App::test((), |mut app| async move {
+        initialize_app(&mut app);
 
+        let terminal = add_window_with_bootstrapped_terminal(
+            &mut app, None, /* history_file_commands */
+            None,
+        )
+        .await;
+        let input = terminal.read(&app, |terminal, _| terminal.input().clone());
 
+        input.update(&mut app, |input, ctx| {
+            input.editor.update(ctx, |editor, ctx| {
+                editor.set_buffer_text(commands::CHANGELOG.name, ctx)
+            });
+        });
+
+        input.update(&mut app, |input, ctx| {
+            input.input_enter(ctx);
+        });
+
+        input.read(&app, |input, ctx| {
+            assert_eq!(input.buffer_text(ctx), "");
+        });
+    });
+}
+#[test]
+fn test_open_slash_command_opens_files_palette_when_entered_from_slash_menu() {
+    App::test((), |mut app| async move {
+        initialize_app(&mut app);
+
+        let terminal = add_window_with_bootstrapped_terminal(
+            &mut app, None, /* history_file_commands */
+            None,
+        )
+        .await;
+        let input = terminal.read(&app, |terminal, _| terminal.input().clone());
+
+        input.update(&mut app, |input, ctx| {
+            input.user_insert("/", ctx);
+            input.user_insert("open-file", ctx);
+        });
+
+        input.read(&app, |input, ctx| {
+            assert_eq!(input.buffer_text(ctx), "/open-file");
+        });
+
+        input.update(&mut app, |input, ctx| {
+            input.input_enter(ctx);
+        });
+    });
+}
 
 #[cfg(feature = "local_fs")]
 #[test]
@@ -2222,15 +2544,267 @@ fn test_shell_lock_respected_when_slash_command_typed() {
     });
 }
 
+#[test]
+fn test_new_conversation_keybinding_requires_double_press_in_non_empty_agent_view() {
+    App::test((), |mut app| async move {
+        let _agent_view_flag = FeatureFlag::AgentView.override_enabled(true);
+        initialize_app(&mut app);
 
+        let terminal = add_window_with_bootstrapped_terminal(&mut app, None, None).await;
+        let input = terminal.read(&app, |terminal, _| terminal.input().clone());
 
+        let conversation_id = terminal.update(&mut app, |view, ctx| {
+            view.agent_view_controller().update(ctx, |controller, ctx| {
+                controller
+                    .try_enter_agent_view(
+                        None,
+                        AgentViewEntryOrigin::Input {
+                            was_prompt_autodetected: false,
+                        },
+                        ctx,
+                    )
+                    .expect("Should be able to enter agent view")
+            })
+        });
 
+        terminal.update(&mut app, |view, ctx| {
+            view.ai_controller().update(ctx, |controller, ctx| {
+                controller.send_user_query_in_conversation(
+                    "hello".to_owned(),
+                    conversation_id,
+                    None,
+                    ctx,
+                );
+            });
+        });
 
+        let is_non_empty = BlocklistAIHistoryModel::handle(&app).read(&app, |history, _| {
+            history
+                .conversation(&conversation_id)
+                .is_some_and(|conversation| !conversation.is_empty())
+        });
+        assert!(is_non_empty);
 
+        input.update(&mut app, |input, ctx| {
+            input.user_insert("draft", ctx);
+            input.handle_action(
+                &InputAction::TriggerSlashCommandFromKeybinding(commands::AGENT.name),
+                ctx,
+            );
+        });
 
+        terminal.read(&app, |view, ctx| {
+            assert_eq!(
+                view.agent_view_controller()
+                    .as_ref(ctx)
+                    .agent_view_state()
+                    .active_conversation_id(),
+                Some(conversation_id),
+            );
+        });
+        input.read(&app, |input, ctx| {
+            assert_eq!(input.buffer_text(ctx), "draft");
+        });
 
+        input.update(&mut app, |input, ctx| {
+            input.handle_action(
+                &InputAction::TriggerSlashCommandFromKeybinding(commands::AGENT.name),
+                ctx,
+            );
+        });
 
+        terminal.read(&app, |view, ctx| {
+            let active_conversation_id = view
+                .agent_view_controller()
+                .as_ref(ctx)
+                .agent_view_state()
+                .active_conversation_id()
+                .expect("agent view should still be active");
+            assert_ne!(active_conversation_id, conversation_id);
+        });
+    });
+}
 
+#[test]
+fn test_new_conversation_keybinding_does_not_require_confirmation_in_empty_agent_view() {
+    App::test((), |mut app| async move {
+        let _agent_view_flag = FeatureFlag::AgentView.override_enabled(true);
+        initialize_app(&mut app);
+
+        let terminal = add_window_with_bootstrapped_terminal(&mut app, None, None).await;
+        let input = terminal.read(&app, |terminal, _| terminal.input().clone());
+
+        let conversation_id = terminal.update(&mut app, |view, ctx| {
+            view.agent_view_controller().update(ctx, |controller, ctx| {
+                controller
+                    .try_enter_agent_view(
+                        None,
+                        AgentViewEntryOrigin::Input {
+                            was_prompt_autodetected: false,
+                        },
+                        ctx,
+                    )
+                    .expect("Should be able to enter agent view")
+            })
+        });
+
+        let is_empty = BlocklistAIHistoryModel::handle(&app).read(&app, |history, _| {
+            history
+                .conversation(&conversation_id)
+                .is_some_and(|conversation| conversation.is_empty())
+        });
+        assert!(is_empty);
+
+        input.update(&mut app, |input, ctx| {
+            input.user_insert("draft", ctx);
+            input.handle_action(
+                &InputAction::TriggerSlashCommandFromKeybinding(commands::AGENT.name),
+                ctx,
+            );
+        });
+
+        terminal.read(&app, |view, ctx| {
+            let active_conversation_id = view
+                .agent_view_controller()
+                .as_ref(ctx)
+                .agent_view_state()
+                .active_conversation_id()
+                .expect("agent view should still be active");
+            assert_ne!(active_conversation_id, conversation_id);
+        });
+    });
+}
+
+#[test]
+fn test_new_conversation_input_trigger_remains_single_step_in_non_empty_agent_view() {
+    App::test((), |mut app| async move {
+        let _agent_view_flag = FeatureFlag::AgentView.override_enabled(true);
+        initialize_app(&mut app);
+
+        let terminal = add_window_with_bootstrapped_terminal(&mut app, None, None).await;
+        let input = terminal.read(&app, |terminal, _| terminal.input().clone());
+
+        let conversation_id = terminal.update(&mut app, |view, ctx| {
+            view.agent_view_controller().update(ctx, |controller, ctx| {
+                controller
+                    .try_enter_agent_view(
+                        None,
+                        AgentViewEntryOrigin::Input {
+                            was_prompt_autodetected: false,
+                        },
+                        ctx,
+                    )
+                    .expect("Should be able to enter agent view")
+            })
+        });
+
+        terminal.update(&mut app, |view, ctx| {
+            view.ai_controller().update(ctx, |controller, ctx| {
+                controller.send_user_query_in_conversation(
+                    "hello".to_owned(),
+                    conversation_id,
+                    None,
+                    ctx,
+                );
+            });
+        });
+
+        let command = COMMAND_REGISTRY
+            .get_command_with_name(commands::NEW.name)
+            .expect("/new command should exist");
+        input.update(&mut app, |input, ctx| {
+            let handled = input.execute_slash_command(
+                command,
+                None,
+                SlashCommandTrigger::input(),
+                /*is_queued_prompt*/ false,
+                ctx,
+            );
+            assert!(handled);
+        });
+
+        terminal.read(&app, |view, ctx| {
+            let active_conversation_id = view
+                .agent_view_controller()
+                .as_ref(ctx)
+                .agent_view_state()
+                .active_conversation_id()
+                .expect("agent view should still be active");
+            assert_ne!(active_conversation_id, conversation_id);
+        });
+    });
+}
+
+#[test]
+fn test_create_docker_sandbox_slash_command_executes_and_clears_buffer() {
+    App::test((), |mut app| async move {
+        let _docker_sandbox_flag = FeatureFlag::LocalDockerSandbox.override_enabled(true);
+        initialize_app(&mut app);
+
+        let terminal = add_window_with_bootstrapped_terminal(
+            &mut app, None, /* history_file_commands */
+            None,
+        )
+        .await;
+        let input = terminal.read(&app, |terminal, _| terminal.input().clone());
+
+        input.update(&mut app, |input, ctx| {
+            input.user_insert("draft text", ctx);
+            let handled = input.execute_slash_command(
+                &commands::CREATE_DOCKER_SANDBOX,
+                None,
+                SlashCommandTrigger::input(),
+                /*is_queued_prompt*/ false,
+                ctx,
+            );
+            assert!(handled);
+        });
+
+        input.read(&app, |input, ctx| {
+            assert!(input.buffer_text(ctx).is_empty());
+        });
+    });
+}
+
+#[test]
+fn test_agent_mode_set_when_block_attached() {
+    App::test((), |mut app| async move {
+        initialize_app(&mut app);
+
+        let terminal = add_window_with_bootstrapped_terminal(
+            &mut app, None, /* history_file_commands */
+            None,
+        )
+        .await;
+        let input = terminal.read(&app, |terminal, _| terminal.input().clone());
+
+        // Start with natural language detection
+        input.update(&mut app, |input, ctx| {
+            input.set_input_mode_natural_language_detection(ctx);
+            assert!(!input.ai_input_model.as_ref(ctx).is_ai_input_enabled());
+        });
+
+        // Attach a block
+        input.update(&mut app, |input, ctx| {
+            input.user_insert("<plan:398bf127-b3ca-47ab-b15c-f569dd982651>", ctx);
+        });
+
+        // Should be in agent mode now
+        input.read(&app, |input, ctx| {
+            assert!(input.ai_input_model.as_ref(ctx).is_ai_input_enabled());
+        });
+
+        // Add a prompt
+        input.update(&mut app, |input, ctx| {
+            input.user_insert(" implement this plan", ctx);
+        });
+
+        // Verify we're still in agent mode
+        input.read(&app, |input, ctx| {
+            assert!(input.ai_input_model.as_ref(ctx).is_ai_input_enabled());
+        });
+    });
+}
 
 #[test]
 fn test_tab_completion_single_prefix_suggestion_with_fuzzy_suggestions() {
@@ -3137,15 +3711,307 @@ fn test_powershell_should_insert_newline_on_enter() {
     })
 }
 
+#[test]
+fn test_workflow_selected() {
+    App::test((), |mut app| async move {
+        initialize_app(&mut app);
 
+        let terminal = add_window_with_bootstrapped_terminal(
+            &mut app, None, /* history_file_commands */
+            None,
+        )
+        .await;
+        let input = terminal.read(&app, |terminal, _| terminal.input().clone());
+        input.update(&mut app, |input, ctx| {
+            input.user_insert("hello", ctx);
+        });
 
+        let workflow = Workflow::new(
+            "test",
+            "{{p1}} {{parameter_2}} {{p3}} foo {{p1}} {{parameter_2}}",
+        )
+        .with_arguments(vec![
+            Argument::new("p1", ArgumentType::Text),
+            Argument::new("parameter_2", ArgumentType::Text),
+            Argument::new("p3", ArgumentType::Text),
+        ]);
 
+        input.update(&mut app, |input, ctx| {
+            input.show_workflows_info_box_on_workflow_selection(
+                WorkflowType::Local(workflow),
+                WorkflowSource::Global,
+                WorkflowSelectionSource::Undefined,
+                None,
+                ctx,
+            );
+        });
 
+        input.read(&app, |input, ctx| {
+            assert_eq!(
+                input.buffer_text(ctx),
+                "p1 parameter_2 p3 foo p1 parameter_2"
+            );
+        });
+    });
+}
 
+#[test]
+fn test_workflow_selected_with_default_value() {
+    App::test((), |mut app| async move {
+        initialize_app(&mut app);
 
+        let terminal = add_window_with_bootstrapped_terminal(
+            &mut app, None, /* history_file_commands */
+            None,
+        )
+        .await;
+        let input = terminal.read(&app, |terminal, _| terminal.input().clone());
 
+        let workflow = Workflow::new("test", "{{p1}}/{{parameter_2}}").with_arguments(vec![
+            Argument {
+                name: "p1".into(),
+                description: None,
+                default_value: Some("default_parameter_1".into()),
+                arg_type: Default::default(),
+            },
+            Argument {
+                name: "parameter_2".into(),
+                description: None,
+                default_value: Some("default_parameter_2".into()),
+                arg_type: Default::default(),
+            },
+        ]);
 
+        input.update(&mut app, |input, ctx| {
+            input.show_workflows_info_box_on_workflow_selection(
+                WorkflowType::Local(workflow),
+                WorkflowSource::Global,
+                WorkflowSelectionSource::Undefined,
+                None,
+                ctx,
+            );
+        });
 
+        input.read(&app, |input, ctx| {
+            assert_eq!(
+                input.buffer_text(ctx),
+                "default_parameter_1/default_parameter_2"
+            );
+        });
+    });
+}
+
+#[test]
+fn test_multiple_workflows_selected() {
+    App::test((), |mut app| async move {
+        initialize_app(&mut app);
+
+        let terminal = add_window_with_bootstrapped_terminal(
+            &mut app, None, /* history_file_commands */
+            None,
+        )
+        .await;
+        let input = terminal.read(&app, |terminal, _| terminal.input().clone());
+
+        let workflow = Workflow::new("test", "p1 {{foo}} bar")
+            .with_arguments(vec![Argument::new("foo", ArgumentType::Text)]);
+
+        input.update(&mut app, |input, ctx| {
+            input.show_workflows_info_box_on_workflow_selection(
+                WorkflowType::Local(workflow.clone()),
+                WorkflowSource::Global,
+                WorkflowSelectionSource::Undefined,
+                None,
+                ctx,
+            );
+        });
+
+        input.read(&app, |input, ctx| {
+            assert_eq!(input.buffer_text(ctx), "p1 foo bar");
+        });
+
+        // "foo" should be the only range highlighted.
+        input.update(&mut app, |input, ctx| {
+            let text_style_runs = input.editor.read(ctx, |editor, ctx| {
+                editor
+                    .text_style_runs(ctx)
+                    .filter_map(|text_run| {
+                        text_run
+                            .text_style()
+                            .background_color
+                            .map(|_| text_run.text().to_owned())
+                    })
+                    .collect::<Vec<_>>()
+            });
+
+            assert_eq!(text_style_runs, ["foo"]);
+        });
+
+        // Input the workflow again.
+        input.update(&mut app, |input, ctx| {
+            input.show_workflows_info_box_on_workflow_selection(
+                WorkflowType::Local(workflow),
+                WorkflowSource::Global,
+                WorkflowSelectionSource::Undefined,
+                None,
+                ctx,
+            );
+        });
+
+        input.read(&app, |input, ctx| {
+            assert_eq!(input.buffer_text(ctx), "p1 foo bar");
+        });
+
+        // "foo" should be the only range highlighted.
+        input.update(&mut app, |input, ctx| {
+            let text_style_runs = input.editor.read(ctx, |editor, ctx| {
+                editor
+                    .text_style_runs(ctx)
+                    .filter_map(|text_run| {
+                        text_run
+                            .text_style()
+                            .background_color
+                            .map(|_| text_run.text().to_owned())
+                    })
+                    .collect::<Vec<_>>()
+            });
+
+            assert_eq!(text_style_runs, ["foo"]);
+        });
+    });
+}
+
+#[test]
+fn test_workflow_argument_tab_with_syntax_highlighting() {
+    App::test((), |mut app| async move {
+        initialize_app(&mut app);
+
+        let terminal = add_window_with_bootstrapped_terminal(&mut app, None, None).await;
+
+        let input = terminal.read(&app, |terminal, _| terminal.input().clone());
+
+        let workflow = Workflow::new("test", "yarn {{cwd}} {{flags}}").with_arguments(vec![
+            Argument {
+                name: "cwd".into(),
+                description: None,
+                default_value: Some("--cwd ./".into()),
+                arg_type: Default::default(),
+            },
+            Argument::new("flags", ArgumentType::Text),
+        ]);
+
+        input.update(&mut app, |input, ctx| {
+            input.show_workflows_info_box_on_workflow_selection(
+                WorkflowType::Local(workflow.clone()),
+                WorkflowSource::Global,
+                WorkflowSelectionSource::Undefined,
+                None,
+                ctx,
+            );
+
+            // Simulates syntax highlighting highlighting a portion of an argument
+            input.editor.update(ctx, |editor, ctx| {
+                let theme = Appearance::as_ref(ctx).theme();
+                let terminal_colors_normal = theme.terminal_colors().normal.to_owned();
+                editor.update_buffer_styles(
+                    vec![ByteOffset::from(5)..ByteOffset::from(10)],
+                    TextStyleOperation::default().set_syntax_color(
+                        AnsiColorIdentifier::Yellow
+                            .to_ansi_color(&terminal_colors_normal)
+                            .into(),
+                    ),
+                    ctx,
+                )
+            })
+        });
+
+        // Even though there are 2 args, there will be 3 runs
+        input.read(&app, |input, ctx| {
+            // Buffer text should equal our command w/ defaults inserted
+            assert_eq!(input.buffer_text(ctx), "yarn --cwd ./ flags");
+
+            let selected_text = input
+                .editor
+                .read(ctx, |editor, ctx| editor.selected_text(ctx));
+
+            // Currently selected text should be the text for the first arg
+            assert_eq!(selected_text, "--cwd ./");
+
+            let text_style_runs = input.editor.read(ctx, |editor, ctx| {
+                editor
+                    .text_style_runs(ctx)
+                    .filter_map(|text_run| {
+                        text_run
+                            .text_style()
+                            .background_color
+                            .map(|_| text_run.text().to_owned())
+                    })
+                    .collect::<Vec<_>>()
+            });
+
+            // Even though we have only 2 args, there will be 3 runs b/c of syntax highlighting
+            assert_eq!(text_style_runs, ["--cwd", " ./", "flags"]);
+        });
+
+        input.update(&mut app, |input, ctx| {
+            input.input_shift_tab(ctx);
+        });
+
+        input.read(&app, |input, ctx| {
+            let selected_text = input
+                .editor
+                .read(ctx, |editor, ctx| editor.selected_text(ctx));
+
+            // Tab moves over to next argument
+            assert_eq!(selected_text, "flags");
+        })
+    })
+}
+
+#[test]
+fn test_workflow_view_does_not_panic() {
+    App::test((), |mut app| async move {
+        initialize_app(&mut app);
+
+        let terminal = add_window_with_bootstrapped_terminal(&mut app, None, None).await;
+
+        let input = terminal.read(&app, |terminal, _| terminal.input().clone());
+
+        let workflows = vec![
+            Workflow::new("Test Workflow", "echo \"Hello World\""),
+            Workflow::new("Test Workflow with Description", "echo \"Hello World\"")
+                .with_description("This is a test workflow that prints Hello World!".into()),
+            Workflow::new("Test Workflow with Args", "echo \"Hello {{person}}\"")
+                .with_arguments(vec![Argument::new("person", ArgumentType::Text)
+                    .with_description("The person you want to say hello to".to_string())]),
+            Workflow::new("test", "echo \"Hello {{person}}\"")
+                .with_description("This is a test workflow that prints Hello {{person}}!".into())
+                .with_arguments(vec![Argument::new("person", ArgumentType::Text)
+                    .with_description("The person you want to say hello to".to_string())]),
+        ];
+
+        for workflow in workflows {
+            let command = workflow.content().to_string();
+            input.update(&mut app, |input, ctx| {
+                input.show_workflows_info_box_on_workflow_selection(
+                    WorkflowType::Local(workflow),
+                    WorkflowSource::Global,
+                    WorkflowSelectionSource::Undefined,
+                    None,
+                    ctx,
+                );
+            });
+
+            input.read(&app, |input, ctx| {
+                // Buffer text should equal our command w/ defaults inserted
+                assert_eq!(
+                    input.buffer_text(ctx),
+                    command.replace("{{", "").replace("}}", "")
+                );
+            });
+        }
+    })
+}
 
 #[test]
 fn test_system_insert() {
@@ -3829,7 +4695,90 @@ fn test_alias_expansion_when_alias_expansion_is_disabled() {
     });
 }
 
+#[test]
+fn test_alias_expansion_disabled_in_ai_input_mode() {
+    App::test((), |mut app| async move {
+        initialize_app(&mut app);
 
+        let aliases = HashMap::from_iter([("gco".into(), "git checkout".into())]);
+        let session_info = SessionInfo::new_for_test().with_aliases(aliases);
+
+        // Enable alias expansion setting
+        set_alias_expansion_setting(true, &mut app);
+        let terminal = add_window_with_bootstrapped_terminal(
+            &mut app,
+            None, /* history_file_commands */
+            Some(session_info),
+        )
+        .await;
+
+        let input = terminal.read(&app, |terminal, _| terminal.input().clone());
+        let editor = input.read(&app, |input, _| input.editor().clone());
+
+        input.update(&mut app, |input, ctx| {
+            input.set_active_block_metadata(
+                BlockMetadata::new(Some(SessionId::from(0)), Some("~".into())),
+                false,
+                ctx,
+            )
+        });
+
+        // Set input type to AI mode
+        input.update(&mut app, |input, ctx| {
+            input.ai_input_model().update(ctx, |ai_input, ctx| {
+                ai_input.set_input_config(
+                    InputConfig {
+                        input_type: InputType::AI,
+                        is_locked: true,
+                    },
+                    true, /* is_input_buffer_empty */
+                    ctx,
+                );
+            });
+        });
+
+        // Aliases should NOT be expanded when in AI input mode, even with setting enabled
+        input.update(&mut app, |input, ctx| {
+            input.user_insert("gco ", ctx);
+        });
+        editor.update(&mut app, |editor, ctx| {
+            editor.move_to_buffer_end(ctx);
+            // Cursor is now at "gco |"
+        });
+        input.update(&mut app, |input, ctx| {
+            input.run_expansion_on_space(ctx);
+            // Alias should NOT be expanded since we're in AI input mode
+            assert_eq!(input.buffer_text(ctx), "gco ");
+        });
+
+        // Now switch back to Shell mode and verify expansion works
+        input.update(&mut app, |input, ctx| {
+            input.ai_input_model().update(ctx, |ai_input, ctx| {
+                ai_input.set_input_config(
+                    InputConfig {
+                        input_type: InputType::Shell,
+                        is_locked: true,
+                    },
+                    false, /* is_input_buffer_empty */
+                    ctx,
+                );
+            });
+        });
+
+        input.update(&mut app, |input, ctx| {
+            input.clear_buffer_and_reset_undo_stack(ctx);
+            input.user_insert("gco ", ctx);
+        });
+        editor.update(&mut app, |editor, ctx| {
+            editor.move_to_buffer_end(ctx);
+        });
+        input.update(&mut app, |input, ctx| {
+            input.run_expansion_on_space(ctx);
+            // Alias should now be expanded since we're in Shell mode
+            assert_eq!(input.buffer_text(ctx), "git checkout ");
+        });
+    });
+}
 
 #[test]
 fn test_get_expanded_command_on_execute() {
@@ -4172,7 +5121,101 @@ fn test_vim_escape_with_completions() {
     });
 }
 
+#[test]
+#[cfg(feature = "voice_input")]
+fn test_voice_input_toggle_preserves_lock_state() {
+    App::test((), |mut app| async move {
+        initialize_app(&mut app);
 
+        let terminal = add_window_with_bootstrapped_terminal(
+            &mut app, None, /* history_file_commands */
+            None,
+        )
+        .await;
+        let input = terminal.read(&app, |terminal, _| terminal.input().clone());
+
+        // Start in shell mode with input locked
+        input.update(&mut app, |input, ctx| {
+            input.ai_input_model().update(ctx, |ai_input, ctx| {
+                ai_input.set_input_config(
+                    InputConfig {
+                        input_type: InputType::Shell,
+                        is_locked: true,
+                    },
+                    true, /* is_input_buffer_empty */
+                    ctx,
+                );
+            });
+        });
+
+        // Verify we're in locked shell mode
+        let initial_config = input.read(&app, |input, _| {
+            app.read_model(input.ai_input_model(), |ai_input, _| {
+                ai_input.input_config()
+            })
+        });
+        assert_eq!(initial_config.input_type, InputType::Shell);
+        assert!(initial_config.is_locked);
+
+        // Toggle voice input (should switch to AI mode but preserve lock state)
+        input.update(&mut app, |input, ctx| {
+            input.handle_universal_developer_input_button_bar_event(
+                &UniversalDeveloperInputButtonBarEvent::ToggleVoiceInput(
+                    VoiceInputToggledFrom::Button,
+                ),
+                ctx,
+            );
+        });
+
+        // Verify we're now in AI mode but still locked
+        let after_voice_config = input.read(&app, |input, _| {
+            app.read_model(input.ai_input_model(), |ai_input, _| {
+                ai_input.input_config()
+            })
+        });
+        assert_eq!(after_voice_config.input_type, InputType::AI);
+        assert!(
+            after_voice_config.is_locked,
+            "Input mode lock state should be preserved when toggling voice input"
+        );
+
+        // Test the reverse: start unlocked and ensure it stays unlocked
+        input.update(&mut app, |input, ctx| {
+            input.ai_input_model().update(ctx, |ai_input, ctx| {
+                ai_input.set_input_config(
+                    InputConfig {
+                        input_type: InputType::Shell,
+                        is_locked: false, // Unlocked (auto-detection enabled)
+                    },
+                    true, /* is_input_buffer_empty */
+                    ctx,
+                );
+            });
+        });
+
+        // Toggle voice input again
+        input.update(&mut app, |input, ctx| {
+            input.handle_universal_developer_input_button_bar_event(
+                &UniversalDeveloperInputButtonBarEvent::ToggleVoiceInput(
+                    VoiceInputToggledFrom::Button,
+                ),
+                ctx,
+            );
+        });
+
+        // Verify we're in AI mode but still unlocked
+        let final_config = input.read(&app, |input, _| {
+            app.read_model(input.ai_input_model(), |ai_input, _| {
+                ai_input.input_config()
+            })
+        });
+        assert_eq!(final_config.input_type, InputType::AI);
+        assert!(
+            !final_config.is_locked,
+            "Input mode should remain unlocked (auto-detection) when toggling voice input"
+        );
+    });
+}
 
 #[test]
 fn test_input_type_button_explicit_lock() {
@@ -4500,11 +5543,227 @@ input_mode_prefix_tests! {
     test_shell_input_prefix_with_no_nld_improvements_and_no_udi: (false, false, InputType::Shell),
 }
 
+#[test]
+fn test_image_attachment_preserves_lock_state() {
+    App::test((), |mut app| async move {
+        initialize_app(&mut app);
 
+        let terminal = add_window_with_bootstrapped_terminal(
+            &mut app, None, /* history_file_commands */
+            None,
+        )
+        .await;
+        let input = terminal.read(&app, |terminal, _| terminal.input().clone());
 
+        // Test with locked Shell mode
+        input.update(&mut app, |input, ctx| {
+            input.ai_input_model().update(ctx, |ai_input, ctx| {
+                ai_input.set_input_config(
+                    InputConfig {
+                        input_type: InputType::Shell,
+                        is_locked: true,
+                    },
+                    true, /* is_input_buffer_empty */
+                    ctx,
+                );
+            });
+        });
 
+        // Select image (should switch to AI mode but preserve lock state)
+        input.update(&mut app, |input, ctx| {
+            input.handle_universal_developer_input_button_bar_event(
+                &UniversalDeveloperInputButtonBarEvent::SelectFile,
+                ctx,
+            );
+        });
 
+        // Verify we're in AI mode but still locked
+        let locked_config = input.read(&app, |input, _| {
+            app.read_model(input.ai_input_model(), |ai_input, _| {
+                ai_input.input_config()
+            })
+        });
+        assert_eq!(locked_config.input_type, InputType::AI);
+        assert!(
+            locked_config.is_locked,
+            "Lock state should be preserved when selecting image"
+        );
 
+        // Test with unlocked Shell mode
+        input.update(&mut app, |input, ctx| {
+            input.ai_input_model().update(ctx, |ai_input, ctx| {
+                ai_input.set_input_config(
+                    InputConfig {
+                        input_type: InputType::Shell,
+                        is_locked: false,
+                    },
+                    true, /* is_input_buffer_empty */
+                    ctx,
+                );
+            });
+        });
+
+        // Select image again
+        input.update(&mut app, |input, ctx| {
+            input.handle_universal_developer_input_button_bar_event(
+                &UniversalDeveloperInputButtonBarEvent::SelectFile,
+                ctx,
+            );
+        });
+
+        // Verify we're in AI mode but still unlocked
+        let unlocked_config = input.read(&app, |input, _| {
+            app.read_model(input.ai_input_model(), |ai_input, _| {
+                ai_input.input_config()
+            })
+        });
+        assert_eq!(unlocked_config.input_type, InputType::AI);
+        assert!(
+            !unlocked_config.is_locked,
+            "Auto-detection should be preserved when selecting image"
+        );
+    });
+}
+
+#[test]
+fn test_ai_context_menu_closes_when_space_immediately_after_at_symbol() {
+    let _ai_context_menu_enabled = FeatureFlag::AIContextMenuEnabled.override_enabled(true);
+
+    App::test((), |mut app| async move {
+        initialize_app(&mut app);
+
+        let terminal = add_window_with_bootstrapped_terminal(
+            &mut app, None, /* history_file_commands */
+            None,
+        )
+        .await;
+        let input = terminal.read(&app, |terminal, _| terminal.input().clone());
+
+        input.update(&mut app, |input, ctx| {
+            input.handle_universal_developer_input_button_bar_event(
+                &UniversalDeveloperInputButtonBarEvent::SetAIContextMenuOpen(true),
+                ctx,
+            );
+        });
+
+        input.read(&app, |input, ctx| {
+            assert!(matches!(
+                input.suggestions_mode_model().as_ref(ctx).mode(),
+                InputSuggestionsMode::AIContextMenu { .. }
+            ));
+        });
+
+        input.update(&mut app, |input, ctx| {
+            input.user_insert(" ", ctx);
+        });
+
+        input.read(&app, |input, ctx| {
+            assert_eq!(
+                *input.suggestions_mode_model().as_ref(ctx).mode(),
+                InputSuggestionsMode::Closed
+            );
+            assert_eq!(input.buffer_text(ctx), "@ ");
+        });
+    });
+}
+
+#[test]
+fn test_ai_context_menu_preserves_lock_state() {
+    App::test((), |mut app| async move {
+        initialize_app(&mut app);
+
+        let terminal = add_window_with_bootstrapped_terminal(
+            &mut app, None, /* history_file_commands */
+            None,
+        )
+        .await;
+        let input = terminal.read(&app, |terminal, _| terminal.input().clone());
+
+        // Start in locked Shell mode
+        input.update(&mut app, |input, ctx| {
+            input.ai_input_model().update(ctx, |ai_input, ctx| {
+                ai_input.set_input_config(
+                    InputConfig {
+                        input_type: InputType::Shell,
+                        is_locked: true,
+                    },
+                    true, /* is_input_buffer_empty */
+                    ctx,
+                );
+            });
+        });
+
+        // Open AI context menu (should no longer switch to AI mode)
+        input.update(&mut app, |input, ctx| {
+            input.handle_universal_developer_input_button_bar_event(
+                &UniversalDeveloperInputButtonBarEvent::SetAIContextMenuOpen(true),
+                ctx,
+            );
+        });
+
+        // Verify we stay in Shell mode with lock state preserved
+        let config_after_open = input.read(&app, |input, _| {
+            app.read_model(input.ai_input_model(), |ai_input, _| {
+                ai_input.input_config()
+            })
+        });
+        assert_eq!(config_after_open.input_type, InputType::Shell);
+        assert!(
+            config_after_open.is_locked,
+            "Lock state should be preserved when opening AI context menu"
+        );
+
+        // Test with unlocked mode
+        input.update(&mut app, |input, ctx| {
+            input.ai_input_model().update(ctx, |ai_input, ctx| {
+                ai_input.set_input_config(
+                    InputConfig {
+                        input_type: InputType::Shell,
+                        is_locked: false,
+                    },
+                    true, /* is_input_buffer_empty */
+                    ctx,
+                );
+            });
+        });
+
+        // Open AI context menu again
+        input.update(&mut app, |input, ctx| {
+            input.handle_universal_developer_input_button_bar_event(
+                &UniversalDeveloperInputButtonBarEvent::SetAIContextMenuOpen(true),
+                ctx,
+            );
+        });
+
+        // Verify we stay in Shell mode and unlocked (@ button no longer switches to AI mode)
+        let config_after_second_open = input.read(&app, |input, _| {
+            app.read_model(input.ai_input_model(), |ai_input, _| {
+                ai_input.input_config()
+            })
+        });
+        assert_eq!(config_after_second_open.input_type, InputType::Shell);
+        assert!(
+            !config_after_second_open.is_locked,
+            "Auto-detection should be preserved when opening AI context menu"
+        );
+
+        // Closing context menu should not change input config
+        input.update(&mut app, |input, ctx| {
+            input.handle_universal_developer_input_button_bar_event(
+                &UniversalDeveloperInputButtonBarEvent::SetAIContextMenuOpen(false),
+                ctx,
+            );
+        });
+
+        let config_after_close = input.read(&app, |input, _| {
+            app.read_model(input.ai_input_model(), |ai_input, _| {
+                ai_input.input_config()
+            })
+        });
+        assert_eq!(config_after_close.input_type, InputType::Shell);
+        assert!(!config_after_close.is_locked);
+    });
+}
 
 #[test]
 #[cfg(feature = "voice_input")]
@@ -4587,7 +5846,38 @@ fn test_input_config_transitions() {
     });
 }
 
+#[test]
+fn test_should_show_completions_in_ai_input() {
+    // Test cases where the function should return true
+    // i.e. we should trigger completions-as-you-type in AI input.
+    assert!(should_show_completions_in_ai_input("/"));
+    assert!(should_show_completions_in_ai_input("/foo"));
+    assert!(should_show_completions_in_ai_input("some text /foo"));
 
+    assert!(should_show_completions_in_ai_input("./"));
+    assert!(should_show_completions_in_ai_input("./foo"));
+    assert!(should_show_completions_in_ai_input("some text ./foo"));
+
+    assert!(should_show_completions_in_ai_input("foo/"));
+    assert!(should_show_completions_in_ai_input("~/"));
+    assert!(should_show_completions_in_ai_input("foo/bar"));
+    assert!(should_show_completions_in_ai_input("some text foo/bar"));
+
+    assert!(should_show_completions_in_ai_input("../"));
+    assert!(should_show_completions_in_ai_input("../foo"));
+    assert!(should_show_completions_in_ai_input("bar ../foo"));
+
+    // Test cases where the function should return false
+    // i.e. we should NOT trigger completions-as-you-type in AI input.
+    assert!(!should_show_completions_in_ai_input("foo"));
+    assert!(!should_show_completions_in_ai_input("some text/ foo"));
+    assert!(!should_show_completions_in_ai_input("./bar foo"));
+    assert!(!should_show_completions_in_ai_input("some text / bar foo"));
+    assert!(!should_show_completions_in_ai_input(""));
+    assert!(!should_show_completions_in_ai_input("../foo bar"));
+    // Space at the end invalidates triggering completions.
+    assert!(!should_show_completions_in_ai_input("../foo "));
+}
 
 #[test]
 fn test_remove_ignored_suggestion_on_command_execution() {
@@ -4637,10 +5927,198 @@ fn test_remove_ignored_suggestion_on_command_execution() {
     });
 }
 
+#[test]
+fn test_remove_ignored_suggestion_on_ai_query_execution() {
+    App::test((), |mut app| async move {
+        initialize_app(&mut app);
 
+        let terminal = add_window_with_bootstrapped_terminal(&mut app, None, None).await;
+        let input = terminal.read(&app, |view, _| view.input().clone());
 
+        // First, add an AI query to ignored suggestions
+        let test_query = "what is the current date";
+        IgnoredSuggestionsModel::handle(&app).update(&mut app, |model, ctx| {
+            model.add_ignored_suggestion(
+                test_query.to_string(),
+                crate::suggestions::ignored_suggestions_model::SuggestionType::AIQuery,
+                ctx,
+            );
+        });
 
+        // Verify the query is ignored
+        let is_ignored_before = IgnoredSuggestionsModel::handle(&app).read(&app, |model, _| {
+            model.is_ignored(
+                test_query,
+                crate::suggestions::ignored_suggestions_model::SuggestionType::AIQuery,
+            )
+        });
+        assert!(is_ignored_before, "AI query should be ignored initially");
 
+        // Set up AI input mode and execute the query
+        input.update(&mut app, |input, ctx| {
+            input.ai_input_model.update(ctx, |ai_input, ctx| {
+                ai_input.set_input_type(InputType::AI, ctx);
+            });
+            input.clear_buffer_and_reset_undo_stack(ctx);
+            input.user_insert(test_query, ctx);
+            input.submit_ai_query(None, ctx);
+        });
 
+        // Verify the query is no longer ignored
+        let is_ignored_after = IgnoredSuggestionsModel::handle(&app).read(&app, |model, _| {
+            model.is_ignored(
+                test_query,
+                crate::suggestions::ignored_suggestions_model::SuggestionType::AIQuery,
+            )
+        });
+        assert!(
+            !is_ignored_after,
+            "AI query should no longer be ignored after execution"
+        );
+    });
+}
 
+#[test]
+fn test_agent_view_terminal_only_initial_input_config_unlocked_when_autodetection_enabled() {
+    App::test((), |mut app| async move {
+        let _am_flag = FeatureFlag::AgentMode.override_enabled(true);
+        let _agent_view_flag = FeatureFlag::AgentView.override_enabled(true);
 
+        initialize_app(&mut app);
+
+        // Ensure autodetection is enabled in terminal mode.
+        // When AgentView is enabled, terminal-only mode uses nld_in_terminal_enabled_internal.
+        AISettings::handle(&app).update(&mut app, |ai_settings, ctx| {
+            let _ = ai_settings
+                .nld_in_terminal_enabled_internal
+                .set_value(true, ctx);
+            assert!(ai_settings.is_nld_in_terminal_enabled(ctx));
+        });
+
+        let terminal = add_window_with_bootstrapped_terminal(&mut app, None, None).await;
+        let input = terminal.read(&app, |terminal, _| terminal.input().clone());
+
+        let config = input.read(&app, |input, _| {
+            app.read_model(input.ai_input_model(), |ai_input, _| {
+                ai_input.input_config()
+            })
+        });
+
+        assert_eq!(config.input_type, InputType::Shell);
+        assert!(
+            !config.is_locked,
+            "Expected terminal-only AgentView input to start unlocked when autodetection is enabled"
+        );
+    });
+}
+
+#[test]
+fn test_terminal_only_ai_enter_enters_agent_view_and_clears_buffer() {
+    use crate::ai::blocklist::agent_view::AgentViewState;
+    use crate::ai::blocklist::InputConfig;
+
+    App::test((), |mut app| async move {
+        let _am_flag = FeatureFlag::AgentMode.override_enabled(true);
+        let _agent_view_flag = FeatureFlag::AgentView.override_enabled(true);
+
+        initialize_app(&mut app);
+
+        AISettings::handle(&app).update(&mut app, |ai_settings, ctx| {
+            let _ = ai_settings
+                .ai_autodetection_enabled_internal
+                .set_value(true, ctx);
+            assert!(ai_settings.is_ai_autodetection_enabled(ctx));
+        });
+
+        let terminal = add_window_with_bootstrapped_terminal(&mut app, None, None).await;
+        let input = terminal.read(&app, |terminal, _| terminal.input().clone());
+
+        // Put the input into (unlocked) AI mode while agent view is inactive.
+        input.update(&mut app, |input, ctx| {
+            input.ai_input_model().update(ctx, |ai_input, ctx| {
+                ai_input.set_input_config(
+                    InputConfig {
+                        input_type: InputType::AI,
+                        is_locked: false,
+                    },
+                    false, /* is_input_buffer_empty */
+                    ctx,
+                );
+            });
+
+            input.clear_buffer_and_reset_undo_stack(ctx);
+            input.user_insert("what is the current date", ctx);
+        });
+
+        input.update(&mut app, |input, ctx| {
+            input.input_enter(ctx);
+        });
+
+        // Buffer should be cleared.
+        input.read(&app, |input, ctx| {
+            assert!(input.buffer_text(ctx).is_empty());
+        });
+
+        // Agent view should now be active.
+        terminal.read(&app, |terminal, _| {
+            let state = terminal
+                .model
+                .lock()
+                .block_list()
+                .agent_view_state()
+                .clone();
+            assert!(matches!(state, AgentViewState::Active { .. }));
+        });
+    });
+}
+
+#[test]
+fn test_terminal_only_escape_locks_shell_mode() {
+    use crate::ai::blocklist::InputConfig;
+
+    App::test((), |mut app| async move {
+        let _am_flag = FeatureFlag::AgentMode.override_enabled(true);
+        let _agent_view_flag = FeatureFlag::AgentView.override_enabled(true);
+
+        initialize_app(&mut app);
+
+        // Autodetection on; we still expect Esc to explicitly lock to shell.
+        AISettings::handle(&app).update(&mut app, |ai_settings, ctx| {
+            let _ = ai_settings
+                .ai_autodetection_enabled_internal
+                .set_value(true, ctx);
+            assert!(ai_settings.is_ai_autodetection_enabled(ctx));
+        });
+
+        let terminal = add_window_with_bootstrapped_terminal(&mut app, None, None).await;
+        let input = terminal.read(&app, |terminal, _| terminal.input().clone());
+        let editor = input.read(&app, |input, _| input.editor().clone());
+
+        // Start in AI mode (unlocked) while agent view is inactive.
+        input.update(&mut app, |input, ctx| {
+            input.ai_input_model().update(ctx, |ai_input, ctx| {
+                ai_input.set_input_config(
+                    InputConfig {
+                        input_type: InputType::AI,
+                        is_locked: false,
+                    },
+                    true, /* is_input_buffer_empty */
+                    ctx,
+                );
+            });
+        });
+
+        // Hit Esc (via editor) and ensure we end up locked to shell.
+        editor.update(&mut app, |editor, ctx| {
+            editor.escape(ctx);
+        });
+
+        let config = input.read(&app, |input, _| {
+            app.read_model(input.ai_input_model(), |ai_input, _| {
+                ai_input.input_config()
+            })
+        });
+        assert_eq!(config.input_type, InputType::Shell);
+        assert!(config.is_locked);
+    });
+}

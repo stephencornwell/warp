@@ -16,10 +16,12 @@ pub mod util;
 pub mod view;
 
 use crate::channel::Channel;
+use crate::code;
 use crate::features::FeatureFlag;
 use crate::modal;
 use crate::settings_view::{self, flags, SettingsSection};
 use crate::tab_configs;
+use warpui::SingletonEntity;
 
 use crate::channel::ChannelState;
 

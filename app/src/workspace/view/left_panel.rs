@@ -329,7 +329,7 @@ impl LeftPanelView {
 
     fn get_or_create_global_search_view_for_pane_group(
         &mut self,
-        _pane_group_id: warpui::EntityId,
+        pane_group_id: warpui::EntityId,
         ctx: &mut ViewContext<Self>,
     ) -> ViewHandle<GlobalSearchView> {
         let global_search_view = ctx.add_typed_action_view(GlobalSearchView::new);
@@ -394,7 +394,7 @@ impl LeftPanelView {
                     .map(|dirs| dirs.collect())
                     .unwrap_or_default()
             });
-        let _has_terminal_session = active_directories
+        let has_terminal_session = active_directories
             .iter()
             .any(|dir| dir.terminal_id.is_some());
 

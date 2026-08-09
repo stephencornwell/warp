@@ -122,7 +122,7 @@ impl Entity for Sessions {
 impl Sessions {
     pub fn new(
         executor_command_tx: Sender<ExecutorCommandEvent>,
-        _ctx: &mut ModelContext<Self>,
+        ctx: &mut ModelContext<Self>,
     ) -> Self {
         #[cfg(not(feature = "local_tty"))]
         let _ = ctx;
@@ -261,12 +261,12 @@ impl Sessions {
 
         let bootstrap_duration_seconds =
             pending_session_start_time.map(|start| start.elapsed().as_secs_f64());
-        let _warp_attributed_bootstrap_duration_seconds =
+        let warp_attributed_bootstrap_duration_seconds =
             match (bootstrap_duration_seconds, rcfiles_duration_seconds) {
                 (Some(total), Some(rcfiles)) => Some(total - rcfiles),
                 _ => None,
             };
-        let _was_triggered_by_rc_file = session
+        let was_triggered_by_rc_file = session
             .subshell_info()
             .clone()
             .map(|info| info.was_triggered_by_rc_file_snippet)

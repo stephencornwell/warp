@@ -1,29 +1,34 @@
 use crate::appearance::Appearance;
 use crate::interval_timer::IntervalTimer;
 use crate::launch_configs::launch_config;
+use crate::report_if_error;
 
 use crate::persistence::ModelEvent;
 use crate::settings::QuakeModeSettings;
+use crate::settings::ThemeSettings;
 use crate::settings_view::flags;
 use crate::settings_view::SettingsSection;
 use crate::terminal::available_shells::AvailableShell;
 use crate::terminal::general_settings::GeneralSettings;
 use crate::terminal::keys_settings::KeysSettings;
 use crate::terminal::shell::ShellType;
-use crate::terminal::view::cell_size_and_padding;
+use crate::terminal::view::{cell_size_and_padding, TerminalAction};
 use crate::themes::theme::{AnsiColorIdentifier, Blend, Fill};
 use crate::util::bindings::{self, is_binding_pty_compliant};
 use crate::util::traffic_lights::{traffic_light_data, TrafficLightData, TrafficLightMouseStates};
+use crate::view_components::DismissibleToast;
 use crate::window_settings::WindowSettings;
 use crate::workspace::WorkspaceAction;
 use crate::workspace::{PaneViewLocator, Workspace};
 use crate::{
-    app_state::{AppState, WindowSnapshot},
+    app_state::{AppState, PaneUuid, WindowSnapshot},
     pane_group::{NewTerminalOptions, PanesLayout},
     UpdateQuakeModeEventArg,
 };
 use crate::{features::FeatureFlag, ChannelState};
 use crate::{GlobalResourceHandles, GlobalResourceHandlesProvider};
+use anyhow::Result;
+use cfg_if::cfg_if;
 use itertools::Itertools;
 use lazy_static::lazy_static;
 use parking_lot::Mutex;
@@ -38,6 +43,8 @@ use std::sync::Arc;
 use std::{collections::HashMap, path::PathBuf};
 use url::Url;
 use warp_core::context_flag::ContextFlag;
+use warp_core::user_preferences::GetUserPreferences as _;
+use warpui::clipboard::ClipboardContent;
 use warpui::keymap::{EditableBinding, FixedBinding};
 use warpui::windowing::WindowManager;
 
@@ -1341,16 +1348,16 @@ impl RootView {
             view
         };
 
-        
-
-        Self {
+        let root_view = Self {
             auth_onboarding_state,
             #[cfg(target_family = "wasm")]
             web_handoff_view,
             model_event_sender,
             mouse_states: Default::default(),
             window_id: ctx.window_id(),
-        }
+        };
+
+        root_view
     }
 
     /// Used for integration tests.

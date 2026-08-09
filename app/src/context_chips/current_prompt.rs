@@ -37,10 +37,14 @@ use super::{
     prompt::Prompt,
     ChipValue, ContextChipKind,
 };
+#[cfg(feature = "local_fs")]
+use crate::context_chips::GitLineChanges;
 use std::collections::{HashMap, HashSet};
 use std::hash::{Hash as _, Hasher as _};
 use std::sync::Arc;
 use std::time::Duration;
+#[cfg(feature = "local_fs")]
+use warpui::WeakModelHandle;
 use warpui::{
     r#async::{SpawnedFutureHandle, Timer},
     AppContext, ViewHandle,
@@ -1075,9 +1079,9 @@ impl CurrentPrompt {
     /// customization/ordering/visibility, so we keep their backing values up to date even if they
     /// are not present in the prompt configuration.
     fn chips_to_run(&self, ctx: &AppContext) -> Vec<ContextChipKind> {
-        
+        let mut chips = self.configured_chips(ctx);
 
-        self.configured_chips(ctx)
+        chips
     }
 
     /// Resets states (including terminating any in progress spawned operations), and updates the

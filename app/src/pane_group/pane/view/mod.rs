@@ -12,15 +12,16 @@ use warpui::{
         Border, Container, DropTarget, DropTargetData, Flex, MainAxisSize, ParentElement,
         SavePosition, Shrinkable,
     },
+    keymap::EditableBinding,
     presenter::ChildView,
-    AppContext, Element, Entity, ModelHandle, SingletonEntity, View, ViewContext,
+    AppContext, Element, Entity, ModelHandle, SingletonEntity, TypedActionView, View, ViewContext,
     ViewHandle,
 };
 
 use crate::appearance::Appearance;
 use crate::pane_group::{
     focus_state::{PaneFocusHandle, PaneGroupFocusEvent},
-    Direction, SplitPaneState, TabBarHoverIndex,
+    Direction, PaneState, SplitPaneState, TabBarHoverIndex,
 };
 use crate::settings::PaneSettings;
 
@@ -382,9 +383,9 @@ impl<P: BackingView> View for PaneView<P> {
         .finish()
     }
 
-    fn keymap_context(&self, _ctx: &AppContext) -> warpui::keymap::Context {
-        
-        Self::default_keymap_context()
+    fn keymap_context(&self, ctx: &AppContext) -> warpui::keymap::Context {
+        let mut keymap_context = Self::default_keymap_context();
+        keymap_context
     }
 }
 

@@ -1,7 +1,7 @@
 use warp_core::ui::icons::Icon as WarpIcon;
 use warp_core::ui::theme::color::internal_colors;
 use warp_core::ui::theme::{Fill as WarpThemeFill, WarpTheme};
-use warpui::elements::{ConstrainedBox, Container, CornerRadius, Element, Radius};
+use warpui::elements::{ConstrainedBox, Container, CornerRadius, Element, ParentElement, Radius};
 
 /// Sizing configuration for the icon circle and its status badge.
 pub(crate) struct IconWithStatusSizing {
@@ -34,9 +34,9 @@ pub(crate) fn render_icon_with_status(
     variant: IconWithStatusVariant,
     sizing: &IconWithStatusSizing,
     theme: &WarpTheme,
-    _badge_ring_background: WarpThemeFill,
+    badge_ring_background: WarpThemeFill,
 ) -> Box<dyn Element> {
-    let _sub_text = theme.sub_text_color(theme.background());
+    let sub_text = theme.sub_text_color(theme.background());
 
     match variant {
         IconWithStatusVariant::Neutral { icon, icon_color } => {

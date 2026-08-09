@@ -11,14 +11,20 @@ mod startup_directory;
 mod tests;
 
 use crate::app_state::{
-    LeafContents, LeafSnapshot, LeftPanelDisplayedTab, LeftPanelSnapshot,
+    LeafContents, LeafSnapshot, LeftPanelDisplayedTab, LeftPanelSnapshot, NotebookPaneSnapshot,
     PaneNodeSnapshot, PaneUuid, SettingsPaneSnapshot, TabSnapshot, TerminalPaneSnapshot,
-    WindowSnapshot,
+    WindowSnapshot, WorkflowPaneSnapshot,
 };
 use crate::coding_panel_enablement_state::CodingPanelEnablementState;
+use crate::default_terminal::DefaultTerminal;
 use crate::notification::NotificationContext;
+use crate::pane_group::pane::ActionOrigin;
 use crate::projects::ProjectManagementModel;
+use crate::terminal::model::terminal_model::ConversationTranscriptViewerStatus;
 use crate::terminal::session_settings::SessionSettings;
+use crate::ui_components::red_notification_dot::RedNotificationDot;
+#[cfg(feature = "local_fs")]
+use crate::util::file::external_editor::settings::OpenConversationPreference;
 use crate::workspace::toast_stack::ToastStack;
 use crate::workspace::view::global_search::view::GlobalSearchEntryFocus;
 use crate::workspace::view::left_panel::{
@@ -36,7 +42,10 @@ use crate::util::openable_file_type::{resolve_file_target_with_editor_choice, Ed
 
 use crate::workspace::header_toolbar_item::HeaderToolbarItemKind;
 use crate::workspace::tab_settings::TabCloseButtonPosition;
-use crate::workspace::view::openwarp_launch_modal::OpenWarpLaunchModal;
+use crate::workspace::view::launch_modal::LaunchModal;
+use crate::workspace::view::openwarp_launch_modal::{
+    OpenWarpLaunchModal, OpenWarpLaunchModalEvent,
+};
 #[cfg(all(target_os = "macos", feature = "crash_reporting"))]
 use sentry::protocol::{Attachment, AttachmentType};
 use serde_json;
@@ -48,20 +57,21 @@ use super::WorkspaceRegistry;
 #[cfg(feature = "local_fs")]
 use crate::code::editor_management::CodeSource;
 use crate::launch_configs::launch_config::WindowTemplate;
-use crate::pane_group::{PaneGroup, PaneId};
+use crate::pane_group::{Direction as PaneGroupDirection, PaneGroup, PaneId, TerminalPaneId};
 use crate::quit_warning::UnsavedStateSummary;
 use crate::search::command_palette::view::NavigationMode;
 use crate::search::slash_command_menu::static_commands::commands;
 use crate::settings::{CodeSettings, CodeSettingsChangedEvent, CtrlTabBehavior, InputModeSettings};
 use crate::settings_view::pane_manager::SettingsPaneManager;
-use crate::settings_view::{SettingsSection, SettingsView};
+use crate::settings_view::{SettingsSection, SettingsView, SettingsViewEvent};
 #[cfg(all(target_os = "windows", feature = "local_tty"))]
 use crate::shell_indicator::ShellIndicatorType;
 use crate::terminal::available_shells::AvailableShell;
 #[cfg(target_os = "windows")]
 use crate::terminal::available_shells::AvailableShells;
 use crate::terminal::block_list_viewport::InputMode;
-use crate::ui_components::avatar::{Avatar, AvatarContent};
+use crate::terminal::ligature_settings::should_use_ligature_rendering;
+use crate::ui_components::avatar::{Avatar, AvatarContent, StatusElementTypes};
 
 #[cfg(target_family = "wasm")]
 use crate::ai::agent_conversations_model::AgentConversationsModelEvent;
@@ -69,6 +79,8 @@ use crate::ai::agent_conversations_model::AgentConversationsModelEvent;
 use crate::ai::conversation_details_panel::ConversationDetailsPanel;
 #[cfg(target_family = "wasm")]
 use crate::uri::browser_url_handler::{parse_current_url, update_browser_url};
+#[cfg(feature = "local_fs")]
+use repo_metadata::RemoteRepositoryIdentifier;
 #[cfg(target_family = "wasm")]
 use url::Url;
 
@@ -77,8 +89,10 @@ use crate::wasm_nux_dialog::WasmNUXDialog;
 
 use crate::appearance::{Appearance, AppearanceManager};
 use crate::banner::BannerState;
+use crate::channel::Channel;
+use crate::context_chips::ChipRuntimeCapabilities;
 use crate::menu::{
-    Event as MenuEvent, Menu, MenuItem, MenuItemFields,
+    Event as MenuEvent, Menu, MenuItem, MenuItemFields, MenuSelectionSource,
     DEFAULT_WIDTH as MENU_DEFAULT_WIDTH,
 };
 use crate::modal::{Modal, ModalEvent, ModalViewState};
@@ -89,21 +103,30 @@ use crate::pane_group::{
 use crate::terminal::keys_settings::KeysSettings;
 use crate::GlobalResourceHandles;
 
+use crate::referral_theme_status::ReferralThemeEvent;
 use crate::resource_center::{
-    mark_feature_used_and_write_to_user_defaults, Tip, TipAction, TipsCompleted,
+    mark_feature_used_and_write_to_user_defaults, skip_tips_and_write_to_user_defaults,
+    ResourceCenterEvent, ResourceCenterPage, ResourceCenterView, Tip, TipAction, TipsCompleted,
 };
-use crate::root_view::NewWorkspaceSource;
+use crate::reward_view::{RewardEvent, RewardKind, RewardView};
+use crate::root_view::{quake_mode_window_id, NewWorkspaceSource, OpenLaunchConfigArg};
 use crate::search::command_search::searcher::{AcceptedHistoryItem, CommandSearchItemAction};
 use crate::search::command_search::view::{CommandSearchEvent, CommandSearchView};
-use crate::session_management::SessionNavigationData;
+use crate::sync_ids::{ObjectUid, ServerId, SyncId};
+use crate::session_management::{SessionNavigationData, SessionSource};
 use crate::settings::{
-    active_theme_kind, respect_system_theme, AccessibilitySettings, DebugSettings,
-    FontSettings, InputSettings, MonospaceFontSize, ThemeSettings,
+    active_theme_kind, respect_system_theme, AccessibilitySettings, AliasExpansionSettings,
+    AppEditorSettings, BlockVisibilitySettings, ChangelogSettings, CursorBlink, DebugSettings,
+    FontSettings, GPUSettings, InputSettings, MonospaceFontSize, PaneSettings, PrivacySettings,
+    SelectionSettings, Settings, SshSettings, ThemeSettings,
 };
+use crate::settings_view::flags;
 use crate::settings_view::keybindings::{KeybindingChangedEvent, KeybindingChangedNotifier};
 use crate::terminal::alt_screen_reporting::AltScreenReporting;
 use crate::terminal::general_settings::GeneralSettings;
 use crate::terminal::input::{Input, MenuPositioning};
+#[cfg(feature = "local_tty")]
+use crate::terminal::local_tty::docker_sandbox::resolve_sbx_path_from_user_shell;
 use crate::terminal::model::blockgrid::BlockGrid;
 #[cfg(feature = "local_fs")]
 use crate::terminal::model::session::Session;
@@ -111,10 +134,12 @@ use crate::terminal::model::session::SessionId;
 use crate::terminal::resizable_data::{
     ModalSizes, ModalType, ResizableData, DEFAULT_LEFT_PANEL_WIDTH, DEFAULT_RIGHT_PANEL_WIDTH,
 };
+use crate::terminal::safe_mode_settings::SafeModeSettings;
 use crate::terminal::session_settings::{
     NewSessionSource, NotificationsMode, NotificationsSettings, SessionSettingsChangedEvent,
     WorkingDirectoryMode,
 };
+use crate::terminal::settings::{SpacingMode, TerminalSettings};
 use crate::terminal::shell::ShellType;
 use crate::terminal::{self, SizeInfo, TerminalView};
 #[cfg(target_os = "macos")]
@@ -124,13 +149,15 @@ use warp_core::features::FeatureFlag;
 
 use crate::search::{self, QueryFilter};
 use crate::terminal::view::{
-    SyncEvent, SyncInputType, NOTIFICATIONS_TROUBLESHOOT_URL,
+    SyncEvent, SyncInputType, TerminalAction, NOTIFICATIONS_TROUBLESHOOT_URL,
 };
 use crate::terminal::{BlockListSettings, TerminalModel};
 use crate::themes::theme::{AnsiColorIdentifier, RespectSystemTheme, ThemeKind};
 use crate::themes::theme_chooser::{ThemeChooser, ThemeChooserEvent, ThemeChooserMode};
 use crate::themes::theme_creator_modal::{ThemeCreatorModal, ThemeCreatorModalEvent};
 use crate::themes::theme_deletion_modal::{ThemeDeletionModal, ThemeDeletionModalEvent};
+use crate::tips::{TipsEvent, TipsView};
+use crate::ui_components::blended_colors;
 use crate::ui_components::buttons::{combo_inner_button, icon_button_with_color};
 use crate::undo_close::UndoCloseStack;
 #[cfg(feature = "local_fs")]
@@ -141,17 +168,20 @@ use crate::user_config::{
 };
 use crate::user_config::{WarpConfig, WarpConfigUpdateEvent};
 use crate::util::bindings::{
-    keybinding_name_to_display_string, keybinding_name_to_keystroke,
+    keybinding_name_to_display_string, keybinding_name_to_keystroke, trigger_to_keystroke,
 };
 use crate::util::links;
 use crate::util::traffic_lights::{traffic_light_data, TrafficLightMouseStates, TrafficLightSide};
 use crate::util::truncation::truncate_from_end;
 #[cfg(target_family = "wasm")]
 use crate::view_components::action_button::ActionButton;
-use crate::view_components::{
-    AgentToastStack, DismissibleToast, DismissibleToastStack, ToastLink,
+use crate::view_components::callout_bubble::{
+    render_callout_bubble, CalloutArrowDirection, CalloutArrowPosition, CalloutBubbleConfig,
 };
-use crate::window_settings::{WindowSettings, ZoomLevel};
+use crate::view_components::{
+    AgentToast, AgentToastStack, DismissibleToast, DismissibleToastStack, ToastLink,
+};
+use crate::window_settings::{WindowSettings, WindowSettingsChangedEvent, ZoomLevel};
 use crate::workspace::action::{AddTabWithShellSource, CommandSearchOptions, PaletteSource};
 use crate::workspace::one_time_modal_model::OneTimeModalModel;
 use crate::workspace::sync_inputs::SyncedInputState;
@@ -159,10 +189,12 @@ use crate::workspace::toast_stack::{
     ToastStack as WorkspaceToastStack, ToastStackEvent as WorkspaceToastStackEvent,
 };
 
+use futures::Future;
 use itertools::Itertools;
 use parking_lot::FairMutex;
 use pathfinder_geometry::rect::RectF;
 use repo_metadata::repositories::DetectedRepositories;
+use session_sharing_protocol::common::SessionId as SharedSessionId;
 use std::collections::{HashMap, HashSet};
 #[cfg(feature = "local_fs")]
 use std::convert::TryFrom;
@@ -170,17 +202,22 @@ use std::time::Duration;
 #[cfg(target_os = "macos")]
 use std::time::{SystemTime, UNIX_EPOCH};
 use warp_core::context_flag::ContextFlag;
+use warp_core::execution_mode::AppExecutionMode;
+use warp_core::semantic_selection::SemanticSelection;
 use warp_util::path::{user_friendly_path, LineAndColumnArg};
 use warpui::fonts::Weight;
 use warpui::modals::{AlertDialogWithCallbacks, AppModalCallback};
 use warpui::windowing::{StateEvent, WindowManager};
 
+use warp_core::user_preferences::GetUserPreferences as _;
 use warpui::clipboard::ClipboardContent;
 #[cfg(target_family = "wasm")]
 use warpui::elements::Percentage;
 use warpui::elements::{CacheOption, DispatchEventResult, DropTarget, EventHandler, Image, Rect};
+use warpui::ui_components::button::{Button, ButtonVariant};
 use warpui::{elements::MouseStateHandle, fonts::Properties};
 
+use crate::channel::ChannelState;
 
 use crate::editor::{
     EditorView, Event as EditorEvent, PropagateAndNoOpNavigationKeys, SingleLineEditorOptions,
@@ -189,12 +226,13 @@ use crate::editor::{
 use crate::persistence::ModelEvent;
 
 use super::action::{
-    InitContent, TabContextMenuAnchor, WorkspaceAction,
+    InitContent, RestoreConversationLayout, TabContextMenuAnchor, WorkspaceAction,
 };
 use super::close_session_confirmation_dialog::{
     CloseSessionConfirmationDialog, CloseSessionConfirmationEvent, OpenDialogSource,
 };
 use super::native_modal::{NativeModal, NativeModalEvent};
+use super::one_time_modal_model::OneTimeModalEvent;
 use super::{ActiveSession, TabBarDropTargetData, TabBarLocation};
 
 use super::tab_settings::{
@@ -202,19 +240,23 @@ use super::tab_settings::{
     WorkspaceDecorationVisibility,
 };
 use super::util::{
-    PaneViewLocator, TabMovement,
+    PaneViewLocator, TabMovement, TerminalSessionFallbackBehavior, WelcomeTipsViewState,
     WorkspaceMouseStates, WorkspaceState,
 };
 use crate::launch_configs::save_modal::{LaunchConfigModalEvent, LaunchConfigSaveModal};
 use crate::tab_configs::action_sidecar::SidecarItemKind;
-use crate::tab_configs::remove_confirmation_dialog::RemoveTabConfigConfirmationDialog;
+use crate::tab_configs::remove_confirmation_dialog::{
+    RemoveTabConfigConfirmationDialog, RemoveTabConfigConfirmationEvent,
+};
 use crate::tab_configs::session_config_modal::{SessionConfigModal, SessionConfigModalEvent};
 use crate::tab_configs::{TabConfigParamsModal, TabConfigParamsModalEvent};
 
+use crate::code::editor::{add_color, remove_color};
 use crate::palette::PaletteMode;
 use crate::search::command_palette::view::{Event as CommandPaletteEvent, View as CommandPalette};
 use crate::tab::{
-    tab_position_id, SelectedTabColor, TabBarState, TabComponent, TabData, TAB_BAR_BORDER_HEIGHT,
+    tab_position_id, NewSessionMenuItem, SelectedTabColor, TabBarState, TabComponent, TabData,
+    TabTelemetryAction, TAB_BAR_BORDER_HEIGHT,
 };
 use crate::ui_components::icons;
 #[cfg(target_os = "macos")]
@@ -232,9 +274,10 @@ use std::path::PathBuf;
 use std::process;
 use std::sync::{mpsc, Mutex};
 use std::{cmp::Ordering, sync::Arc};
-use warp_core::ui::theme::{color::internal_colors, Fill};
+use warp_core::ui::theme::{color::internal_colors, phenomenon::PhenomenonStyle, Fill};
 use warp_core::ui::{color::coloru_with_opacity, Icon};
 use warp_editor::editor::NavigationKey;
+use warpui::keymap::Context;
 use warpui::notification::{RequestPermissionsOutcome, UserNotification};
 use warpui::platform::{
     Cursor, FilePickerConfiguration, FullscreenState, SystemTheme, TerminationMode,
@@ -247,8 +290,8 @@ use warpui::{
     },
     elements::{
         Align, Border, ChildAnchor, ChildView, Clipped, ConstrainedBox, Container, CornerRadius,
-        CrossAxisAlignment, Element, Empty, Expanded, Fill as ElementFill, Flex,
-        Highlight, Hoverable, MainAxisAlignment, MainAxisSize,
+        CrossAxisAlignment, Dismiss, Element, Empty, Expanded, Fill as ElementFill, Flex,
+        Highlight, Hoverable, Icon as WarpUiIcon, MainAxisAlignment, MainAxisSize,
         OffsetPositioning, ParentAnchor, ParentElement, ParentOffsetBounds,
         PositionedElementAnchor, PositionedElementOffsetBounds, Radius, SavePosition, Shrinkable,
         Stack, Text,
@@ -257,7 +300,7 @@ use warpui::{
     AppContext, Entity, TypedActionView, UpdateView, View, ViewContext, ViewHandle,
 };
 use warpui::{
-    EntityId, ModelHandle, SingletonEntity, UpdateModel, ViewAsRef, WeakViewHandle,
+    EntityId, FocusContext, ModelHandle, SingletonEntity, UpdateModel, ViewAsRef, WeakViewHandle,
     WindowId,
 };
 
@@ -1162,8 +1205,8 @@ impl Workspace {
     fn build_remove_tab_config_confirmation_dialog(
         ctx: &mut ViewContext<Self>,
     ) -> ViewHandle<RemoveTabConfigConfirmationDialog> {
-        
-        ctx.add_typed_action_view(RemoveTabConfigConfirmationDialog::new)
+        let dialog = ctx.add_typed_action_view(RemoveTabConfigConfirmationDialog::new);
+        dialog
     }
 
     fn handle_session_config_modal_event(
@@ -1447,7 +1490,7 @@ impl Workspace {
             model_event_sender,
             tips_completed,
             user_default_shell_unsupported_banner_model_handle,
-            referral_theme_status: _,
+            referral_theme_status,
             settings_file_error,
         } = global_resource_handles.clone();
 
@@ -2215,7 +2258,7 @@ impl Workspace {
         region: FocusRegion,
         direction: PanePanelDirection,
         has_left_panel: bool,
-        _has_right_panel: bool,
+        has_right_panel: bool,
         ctx: &mut ViewContext<Self>,
     ) -> FocusRegion {
         match (region, direction) {
@@ -2456,7 +2499,7 @@ impl Workspace {
         }
 
         let left_active_pane_group = self.active_tab_pane_group().clone();
-        let _right_active_pane_group = self.active_tab_pane_group().clone();
+        let right_active_pane_group = self.active_tab_pane_group().clone();
         let working_directories_model = self.working_directories_model.clone();
 
         self.left_panel_view.update(ctx, |left_panel, ctx| {
@@ -2944,7 +2987,7 @@ impl Workspace {
         path: PathBuf,
         target: FileTarget,
         line_col: Option<LineAndColumnArg>,
-        _code_source: CodeSource,
+        code_source: CodeSource,
         ctx: &mut ViewContext<Self>,
     ) {
         // Handle directories for CodeEditor(NewTab) target by opening a new terminal tab
@@ -3240,7 +3283,7 @@ impl Workspace {
         ctx: &mut ViewContext<Self>,
     ) {
         if tab_config.params.is_empty() {
-            let _is_worktree_config = tab_config.is_worktree();
+            let is_worktree_config = tab_config.is_worktree();
             let worktree_branch_name = self.maybe_generate_worktree_name(&tab_config);
             let param_values = tab_config.default_param_values();
             self.open_tab_config_with_params(
@@ -3372,7 +3415,7 @@ impl Workspace {
             return;
         }
 
-        let menu_items = vec![];
+        let mut menu_items = vec![];
         ctx.update_view(&self.tab_bar_overflow_menu, |context_menu, view_ctx| {
             context_menu.set_items(menu_items, view_ctx);
         });
@@ -3719,7 +3762,7 @@ impl Workspace {
 
     fn user_menu_items(&self, app: &AppContext) -> Vec<MenuItem<WorkspaceAction>> {
         let mut items = Vec::new();
-        let _appearance = Appearance::as_ref(app);
+        let appearance = Appearance::as_ref(app);
 
         items.extend([
             MenuItemFields::new("What's new")
@@ -3948,7 +3991,7 @@ impl Workspace {
     ) {
         match event {
             TabConfigParamsModalEvent::Submit { config, params } => {
-                let _should_track_existing_config_open =
+                let should_track_existing_config_open =
                     self.pending_session_config_replacement.is_none();
                 let worktree_name = self.maybe_generate_worktree_name(config);
                 self.open_tab_config_with_params(
@@ -3957,7 +4000,7 @@ impl Workspace {
                     worktree_name.as_deref(),
                     ctx,
                 );
-                
+                if should_track_existing_config_open {}
                 self.close_tab_config_params_modal(ctx);
                 self.complete_pending_session_config_replacement(ctx);
 
@@ -4966,7 +5009,7 @@ impl Workspace {
     fn add_tab_with_shell(
         &mut self,
         shell: AvailableShell,
-        _source: AddTabWithShellSource,
+        source: AddTabWithShellSource,
         ctx: &mut ViewContext<Self>,
     ) {
         self.add_new_session_tab_with_default_mode(
@@ -5004,7 +5047,7 @@ impl Workspace {
         previous_session_window_id: Option<WindowId>,
         chosen_shell: Option<AvailableShell>,
         hide_homepage: bool,
-        _default_session_mode_behavior: DefaultSessionModeBehavior,
+        default_session_mode_behavior: DefaultSessionModeBehavior,
         ctx: &mut ViewContext<Self>,
     ) {
         // Check if we should default to agent mode (only for new sessions, not restorations)
@@ -5536,7 +5579,7 @@ impl Workspace {
     ) {
         self.close_all_overlays(ctx);
 
-        let _active_palette = if matches!(source, PaletteSource::CtrlTab { .. }) {
+        let active_palette = if matches!(source, PaletteSource::CtrlTab { .. }) {
             &self.ctrl_tab_palette
         } else {
             &self.palette
@@ -5601,9 +5644,12 @@ impl Workspace {
     }
 
     fn handle_palette_event(&mut self, event: &CommandPaletteEvent, ctx: &mut ViewContext<Self>) {
-        if let CommandPaletteEvent::Close {
+        match event {
+            CommandPaletteEvent::Close {
                 accepted_action_type,
-            } = event { self.close_palette(true, *accepted_action_type, ctx) }
+            } => self.close_palette(true, *accepted_action_type, ctx),
+            _ => {}
+        }
     }
 
     /// This function is used when we set a selected object, which is an object open in an active pane.
@@ -5855,7 +5901,7 @@ impl Workspace {
                 hidden_pane_preview_direction,
             } => {
                 #[cfg(feature = "local_fs")]
-                let _prefers_tabbed_editor_view = FeatureFlag::TabbedEditorView.is_enabled()
+                let prefers_tabbed_editor_view = FeatureFlag::TabbedEditorView.is_enabled()
                     && *EditorSettings::as_ref(ctx)
                         .prefer_tabbed_editor_view
                         .value();
@@ -6036,7 +6082,7 @@ impl Workspace {
                     input_handle.read(ctx, |input, ctx| input.menu_positioning(ctx))
                 });
 
-            
+            if !self.current_workspace_state.is_command_search_open {}
 
             // Make sure we close any already-open input suggestions panel.
             if let Some(input_handle) = &active_input_handle {
@@ -6162,7 +6208,7 @@ impl Workspace {
 
         if let Some(terminal_handle) = pane_group_handle.as_ref(ctx).active_session_view(ctx) {
             #[cfg_attr(not(feature = "local_fs"), allow(unused_variables))]
-            let (session, path_if_local, _is_local, is_wsl_session, _session_id, _pwd) =
+            let (session, path_if_local, is_local, is_wsl_session, session_id, pwd) =
                 terminal_handle.read(ctx, |terminal, ctx| {
                     let active_session_id = terminal.active_block_session_id();
                     let session = active_session_id
@@ -6182,7 +6228,7 @@ impl Workspace {
                 });
 
             let window_id = ctx.window_id();
-            let _working_directory_clone = path_if_local.clone();
+            let working_directory_clone = path_if_local.clone();
             let path_if_local_clone = path_if_local.clone();
             ActiveSession::handle(ctx).update(ctx, |active_session, ctx| {
                 active_session.set_session_state(
@@ -6242,7 +6288,7 @@ impl Workspace {
         content: &str,
         replace_buffer: bool,
         should_submit: bool,
-        _ensure_agent_mode: bool,
+        ensure_agent_mode: bool,
         ctx: &mut ViewContext<Self>,
     ) {
         let active_input_handle = self.get_active_input_view_handle(ctx);
@@ -6290,7 +6336,7 @@ impl Workspace {
                 self.current_workspace_state.is_command_search_open = false;
                 ctx.notify();
             }
-            ItemSelected { query: _, payload } => {
+            ItemSelected { query, payload } => {
                 use CommandSearchItemAction::*;
                 match payload.as_ref() {
                     AcceptHistory(AcceptedHistoryItem {
@@ -7511,7 +7557,7 @@ impl Workspace {
         let display_name = DEFAULT_USER_DISPLAY_NAME.to_owned();
         let avatar_content = AvatarContent::Icon(icons::Icon::Gear);
 
-        let avatar = Avatar::new(
+        let mut avatar = Avatar::new(
             avatar_content,
             UiComponentStyles {
                 width: Some(20.),
@@ -8045,7 +8091,7 @@ impl Workspace {
         let appearance = Appearance::as_ref(app);
 
         let mut col = Flex::column().with_main_axis_size(MainAxisSize::Max);
-        let contents = contents;
+        let mut contents = contents;
 
         col.add_child(Shrinkable::new(1.0, contents).finish());
 
@@ -8835,7 +8881,7 @@ impl TypedActionView for Workspace {
                 self.open_repository(path.as_deref(), ctx);
             }
             #[cfg(not(target_family = "wasm"))]
-            _InsertForkSlashCommand => {
+            InsertForkSlashCommand => {
                 self.active_tab_pane_group().update(ctx, |pane_group, ctx| {
                     if let Some(terminal_view) = pane_group.active_session_view(ctx) {
                         terminal_view.update(ctx, |terminal, ctx| {
@@ -8877,7 +8923,7 @@ impl TypedActionView for Workspace {
             }
             #[cfg(debug_assertions)]
             #[cfg(debug_assertions)]
-            _OpenOzLaunchModal => {
+            OpenOzLaunchModal => {
                 // Force open the Oz launch modal for debugging
                 OneTimeModalModel::handle(ctx).update(ctx, |model, ctx| {
                     model.force_open_oz_launch_modal(ctx);
@@ -9497,7 +9543,7 @@ impl View for Workspace {
             stack.add_child(self.session_config_modal.render());
         }
 
-        
+        if self.current_workspace_state.is_prompt_editor_open {}
 
         if let Some(lightbox_view) = &self.lightbox_view {
             stack.add_child(ChildView::new(lightbox_view).finish());

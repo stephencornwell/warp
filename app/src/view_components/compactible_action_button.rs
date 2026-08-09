@@ -205,7 +205,7 @@ pub fn render_expansion_icon(
     expanded: bool,
     expands_upwards: bool,
     appearance: &Appearance,
-    _app: &AppContext,
+    app: &AppContext,
 ) -> Box<dyn Element> {
     ConstrainedBox::new(
         warpui::elements::Icon::new(

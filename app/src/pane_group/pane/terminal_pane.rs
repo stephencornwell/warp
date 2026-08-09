@@ -1,6 +1,8 @@
 //! Implementation of terminal panes.
 use std::sync::mpsc::SyncSender;
 
+use base64::{engine::general_purpose::STANDARD as BASE64_STANDARD, Engine as _};
+use url::Url;
 
 use warpui::{
     AppContext, EntityId, ModelHandle, SingletonEntity, ViewContext, ViewHandle, WindowId,
@@ -8,7 +10,7 @@ use warpui::{
 
 use crate::{
     app_state::{LeafContents, TerminalPaneSnapshot},
-    pane_group::{self, PaneGroup},
+    pane_group::{self, Direction, Event::OpenConversationHistory, PaneGroup},
     persistence::{BlockCompleted, ModelEvent},
     session_management::SessionNavigationData,
     terminal::{general_settings::GeneralSettings, view::Event, TerminalManager, TerminalView},
@@ -239,7 +241,7 @@ impl PaneContent for TerminalPane {
     ) -> Result<ShareableLink, ShareableLinkError> {
         let manager = self.terminal_manager(ctx);
         let the_model = manager.as_ref(ctx).model();
-        let _lock = the_model.lock();
+        let lock = the_model.lock();
 
         Ok(ShareableLink::Base)
     }

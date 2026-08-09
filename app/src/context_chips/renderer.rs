@@ -156,7 +156,7 @@ impl Renderer {
         if self.is_disabled {
             color.a = (color.a / 2).max(48);
         }
-        let font_size = appearance.monospace_font_size() - 1.;
+        let font_size = (appearance.monospace_font_size() - 1.);
 
         let mut content = Flex::row().with_cross_axis_alignment(CrossAxisAlignment::Center);
 

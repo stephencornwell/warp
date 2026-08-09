@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use warp_core::user_preferences::GetUserPreferences as _;
-use warpui::{Entity, ModelContext};
+use warpui::{Entity, ModelContext, SingletonEntity};
 
 // Note: The name of this key is from before this model was created. For consistency, it should
 // remain the same value

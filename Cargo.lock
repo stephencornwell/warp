@@ -1507,15 +1507,6 @@ dependencies = [
 
 [[package]]
 name = "bit-set"
-version = "0.5.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0700ddab506f33b20a03b13996eccd309a48e5ff77d0d95926aa0210fb4e95f1"
-dependencies = [
- "bit-vec 0.6.3",
-]
-
-[[package]]
-name = "bit-set"
 version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "08807e080ed7f9d5433fa9b275196cfc35414f66a0c79d864dc51a0d825231a3"
@@ -1531,12 +1522,6 @@ checksum = "34ddef2995421ab6a5c779542c81ee77c115206f4ad9d5a8e05f4ff49716a3dd"
 dependencies = [
  "bit-vec 0.9.1",
 ]
-
-[[package]]
-name = "bit-vec"
-version = "0.6.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "349f9b6a179ed607305526ca489b34ad0a41aed5f7980fa90eb03160b69598fb"
 
 [[package]]
 name = "bit-vec"
@@ -3551,16 +3536,6 @@ dependencies = [
  "rayon-core",
  "smallvec",
  "zune-inflate",
-]
-
-[[package]]
-name = "fancy-regex"
-version = "0.11.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b95f7c0680e4142284cf8b22c14a476e87d61b004a3a0861872b32ef7ead40a2"
-dependencies = [
- "bit-set 0.5.3",
- "regex",
 ]
 
 [[package]]
@@ -5704,7 +5679,7 @@ dependencies = [
  "bytecount",
  "data-encoding",
  "email_address 0.2.9",
- "fancy-regex 0.17.0",
+ "fancy-regex",
  "fraction",
  "getrandom 0.3.4",
  "idna",
@@ -10384,7 +10359,6 @@ checksum = "874dcfa363995604333cf947ae9f751ca3af4522c60886774c4963943b4746b1"
 dependencies = [
  "bincode",
  "bitflags 1.3.2",
- "fancy-regex 0.11.0",
  "flate2",
  "fnv",
  "once_cell",
@@ -11877,7 +11851,6 @@ dependencies = [
  "command-corrections",
  "command-signatures-v2",
  "concat-idents",
- "console_error_panic_hook",
  "content_inspector",
  "core-foundation 0.10.1",
  "counter 0.6.0",
@@ -11914,10 +11887,8 @@ dependencies = [
  "futures-util",
  "fuzzy_match",
  "gethostname",
- "getrandom 0.2.16",
  "getset",
  "git2",
- "gloo",
  "handlebars",
  "hex",
  "http 1.1.0",
@@ -11936,7 +11907,6 @@ dependencies = [
  "jaq-all",
  "jaq-json",
  "jemalloc_pprof",
- "js-sys",
  "jsonschema",
  "kmeans_colors",
  "languages",
@@ -11999,7 +11969,6 @@ dependencies = [
  "sentry-log",
  "serde",
  "serde-bytes-repr",
- "serde-wasm-bindgen",
  "serde_bytes",
  "serde_json",
  "serde_regex",
@@ -12070,12 +12039,9 @@ dependencies = [
  "warp_ripgrep",
  "warp_terminal",
  "warp_util",
- "warp_web_event_bus",
  "warpui",
  "warpui_extras",
- "wasm-bindgen",
  "watcher",
- "web-sys",
  "websocket",
  "wgpu",
  "windows 0.62.2",

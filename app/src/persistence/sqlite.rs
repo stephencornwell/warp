@@ -47,11 +47,7 @@ use super::{
     BlockCompleted, FinishedCommandMetadata, ModelEvent, PersistedData, StartedCommandMetadata,
     WriterHandles,
 };
-use crate::app_state::{
-    CodeReviewPaneSnapshot,
-    EnvVarCollectionPaneSnapshot, LeftPanelSnapshot, SettingsPaneSnapshot,
-    WorkflowPaneSnapshot,
-};
+use crate::app_state::{EnvVarCollectionPaneSnapshot, LeftPanelSnapshot, SettingsPaneSnapshot, WorkflowPaneSnapshot};
 use crate::persistence::model::{
     ProjectRules, CODE_REVIEW_PANE_KIND, GET_STARTED_PANE_KIND,
 };

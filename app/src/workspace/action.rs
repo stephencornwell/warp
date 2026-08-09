@@ -34,7 +34,6 @@ use warpui::geometry::vector::Vector2F;
 use warpui::platform::Cursor;
 use warpui::{EntityId, WeakViewHandle, WindowId};
 
-use super::global_actions::{ForkFromExchange, ForkedConversationDestination};
 use super::view::WorkspaceBanner;
 
 /// This enum determines how the search query is initialized when opening command search.
@@ -404,52 +403,6 @@ pub enum WorkspaceAction {
     ScrollToSettingsWidget {
         page: SettingsSection,
         widget_id: &'static str,
-    },
-    /// Navigate to an existing AI conversation, focusing on its terminal view.
-    ///
-    /// If the conversation is not in an open pane, restore it based on the layout setting or override.
-    RestoreOrNavigateToConversation {
-        pane_view_locator: Option<PaneViewLocator>,
-        window_id: Option<WindowId>,
-        conversation_id: AIConversationId,
-        terminal_view_id: Option<EntityId>,
-        /// If provided, use this layout to restore the conversation.
-        /// Otherwise, fall back to the user's setting.
-        restore_layout: Option<RestoreConversationLayout>,
-    },
-    /// Fork an existing AI conversation.
-    /// Optionally summarizes the conversation after forking and/or sends an initial prompt.
-    ForkAIConversation {
-        conversation_id: AIConversationId,
-        /// When Some, fork from the given response (or exchange if `fork_from_exact_exchange`
-        /// is true). When None, fork from the last exchange.
-        fork_from_exchange: Option<ForkFromExchange>,
-        /// Whether to summarize the conversation after forking.
-        summarize_after_fork: bool,
-        /// Prompt to use for summarization when `summarize_after_fork` is true.
-        summarization_prompt: Option<String>,
-        /// Initial prompt to send in the forked conversation (sent after summarization if enabled).
-        initial_prompt: Option<String>,
-        /// Where to open the forked conversation.
-        destination: ForkedConversationDestination,
-    },
-    /// Fork an existing AI conversation into a new pane and prefill the input with a local
-    /// continuation command (selecting all text).
-    #[cfg(not(target_family = "wasm"))]
-    ContinueConversationLocally {
-        conversation_id: AIConversationId,
-    },
-    /// Insert the /fork slash command into the active terminal's input.
-    InsertForkSlashCommand,
-    /// Summarize the active AI conversation in the focused pane.
-    SummarizeAIConversation {
-        prompt: Option<String>,
-        /// Optional prompt to send after summarization completes successfully.
-        initial_prompt: Option<String>,
-    },
-    /// Queue a prompt to be sent after the current conversation finishes.
-    QueuePromptForConversation {
-        prompt: String,
     },
     /// Install the Warp CLI command to /usr/local/bin
     #[cfg(target_os = "macos")]

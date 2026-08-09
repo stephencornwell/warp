@@ -95,6 +95,7 @@ impl FilterChipRenderer for QueryFilter {
     fn icon_color(&self, appearance: &Appearance) -> ColorU {
         match self {
             QueryFilter::History
+            | QueryFilter::EnvironmentVariables
             | QueryFilter::NaturalLanguage
             | QueryFilter::Actions
             | QueryFilter::Sessions

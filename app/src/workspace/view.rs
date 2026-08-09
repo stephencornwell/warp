@@ -6571,6 +6571,7 @@ impl Workspace {
                             ctx.notify();
                         });
                     }
+                    _ => {}
                 }
             }
             Resize => {

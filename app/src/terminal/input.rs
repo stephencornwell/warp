@@ -99,7 +99,6 @@ use crate::{
         ForkedConversationDestination, InitContent, RestoreConversationLayout, ToastStack,
         WorkspaceAction,
     },
-    workspaces::user_workspaces::UserWorkspaces,
     ServerApiProvider,
 };
 
@@ -1469,15 +1468,6 @@ pub fn init(app: &mut AppContext) {
         .with_key_binding("tab"),
     ]);
 
-    if let Some(custom_action) = workflows::CategoriesView::custom_action() {
-        app.register_editable_bindings([EditableBinding::new(
-            "input:toggle_workflows",
-            "Workflows",
-            InputAction::SelectAndRefreshVoltron(VoltronItem::Workflows),
-        )
-        .with_context_predicate(id!("Input"))
-        .with_custom_action(custom_action)]);
-    }
 
     if ChannelState::channel() == Channel::Integration {
         app.register_fixed_bindings([
@@ -2032,19 +2022,6 @@ impl Input {
         let input_suggestions = ctx.add_typed_action_view(InputSuggestions::new);
         ctx.subscribe_to_view(&input_suggestions, move |me, _, event, ctx| {
             me.handle_suggestions_event(event, ctx);
-        });
-
-        let app_workflows = LocalWorkflows::as_ref(ctx)
-            .app_workflows()
-            .cloned()
-            .collect_vec();
-        let local_user_workflows = WarpConfig::as_ref(ctx).local_user_workflows().clone();
-
-        let workflows_search_view = ctx.add_typed_action_view(|ctx| {
-            workflows::CategoriesView::new(local_user_workflows, app_workflows, ctx)
-        });
-        ctx.subscribe_to_view(&workflows_search_view, move |me, _, event, ctx| {
-            me.handle_workflows_event(event, ctx);
         });
 
         let safe_mode_settings = SafeModeSettings::handle(ctx);

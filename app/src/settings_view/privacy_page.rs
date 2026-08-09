@@ -1,5 +1,4 @@
 use crate::report_if_error;
-use crate::send_telemetry_from_ctx;
 use std::borrow::Cow;
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
@@ -254,10 +253,7 @@ impl PrivacyPageView {
         let safe_mode_settings = SafeModeSettings::handle(ctx);
         let new_value = { !*safe_mode_settings.as_ref(ctx).safe_mode_enabled.value() };
 
-        send_telemetry_from_ctx!(
-            TelemetryEvent::ToggleSecretRedaction { enabled: new_value },
-            ctx
-        );
+        ();
 
         ctx.update_model(&safe_mode_settings, move |safe_mode_settings, ctx| {
             report_if_error!(safe_mode_settings

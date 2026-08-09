@@ -1826,9 +1826,6 @@ impl Workspace {
             me.handle_palette_event(event, ctx);
         });
 
-        let auth_manager = AuthManager::handle(ctx);
-        ctx.subscribe_to_model(&auth_manager, Self::handle_auth_manager_event);
-
         // Handle theme updates when there is a cloud update to themes while the picker is open.
         ctx.subscribe_to_model(&ThemeSettings::handle(ctx), |me, _, _, ctx| {
             if me.is_theme_chooser_open() {
@@ -1848,45 +1845,12 @@ impl Workspace {
             me.handle_window_state_change(event, ctx);
         });
 
-        let changelog_model = ChangelogModel::handle(ctx);
-        ctx.subscribe_to_model(&changelog_model, |me, _, event, ctx| {
-            me.handle_changelog_event(event, ctx);
-        });
-
-        let reward_modal = Self::build_reward_modal(ctx);
-        let (welcome_tips_view, welcome_tips_view_state) =
-            Self::build_welcome_tips(tips_completed.clone(), ctx);
         let (settings_pane, theme_chooser_view) =
             Self::build_settings_views(global_resource_handles, tips_completed.clone(), ctx);
-
-        let resource_center_view =
-            Self::build_resource_center_view(ctx, tips_completed.clone(), changelog_model.clone());
-
-        let build_plan_migration_modal = ctx.add_typed_action_view(BuildPlanMigrationModal::new);
-        ctx.subscribe_to_view(&build_plan_migration_modal, |me, _, event, ctx| {
-            me.handle_build_plan_migration_modal_event(event, ctx);
-        });
-
-        let cloud_agent_capacity_modal =
-            ctx.add_typed_action_view(|_| CloudAgentCapacityModal::new());
-        ctx.subscribe_to_view(&cloud_agent_capacity_modal, |me, _, event, ctx| {
-            me.handle_cloud_agent_capacity_modal_event(event, ctx);
-        });
-
-        let require_login_modal = Self::build_require_login_modal(ctx);
-
-        let auth_override_warning_modal = Self::build_auth_override_warning_modal(ctx);
-
-        let workflow_modal = Self::build_workflow_modal(ai_client.clone(), ctx);
 
         let theme_creator_modal = Self::build_theme_creator_modal(ctx);
 
         let theme_deletion_modal = Self::build_theme_deletion_modal(ctx);
-
-        let suggested_agent_mode_workflow_modal =
-            Self::build_suggested_agent_mode_workflow_modal(ctx);
-
-        let suggested_rule_modal = Self::build_suggested_rule_modal(ctx);
 
         let openwarp_launch_view = ctx.add_typed_action_view(OpenWarpLaunchModal::new);
         ctx.subscribe_to_view(&openwarp_launch_view, |me, _, event, ctx| {
@@ -1906,15 +1870,6 @@ impl Workspace {
             me.handle_command_search_event(event, ctx);
         });
 
-        let ai_fact_view = ctx.add_typed_action_view(AIFactView::new);
-        ctx.subscribe_to_view(&ai_fact_view, move |me, _, event, ctx| {
-            me.handle_ai_fact_view_event(event, ctx);
-        });
-
-        AIFactManager::handle(ctx).update(ctx, |manager, _| {
-            manager.register_view(window_id, ai_fact_view.clone());
-        });
-
         let working_directories_model =
             ctx.add_model(|_| pane_group::WorkingDirectoriesModel::new());
 
@@ -1932,79 +1887,7 @@ impl Workspace {
             me.handle_left_panel_event(event, ctx);
         });
 
-        // Get persisted filters from window snapshot if restoring.
-        let agent_management_filters = match workspace_setting {
-            NewWorkspaceSource::Restored {
-                ref window_snapshot,
-                ..
-            } => window_snapshot.agent_management_filters.clone(),
-            _ => None,
-        };
-        let agent_management_view = ctx
-            .add_typed_action_view(|ctx| AgentManagementView::new(agent_management_filters, ctx));
-        ctx.subscribe_to_view(&agent_management_view, |me, _, event, ctx| {
-            me.handle_agent_management_view_event(event, ctx);
-        });
-
-        let notification_mailbox_view = if FeatureFlag::HOANotifications.is_enabled() {
-            let view = ctx.add_typed_action_view(NotificationMailboxView::new);
-            ctx.subscribe_to_view(&view, move |me, _, event, ctx| match event {
-                NotificationMailboxViewEvent::NavigateToTerminal {
-                    terminal_view_id, ..
-                } => {
-                    me.current_workspace_state.is_notification_mailbox_open = false;
-                    me.tab_bar_pinned_by_popup = false;
-                    me.sync_window_button_visibility(ctx);
-                    if let Some(stack) = &me.notification_toast_stack {
-                        stack.update(ctx, |stack, ctx| stack.set_mailbox_open(false, ctx));
-                    }
-                    me.handle_action(
-                        &WorkspaceAction::FocusTerminalViewInWorkspace {
-                            terminal_view_id: *terminal_view_id,
-                        },
-                        ctx,
-                    );
-                    ctx.notify();
-                }
-                NotificationMailboxViewEvent::Dismissed => {
-                    me.current_workspace_state.is_notification_mailbox_open = false;
-                    me.tab_bar_pinned_by_popup = false;
-                    me.sync_window_button_visibility(ctx);
-                    if let Some(stack) = &me.notification_toast_stack {
-                        stack.update(ctx, |stack, ctx| stack.set_mailbox_open(false, ctx));
-                    }
-                    me.focus_active_tab(ctx);
-                    ctx.notify();
-                }
-            });
-            Some(view)
-        } else {
-            None
-        };
-
-        let notification_toast_stack = if FeatureFlag::HOANotifications.is_enabled() {
-            Some(ctx.add_typed_action_view(AgentNotificationToastStack::new))
-        } else {
-            None
-        };
-
-        let ai_assistant_panel =
-            Self::build_ai_assistant_panel_view(ctx, server_api.clone(), ai_client.clone());
-
         ctx.observe(&tips_completed, Workspace::on_tips_model_changed);
-
-        ctx.subscribe_to_model(
-            &BlocklistAIHistoryModel::handle(ctx),
-            Self::handle_history_model_event,
-        );
-        ctx.subscribe_to_model(&CLIAgentSessionsModel::handle(ctx), |me, _, event, ctx| {
-            me.handle_cli_agent_sessions_event(event, ctx);
-        });
-
-        ctx.subscribe_to_model(
-            &AgentNotificationsModel::handle(ctx),
-            Self::handle_agent_management_event,
-        );
 
         ctx.subscribe_to_model(
             &SessionSettings::handle(ctx),

@@ -833,8 +833,3 @@ fn test_rect_selection_in_alt_screen() {
     );
 }
 
-
-
-/// Tests the split-batch case where synchronized output markers arrive in separate
-/// `parse_bytes` calls on a persistent [`Processor`], preserving sync output state across calls.
-

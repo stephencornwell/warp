@@ -56,7 +56,6 @@ use warpui::{
 };
 
 mod about_page;
-mod admin_actions;
 mod appearance_page;
 mod delete_environment_confirmation_dialog;
 mod directory_color_add_picker;

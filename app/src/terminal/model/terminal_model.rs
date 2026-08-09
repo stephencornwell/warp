@@ -1099,6 +1099,7 @@ impl TerminalModel {
 
         Self {
             alt_screen,
+            is_dummy_cloud_mode_session: false,
             is_input_dirty: false,
             block_list,
             blocklist_has_been_cleared: false,
@@ -1276,30 +1277,9 @@ impl TerminalModel {
     }
 
     pub fn send_agent_conversation_replay_started_for_shared_session(&mut self) {
-        if self.shared_session_status().is_sharer() {
-            if let Some(tx) = &self.ordered_terminal_events_for_shared_session_tx {
-                if let Err(e) =
-                    tx.try_send(OrderedTerminalEventType::AgentConversationReplayStarted)
-                {
-                    log::warn!(
-                        "Failed to send OrderedTerminalEventType::AgentConversationReplayStarted: {e}"
-                    );
-                }
-            }
-        }
     }
 
     pub fn send_agent_conversation_replay_ended_for_shared_session(&mut self) {
-        if self.shared_session_status().is_sharer() {
-            if let Some(tx) = &self.ordered_terminal_events_for_shared_session_tx {
-                if let Err(e) = tx.try_send(OrderedTerminalEventType::AgentConversationReplayEnded)
-                {
-                    log::warn!(
-                        "Failed to send OrderedTerminalEventType::AgentConversationReplayEnded: {e}"
-                    );
-                }
-            }
-        }
     }
 
     /// Whether the session sharing server is currently replaying
@@ -1316,11 +1296,11 @@ impl TerminalModel {
         &mut self,
         set_shared_session_source_type: SessionSourceType,
     ) {
-        self.shared_session_source_type = Some(set_shared_session_source_type);
+        let _ = set_shared_session_source_type;
     }
 
     pub fn shared_session_source_type(&self) -> Option<SessionSourceType> {
-        self.shared_session_source_type.clone()
+        None
     }
 
     pub fn is_dummy_cloud_mode_session(&self) -> bool {
@@ -1332,8 +1312,6 @@ impl TerminalModel {
     // terminal model for the viewers so that we're guaranteed that
     // loading scrollback is the first thing that we do.
     pub fn load_shared_session_scrollback(&mut self, scrollback: &[SerializedBlock]) {
-        debug_assert!(self.shared_session_status().is_viewer());
-
         self.block_list_mut()
             .load_shared_session_scrollback(scrollback);
 
@@ -1342,8 +1320,6 @@ impl TerminalModel {
     }
 
     pub fn append_followup_shared_session_scrollback(&mut self, scrollback: &[SerializedBlock]) {
-        debug_assert!(self.shared_session_status().is_viewer());
-
         self.block_list_mut()
             .append_followup_shared_session_scrollback(scrollback);
 
@@ -1389,9 +1365,7 @@ impl TerminalModel {
     }
 
     pub fn is_read_only(&self) -> bool {
-        self.handled_exit
-            || self.is_conversation_transcript_viewer()
-            || self.shared_session_status().is_finished_viewer()
+        self.handled_exit || self.is_conversation_transcript_viewer()
     }
 
     pub fn is_conversation_transcript_viewer(&self) -> bool {
@@ -1586,16 +1560,7 @@ impl TerminalModel {
 
         // TODO (suraj): add participant ID to active block metadata.
 
-        // If this is a sharer, send an event to indicate the start of the command execution
-        // along with the identity of the participant that ran the command.
-        if let Some(tx) = &self.ordered_terminal_events_for_shared_session_tx {
-            if let Err(e) = tx.try_send(OrderedTerminalEventType::CommandExecutionStarted {
-                participant_id,
-                ai_metadata: agent_metadata.as_ref().map(Self::ai_metadata_to_protocol),
-            }) {
-                log::warn!("Failed to send OrderedTerminalEventType::CommandExecutionStarted: {e}");
-            }
-        }
+        let _ = (participant_id, agent_metadata);
     }
 
     /// Starts the command execution (per `Self::start_command_execution`) and additionally sets
@@ -1829,7 +1794,7 @@ impl TerminalModel {
             //   (the viewer's smaller size is transient and shouldn't reshape history).
             let update_old_blocks = match size_update.update_reason {
                 SizeUpdateReason::SharerSizeChanged { .. }
-                    if self.shared_session_status().is_viewer() =>
+                    if false =>
                 {
                     false
                 }
@@ -1842,16 +1807,7 @@ impl TerminalModel {
         if size_update.rows_or_columns_changed() {
             let num_rows = size_update.new_size.rows();
             let num_cols = size_update.new_size.columns();
-            if let Some(tx) = &self.ordered_terminal_events_for_shared_session_tx {
-                if let Err(e) = tx.try_send(OrderedTerminalEventType::Resize {
-                    window_size: session_sharing_protocol::common::WindowSize {
-                        num_rows,
-                        num_cols,
-                    },
-                }) {
-                    log::warn!("Failed to send OrderedTerminalEventType::Resize: {e}");
-                }
-            }
+            let _ = (num_rows, num_cols);
 
             if self.tmux_control_mode_context.is_some() {
                 self.emit_handler_event(HandlerEvent::RunTmuxCommand(
@@ -1955,10 +1911,6 @@ impl TerminalModel {
     pub fn set_obfuscate_secrets(&mut self, obfuscate_secrets: ObfuscateSecrets) {
         // Secret obfuscation is forced off in shared sessions so changing
         // the setting during a shared session should be a no-op (for this session).
-        if self.shared_session_status.is_sharer_or_viewer() {
-            return;
-        }
-
         self.obfuscate_secrets = obfuscate_secrets;
         self.alt_screen.set_obfuscate_secrets(obfuscate_secrets);
         self.block_list.set_obfuscate_secrets(obfuscate_secrets);
@@ -1972,12 +1924,7 @@ impl TerminalModel {
         &mut self,
         first_scrollback_block_index: BlockIndex,
     ) {
-        if !self.shared_session_status.is_sharer() {
-            log::warn!(
-                "Tried to disable secret obfuscation without being a shared session creator."
-            );
-            return;
-        }
+        let _ = first_scrollback_block_index;
 
         let setting = ObfuscateSecrets::No;
         self.obfuscate_secrets = setting;
@@ -2092,15 +2039,11 @@ impl TerminalModel {
     /// has progressed past authentication/login. When login is complete, emit Event::DetectedEndOfSshLogin.
     pub fn start_notify_on_end_of_ssh_login(&mut self) {
         let id_of_ssh_block = self.active_block_id().clone();
-        self.notify_on_end_of_ssh_login = Some(SshLogin {
-            block_id: id_of_ssh_block,
-            notification_state: SshLoginNotificationState::Monitoring,
-        });
+        let _ = id_of_ssh_block;
     }
 
     /// Stop monitoring for the end of ssh login.
     pub fn end_notify_on_ssh_login_complete(&mut self) {
-        self.notify_on_end_of_ssh_login = None;
     }
 
     pub fn tmux_control_mode_active(&self) -> bool {
@@ -2571,13 +2514,7 @@ impl ansi::Handler for TerminalModel {
         let finished_block_bootstrap_stage = self.block_list().active_block().bootstrap_stage();
         delegate!(self.command_finished(data));
 
-        if let Some(tx) = &self.ordered_terminal_events_for_shared_session_tx {
-            if let Err(e) = tx.try_send(OrderedTerminalEventType::CommandExecutionFinished {
-                next_block_id: block_id.into(),
-            }) {
-                log::warn!("Failed to send OrderedTerminalEventType::CommandFinished: {e}");
-            }
-        }
+        let _ = block_id;
 
         self.emit_handler_event(HandlerEvent::CommandFinished {
             command_type: if is_for_in_band_command {

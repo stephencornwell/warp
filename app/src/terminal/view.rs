@@ -7390,13 +7390,7 @@ impl TerminalView {
     }
 
     fn rerender_rich_content_blocks(&mut self, ctx: &mut ViewContext<Self>) {
-        for rich_content in self.rich_content_views.iter() {
-            if let Some(ai_metadata) = rich_content.ai_block_metadata() {
-                ai_metadata
-                    .ai_block_handle
-                    .update(ctx, |_ai_block, ctx| ctx.notify());
-            }
-        }
+        let _ = ctx;
     }
 
     fn reset_selection_to_single_block(
@@ -7669,14 +7663,7 @@ impl TerminalView {
             .ranges()
             .iter()
             .flat_map(|range| range.range(None))
-            .filter(|block_index| {
-                model
-                    .block_list()
-                    .block_at(*block_index)
-                    .is_some_and(|block| {
-                        !block.command_grid().is_empty() || !block.output_grid().is_empty()
-                    })
-            })
+            .filter(|block_index| model.block_list().block_at(*block_index).is_some())
             .count()
     }
 
@@ -7693,9 +7680,6 @@ impl TerminalView {
                 if let Some(block) = model
                     .block_list()
                     .block_at(block_index)
-                    .filter(|block| {
-                        !block.command_grid().is_empty() || !block.output_grid().is_empty()
-                    })
                 {
                     action(block);
                 }
@@ -9467,16 +9451,9 @@ impl TerminalView {
             ),
             inline_banners,
             HashMap::new(),
-            HashMap::from_iter(
-                self.cli_subagent_views
-                    .iter()
-                    .map(|(id, view)| (id.clone(), ChildView::new(view).finish())),
-            ),
             selection_range,
             None,
-            self.inline_banners_state.shared_session_banner_state,
             self.input_size_at_last_frame(app).unwrap_or_default(),
-            None,
             None,
         );
 
@@ -9540,12 +9517,10 @@ impl TerminalView {
 
         // Since blocks in a blocklist can have different sizes, we want
         // to make sure we're rendering with enough columns to support them all.
-        let agent_view_state = model.block_list().agent_view_state();
         let columns_needed = model
             .block_list()
             .blocks()
             .iter()
-            .filter(|b| b.is_visible(agent_view_state))
             .map(|b| b.size().columns)
             .max()
             .unwrap_or(self.size_info.columns);
@@ -9561,16 +9536,7 @@ impl TerminalView {
         // If this is a shared session viewer and the width required to display the entire
         // terminal is larger than the width of the pane, we should make it horizontally scrollable.
         // If there aren't any visible blocks, we should not show a horizontally-scrollable view.
-        let should_be_horizontal_scrollable = FeatureFlag::ViewingSharedSessions.is_enabled()
-            && model.shared_session_status().is_active_viewer()
-            && model
-                .block_list()
-                .blocks()
-                .iter()
-                .filter(|b| b.is_visible(agent_view_state))
-                .count()
-                > 0
-            && required_terminal_width > pane_width;
+        let should_be_horizontal_scrollable = false;
 
         let block_list = maybe_wrap_terminal_element_in_scrollable(
             should_be_vertical_scrollable,

@@ -1,8 +1,5 @@
 use serde::{Deserialize, Serialize};
 
-use crate::auth::AuthStateProvider;
-use crate::features::FeatureFlag;
-use crate::settings::AISettings;
 use crate::ui_components::icons::Icon;
 use crate::workspace::tab_settings::TabSettings;
 
@@ -29,9 +26,6 @@ use warpui::{AppContext, SingletonEntity};
 pub enum HeaderToolbarItemKind {
     TabsPanel,
     ToolsPanel,
-    AgentManagement,
-    CodeReview,
-    NotificationsMailbox,
 }
 
 impl HeaderToolbarItemKind {
@@ -39,9 +33,6 @@ impl HeaderToolbarItemKind {
         match self {
             Self::TabsPanel => "Tabs Panel",
             Self::ToolsPanel => "Tools Panel",
-            Self::AgentManagement => "Agent Management",
-            Self::CodeReview => "Code Review",
-            Self::NotificationsMailbox => "Notifications",
         }
     }
 
@@ -49,9 +40,6 @@ impl HeaderToolbarItemKind {
         match self {
             Self::TabsPanel => Icon::Menu,
             Self::ToolsPanel => Icon::Tool2,
-            Self::AgentManagement => Icon::Grid,
-            Self::CodeReview => Icon::Diff,
-            Self::NotificationsMailbox => Icon::Inbox,
         }
     }
 
@@ -62,17 +50,6 @@ impl HeaderToolbarItemKind {
         match self {
             Self::TabsPanel => false,
             Self::ToolsPanel => true,
-            Self::AgentManagement => {
-                let is_web_anonymous_user = AuthStateProvider::as_ref(app)
-                    .get()
-                    .is_user_web_anonymous_user()
-                    .unwrap_or_default();
-                AISettings::as_ref(app).is_any_ai_enabled(app)
-                    && FeatureFlag::AgentManagementView.is_enabled()
-                    && !is_web_anonymous_user
-            }
-            Self::CodeReview => cfg!(feature = "local_fs"),
-            Self::NotificationsMailbox => FeatureFlag::HOANotifications.is_enabled(),
         }
     }
 
@@ -83,8 +60,6 @@ impl HeaderToolbarItemKind {
             return false;
         }
         match self {
-            Self::CodeReview => *TabSettings::as_ref(app).show_code_review_button.value(),
-            Self::NotificationsMailbox => *AISettings::as_ref(app).show_agent_notifications,
             _ => true,
         }
     }
@@ -92,15 +67,15 @@ impl HeaderToolbarItemKind {
     /// Whether this item opens a side panel (as opposed to replacing the content
     /// area or opening a popover).
     pub fn is_panel(&self) -> bool {
-        matches!(self, Self::TabsPanel | Self::ToolsPanel | Self::CodeReview)
+        matches!(self, Self::TabsPanel | Self::ToolsPanel)
     }
 
     pub fn default_left() -> Vec<Self> {
-        vec![Self::TabsPanel, Self::ToolsPanel, Self::AgentManagement]
+        vec![Self::TabsPanel, Self::ToolsPanel]
     }
 
     pub fn default_right() -> Vec<Self> {
-        vec![Self::CodeReview, Self::NotificationsMailbox]
+        vec![]
     }
 
     /// All toolbar item variants (availability filtering is done at the call site).
@@ -108,9 +83,6 @@ impl HeaderToolbarItemKind {
         vec![
             Self::TabsPanel,
             Self::ToolsPanel,
-            Self::AgentManagement,
-            Self::CodeReview,
-            Self::NotificationsMailbox,
         ]
     }
 }

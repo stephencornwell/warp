@@ -3537,28 +3537,7 @@ impl Workspace {
         pane_group: &WeakViewHandle<PaneGroup>,
         ctx: &mut ViewContext<Self>,
     ) {
-        if let Some(pane_group) = pane_group.upgrade(ctx) {
-            let shared_views = pane_group.as_ref(ctx).shared_session_view_ids(ctx);
-            for shared_view_id in shared_views {
-                self.stop_sharing_session(&shared_view_id, SharedSessionActionSource::Tab, ctx);
-            }
-        }
-    }
-
-    fn stop_sharing_session(
-        &mut self,
-        terminal_view_id: &EntityId,
-        source: SharedSessionActionSource,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        use terminal::shared_session::manager::Manager;
-
-        let manager = Manager::as_ref(ctx);
-        if let Some(terminal_view) = manager.shared_view_by_id(terminal_view_id, ctx) {
-            terminal_view.update(ctx, |view, ctx| {
-                view.stop_sharing_session(source, ctx);
-            });
-        }
+        let _ = (pane_group, ctx);
     }
 
     fn copy_shared_session_link_from_tab(&mut self, tab_index: usize, ctx: &mut ViewContext<Self>) {
@@ -3572,18 +3551,11 @@ impl Workspace {
             return;
         };
 
-        // Copy the shared session link from that terminal view
-        terminal_view.update(ctx, |view, ctx| {
-            view.copy_shared_session_link(SharedSessionActionSource::Tab, ctx);
-        });
+        let _ = (terminal_view, ctx);
     }
 
-    fn subscribe_to_shared_session_manager(ctx: &mut ViewContext<Self>) {
-        use terminal::shared_session::manager::{Manager, ManagerEvent};
-
-        let manager = Manager::handle(ctx);
-        ctx.subscribe_to_model(&manager, move |me, _, event, ctx| {
-            match event {
+    fn subscribe_to_shared_session_manager(_ctx: &mut ViewContext<Self>) {
+        /*
                 ManagerEvent::StartedShare {
                     window_id,
                     session_id,
@@ -3620,8 +3592,10 @@ impl Workspace {
             }
             ctx.notify();
         });
+        */
     }
 
+    /*
     fn copy_shared_session_link(
         &mut self,
         session_id: &SharedSessionId,
@@ -3636,6 +3610,7 @@ impl Workspace {
             toast_stack.add_ephemeral_toast(toast, ctx);
         });
     }
+    */
 
     // Returns true if the focused pane is the viewer of a shared session
     pub fn is_shared_session_viewer_focused(&self, app: &AppContext) -> bool {

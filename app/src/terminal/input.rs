@@ -2850,18 +2850,7 @@ impl Input {
     /// autosuggestion, due to the buffer content meaningfully changing.
     /// Helper function to replace "@" symbol and filter text with new text
     pub(super) fn replace_at_symbol_with_text(&mut self, text: &str, ctx: &mut ViewContext<Self>) {
-        let is_ai_mode = self.ai_input_model.as_ref(ctx).is_ai_input_enabled();
-
-        // Capture the at_symbol_position before it might be cleared
-        let at_symbol_position = if let InputSuggestionsMode::AIContextMenu {
-            at_symbol_position,
-            ..
-        } = self.suggestions_mode_model.as_ref(ctx).mode()
-        {
-            Some(*at_symbol_position)
-        } else {
-            None
-        };
+        let at_symbol_position = None;
 
         if let Some(at_pos) = at_symbol_position {
             let cursor_position = self.editor.read(ctx, |editor, ctx| {
@@ -2875,12 +2864,7 @@ impl Input {
                 editor.system_delete(replacement_range, ctx);
 
                 // Insert the text, optionally with a space in AI mode
-                let text_to_insert = if is_ai_mode {
-                    format!("{text} ")
-                } else {
-                    text.to_string()
-                };
-                editor.user_insert(&text_to_insert, ctx);
+                editor.user_insert(text, ctx);
             });
         } else {
             // Fallback: search for the most recent "@" symbol in the buffer
@@ -2896,12 +2880,7 @@ impl Input {
                     // Delete the range (@ symbol and any filter text) using system delete
                     editor.system_delete(replacement_range, ctx);
 
-                    let text_to_insert = if is_ai_mode {
-                        format!("{text} ")
-                    } else {
-                        text.to_string()
-                    };
-                    editor.user_insert(&text_to_insert, ctx);
+                    editor.user_insert(text, ctx);
                 });
             }
         }
@@ -2926,15 +2905,12 @@ impl Input {
             EditorEvent::Enter => self.input_enter(ctx),
             EditorEvent::CmdEnter => self.input_cmd_enter(ctx),
             EditorEvent::Escape => self.editor_escape(ctx),
-            EditorEvent::CtrlD => self.ctrl_d(ctx),
-            EditorEvent::CtrlR => self.ctrl_r(ctx),
             EditorEvent::DeleteAllLeft => self.clear_buffer_and_reset_undo_stack(ctx),
             EditorEvent::Copy => ctx.emit(Event::Copy),
             EditorEvent::InsertLastWordPrevCommand => self.insert_last_word_previous_command(ctx),
             EditorEvent::Search { term, .. } => {
-                ctx.emit(Event::ShowCommandSearch(CommandSearchOptions {
-                    initial_query: term.clone(),
-                }));
+                let _ = term;
+                ctx.emit(Event::ShowCommandSearch(CommandSearchOptions::default()));
             }
             EditorEvent::VimStatusUpdate => ctx.notify(),
             EditorEvent::HideXRay => self.hide_x_ray(ctx),
@@ -3055,9 +3031,7 @@ impl Input {
                 .update(ctx, |input_suggestions, ctx| {
                     input_suggestions.select_prev(ctx);
                 });
-        } else if !self.ai_input_model.as_ref(ctx).is_ai_input_enabled() {
-            self.fuzzy_history_search(ctx);
-        }
+        else { self.fuzzy_history_search(ctx); }
     }
 
     fn fuzzy_history_search(&mut self, ctx: &mut ViewContext<Self>) {
@@ -3075,8 +3049,8 @@ impl Input {
         // we still close the input suggestion menu before opening the Voltron modal,
         // which involves resetting the cursor point.
         let original_buffer = editor.buffer_text(ctx);
-        let original_input_type = self.ai_input_model.as_ref(ctx).input_type();
-        let original_input_was_locked = self.ai_input_model.as_ref(ctx).is_input_type_locked();
+        let original_input_type = InputType::Shell;
+        let original_input_was_locked = false;
         self.suggestions_mode_model.update(ctx, |m, ctx| {
             m.set_mode(
                 InputSuggestionsMode::HistoryUp {
@@ -3089,8 +3063,6 @@ impl Input {
                 ctx,
             );
         });
-
-        self.select_and_refresh_voltron(VoltronItem::History, ctx);
 
         ctx.notify();
     }
@@ -3191,8 +3163,6 @@ impl Input {
         let buffer_text = editor.buffer_text(ctx);
 
         self.is_completions_while_typing_turned_on(ctx)
-            && (!self.ai_input_model.as_ref(ctx).is_ai_input_enabled()
-                || should_show_completions_in_ai_input(&buffer_text))
             && buffer_text.len() >= MIN_BUFFER_LEN_TO_SHOW_COMPLETIONS_WHILE_TYPING
             && self.is_cursor_in_valid_position_for_completions_while_typing(ctx)
     }
@@ -3210,10 +3180,6 @@ impl Input {
     }
 
     fn should_expand_aliases(&self, ctx: &mut ViewContext<Self>) -> bool {
-        // Never expand aliases when in AI input mode, regardless of the setting.
-        if self.ai_input_model.as_ref(ctx).input_type().is_ai() {
-            return false;
-        }
         *AliasExpansionSettings::as_ref(ctx)
             .alias_expansion_enabled
             .value()
@@ -3224,10 +3190,6 @@ impl Input {
         completions_trigger: CompletionsTrigger,
         ctx: &mut ViewContext<Self>,
     ) {
-        if self.suggestions_mode_model.as_ref(ctx).is_slash_commands() {
-            self.close_slash_commands_menu(ctx);
-        }
-
         let editor = self.editor.as_ref(ctx);
         let buffer_text = editor.buffer_text(ctx);
 
@@ -3803,39 +3765,6 @@ impl Input {
 
     fn input_shift_tab(&mut self, ctx: &mut ViewContext<Self>) {
         match self.suggestions_mode_model.as_ref(ctx).mode() {
-            // If the model selector is open and has multiple tabs,
-            // shift + tab should cycle between them.
-            InputSuggestionsMode::ModelSelector => {
-                if self
-                    .inline_model_selector_view
-                    .update(ctx, |view, ctx| view.select_next_tab(ctx))
-                {
-                    return;
-                }
-            }
-            // If the inline history menu is open and has multiple tabs,
-            // shift + tab should cycle between them.
-            InputSuggestionsMode::InlineHistoryMenu { .. } => {
-                if self.is_cloud_mode_input_v2_composing(ctx) {
-                    return;
-                }
-                if self
-                    .inline_history_menu_view
-                    .update(ctx, |view, ctx| view.select_next_tab(ctx))
-                {
-                    return;
-                }
-            }
-            // If the conversation menu is open and has multiple tabs,
-            // shift + tab should cycle between them.
-            InputSuggestionsMode::ConversationMenu => {
-                if self
-                    .inline_conversation_menu_view
-                    .update(ctx, |view, ctx| view.select_next_tab(ctx))
-                {
-                    return;
-                }
-            }
             // If we're in CompletionSuggestions mode, shift tab moves to the previous selection.
             InputSuggestionsMode::CompletionSuggestions { .. } => {
                 self.input_suggestions.update(ctx, |suggestions, ctx| {
@@ -3908,19 +3837,6 @@ impl Input {
     /// If tab is not bound to "open completion suggestions menu" nor is the suggestions menu
     /// already open, inserts a tab char into the input editor.
     fn input_tab(&mut self, ctx: &mut ViewContext<Self>) {
-        if matches!(
-            self.suggestions_mode_model.as_ref(ctx).mode(),
-            InputSuggestionsMode::AIContextMenu { .. }
-        ) {
-            self.editor.update(ctx, |editor, ctx| {
-                if let Some(ai_context_menu) = editor.ai_context_menu() {
-                    ai_context_menu.update(ctx, |ai_context_menu, ctx| {
-                        ai_context_menu.select_current_item(ctx);
-                    });
-                }
-            });
-            return;
-        }
         // We have to manually check if "tab" is bound to
         // `InputAction::MaybeOpenCompletionSuggestions` here because the child `EditorView`
         // handles the actual tab keypress event -- the handler method attached to the

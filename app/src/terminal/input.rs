@@ -3237,15 +3237,6 @@ impl Input {
             self.focus_input_box(ctx);
         } else {
             // Open the skill file in editor (from /open-skill command)
-            send_telemetry_from_ctx!(
-                SkillTelemetryEvent::Opened {
-                    reference: skill_reference.clone(),
-                    name: Some(skill_name.clone()),
-                    origin: SkillOpenOrigin::OpenSkillCommand,
-                },
-                ctx
-            );
-
             ctx.dispatch_typed_action(&TerminalAction::OpenEditSkillPane {
                 skill_reference: skill_reference.clone(),
             });
@@ -3596,15 +3587,6 @@ impl Input {
             );
         });
 
-        send_telemetry_from_ctx!(
-            TelemetryEvent::OpenSuggestionsMenu(
-                self.suggestions_mode_model
-                    .as_ref(ctx)
-                    .mode()
-                    .to_telemetry_mode(),
-            ),
-            ctx
-        );
         ctx.notify();
     }
 
@@ -3990,14 +3972,6 @@ impl Input {
         self.focus_input_box(ctx);
         // TODO(advait): Avoid using user-simulated codepaths here. Revisit function to use here.
         self.submit_ai_query(Some(suggestion_type), ctx);
-
-        send_telemetry_from_ctx!(
-            TelemetryEvent::ZeroStatePromptSuggestionUsed {
-                suggestion_type,
-                triggered_from
-            },
-            ctx
-        );
 
         ctx.notify()
     }

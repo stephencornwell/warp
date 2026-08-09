@@ -13907,42 +13907,10 @@ impl TerminalView {
             block.unhide();
         });
 
-        // Send the bootstrapping slow event synchronously to ensure that we don't drop
-        // the event if the user quits the app before the event queue is flushed and then
-        // never reopens the app.
-        send_telemetry_sync_from_ctx!(
-            TelemetryEvent::BootstrappingSlow(BootstrappingInfo {
-                shell,
-                is_ssh,
-                is_subshell,
-                is_wsl,
-                is_msys2,
-                was_triggered_by_rc_file,
-                bootstrap_duration_seconds: None,
-                shell_version: None,
-                rcfiles_duration_seconds: None,
-                warp_attributed_bootstrap_duration_seconds: None,
-                terminal_session_id: None,
-            }),
-            ctx
-        );
-
         let bootstrap_block_contents = {
             let model = self.model.lock();
             model.block_list().bootstrap_block_contents()
         };
-        send_telemetry_sync_from_ctx!(
-            TelemetryEvent::BootstrappingSlowContents(SlowBootstrapInfo {
-                shell,
-                is_ssh,
-                is_subshell,
-                is_wsl,
-                is_msys2,
-                bootstrap_block_contents,
-            }),
-            ctx
-        );
-
         if !self.is_login_shell_bootstrapped {
             log::warn!("Showing bootstrap slow toast");
             self.is_slow_bootstrap_banner_open = true;
@@ -22545,27 +22513,6 @@ impl TerminalView {
             }
         }
 
-        send_telemetry_from_ctx!(
-            TelemetryEvent::NotificationsDiscoveryBannerAction(action),
-            ctx
-        );
-    }
-
-    fn ssh_banner_action(&self, action: SSHBannerAction, ctx: &mut ViewContext<Self>) {
-        use SSHBannerAction::*;
-
-        match action {
-            LearnMore => {
-                ctx.open_url("https://docs.warp.dev/terminal/warpify/ssh-legacy#implementation");
-            }
-            Settings => {
-                if FeatureFlag::SSHTmuxWrapper.is_enabled() {
-                    ctx.emit(Event::OpenSettings(SettingsSection::Warpify));
-                } else {
-                    ctx.emit(Event::OpenSettings(SettingsSection::Features));
-                }
-            }
-        }
     }
 
     // Invokes the on_next_frame_drawn API to time from the provided block started at to the moment
@@ -22585,19 +22532,9 @@ impl TerminalView {
             });
 
         if let Some((is_ssh, shell)) = session_info {
-            let auth_state = self.auth_state.clone();
             let executor = ctx.background_executor().clone();
             ctx.on_next_frame_drawn(move || {
-                let block_event = TelemetryEvent::BaselineCommandLatency(BlockLatencyInfo {
-                    command: block_latency_data.command,
-                    shell,
-                    is_ssh,
-                    // The execution time is from the time the block started (i.e. user hit
-                    // enter) to when the first frame after the block completed is finished
-                    // drawing.
-                    execution_ms: block_latency_data.started_at.elapsed().as_millis() as u64,
-                });
-                send_telemetry_on_executor!(auth_state, block_event, executor);
+                let _ = (block_latency_data, shell, is_ssh, executor);
             })
         } else {
             log::warn!("Could not log block latency telemetry since session info was none");

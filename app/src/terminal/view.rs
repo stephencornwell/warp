@@ -12464,28 +12464,6 @@ impl View for TerminalView {
                     }
                 },
             ),
-            Some(ContextMenuType::AIBlockAttachedContext { ai_block_view_id }) => stack
-                .add_positioned_overlay_child(
-                    ChildView::new(&self.context_menu).finish(),
-                    OffsetPositioning::offset_from_save_position_element(
-                        get_attached_blocks_chip_element_position_id(*ai_block_view_id),
-                        vec2f(10., -10.),
-                        PositionedElementOffsetBounds::WindowByPosition,
-                        PositionedElementAnchor::TopLeft,
-                        ChildAnchor::BottomLeft,
-                    ),
-                ),
-            Some(ContextMenuType::AIBlockOverflowMenu { ai_block_view_id }) => stack
-                .add_positioned_overlay_child(
-                    ChildView::new(&self.context_menu).finish(),
-                    OffsetPositioning::offset_from_save_position_element(
-                        get_ai_block_overflow_menu_element_position_id(*ai_block_view_id),
-                        vec2f(OVERFLOW_BUTTON_OFFSET_X, 0.),
-                        PositionedElementOffsetBounds::WindowByPosition,
-                        PositionedElementAnchor::TopLeft,
-                        ChildAnchor::TopRight,
-                    ),
-                ),
             None => {}
         }
 
@@ -12651,44 +12629,12 @@ impl View for TerminalView {
             Container::new(element)
                 .with_foreground_overlay(appearance.theme().accent_overlay())
                 .finish()
-        } else if FeatureFlag::AgentView.is_enabled()
-            && self.agent_view_controller.as_ref(app).is_fullscreen()
-        {
-            Container::new(element)
-                .with_foreground_overlay(agent_view_bg_fill(app))
-                .finish()
         } else {
             element
         };
 
-        // Wrap with cloud mode details panel on the right if open
-        // On WASM, the panel is rendered in the wasm_view instead
-        let should_show_panel = !cfg!(target_family = "wasm")
-            && self.is_cloud_mode_details_panel_open
-            && Self::can_show_cloud_mode_details_ui_for_task_id(
-                ambient_agent_task_id_for_details_panel,
-            );
+        final_element
 
-        if should_show_panel {
-            // Wrap panel with agent view background for visual consistency
-            let panel_with_background =
-                Container::new(ChildView::new(&self.cloud_mode_details_panel).finish())
-                    .with_background(agent_view_bg_fill(app))
-                    .finish();
-
-            Container::new(
-                Flex::row()
-                    .with_main_axis_size(warpui::elements::MainAxisSize::Max)
-                    .with_cross_axis_alignment(CrossAxisAlignment::Stretch)
-                    .with_child(Shrinkable::new(1., final_element).finish())
-                    .with_child(panel_with_background)
-                    .finish(),
-            )
-            .with_border(Border::top(1.0).with_border_fill(appearance.theme().outline()))
-            .finish()
-        } else {
-            final_element
-        }
     }
 
 }

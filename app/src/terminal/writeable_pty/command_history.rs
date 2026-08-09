@@ -28,7 +28,7 @@ pub fn update_command_history(
         return;
     }
 
-    let is_agent_executed = event.source.is_ai_command();
+    let is_agent_executed = false;
 
     let session_ref = &*session;
     History::handle(ctx).update(ctx, move |history, _| {

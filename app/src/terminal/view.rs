@@ -2899,9 +2899,7 @@ impl TerminalView {
     pub fn is_long_running_and_user_controlled(&self) -> bool {
         let model = self.model.lock();
         let active_block = model.block_list().active_block();
-        active_block.is_active_and_long_running()
-            && !active_block.is_agent_driving_command()
-            && !model.is_read_only()
+        active_block.is_active_and_long_running() && !model.is_read_only()
     }
 
     pub fn was_ever_visible(&self) -> bool {
@@ -3164,9 +3162,6 @@ impl TerminalView {
         {
             let mut terminal_model = self.model.lock();
             let active_block = terminal_model.block_list().active_block();
-            if active_block.is_agent_in_control() {
-                return;
-            }
             if active_block.is_active_and_long_running() && !active_block.has_received_user_input()
             {
                 terminal_model
@@ -3336,14 +3331,6 @@ impl TerminalView {
             },
             model.block_list().active_block_index(),
         );
-        let was_typeahead_entered_during_ai_requested_command =
-            completed_block_idx.is_some_and(|idx| {
-                model
-                    .block_list()
-                    .block_at(idx)
-                    .is_some_and(|block| block.agent_interaction_metadata().is_some())
-            });
-
         let Some((typeahead, num_typeahead_chars_inserted)) = model
             .block_list_mut()
             .early_output_mut()
@@ -7540,7 +7527,7 @@ impl TerminalView {
             let has_bootstrapped = model.block_list().is_bootstrapping_precmd_done();
 
             let has_active_user_terminal_command = block_list.active_block().is_active_and_long_running()
-                && !block_list.active_block().is_agent_in_control()
+                && true
                 // The only case where terminal can take focus _while_ input is visible is
                 // pre-bootstrap, for example when oh-my-zsh prompts you to update -- at this point
                 // the input is visible but you should still be able to click into the block for the

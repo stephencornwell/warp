@@ -6774,6 +6774,7 @@ impl TerminalView {
     /// Collapses any expanded UX within SSH blocks.
     /// To ensure we can always see what we're typing, we collapse
     /// the SSH block when typing.
+    #[cfg(any())]
     fn on_ssh_warpification_key_event(
         &mut self,
         key_event: Option<SshKeyEvent>,
@@ -6795,6 +6796,7 @@ impl TerminalView {
         }
     }
 
+    #[cfg(any())]
     fn handle_remote_warpification_is_unavailable(
         &mut self,
         reason: WarpificationUnavailableReason,
@@ -6859,6 +6861,7 @@ impl TerminalView {
         self.add_ssh_error_block(reason, ctx);
     }
 
+    #[cfg(any())]
     fn add_ssh_warpify_prompt(
         &mut self,
         command: &str,
@@ -6873,6 +6876,7 @@ impl TerminalView {
     }
 
     /// This method assumes the active block in the blocklist is a long-running SSH command.
+    #[cfg(any())]
     fn add_ssh_warpifying_block(&mut self, ctx: &mut ViewContext<Self>) {
         // Shared session viewers can't initiate warpification currently.
         if self.model.lock().shared_session_status().is_viewer() {
@@ -6926,6 +6930,7 @@ impl TerminalView {
     }
 
     /// This method assumes the active block in the blocklist is a long-running SSH command.
+    #[cfg(any())]
     fn add_ssh_install_tmux_block(
         &mut self,
         system_details: &SystemDetails,
@@ -6989,6 +6994,7 @@ impl TerminalView {
             });
     }
 
+    #[cfg(any())]
     fn add_ssh_error_block(
         &mut self,
         error_reason: WarpificationUnavailableReason,
@@ -7036,6 +7042,7 @@ impl TerminalView {
         self.warpify_state.focus(ctx);
     }
 
+    #[cfg(any())]
     fn add_bootstrap_success_block(
         &mut self,
         SessionBootstrappedEvent {
@@ -7098,6 +7105,7 @@ impl TerminalView {
         self.refresh_warp_prompt(ctx);
     }
 
+    #[cfg(any())]
     fn handle_ssh_warpify_block_event(
         &mut self,
         event: &SshWarpifyBlockEvent,
@@ -7130,6 +7138,7 @@ impl TerminalView {
         }
     }
 
+    #[cfg(any())]
     fn handle_ssh_install_tmux_block_event(
         &mut self,
         event: &SshInstallTmuxBlockEvent,
@@ -7194,6 +7203,7 @@ impl TerminalView {
         }
     }
 
+    #[cfg(any())]
     fn handle_ssh_error_block_events(
         &mut self,
         event: &SshErrorBlockEvent,
@@ -7211,6 +7221,7 @@ impl TerminalView {
         }
     }
 
+    #[cfg(any())]
     fn handle_ssh_success_block_events(
         &mut self,
         event: &WarpifySuccessBlockEvent,
@@ -7223,6 +7234,7 @@ impl TerminalView {
         }
     }
 
+    #[cfg(any())]
     fn dismiss_warpify_banner(
         &mut self,
         remember_command: &RememberForWarpification,
@@ -7257,6 +7269,7 @@ impl TerminalView {
         }
     }
 
+    #[cfg(any())]
     fn show_warpify_banner(
         &mut self,
         input: WarpificationMode,
@@ -7461,6 +7474,7 @@ impl TerminalView {
     }
 
     /// Returns the view type for prompt suggestion telemetry based on whether agent view is active.
+    #[cfg(any())]
     fn prompt_suggestion_view_type(&self, ctx: &ViewContext<Self>) -> PromptSuggestionViewType {
         if FeatureFlag::AgentView.is_enabled() && self.agent_view_controller.as_ref(ctx).is_active()
         {
@@ -7470,6 +7484,7 @@ impl TerminalView {
         }
     }
 
+    #[cfg(any())]
     fn resolve_prompt_suggestion(
         &mut self,
         resolution: PromptSuggestionResolution,
@@ -7592,6 +7607,7 @@ impl TerminalView {
 
     /// Try clearing agent mode query banner's passive code generation state.
     /// Called when a suggested code diff fails and we need to fall back to prompt suggestions.
+    #[cfg(any())]
     fn try_clear_prompt_suggestions_banner_code_state(
         &mut self,
         fallback_reason: PromptSuggestionFallbackReason,
@@ -7607,6 +7623,7 @@ impl TerminalView {
         }
     }
 
+    #[cfg(any())]
     fn associate_and_promote_block_for_conversation(
         &mut self,
         block_id: BlockId,
@@ -7742,6 +7759,7 @@ impl TerminalView {
         });
     }
 
+    #[cfg(any())]
     fn agent_mode_setup_speedbump_banner_action(
         &mut self,
         action: AgentModeSetupSpeedbumpBannerAction,
@@ -7764,6 +7782,7 @@ impl TerminalView {
         }
     }
 
+    #[cfg(any())]
     fn codebase_index_speedbump_banner_action(
         &mut self,
         action: CodebaseIndexSpeedbumpBannerAction,
@@ -7860,6 +7879,7 @@ impl TerminalView {
     }
 
     #[cfg(feature = "local_fs")]
+    #[cfg(any())]
     fn insert_agent_mode_setup_speedbump_banner(
         &mut self,
         repo_path: PathBuf,
@@ -7889,6 +7909,7 @@ impl TerminalView {
     }
 
     #[cfg(feature = "local_fs")]
+    #[cfg(any())]
     fn insert_codebase_index_speedbump_banner(
         &mut self,
         repo_path: PathBuf,
@@ -7952,6 +7973,7 @@ impl TerminalView {
         // No-op when local filesystem is unavailable.
     }
 
+    #[cfg(any())]
     fn anonymous_user_ai_sign_up_banner_action(
         &mut self,
         action: AnonymousUserLoginBannerAction,
@@ -7970,6 +7992,7 @@ impl TerminalView {
         }
     }
 
+    #[cfg(any())]
     fn insert_anonymous_user_ai_sign_up_banner(&mut self, ctx: &mut ViewContext<Self>) {
         if *GeneralSettings::as_ref(ctx)
             .anonymous_user_ai_sign_up_banner_shown
@@ -8023,6 +8046,7 @@ impl TerminalView {
         ctx.notify();
     }
 
+    #[cfg(any())]
     fn handle_aws_bedrock_login_banner_action(
         &mut self,
         action: AwsBedrockLoginBannerAction,
@@ -8078,6 +8102,7 @@ impl TerminalView {
     /// isn't already using it. If so, inserts a banner prompting the user to log in.
     ///
     /// The banner is shown when the user could be using AWS Bedrock to save on warp AI spend, but isn't.
+    #[cfg(any())]
     fn maybe_insert_aws_bedrock_login_banner(
         &mut self,
         model_id: &LLMId,
@@ -8153,6 +8178,7 @@ impl TerminalView {
         ctx.notify();
     }
 
+    #[cfg(any())]
     fn handle_aws_cli_not_installed_banner_action(
         &mut self,
         action: AwsCliNotInstalledBannerAction,
@@ -8169,6 +8195,7 @@ impl TerminalView {
 
     /// Checks if the user tried to run an AWS login command and the AWS CLI wasn't installed.
     /// If so, shows a helpful banner explaining the issue.
+    #[cfg(any())]
     fn maybe_show_aws_cli_not_installed_suggestion(
         &mut self,
         exit_code: ExitCode,
@@ -8283,6 +8310,7 @@ impl TerminalView {
     }
 
     /// Inserts telemetry policy banner into the blocklist.
+    #[cfg(any())]
     pub fn insert_telemetry_banner(&mut self, is_onboarded: bool, ctx: &mut ViewContext<Self>) {
         // Don't ever show telemetry banner for enterprise users.
         if UserWorkspaces::as_ref(ctx)
@@ -8317,6 +8345,7 @@ impl TerminalView {
         }
     }
 
+    #[cfg(any())]
     fn hide_telemetry_banner_permanently(&mut self, ctx: &mut ViewContext<Self>) {
         GeneralSettings::handle(ctx).update(ctx, |general_settings, ctx| {
             let _ = general_settings
@@ -8582,6 +8611,7 @@ impl TerminalView {
     }
 
     // Abort any pending prompt or code suggestions, which may now be irrelevant.
+    #[cfg(any())]
     fn abort_prompt_and_code_suggestions(&mut self, ctx: &mut ViewContext<Self>) {
         // Abort both models to handle any in-flight requests from before a
         // feature flag change.
@@ -8625,6 +8655,7 @@ impl TerminalView {
     /// state (AI blocks rely on conversation state in the history model to render). If there is
     /// more than one AI block corresponding to the same conversation as `passive_block`, does
     /// nothing.
+    #[cfg(any())]
     fn cleanup_and_remove_conversation_for_ai_block(
         &mut self,
         passive_block: &ViewHandle<AIBlock>,
@@ -8674,6 +8705,7 @@ impl TerminalView {
     }
 
     /// Sends telemetry if an AI-requested command caused the shell to exit.
+    #[cfg(any())]
     fn maybe_send_agent_exited_shell_telemetry(&self, ctx: &mut ViewContext<Self>) {
         let model = self.model.lock();
         let block_list = model.block_list();

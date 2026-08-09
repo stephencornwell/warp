@@ -9053,15 +9053,6 @@ impl Input {
                 ctx,
             );
         });
-        send_telemetry_from_ctx!(
-            TelemetryEvent::OpenSuggestionsMenu(
-                self.suggestions_mode_model
-                    .as_ref(ctx)
-                    .mode()
-                    .to_telemetry_mode(),
-            ),
-            ctx
-        );
 
         self.select_and_refresh_voltron(VoltronItem::History, ctx);
 
@@ -9795,15 +9786,6 @@ impl Input {
                             );
                         });
 
-                        send_telemetry_from_ctx!(
-                            TelemetryEvent::OpenSuggestionsMenu(
-                                self.suggestions_mode_model
-                                    .as_ref(ctx)
-                                    .mode()
-                                    .to_telemetry_mode(),
-                            ),
-                            ctx
-                        );
 
                         let preselect_option = if self.is_classic_completions_enabled(ctx) {
                             TabCompletionsPreselectOption::Unselected
@@ -10625,14 +10607,6 @@ impl Input {
                 let input_type = input_model.input_type();
                 let is_locked = input_model.is_input_type_locked();
                 let was_lock_set_with_empty_buffer = input_model.was_lock_set_with_empty_buffer();
-                send_telemetry_from_ctx!(
-                    TelemetryEvent::InputBufferSubmitted {
-                        input_type,
-                        is_locked,
-                        was_lock_set_with_empty_buffer,
-                    },
-                    ctx
-                );
             }
 
             // Check if we're configuring an ambient agent and spawn it instead of submitting a regular AI query.
@@ -10740,14 +10714,6 @@ impl Input {
                 let input_type = input_model.input_type();
                 let is_locked = input_model.is_input_type_locked();
                 let was_lock_set_with_empty_buffer = input_model.was_lock_set_with_empty_buffer();
-                send_telemetry_from_ctx!(
-                    TelemetryEvent::InputBufferSubmitted {
-                        input_type,
-                        is_locked,
-                        was_lock_set_with_empty_buffer,
-                    },
-                    ctx
-                );
             }
 
             if FeatureFlag::WorkflowAliases.is_enabled() {
@@ -11190,12 +11156,6 @@ impl Input {
 
         if PromptAlertView::does_alert_block_ai_requests(ctx) {
             if !has_requests_remaining {
-                send_telemetry_from_ctx!(
-                    TelemetryEvent::AgentModeUserAttemptedQueryAtRequestLimit {
-                        limit: AIRequestUsageModel::as_ref(ctx).request_limit()
-                    },
-                    ctx
-                );
             }
 
             AIRequestUsageModel::handle(ctx).update(ctx, |usage_model, ctx| {
@@ -11262,13 +11222,6 @@ impl Input {
 
         if let Some(workflow_state) = self.workflows_state.selected_workflow_state.as_ref() {
             if let WorkflowType::Cloud(workflow) = &workflow_state.workflow_type {
-                send_telemetry_from_ctx!(
-                    TelemetryEvent::ExecutedWarpDrivePrompt {
-                        id: workflow.id.into_server().map(Into::into),
-                        selection_source: workflow_state.workflow_selection_source,
-                    },
-                    ctx
-                );
 
                 UpdateManager::handle(ctx).update(ctx, move |update_manager, ctx| {
                     update_manager.record_object_action(
@@ -12018,57 +11971,7 @@ impl Input {
             .active_block_session_id()
             .expect("session_id should be set (via bootstrap) before executing command");
 
-        // If the SelectedWorkflowState is populated with a workflow, we count this as a workflow execution.
-        let (workflow_id, workflow_command) = {
-            match self.workflows_state.selected_workflow_state.as_ref() {
-                Some(selected_workflow_state) => {
-                    send_telemetry_from_ctx!(
-                        TelemetryEvent::WorkflowExecuted(WorkflowTelemetryMetadata {
-                            workflow_source: selected_workflow_state.workflow_source,
-                            workflow_categories: selected_workflow_state
-                                .workflow_type
-                                .as_workflow()
-                                .tags()
-                                .cloned(),
-                            workflow_selection_source: selected_workflow_state
-                                .workflow_selection_source,
-                            // This is only `Some()` for WarpDrive workflows; we don't track
-                            // ID for execution of local workflows because they have no such
-                            // unique ID.
-                            workflow_id: selected_workflow_state.workflow_type.server_id(),
-                            workflow_space: match &selected_workflow_state.workflow_type {
-                                WorkflowType::Cloud(workflow) => Some(workflow.space(ctx).into()),
-                                _ => None,
-                            },
-                            enum_ids: selected_workflow_state
-                                .workflow_type
-                                .as_workflow()
-                                .get_server_enum_ids()
-                        }),
-                        ctx
-                    );
-
-                    let workflow_type = &selected_workflow_state.workflow_type;
-                    let workflow_id = match workflow_type {
-                        WorkflowType::Cloud(workflow) => Some(workflow.id),
-                        _ => None,
-                    };
-
-                    // If the SelectedWorkflowState is populated, then we're always able to return the workflow command.
-                    // The case where workflow_id = None but workflow_command = Some() is when it's a local workflow, which
-                    // don't have ids and are tracked just by persisting the workflow contents. This is a little janky and would
-                    // be fixed if we could identify all workflows under a unified id system, not just cloud ones.
-                    (
-                        workflow_id,
-                        workflow_type
-                            .as_workflow()
-                            .command()
-                            .map(|command| command.to_owned()),
-                    )
-                }
-                None => (None, None),
-            }
-        };
+        let (workflow_id, workflow_command) = (None, None);
 
         ctx.emit(Event::ExecuteCommand(Box::new(ExecuteCommandEvent {
             command: command.to_string(),

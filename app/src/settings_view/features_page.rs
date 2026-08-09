@@ -625,8 +625,6 @@ pub enum FeaturesPageAction {
     SetCtrlTabBehavior(CtrlTabBehavior),
     SetPreferredGraphicsBackend(Option<GraphicsBackend>),
     SetNewTabPlacement(NewTabPlacement),
-    SetDefaultSessionMode(DefaultSessionMode),
-    SetDefaultTabConfig(String),
     SearchForKeybinding(String),
     ToggleAutosuggestions,
     ToggleConfirmCloseSession,
@@ -782,7 +780,6 @@ pub struct FeaturesPageView {
     tab_behavior_dropdown: ViewHandle<Dropdown<FeaturesPageAction>>,
     graphics_backend_dropdown: ViewHandle<Dropdown<FeaturesPageAction>>,
     new_tab_placement_dropdown: ViewHandle<Dropdown<FeaturesPageAction>>,
-    default_session_mode_dropdown: ViewHandle<FilterableDropdown<FeaturesPageAction>>,
     tab_behavior: Tracked<TabBehavior>,
     completions_keystroke: Tracked<String>,
     autosuggestions_keystroke: Tracked<String>,
@@ -1284,17 +1281,6 @@ impl TypedActionView for FeaturesPageView {
             SetNewTabPlacement(new_tab_placement) => {
                 self.set_new_tab_placement(new_tab_placement, ctx)
             }
-            SetDefaultSessionMode(mode) => self.set_default_session_mode(mode, ctx),
-            SetDefaultTabConfig(path) => {
-                AISettings::handle(ctx).update(ctx, |ai_settings, ctx| {
-                    report_if_error!(ai_settings
-                        .default_session_mode_internal
-                        .set_value(DefaultSessionMode::TabConfig, ctx));
-                    report_if_error!(ai_settings
-                        .default_tab_config_path
-                        .set_value(path.clone(), ctx));
-                });
-            }
             SearchForKeybinding(query) => {
                 ctx.emit(FeaturesSettingsPageEvent::SearchForKeybinding(
                     query.clone(),
@@ -1607,20 +1593,6 @@ impl FeaturesPageView {
             ctx.notify();
         });
 
-        ctx.subscribe_to_model(&AISettings::handle(ctx), |me, _, event, ctx| {
-            if matches!(
-                event,
-                AISettingsChangedEvent::IsAnyAIEnabled { .. }
-                    | AISettingsChangedEvent::DefaultSessionMode { .. }
-            ) {
-                Self::update_default_session_mode_dropdown(
-                    me.default_session_mode_dropdown.clone(),
-                    ctx,
-                );
-                ctx.notify();
-            }
-        });
-
         let pin_position_dropdown = ctx.add_typed_action_view(|ctx| {
             let mut dropdown = Dropdown::new(ctx);
 
@@ -1683,19 +1655,6 @@ impl FeaturesPageView {
                 Self::update_new_tab_placement_dropdown(me.new_tab_placement_dropdown.clone(), ctx);
             }
             ctx.notify();
-        });
-
-        let default_session_mode_dropdown = ctx.add_typed_action_view(FilterableDropdown::new);
-        Self::update_default_session_mode_dropdown(default_session_mode_dropdown.clone(), ctx);
-
-        ctx.subscribe_to_model(&WarpConfig::handle(ctx), |me, _, event, ctx| {
-            if matches!(event, WarpConfigUpdateEvent::TabConfigs) {
-                Self::update_default_session_mode_dropdown(
-                    me.default_session_mode_dropdown.clone(),
-                    ctx,
-                );
-                ctx.notify();
-            }
         });
 
         #[cfg(feature = "local_fs")]
@@ -1954,7 +1913,6 @@ impl FeaturesPageView {
             ctrl_tab_behavior_dropdown,
             graphics_backend_dropdown,
             new_tab_placement_dropdown,
-            default_session_mode_dropdown,
             tab_behavior: Default::default(),
 
             window_id: ctx.window_id(),
@@ -1976,7 +1934,7 @@ impl FeaturesPageView {
 
     fn build_page(ctx: &mut ViewContext<Self>) -> PageType<Self> {
         let mut general_widgets: Vec<Box<dyn SettingsWidget<View = Self>>> =
-            vec![Box::new(DefaultSessionModeWidget::default())];
+            vec![];
 
         let native_preference_settings = NativePreferenceSettings::as_ref(ctx);
         if native_preference_settings
@@ -2847,86 +2805,6 @@ impl FeaturesPageView {
     fn set_new_tab_placement(&mut self, value: &NewTabPlacement, ctx: &mut ViewContext<Self>) {
         let _ = TabSettings::handle(ctx).update(ctx, |tab_settings, ctx| {
             tab_settings.new_tab_placement.set_value(*value, ctx)
-        });
-    }
-
-    fn update_default_session_mode_dropdown(
-        dropdown: ViewHandle<FilterableDropdown<FeaturesPageAction>>,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        dropdown.update(
-            ctx,
-            |dropdown: &mut FilterableDropdown<FeaturesPageAction>, ctx| {
-                let is_ai_enabled = AISettings::as_ref(ctx).is_any_ai_enabled(ctx);
-
-                if is_ai_enabled {
-                    dropdown.set_enabled(ctx);
-                } else {
-                    dropdown.set_disabled(ctx);
-                }
-
-                let ai_settings = AISettings::as_ref(ctx);
-                let current_mode = ai_settings.default_session_mode(ctx);
-                let current_tab_config_path = ai_settings.default_tab_config_path().to_string();
-
-                // Build items: built-in modes (skip TabConfig since configs are listed individually,
-                // and skip DockerSandbox when its feature flag is disabled).
-                let docker_sandbox_enabled = FeatureFlag::LocalDockerSandbox.is_enabled();
-                let mut items: Vec<DropdownItem<FeaturesPageAction>> = DefaultSessionMode::iter()
-                    .filter(|val| *val != DefaultSessionMode::TabConfig)
-                    .filter(|val| {
-                        *val != DefaultSessionMode::DockerSandbox || docker_sandbox_enabled
-                    })
-                    .map(|val| {
-                        DropdownItem::new(
-                            val.display_name(),
-                            FeaturesPageAction::SetDefaultSessionMode(val),
-                        )
-                    })
-                    .collect();
-
-                // Append each loaded tab config
-                let tab_configs = WarpConfig::as_ref(ctx).tab_configs().to_vec();
-                for config in &tab_configs {
-                    if let Some(path) = &config.source_path {
-                        items.push(DropdownItem::new(
-                            config.name.clone(),
-                            FeaturesPageAction::SetDefaultTabConfig(
-                                path.to_string_lossy().into_owned(),
-                            ),
-                        ));
-                    }
-                }
-
-                dropdown.set_items(items, ctx);
-
-                // Select the currently active item.
-                let selected_name = match current_mode {
-                    DefaultSessionMode::TabConfig => tab_configs
-                        .iter()
-                        .find(|c| {
-                            c.source_path
-                                .as_ref()
-                                .is_some_and(|p| p.to_string_lossy() == current_tab_config_path)
-                        })
-                        .map(|c| c.name.clone())
-                        .unwrap_or_else(|| DefaultSessionMode::Terminal.display_name().to_string()),
-                    other => other.display_name().to_string(),
-                };
-                dropdown.set_selected_by_name(&selected_name, ctx);
-            },
-        );
-    }
-
-    fn set_default_session_mode(
-        &mut self,
-        value: &DefaultSessionMode,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        AISettings::handle(ctx).update(ctx, |ai_settings, ctx| {
-            report_if_error!(ai_settings
-                .default_session_mode_internal
-                .set_value(*value, ctx));
         });
     }
 
@@ -6340,113 +6218,6 @@ impl SettingsWidget for NewTabPlacementWidget {
     }
 }
 
-#[derive(Default)]
-struct DefaultSessionModeWidget {}
-
-impl SettingsWidget for DefaultSessionModeWidget {
-    type View = FeaturesPageView;
-
-    fn search_terms(&self) -> &str {
-        "default session mode agent terminal new pane tab open config"
-    }
-
-    fn render(
-        &self,
-        view: &Self::View,
-        appearance: &Appearance,
-        app: &AppContext,
-    ) -> Box<dyn Element> {
-        let label = render_dropdown_item_label(
-            "Default mode for new sessions".to_string(),
-            None,
-            LocalOnlyIconState::for_setting(
-                DefaultSessionMode::storage_key(),
-                DefaultSessionMode::sync_to_cloud(),
-                &mut view
-                    .button_mouse_states
-                    .local_only_icon_tooltip_states
-                    .borrow_mut(),
-                app,
-            ),
-            None,
-            appearance,
-        );
-
-        Flex::row()
-            .with_cross_axis_alignment(CrossAxisAlignment::Center)
-            .with_child(
-                Shrinkable::new(
-                    1.0,
-                    Container::new(Align::new(label).left().finish())
-                        .with_margin_bottom(4.)
-                        .with_padding_right(16.)
-                        .finish(),
-                )
-                .finish(),
-            )
-            .with_child(ChildView::new(&view.default_session_mode_dropdown).finish())
-            .finish()
-    }
-}
-
-#[derive(Default)]
-struct WorkflowsInCommandSearch {
-    additional_info_link: MouseStateHandle,
-    switch_state: SwitchStateHandle,
-}
-
-impl SettingsWidget for WorkflowsInCommandSearch {
-    type View = FeaturesPageView;
-
-    fn search_terms(&self) -> &str {
-        "global workflows command search"
-    }
-
-    fn render(
-        &self,
-        view: &Self::View,
-        appearance: &Appearance,
-        app: &AppContext,
-    ) -> Box<dyn Element> {
-        let ui_builder = appearance.ui_builder();
-        let workflow_settings = CommandSearchSettings::as_ref(app);
-        render_body_item::<FeaturesPageAction>(
-            "Show Global Workflows in Command Search (ctrl-r)".into(),
-            Some(AdditionalInfo {
-                mouse_state: self.additional_info_link.clone(),
-                on_click_action: Some(FeaturesPageAction::OpenUrl(
-                    "https://docs.warp.dev/terminal/entry/yaml-workflows".into(),
-                )),
-                secondary_text: None,
-                tooltip_override_text: None,
-            }),
-            LocalOnlyIconState::for_setting(
-                ShowGlobalWorkflowsInUniversalSearch::storage_key(),
-                ShowGlobalWorkflowsInUniversalSearch::sync_to_cloud(),
-                &mut view
-                    .button_mouse_states
-                    .local_only_icon_tooltip_states
-                    .borrow_mut(),
-                app,
-            ),
-            ToggleState::Enabled,
-            appearance,
-            ui_builder
-                .switch(self.switch_state.clone())
-                .check(*workflow_settings.show_global_workflows_in_universal_search)
-                .build()
-                .on_click(move |ctx, _, _| {
-                    ctx.dispatch_typed_action(
-                        FeaturesPageAction::ToggleGlobalWorkflowsInUniversalSearch,
-                    )
-                })
-                .finish(),
-            None,
-        )
-    }
-}
-
-#[derive(Default)]
 struct LinuxSelectionClipboardWidget {
     additional_info_link: MouseStateHandle,
     switch_state: SwitchStateHandle,

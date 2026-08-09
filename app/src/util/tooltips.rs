@@ -245,10 +245,10 @@ where
 #[cfg(feature = "local_fs")]
 pub fn should_show_open_in_warp_link(path: &Path, app: &AppContext) -> bool {
     use crate::{
-        code::view::is_binary_file,
         notebooks::file::is_markdown_file,
         util::file::external_editor::{settings::EditorChoice, EditorSettings},
     };
+    use warp_util::file_type::is_binary_file;
     use warpui::SingletonEntity;
 
     let settings = EditorSettings::as_ref(app);

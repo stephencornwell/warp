@@ -38,7 +38,6 @@ use warpui::{
 };
 
 pub use self::view::PaneHeaderAction;
-pub use self::view::PaneHeaderCustomAction;
 pub use self::view::PaneView;
 pub use self::view::PaneViewEvent;
 

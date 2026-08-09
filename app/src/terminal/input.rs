@@ -1717,10 +1717,6 @@ impl Input {
                 ctx,
             );
         }
-        // Recompute the contrast-adjusted editor text colors for the CLI agent
-        // rich input, in case the new theme's defaults contrast differently
-        // against an alt-screen CLI agent background.
-        self.update_cli_agent_editor_text_colors(ctx);
     }
 
     pub fn sessions<'a, A: ModelAsRef>(&self, ctx: &'a A) -> &'a Sessions {
@@ -1737,21 +1733,7 @@ impl Input {
 
             let is_focused = focus_handle.is_focused(ctx);
 
-            me.prompt_render_helper
-                .prompt_view()
-                .update(ctx, |prompt_view, ctx| {
-                    prompt_view.on_pane_focus_changed(is_focused, ctx);
-                });
-
-            me.set_zero_state_hint_text(ctx);
-
-            // Update the universal developer input button bar blurred state when focus changes
-            if me.should_show_universal_developer_input(ctx) {
-                me.universal_developer_input_button_bar
-                    .update(ctx, |button_bar, ctx| {
-                        button_bar.set_is_in_active_terminal(is_focused, ctx);
-                    });
-            }
+            let _ = is_focused;
         });
     }
 
@@ -1874,7 +1856,6 @@ impl Input {
     ) {
         match event {
             InputSettingsChangedEvent::ShowHintText { .. } => {
-                self.set_zero_state_hint_text(ctx);
                 ctx.notify();
             }
             InputSettingsChangedEvent::SyntaxHighlighting { .. } => {
@@ -1898,11 +1879,9 @@ impl Input {
             InputSettingsChangedEvent::InputBoxTypeSetting { .. } => {
                 // Force a re-render when switching between Universal and Classic input modes
                 // to ensure all UI elements update in real-time
-                self.set_zero_state_hint_text(ctx);
                 ctx.notify();
             }
             InputSettingsChangedEvent::AtContextMenuInTerminalMode { .. } => {
-                self.check_and_update_ai_context_menu_disabled_state(ctx);
                 ctx.notify();
             }
             InputSettingsChangedEvent::CompletionsMenuWidth { .. } => {
@@ -2189,6 +2168,30 @@ impl Input {
         // Close the input suggestions menu if it was open.
         self.close_input_suggestions(/*should_focus_input=*/ false, ctx);
         did_execute
+    }
+
+    fn start_block_and_write_command_to_pty(
+        &mut self,
+        command: &str,
+        source: CommandExecutionSource,
+        ctx: &mut ViewContext<Self>,
+    ) {
+        if let Some(abort_handle) = self.completions_abort_handle.take() {
+            abort_handle.abort();
+        }
+        self.abort_latest_autosuggestion_future();
+        if let Some(future_handle) = self.decorations_future_handle.take() {
+            future_handle.abort_handle().abort();
+        }
+        let Some(session_id) = self.active_block_session_id() else {
+            return;
+        };
+        ctx.emit(Event::ExecuteCommand(Box::new(ExecuteCommandEvent {
+            command: command.to_string(),
+            session_id,
+            should_add_command_to_history: true,
+            source,
+        })));
     }
 
     /// We locked the viewer's input when they attempted to execute a command.

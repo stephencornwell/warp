@@ -3756,56 +3756,8 @@ impl Input {
 
     /// Process paste event by checking clipboard for images and handling appropriately.
     fn process_paste_event(&mut self, ctx: &mut ViewContext<Self>) {
-        // Read from app clipboard
         let content = ctx.clipboard().read();
-
-        // If AI is disabled, attachment isn't possible
-        if !AISettings::as_ref(ctx).is_any_ai_enabled(ctx) {
-            self.insert_clipboard_text_content(ctx, content);
-            return;
-        }
-
-        // Shared session viewers cannot attach images unless in cloud mode
-        let is_viewer = self.model.lock().shared_session_status().is_viewer();
-        let is_cloud_mode_with_images = FeatureFlag::CloudModeImageContext.is_enabled()
-            && self
-                .ambient_agent_view_model()
-                .is_some_and(|ambient_agent_model| {
-                    ambient_agent_model.as_ref(ctx).is_ambient_agent()
-                });
-        if is_viewer && !is_cloud_mode_with_images {
-            self.insert_clipboard_text_content(ctx, content);
-            return;
-        }
-
-        // Check if we should insert clipboard text in advance
-        let mut already_inserted_text = false;
-        if warpui::clipboard::should_insert_text_on_paste(&content) {
-            self.insert_clipboard_text_content(ctx, content.clone());
-            already_inserted_text = true;
-        }
-
-        // Try to attach images
-        // If any attachment fails, should_insert_text = true.
-        let should_insert_text = if content.has_image_data() {
-            // If we have image data, process the image data.
-            self.handle_pasted_image_data(content.clone(), ctx) == 0
-        } else if content.num_paths() > 0 {
-            // Else, we check the pasted file paths for any images.
-            let image_filepaths = warpui::clipboard_utils::get_image_filepaths_from_paths(
-                content.paths.as_deref().unwrap_or(&[]),
-            );
-            let num_images_expected = image_filepaths.len();
-            self.handle_pasted_or_dragdropped_image_filepaths(image_filepaths, ctx)
-                < num_images_expected
-        } else {
-            true
-        };
-
-        // Fallback to inserting text
-        if should_insert_text && !already_inserted_text {
-            self.insert_clipboard_text_content(ctx, content);
-        }
+        self.insert_clipboard_text_content(ctx, content);
     }
 
     /// Insert clipboard text content (paths / plaintext)

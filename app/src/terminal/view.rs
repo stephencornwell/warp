@@ -59,10 +59,6 @@ use crate::code::editor_management::CodeSource;
 use crate::context_chips::prompt::Prompt;
 use crate::context_chips::prompt_type::PromptType;
 use crate::context_chips::ContextChipKind;
-use crate::env_vars::{
-    env_var_collection_block::{EnvVarCollectionBlock, EnvVarCollectionBlockEvent},
-    CloudEnvVarCollection, EnvVar,
-};
 use crate::pane_group::focus_state::PaneFocusHandle;
 use crate::persistence::{self, FinishedCommandMetadata};
 use crate::safe_warn;
@@ -1660,10 +1656,6 @@ pub struct TerminalViewRenderContext {
     pub input_box_element_key: String,
     /// Unique view id for saving active cursor position.
     pub terminal_view_id: EntityId,
-    /// This map contains the IDs of sessions that were subshells as keys. Their corresponding
-    /// values are the command that spawned the subshell, which is needed to paint the "flag"
-    pub spawning_command_for_subshell_sessions: HashMap<SessionId, SubshellSource>,
-
     pub obfuscate_secrets: ObfuscateSecrets,
     pub hovered_secret: Option<SecretHandle>,
 
@@ -1975,14 +1967,12 @@ pub struct TerminalView {
     /// The type of the subshell that we will bootstrap/"warpify"" on the next [`AfterBlockStarted`]
     /// terminal model event. Will only be `Some` with a [`ShellType`] we can bootstrap.
     pending_auto_bootstrap_shell_type: Option<ShellType>,
-    env_vars: Vec<EnvVar>,
 
     show_snackbar: bool,
     hover_near_snackbar_area: bool,
 
     passive_suggestions_models: PassiveSuggestionsModels,
 
-    pending_env_var_collection: Option<CloudEnvVarCollection>,
 
     // TODO(suraj): consider flattening this to the [`SharedSessionKind`]
     // and adding a `Unshared` variant to it. This would require [`SharedSessionKind::Sharer`]
@@ -2037,8 +2027,6 @@ pub struct TerminalView {
     /// Whether this terminal pane is taking care of uploading a file over SSH.
     is_ssh_file_uploader: bool,
 
-    /// The file uploads initiated in this terminal pane.
-    ssh_file_upload: ViewHandle<FileUpload>,
 
     /// The type of the shell that this terminal pane is running, derived and
     /// cached on the view from [`ShellLaunchdata`]. Used to render an indicator
@@ -3205,28 +3193,6 @@ impl TerminalView {
             ctx.notify();
         });
 
-        let ssh_file_upload = ctx.add_typed_action_view(|_| FileUpload::new());
-
-        if FeatureFlag::SshDragAndDrop.is_enabled() {
-            ctx.subscribe_to_view(&ssh_file_upload, |_terminal, _file_upload, event, ctx| {
-                // Pass the file upload events up so they can be processed by the pane group.
-                match event {
-                    FileUploadEvent::CopyFileToRemote { command, upload_id } => {
-                        ctx.emit(Event::CopyFileToRemote {
-                            command: command.clone(),
-                            upload_id: *upload_id,
-                        });
-                    }
-                    FileUploadEvent::OpenUploadSession(upload_id) => {
-                        ctx.emit(Event::OpenFileUploadSession(*upload_id));
-                    }
-                    FileUploadEvent::TerminateUploadSession(upload_id) => {
-                        ctx.emit(Event::TerminateFileUploadSession(*upload_id));
-                    }
-                }
-            });
-        }
-
         // Here we intialize the block list mouse states for block zero.
         // Afterwards, we initialize all block list mouse states for a block when the
         // previous block sends a `BlockCompleted` event.
@@ -3355,8 +3321,6 @@ impl TerminalView {
             rich_content_views: Vec::new(),
             usage_footer_view_ids: Default::default(),
             pending_auto_bootstrap_shell_type: None,
-            pending_env_var_collection: None,
-            env_vars: Vec::new(),
             show_snackbar: true,
             hover_near_snackbar_area: false,
             passive_suggestions_models,
@@ -3371,7 +3335,6 @@ impl TerminalView {
             cancel_command_keystroke: keybinding_name_to_keystroke(CANCEL_COMMAND_KEYBINDING, ctx),
             is_file_drop_target: false,
             is_ssh_file_uploader: false,
-            ssh_file_upload,
             most_recent_command_correction: None,
             shell_indicator_type: None,
             shell_detail: None,
@@ -5739,10 +5702,6 @@ impl TerminalView {
         self.model.lock().is_shared_session_viewer()
     }
 
-    pub fn ssh_file_upload(&self) -> &ViewHandle<FileUpload> {
-        &self.ssh_file_upload
-    }
-
     fn should_report_focus(&self, ctx: &mut ViewContext<Self>) -> bool {
         let model = self.model.lock();
         let focus_reporting_enabled = *AltScreenReporting::as_ref(ctx)
@@ -6986,12 +6945,7 @@ impl TerminalView {
 
         self.write_init_subshell_bytes_to_pty(shell_type, ctx);
 
-        if !self.env_vars.is_empty() {
-            self.start_bootstrap_timer(ENV_VAR_BOOTSTRAP_FAILED_DURATION, ctx);
-            self.env_vars = Vec::new();
-        } else {
-            self.start_bootstrap_timer(BOOTSTRAP_FAILED_DURATION, ctx);
-        }
+        self.start_bootstrap_timer(BOOTSTRAP_FAILED_DURATION, ctx);
 
         ();
     }
@@ -10684,10 +10638,6 @@ impl TerminalView {
             );
         }
 
-        if let Some(env_var_collection) = self.pending_env_var_collection.take() {
-            self.invoke_environment_variables(env_var_collection, false, ctx);
-        }
-
         // If this is a new local session, update the PATH used for MCP command execution.
         if let Some(path) = Self::local_session_path(&session) {
             AISettings::handle(ctx).update(ctx, |settings, ctx| {
@@ -12104,7 +12054,7 @@ impl TerminalView {
         ctx: &mut ViewContext<Self>,
     ) {
         self.clear_line_editor_and_write_to_pty(
-            init_subshell_command(shell_type, &self.env_vars, ctx).into_bytes(),
+            init_subshell_command(shell_type, &[], ctx).into_bytes(),
             ctx,
         );
         self.write_to_pty(vec![escape_sequences::C0::CR], ctx);
@@ -19721,15 +19671,6 @@ impl TerminalView {
         session.launch_data().cloned()
     }
 
-    fn spawning_command_for_subshell_sessions(
-        &self,
-        app: &AppContext,
-    ) -> HashMap<SessionId, SubshellSource> {
-        self.sessions
-            .as_ref(app)
-            .spawning_command_for_subshell_sessions()
-    }
-
     fn is_waterfall_gap_mode(&self, model: &TerminalModel, app: &AppContext) -> bool {
         let input_mode = *InputModeSettings::as_ref(app).input_mode.value();
         self.viewport_state(model.block_list(), input_mode, app)
@@ -19771,8 +19712,6 @@ impl TerminalView {
             selected_blocks: self.selected_blocks.clone(),
             input_box_element_key: self.input.as_ref(app).save_position_id(),
             terminal_view_id: self.view_id,
-            spawning_command_for_subshell_sessions: self
-                .spawning_command_for_subshell_sessions(app),
             obfuscate_secrets: get_secret_obfuscation_mode(app),
             hovered_secret: self.hovered_secret,
             horizontal_clipped_scroll_state: self.horizontal_clipped_scroll_state.clone(),
@@ -21668,79 +21607,6 @@ impl TerminalView {
         None
     }
 
-    pub fn invoke_environment_variables(
-        &mut self,
-        cloud_env_var_collection: CloudEnvVarCollection,
-        in_subshell: bool,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        let session_id = self.active_block_session_id();
-
-        if !in_subshell {
-            let Some(shell_type) = self.active_session_shell_type(ctx) else {
-                return;
-            };
-            self.invoke_env_vars_in_current_session(
-                cloud_env_var_collection.clone(),
-                shell_type,
-                session_id,
-                ctx,
-            );
-        } else {
-            let window_id = ctx.window_id();
-            let shell_session_info =
-                if self.active_session_is_local(ctx).unwrap_or(false) || !in_subshell {
-                    if let Some(shell_info) = self.get_shell_starter_local(ctx) {
-                        shell_info
-                    } else {
-                        // TODO(PR): This can fail for reasons besides being "non-local". We can also
-                        // not find a fallback shell.
-                        self.display_non_local_environment_variable_error(window_id, ctx);
-                        return;
-                    }
-                } else {
-                    self.display_non_local_environment_variable_error(window_id, ctx);
-                    return;
-                };
-
-            self.invoke_env_vars_in_subshell(
-                cloud_env_var_collection,
-                shell_session_info,
-                window_id,
-                ctx,
-            );
-        }
-    }
-
-    fn invoke_env_vars_in_current_session(
-        &mut self,
-        cloud_env_var_collection: CloudEnvVarCollection,
-        shell_type: ShellType,
-        session_id: Option<SessionId>,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        let env_var_collection = cloud_env_var_collection.model().string_model.clone();
-        if let Some(session_id) = session_id {
-            self.add_env_var_block_to_blocklist(
-                env_var_collection
-                    .title
-                    .clone()
-                    .unwrap_or("Untitled".to_owned()),
-                env_var_collection
-                    .vars
-                    .iter()
-                    .map(|var| var.get_initialization_string(shell_type))
-                    .collect_vec()
-                    .join(" "),
-                session_id,
-                cloud_env_var_collection.cloud_object_type_and_id(),
-                ctx,
-            );
-        } else {
-            self.pending_env_var_collection = Some(cloud_env_var_collection)
-        }
-    }
-
     fn set_and_execute_subshell_command(
         &mut self,
         shell_command: &str,
@@ -21753,44 +21619,6 @@ impl TerminalView {
         self.input.update(ctx, |input, ctx| {
             input.set_pending_command(shell_command, ctx);
             input.execute_pending_command(ctx);
-        });
-    }
-
-    fn invoke_env_vars_in_subshell(
-        &mut self,
-        cloud_env_var_collection: CloudEnvVarCollection,
-        shell_session_info: (String, ShellType),
-        window_id: WindowId,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        let env_var_collection = cloud_env_var_collection.model().string_model.clone();
-
-        let (shell_path_string, shell_type) = shell_session_info;
-        if shell_type == ShellType::PowerShell {
-            ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
-                let toast =
-                    DismissibleToast::error("PowerShell subshells not supported".to_owned());
-                toast_stack.add_ephemeral_toast(toast, window_id, ctx);
-            });
-            return;
-        }
-
-        // Set the env vars before executing a subshell command so that it will be loaded on
-        // subshell start
-        self.env_vars = env_var_collection.vars;
-        self.model.lock().set_env_var_collection_name(Some(
-            env_var_collection.title.unwrap_or("Untitled".to_owned()),
-        ));
-        self.set_and_execute_subshell_command(&shell_path_string, shell_type, ctx);
-
-        // Ok to update the execution record here because we auto-execute when in subshell
-        UpdateManager::handle(ctx).update(ctx, move |update_manager, ctx| {
-            update_manager.record_object_action(
-                cloud_env_var_collection.cloud_object_type_and_id(),
-                ObjectActionType::Execute,
-                None,
-                ctx,
-            )
         });
     }
 
@@ -21866,10 +21694,7 @@ impl TerminalView {
             return;
         };
 
-        let sshed = self.model.lock().is_warpified_ssh() || session.is_legacy_ssh_session();
-        if sshed && !paths.is_empty() && FeatureFlag::SshDragAndDrop.is_enabled() {
-            self.initiate_ssh_file_upload(paths, ctx);
-        } else {
+        {
             // For long-running commands in MSYS2/Git Bash on Windows, skip
             // conversion and shell escaping. Executables in git bash
             // aren't git bash _specific_, they still expect paths in
@@ -21901,36 +21726,6 @@ impl TerminalView {
                 warpui::clipboard_utils::escaped_paths_str(paths, Some(self.shell_family(ctx)));
             self.typed_characters_on_terminal(&input, ctx);
         }
-    }
-
-    pub fn initiate_ssh_file_upload(&self, paths: &[String], ctx: &mut ViewContext<Self>) {
-        let remote_pwd = self.pwd();
-        if let Some(ssh_connection_info) = self.ssh_session_info(ctx) {
-            let Some(ref ssh_host) = ssh_connection_info.host else {
-                return;
-            };
-            self.ssh_file_upload.update(ctx, |file_upload, ctx| {
-                file_upload.start_file_upload(
-                    ssh_host,
-                    paths,
-                    &remote_pwd,
-                    &ssh_connection_info,
-                    ctx,
-                )
-            });
-        }
-    }
-
-    pub fn propagate_password_request(&mut self, ctx: &mut ViewContext<Self>) {
-        ctx.emit(Event::FileUploadPasswordPending)
-    }
-
-    pub fn propagate_upload_finished_event(
-        &mut self,
-        exit_code: ExitCode,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        ctx.emit(Event::FileUploadFinished(exit_code))
     }
 
     fn ssh_session_info(&self, ctx: &ViewContext<Self>) -> Option<InteractiveSshCommand> {
@@ -23888,14 +23683,6 @@ impl View for TerminalView {
             .is_some_and(|model| model.as_ref(app).is_in_setup())
         {
             stack.add_child(ChildView::new(&self.first_time_cloud_agent_setup_view).finish());
-        }
-
-        if self.ssh_file_upload.as_ref(app).has_upload() {
-            stack.add_child(
-                Align::new(ChildView::new(&self.ssh_file_upload).finish())
-                    .bottom_right()
-                    .finish(),
-            );
         }
 
         let element = if !did_wrap_terminal_size {

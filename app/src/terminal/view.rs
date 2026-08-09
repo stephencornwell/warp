@@ -5542,12 +5542,6 @@ impl TerminalView {
                 // If selection is empty, only show non-block related options
                 let mut items = Vec::new();
 
-                if FeatureFlag::CreatingSharedSessions.is_enabled()
-                    && ContextFlag::CreateSharedSession.is_enabled()
-                {
-                    items.extend(self.session_sharing_context_menu_items(&model, false));
-                }
-
                 items
             }
             _ => vec![],
@@ -6106,11 +6100,6 @@ impl TerminalView {
         selection_type: SelectionType,
         ctx: &mut ViewContext<Self>,
     ) {
-        // Clear any active text selections in CLI subagent views, since a new selection
-        // is starting on the alt screen (which can be visible simultaneously).
-        for subagent_view in self.cli_subagent_views.values() {
-            subagent_view.update(ctx, |view, ctx| view.clear_all_selections(ctx));
-        }
         self.model.lock().alt_screen_mut().clear_selection();
         self.model
             .lock()
@@ -6159,11 +6148,6 @@ impl TerminalView {
                     .filter(|text| !text.is_empty())
             };
 
-            // The text selection changed, so clear any previously attached context text.
-            self.ai_context_model.update(ctx, |context_model, ctx| {
-                context_model.set_pending_context_selected_text(None, false, ctx);
-            });
-
             // A text selection might be a byproduct of a block selection.
             // If there's no renderable text selection, we should clear the text selection.
             if selected_text.is_none() {
@@ -6191,7 +6175,6 @@ impl TerminalView {
         change_selection(&mut self.selected_blocks);
         self.update_find_selection(ctx);
 
-        ctx.emit(Event::SelectedBlocksChanged);
     }
 
     // Additionally handles side effects of changing block selections (i.e. CMD + F results, etc.),

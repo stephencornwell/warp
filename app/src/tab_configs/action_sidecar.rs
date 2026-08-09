@@ -26,7 +26,6 @@ pub(crate) enum SidecarItemKind {
     /// A built-in item (Terminal, a specific shell, Agent, Cloud Oz).
     BuiltIn {
         name: String,
-        default_mode: DefaultSessionMode,
         shell: Option<AvailableShell>,
     },
     /// A user-created tab config loaded from disk.

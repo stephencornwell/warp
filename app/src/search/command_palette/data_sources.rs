@@ -7,7 +7,6 @@ use crate::search::command_palette::files;
 use crate::search::command_palette::launch_config;
 use crate::search::command_palette::mixer::{CommandPaletteItemAction, ItemSummary};
 use crate::search::command_palette::new_session::NewSessionDataSource;
-use crate::search::command_palette::repos::RepoDataSource;
 use crate::search::command_palette::{navigation, CommandPaletteMixer};
 use crate::search::data_source::QueryResult;
 use crate::search::files::model::FileSearchModel;
@@ -26,7 +25,6 @@ pub struct DataSourceStore {
     sessions_data_source: ModelHandle<navigation::DataSource>,
     launch_config_data_source: ModelHandle<launch_config::DataSource>,
     new_session_data_source: Option<ModelHandle<NewSessionDataSource>>,
-    repo_data_source: ModelHandle<RepoDataSource>,
 }
 
 impl DataSourceStore {
@@ -47,14 +45,11 @@ impl DataSourceStore {
             && cfg!(feature = "local_tty"))
         .then_some(ctx.add_model(|ctx| NewSessionDataSource::new(binding_source, ctx)));
 
-        let repo_data_source = ctx.add_model(|_| RepoDataSource::new());
-
         Self {
             actions_data_source,
             sessions_data_source,
             launch_config_data_source,
             new_session_data_source,
-            repo_data_source,
         }
     }
 
@@ -114,11 +109,6 @@ impl DataSourceStore {
                     ctx,
                 );
             }
-
-            mixer.add_sync_source(
-                self.repo_data_source.clone(),
-                HashSet::from([QueryFilter::Repos]),
-            );
 
             ctx.notify();
         });

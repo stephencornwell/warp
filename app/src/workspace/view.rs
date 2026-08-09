@@ -573,6 +573,7 @@ type WorkspaceMenuHandles = (
     ViewHandle<Menu<WorkspaceAction>>,
     ViewHandle<Menu<NewSessionSidecarSelection>>,
 );
+type SerializedBlockListItem = crate::terminal::model::block::SerializedBlock;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 enum NewSessionSidecarSelection {

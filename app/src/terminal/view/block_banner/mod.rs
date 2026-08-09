@@ -6,9 +6,6 @@
 //! without a LayoutContext. Use the exported BLOCK_BANNER_HEIGHT const when the banner height
 //! needs to be taken into account.
 
-mod warpify;
-
-pub use warpify::*;
 use warpui::{
     elements::{
         ConstrainedBox, Container, CornerRadius, Hoverable, MouseState, MouseStateHandle,

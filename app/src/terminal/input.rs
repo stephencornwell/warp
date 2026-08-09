@@ -6665,7 +6665,6 @@ impl Input {
                 is_down: false,
             }
         });
-        send_telemetry_from_ctx!(event, ctx);
         self.editor
             .update(ctx, |input, ctx| input.move_page_up(ctx));
     }
@@ -6982,7 +6981,6 @@ impl Input {
                 is_down: true,
             }
         });
-        send_telemetry_from_ctx!(event, ctx);
         self.editor
             .update(ctx, |input, ctx| input.move_page_down(ctx));
     }
@@ -7538,7 +7536,6 @@ impl Input {
                         .active_block()
                         .has_received_precmd()
                     {
-                        send_telemetry_from_ctx!(TelemetryEvent::EditedInputBeforePrecmd, ctx);
                         ctx.notify();
                     }
                 }
@@ -9996,7 +9993,6 @@ impl Input {
                 ctx,
             );
         });
-        send_telemetry_from_ctx!(TelemetryEvent::TabSingleResultAutocompletion, ctx);
     }
 
     /// Whether the editor is in a state where we should tab complete instead of indenting text
@@ -12693,7 +12689,6 @@ impl Input {
         } else {
             AICommandSearchEntrypoint::Keybinding
         };
-        send_telemetry_from_ctx!(TelemetryEvent::AICommandSearchOpened { entrypoint }, ctx);
         ctx.notify();
     }
 

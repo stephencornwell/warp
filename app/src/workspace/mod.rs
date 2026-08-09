@@ -18,15 +18,10 @@ mod toast_stack;
 pub mod util;
 pub mod view;
 
-use crate::ai::skills::SkillManager;
-use crate::ai::AIRequestUsageModel;
 use crate::channel::Channel;
 use crate::code;
 use crate::features::FeatureFlag;
 use crate::modal;
-use crate::notebooks;
-use crate::server::telemetry::PaletteSource;
-use crate::settings::AISettings;
 use crate::settings_view::{self, flags, SettingsSection};
 use crate::tab_configs;
 use warpui::SingletonEntity;
@@ -50,7 +45,7 @@ pub use action::{
 };
 pub use active_session::ActiveSession;
 pub use global_actions::{
-    ForkAIConversationParams, ForkFromExchange, ForkedConversationDestination,
+    ForkedConversationDestination,
 };
 pub use util::{active_terminal_in_window, PaneViewLocator, TabMovement};
 pub use view::{
@@ -69,13 +64,6 @@ pub fn panel_header_corner_radius() -> warpui::elements::CornerRadius {
 ///
 /// Kept in sync with the availability check in `Workspace::send_feedback` so
 /// the command palette label and the menu item behavior never diverge.
-pub fn is_feedback_skill_available(ctx: &AppContext) -> bool {
-    AISettings::as_ref(ctx).is_any_ai_enabled(ctx)
-        && AIRequestUsageModel::as_ref(ctx).has_any_ai_remaining(ctx)
-        && SkillManager::as_ref(ctx)
-            .active_bundled_skill("feedback", ctx)
-            .is_some()
-}
 
 use crate::workspace::view::{
     LEFT_PANEL_GLOBAL_SEARCH_BINDING_NAME,

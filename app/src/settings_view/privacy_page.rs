@@ -232,14 +232,11 @@ impl PrivacyPageView {
     fn build_page() -> PageType<Self> {
         let mut widgets: Vec<Box<dyn SettingsWidget<View = Self>>> = vec![
             Box::new(SecretRedactionWidget::default()),
-            Box::new(AppAnalyticsWidget::default()),
             Box::new(CrashReportsWidget::default()),
-            Box::new(CloudConversationStorageWidget::default()),
         ];
         if ContextFlag::NetworkLogConsole.is_enabled() {
             widgets.push(Box::new(NetworkLogWidget::default()));
         }
-        widgets.push(Box::new(DataManagementWidget::default()));
         widgets.push(Box::new(PrivacyPolicyWidget::default()));
         PageType::new_uncategorized(widgets, Some("Privacy"))
     }
@@ -522,9 +519,7 @@ impl TypedActionView for PrivacyPageView {
 
                 let privacy_settings_handle = PrivacySettings::handle(ctx);
                 ctx.update_model(&privacy_settings_handle, |privacy_settings, ctx| {
-                    let workspaces = UserWorkspaces::as_ref(ctx);
-                    let enterprise_regex_list =
-                        workspaces.get_enterprise_secret_redaction_regex_list();
+                    let enterprise_regex_list: Vec<RegexDisplayInfo> = Vec::new();
                     let current_patterns: Vec<&str> = enterprise_regex_list
                         .iter()
                         .map(|s| s.pattern.as_str())
@@ -581,12 +576,7 @@ impl TypedActionView for PrivacyPageView {
             PrivacyPageAction::RemoveCustomRegex(idx) => {
                 self.queue_regex_removal(*idx, ctx);
             }
-            PrivacyPageAction::OpenDataManagementWebpage => {
-                AuthManager::handle(ctx).update(ctx, |auth_manager, ctx| {
-                    auth_manager
-                        .open_url_maybe_with_anonymous_token(ctx, Box::new(data_management_url));
-                });
-            }
+            PrivacyPageAction::OpenDataManagementWebpage => {}
             PrivacyPageAction::AddAllRecommendedRegexes => {
                 // First process any pending removals
                 if !self.pending_regex_removals.is_empty() {
@@ -749,8 +739,7 @@ impl SecretRedactionWidget {
             return Empty::new().finish();
         }
 
-        let workspaces = UserWorkspaces::as_ref(app);
-        let enterprise_regex_list = workspaces.get_enterprise_secret_redaction_regex_list();
+        let enterprise_regex_list: Vec<RegexDisplayInfo> = Vec::new();
         let enterprise_count = enterprise_regex_list.len();
 
         // Count personal regexes excluding pending removals
@@ -901,8 +890,7 @@ impl SecretRedactionWidget {
         appearance: &Appearance,
         app: &AppContext,
     ) -> Box<dyn Element> {
-        let workspaces = UserWorkspaces::as_ref(app);
-        let enterprise_regex_list = workspaces.get_enterprise_secret_redaction_regex_list();
+        let enterprise_regex_list: Vec<RegexDisplayInfo> = Vec::new();
         let ui_builder = appearance.ui_builder();
         let description_text_color = description_text_color(appearance.theme()).into_solid();
 
@@ -943,7 +931,7 @@ impl SecretRedactionWidget {
     ) -> Box<dyn Element> {
         let privacy_settings = PrivacySettings::as_ref(app);
         let ui_builder = appearance.ui_builder();
-        let workspaces = UserWorkspaces::as_ref(app);
+        let enterprise_regex_list: Vec<RegexDisplayInfo> = Vec::new();
 
         let mut column = Flex::column();
 
@@ -1333,8 +1321,7 @@ impl SettingsWidget for SecretRedactionWidget {
                     .finish(),
             );
 
-            let workspaces = UserWorkspaces::as_ref(app);
-            let enterprise_regex_list = workspaces.get_enterprise_secret_redaction_regex_list();
+            let enterprise_regex_list: Vec<RegexDisplayInfo> = Vec::new();
 
             if is_enterprise_enabled && !enterprise_regex_list.is_empty() {
                 column.add_child(self.render_tab_bar(

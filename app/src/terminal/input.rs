@@ -1156,7 +1156,6 @@ pub struct Input {
     menu_positioning_provider: Arc<dyn MenuPositioningProvider>,
     tips_completed: ModelHandle<TipsCompleted>,
     editor: ViewHandle<EditorView>,
-    server_api: Arc<ServerApi>,
     input_suggestions: ViewHandle<InputSuggestions>,
     suggestions_mode_model: ModelHandle<InputSuggestionsModeModel>,
     completions_menu_resizable_width: ResizableStateHandle,
@@ -1198,7 +1197,6 @@ pub struct Input {
     /// Manages presence state for shared session.
     ///
     /// Only [`Some`] if this is a shared session.
-    shared_session_presence_manager: Option<ModelHandle<PresenceManager>>,
 
     /// A cache of the local buffer operations for the latest instance
     /// of the input buffer. Specifically, these only include operations
@@ -1543,7 +1541,7 @@ pub enum CompletionsTrigger {
 enum SubshellRenderState {
     /// Contains the subshell-spawning command for the flag. Render the flag
     /// and extend the flag into the input editor.
-    Flag(SubshellSource),
+    Flag,
     /// The input is inside a subshell, extend the flag into the input editor,
     /// but do not render the actual flag.
     Flagpole,
@@ -1576,8 +1574,7 @@ impl Input {
     pub(crate) fn new(
         model: Arc<FairMutex<TerminalModel>>,
         tips_completed: ModelHandle<TipsCompleted>,
-        server_api: Arc<ServerApi>,
-        sessions: ModelHandle<Sessions>,
+            sessions: ModelHandle<Sessions>,
         size_info: SizeInfo,
         menu_positioning_provider: Arc<dyn MenuPositioningProvider>,
         current_prompt: ModelHandle<PromptType>,
@@ -1743,7 +1740,6 @@ impl Input {
             menu_positioning_provider,
             tips_completed,
             editor,
-            server_api,
             input_suggestions,
             suggestions_mode_model,
             completions_menu_resizable_width: resizable_state_handle(completions_menu_width),

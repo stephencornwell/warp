@@ -3482,8 +3482,6 @@ impl CodeEditorModel {
         None
     }
 
-    /// After a modification to the code, update the locations of review comments to match their new positions.
-
 }
 
 impl CoreEditorModel for CodeEditorModel {

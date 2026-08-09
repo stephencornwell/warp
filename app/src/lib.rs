@@ -212,31 +212,6 @@ use crate::workspace::{PaneViewLocator, Workspace, WorkspaceAction};
 use warp_logging::LogDestination;
 
 #[macro_export]
-macro_rules! send_telemetry_from_ctx {
-    ($($tokens:tt)*) => { () };
-}
-
-#[macro_export]
-macro_rules! send_telemetry_from_app_ctx {
-    ($($tokens:tt)*) => { () };
-}
-
-#[macro_export]
-macro_rules! send_telemetry_sync_from_ctx {
-    ($($tokens:tt)*) => { () };
-}
-
-#[macro_export]
-macro_rules! send_telemetry_sync_from_app_ctx {
-    ($($tokens:tt)*) => { () };
-}
-
-#[macro_export]
-macro_rules! send_telemetry_on_executor {
-    ($($tokens:tt)*) => { () };
-}
-
-#[macro_export]
 macro_rules! safe_error {
     ($($tokens:tt)*) => { () };
 }
@@ -1523,12 +1498,7 @@ fn app_callbacks(is_integration_test: bool) -> warpui::platform::AppCallbacks {
 
             let summary = UnsavedStateSummary::for_window(window_id, ctx);
 
-            send_telemetry_from_app_ctx!(
-                TelemetryEvent::UserInitiatedClose {
-                    initiated_on: CloseTarget::Window,
-                },
-                ctx
-            );
+            ();
 
             // Don't show dialog on integration test. Machine can't press buttons.
             if !is_integration_test && summary.should_display_warning(ctx) {
@@ -1555,12 +1525,7 @@ fn app_callbacks(is_integration_test: bool) -> warpui::platform::AppCallbacks {
             }
         })),
         on_should_terminate_app: Some(Box::new(move |ctx| {
-            send_telemetry_from_app_ctx!(
-                TelemetryEvent::UserInitiatedClose {
-                    initiated_on: CloseTarget::App,
-                },
-                ctx
-            );
+            ();
 
             let summary = UnsavedStateSummary::for_app(ctx);
             // Don't show dialog on integration test. Machine can't press buttons.
@@ -1584,7 +1549,7 @@ fn app_callbacks(is_integration_test: bool) -> warpui::platform::AppCallbacks {
                     .show_warning_before_quitting
                     .toggle_and_save_value(ctx));
             });
-            send_telemetry_from_app_ctx!(TelemetryEvent::QuitModalDisabled, ctx);
+            ();
         })),
         on_notification_clicked: Some(Box::new(move |notification_response, ctx| {
             if let Some(notification_data) = notification_response.data() {
@@ -1709,13 +1674,7 @@ fn focus_running_window_and_show_native_modal(
 }
 
 fn on_close_app_cancelled(open_navigation_palette: bool, ctx: &mut AppContext) {
-    send_telemetry_from_app_ctx!(
-        TelemetryEvent::QuitModalCancel {
-            nav_palette: open_navigation_palette,
-            modal_for: CloseTarget::App,
-        },
-        ctx
-    );
+    ();
 
     let sessions = SessionNavigationData::all_sessions(ctx).collect_vec();
     let sessions_summary = RunningSessionSummary::new(&sessions);
@@ -1763,13 +1722,7 @@ fn on_close_window_cancelled(
     open_navigation_palette: bool,
     ctx: &mut AppContext,
 ) {
-    send_telemetry_from_app_ctx!(
-        TelemetryEvent::QuitModalCancel {
-            nav_palette: open_navigation_palette,
-            modal_for: CloseTarget::Window,
-        },
-        ctx
-    );
+    ();
 
     let sessions = SessionNavigationData::all_sessions(ctx).collect_vec();
     let sessions_summary = RunningSessionSummary::new(&sessions);

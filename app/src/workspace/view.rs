@@ -3613,7 +3613,6 @@ impl Workspace {
 
         let panes_layout = PanesLayout::Snapshot(Box::new(PaneNodeSnapshot::Leaf(LeafSnapshot {
             is_focused: true,
-            custom_vertical_tabs_title: None,
             contents: LeafContents::Settings(SettingsPaneSnapshot::Local {
                 current_page: page.unwrap_or_default(),
                 search_query: search_query.map(|s| s.to_owned()),
@@ -4694,7 +4693,6 @@ impl Workspace {
                         .get(tab_index)
                         .map_or(SelectedTabColor::Unset, |tab| tab.selected_color),
                     left_panel,
-                    right_panel: None,
                 }
             })
             .filter(|tab| {
@@ -4737,13 +4735,6 @@ impl Workspace {
                 .size()
         });
 
-        let warp_drive_index_width = modal_sizes.map(|ms| {
-            ms.warp_drive_index_width
-                .lock()
-                .expect("should be able to lock warp drive resizable state handle")
-                .size()
-        });
-
         let left_panel_width = modal_sizes.map(|ms| {
             ms.left_panel_width
                 .lock()
@@ -4758,11 +4749,6 @@ impl Workspace {
                 .unwrap_or(DEFAULT_RIGHT_PANEL_WIDTH)
         });
 
-        let agent_management_filters = Some(
-            self.agent_management_view
-                .read(app, |view, _| view.get_filters()),
-        );
-
         WindowSnapshot {
             tabs,
             active_tab_index,
@@ -4772,12 +4758,10 @@ impl Workspace {
             universal_search_width,
             warp_ai_width,
             voltron_width,
-            warp_drive_index_width,
             left_panel_open: self.left_panel_open,
             vertical_tabs_panel_open: false,
             left_panel_width,
             right_panel_width,
-            agent_management_filters,
         }
     }
 

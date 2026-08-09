@@ -15,7 +15,6 @@ use crate::{
         },
         session_settings::{
             GithubPrPromptChipDefaultValidation, SessionSettings, SessionSettingsChangedEvent,
-            ToolbarChipSelection,
         },
         view::{ContextMenuAction, PromptPart, PromptPosition, TerminalAction},
     },
@@ -1086,18 +1085,6 @@ impl CurrentPrompt {
     fn chips_to_run(&self, ctx: &AppContext) -> Vec<ContextChipKind> {
         let mut chips = self.configured_chips(ctx);
 
-        if FeatureFlag::AgentView.is_enabled() {
-            let footer_chips = SessionSettings::as_ref(ctx)
-                .agent_footer_chip_selection
-                .all_chips();
-            for chip_kind in footer_chips {
-                if !chips.contains(&chip_kind) {
-                    chips.push(chip_kind);
-                }
-            }
-
-        }
-
         chips
     }
 
@@ -1169,11 +1156,6 @@ impl CurrentPrompt {
             self.same_line_prompt_enabled =
                 session_settings.saved_prompt.same_line_prompt_enabled();
             self.separator = session_settings.saved_prompt.separator();
-        }
-
-        if let SessionSettingsChangedEvent::AgentToolbarChipSelectionSetting { .. } = event {
-            // Recompute which chips to run when the agent footer config changes.
-            self.update_states_with_new_context(ctx);
         }
 
     }

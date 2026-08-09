@@ -103,7 +103,6 @@ use crate::terminal::model::session::{Session, SessionId};
 use crate::terminal::model::{ObfuscateSecrets, RespectObfuscatedSecrets, SecretHandle};
 use crate::terminal::recorder::PtyRecorder;
 use crate::terminal::safe_mode_settings::get_secret_obfuscation_mode;
-use crate::terminal::session_settings::ToolbarChipSelection;
 use crate::terminal::session_settings::{
     NotificationsMode, NotificationsSettings, SessionSettings,
 };

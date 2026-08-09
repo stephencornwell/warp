@@ -486,7 +486,6 @@ pub struct AppearanceSettingsPageView {
     alt_screen_padding_editor: ViewHandle<EditorView>,
     color_picker_dot_states: Vec<Vec<MouseStateHandle>>,
     directory_tab_color_delete_buttons: Vec<ViewHandle<ActionButton>>,
-    header_toolbar_inline_editor: ViewHandle<HeaderToolbarInlineEditor>,
 
     /// The context chip renderers based on the most recently
     /// selected Warp prompt configuration.
@@ -1155,8 +1154,6 @@ impl AppearanceSettingsPageView {
         let input_type = InputSettings::as_ref(ctx).input_type(ctx);
         let input_type_radio_state = RadioButtonStateHandle::default();
         input_type_radio_state.set_selected_idx(input_type as usize);
-        let header_toolbar_inline_editor =
-            ctx.add_typed_action_view(HeaderToolbarInlineEditor::new);
 
         AppearanceSettingsPageView {
             page: Self::build_page(ctx),
@@ -1195,7 +1192,6 @@ impl AppearanceSettingsPageView {
                 })
                 .collect(),
             directory_tab_color_delete_buttons: build_directory_delete_buttons(ctx),
-            header_toolbar_inline_editor,
             alt_screen_padding_editor,
             context_chips,
             ps1_grid_info: None,
@@ -4397,41 +4393,6 @@ impl SettingsWidget for PreserveActiveTabColorWidget {
                 .finish(),
             None,
         )
-    }
-}
-
-#[derive(Default)]
-struct EditToolbarWidget;
-
-impl SettingsWidget for EditToolbarWidget {
-    type View = AppearanceSettingsPageView;
-
-    fn search_terms(&self) -> &str {
-        "edit toolbar header panel buttons configure arrange layout chip chips rearrange re-arrange customize"
-    }
-
-    fn render(
-        &self,
-        view: &Self::View,
-        appearance: &Appearance,
-        _app: &AppContext,
-    ) -> Box<dyn Element> {
-        let label = render_body_item_label::<AppearancePageAction>(
-            "Header toolbar layout".to_string(),
-            None,
-            None,
-            LocalOnlyIconState::Hidden,
-            ToggleState::Enabled,
-            appearance,
-        );
-        let editor = Container::new(ChildView::new(&view.header_toolbar_inline_editor).finish())
-            .with_padding_bottom(HEADER_PADDING)
-            .finish();
-
-        Flex::column()
-            .with_child(Container::new(label).with_margin_bottom(4.).finish())
-            .with_child(editor)
-            .finish()
     }
 }
 

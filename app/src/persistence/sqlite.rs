@@ -2416,8 +2416,6 @@ fn read_sqlite_data(
     let projects = get_all_projects(conn)?;
     let project_rules = get_all_project_rules(conn)?;
     let ignored_suggestions = get_all_ignored_suggestions(conn)?;
-    let mcp_server_installations = get_all_mcp_server_installations(conn)?;
-    let mcp_servers_to_restore = get_mcp_servers_to_restore(conn)?;
 
     Ok(PersistedData {
         app_state,
@@ -2434,8 +2432,6 @@ fn read_sqlite_data(
         projects,
         project_rules,
         ignored_suggestions,
-        mcp_server_installations,
-        mcp_servers_to_restore,
     })
 }
 

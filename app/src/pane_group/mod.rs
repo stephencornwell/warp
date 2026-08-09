@@ -1271,39 +1271,7 @@ impl PaneGroup {
                     .map(PathBuf::from)
                     .filter(|path| path.is_dir());
 
-                // Filter conversation IDs to only include those that have task messages
-                // and are not entirely passive (ignored suggestions).
-                // This prevents showing the "Previous session" banner when there's nothing to restore
-                // and avoids restoring passive code diffs that the user never acted on.
-                let filtered_conversation_ids: Vec<AIConversationId> = terminal_snapshot
-                    .conversation_ids_to_restore
-                    .iter()
-                    .filter(|&conversation_id| {
-                        RestoredAgentConversations::handle(ctx).read(ctx, |store, _| {
-                            store
-                                .get_conversation(conversation_id)
-                                .is_some_and(|persisted_conv| {
-                                    // Filter conversations that contain no tasks.
-                                    if persisted_conv.all_tasks().next().is_none() {
-                                        return false;
-                                    }
-
-                                    // Filter conversations that are entirely passive.
-                                    !persisted_conv.is_entirely_passive()
-                                })
-                        })
-                    })
-                    .copied()
-                    .collect();
-
-                let conversation_restoration = vec1::Vec1::try_from_vec(filtered_conversation_ids)
-                    .ok()
-                    .map(
-                        |conversation_ids| ConversationRestorationInNewPaneType::Startup {
-                            conversation_ids,
-                            active_conversation_id: terminal_snapshot.active_conversation_id,
-                        },
-                    );
+                let conversation_restoration = None;
                 let (terminal_view, terminal_manager) = PaneGroup::create_session(
                     startup_directory,
                     HashMap::new(),
@@ -1332,29 +1300,6 @@ impl PaneGroup {
                 let terminal_pane_id = pane_data.terminal_pane_id();
                 let pane_id = terminal_pane_id.into();
                 pane_contents.insert(pane_id, Box::new(pane_data));
-
-                if let Some(active_profile_sync_id) = &terminal_snapshot.active_profile_id {
-                    log::info!(
-                        "Attempting to restore active_profile '{active_profile_sync_id}' for terminal {terminal_view_id:?}"
-                    );
-
-                    let profiles_model = AIExecutionProfilesModel::as_ref(ctx);
-
-                    if let Some(profile_id) =
-                        profiles_model.get_profile_id_by_sync_id(active_profile_sync_id)
-                    {
-                        AIExecutionProfilesModel::handle(ctx).update(ctx, |profiles_model, ctx| {
-                            profiles_model.set_active_profile(terminal_view_id, profile_id, ctx);
-                        });
-                        log::info!(
-                            "Restored active profile {profile_id:?} for terminal {terminal_view_id:?}"
-                        );
-                    } else {
-                        log::warn!(
-                            "Failed to restore active profile for terminal {terminal_view_id:?}"
-                        );
-                    }
-                }
 
                 let focus = InitialFocus {
                     focused_pane: leaf.is_focused.then_some(pane_id),
@@ -2172,16 +2117,6 @@ impl PaneGroup {
 
     pub fn has_pane_id(&self, pane_id: PaneId) -> bool {
         self.pane_contents.contains_key(&pane_id)
-    }
-
-    pub fn notebook_view_at_pane_index(
-        &self,
-        pane_index: usize,
-        ctx: &AppContext,
-    ) -> Option<ViewHandle<crate::notebooks::notebook::NotebookView>> {
-        self.content_by_pane_index(pane_index)
-            .and_then(|pane| pane.as_any().downcast_ref::<NotebookPane>())
-            .map(|pane| pane.notebook_view(ctx))
     }
 
     pub fn pane_id_by_index(&self, pane_index: usize) -> Option<PaneId> {

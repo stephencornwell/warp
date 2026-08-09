@@ -21,7 +21,6 @@ use warpui::r#async::{SpawnedFutureHandle, Timer};
 use regex::Regex;
 use settings::Setting as _;
 use warp_core::context_flag::ContextFlag;
-use warp_core::features::FeatureFlag;
 use warp_core::ui::theme::WarpTheme;
 use warpui::elements::{
     Align, ChildAnchor, ChildView, ConstrainedBox, Container, CornerRadius, CrossAxisAlignment,
@@ -53,8 +52,6 @@ use super::{
 };
 use crate::settings::{CustomSecretRegex, RegexDisplayInfo};
 use crate::settings_view::privacy::AddRegexModalViewState;
-use crate::settings_view::render_body_item_label;
-use crate::settings_view::settings_page::CONTENT_FONT_SIZE;
 use crate::terminal::safe_mode_settings::{
     get_effective_secret_display_mode, SecretDisplayMode, SecretDisplayModeSetting,
 };

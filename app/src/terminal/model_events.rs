@@ -11,7 +11,6 @@ use async_channel::Receiver;
 use instant::Instant;
 use std::sync::Arc;
 
-use warpui::SingletonEntity;
 use warpui::{Entity, ModelContext, ModelHandle};
 
 use super::event::SshLoginStatus;

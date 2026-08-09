@@ -38,13 +38,11 @@ use super::{
     ChipValue, ContextChipKind,
 };
 #[cfg(feature = "local_fs")]
-use crate::context_chips::GitLineChanges;
 use std::collections::{HashMap, HashSet};
 use std::hash::{Hash as _, Hasher as _};
 use std::sync::Arc;
 use std::time::Duration;
 #[cfg(feature = "local_fs")]
-use warpui::WeakModelHandle;
 use warpui::{
     r#async::{SpawnedFutureHandle, Timer},
     AppContext, ViewHandle,

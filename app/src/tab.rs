@@ -6,7 +6,6 @@ use crate::features::FeatureFlag;
 use crate::launch_configs::launch_config::LaunchConfig;
 use crate::menu::{MenuAction, MenuItem, MenuItemFields};
 use crate::pane_group::PaneGroup;
-use crate::terminal::model::terminal_model::ConversationTranscriptViewerStatus;
 use settings::Setting as _;
 use std::sync::Arc;
 use std::time::Duration;
@@ -18,7 +17,6 @@ use crate::ui_components::buttons::icon_button;
 use crate::ui_components::color_dot::{render_color_dot, TAB_COLOR_OPTIONS};
 use crate::ui_components::icons::{Icon, ICON_DIMENSIONS};
 use crate::util::color::{coloru_with_opacity, Opacity};
-use crate::util::truncation::truncate_from_end;
 
 use crate::window_settings::WindowSettings;
 use crate::workspace::sync_inputs::SyncedInputState;

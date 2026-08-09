@@ -6,7 +6,6 @@ use std::sync::Arc;
 use anyhow::Result;
 use async_channel::{self, Receiver, Sender};
 use async_trait::async_trait;
-use chrono::DateTime;
 use parking_lot::Mutex;
 
 use super::{ExecuteCommandOptions, ExecutorCommandEvent};

@@ -9,7 +9,6 @@ use warpui::{
     AppContext, ModelHandle,
 };
 
-use crate::terminal::model::blocks::RichContentItem;
 use crate::terminal::model::index::Point as IndexPoint;
 
 use super::{

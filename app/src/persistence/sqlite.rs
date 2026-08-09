@@ -1,4 +1,3 @@
-use std::collections::HashSet;
 use std::ffi::OsString;
 use std::path::Path;
 use std::str::FromStr;
@@ -29,7 +28,6 @@ use libsqlite3_sys as sqlite3;
 use num_traits::FromPrimitive;
 use pathfinder_geometry::{rect::RectF, vector::Vector2F};
 use persistence::model::AMBIENT_AGENT_PANE_KIND;
-use uuid::Uuid;
 use warpui::platform::FullscreenState;
 use warpui::{AppContext, SingletonEntity};
 
@@ -61,7 +59,6 @@ use crate::terminal::history::PersistedCommand;
 use crate::terminal::ShellLaunchData;
 use crate::themes::theme::AnsiColorIdentifier;
 use crate::{report_error, safe_info};
-use lsp::supported_servers::LSPServerType;
 
 diesel::define_sql_function! {
     fn json_extract(target: diesel::sql_types::Text, path: diesel::sql_types::Text) -> diesel::sql_types::Text;

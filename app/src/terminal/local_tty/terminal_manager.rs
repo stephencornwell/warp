@@ -15,12 +15,10 @@ use session_sharing_protocol::sharer::{
     TeamAccessLevelUpdateResponse, UpdatePendingUserRoleResponse,
 };
 
-use crate::editor::CrdtOperation;
 use crate::network::{NetworkStatusEvent, NetworkStatusKind};
 use crate::terminal::available_shells::{AvailableShell, AvailableShells};
 use crate::terminal::ShellLaunchData;
 use crate::terminal::ShellLaunchState;
-use crate::view_components::ToastFlavor;
 
 use parking_lot::{FairMutex, Mutex};
 use pathfinder_geometry::vector::Vector2F;
@@ -38,11 +36,8 @@ use settings::Setting as _;
 use warpui::r#async::executor::Background;
 use warpui::{AppContext, ModelContext, ModelHandle, SingletonEntity, ViewHandle, WindowId};
 
-use warp_core::execution_mode::AppExecutionMode;
-
 use crate::banner::BannerState;
 use crate::context_chips::current_prompt::CurrentPrompt;
-use crate::context_chips::prompt_snapshot::PromptSnapshot;
 use crate::context_chips::prompt_type::PromptType;
 use crate::features::FeatureFlag;
 use crate::pane_group::TerminalViewResources;
@@ -52,7 +47,6 @@ use crate::settings::{PrivacySettings, SshSettings};
 use crate::terminal::model::session::Sessions;
 
 use crate::terminal::model_events::ModelEventDispatcher;
-use crate::terminal::safe_mode_settings::get_secret_obfuscation_mode;
 use crate::terminal::session_settings::{SessionSettings, SessionSettingsChangedEvent};
 use crate::terminal::view::Event as TerminalViewEvent;
 use crate::terminal::writeable_pty::pty_controller::{EventLoopSendError, EventLoopSender};
@@ -66,7 +60,6 @@ use crate::terminal::{
     TerminalModel,
 };
 use crate::terminal::{terminal_manager, TerminalView, PTY_READS_BROADCAST_CHANNEL_SIZE};
-use crate::NetworkStatus;
 
 use super::mio_channel;
 use super::shell::ShellStarter;

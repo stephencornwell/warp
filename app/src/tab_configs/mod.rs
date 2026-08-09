@@ -6,8 +6,6 @@ pub mod session_config_modal;
 pub mod session_config_rendering;
 pub mod tab_config;
 
-use warp_core::ui::theme::Fill;
-
 pub use params_modal::{TabConfigParamsModal, TabConfigParamsModalEvent};
 #[cfg(feature = "local_fs")]
 pub(crate) use tab_config::build_worktree_config_toml;

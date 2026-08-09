@@ -1,11 +1,9 @@
 use crate::appearance::Appearance;
 use crate::interval_timer::IntervalTimer;
 use crate::launch_configs::launch_config;
-use crate::report_if_error;
 
 use crate::persistence::ModelEvent;
 use crate::settings::QuakeModeSettings;
-use crate::settings::ThemeSettings;
 use crate::settings_view::flags;
 use crate::settings_view::SettingsSection;
 use crate::terminal::available_shells::AvailableShell;
@@ -16,7 +14,6 @@ use crate::terminal::view::{cell_size_and_padding, TerminalAction};
 use crate::themes::theme::{AnsiColorIdentifier, Blend, Fill};
 use crate::util::bindings::{self, is_binding_pty_compliant};
 use crate::util::traffic_lights::{traffic_light_data, TrafficLightData, TrafficLightMouseStates};
-use crate::view_components::DismissibleToast;
 use crate::window_settings::WindowSettings;
 use crate::workspace::WorkspaceAction;
 use crate::workspace::{PaneViewLocator, Workspace};
@@ -27,8 +24,6 @@ use crate::{
 };
 use crate::{features::FeatureFlag, ChannelState};
 use crate::{GlobalResourceHandles, GlobalResourceHandlesProvider};
-use anyhow::Result;
-use cfg_if::cfg_if;
 use itertools::Itertools;
 use lazy_static::lazy_static;
 use parking_lot::Mutex;
@@ -43,8 +38,6 @@ use std::sync::Arc;
 use std::{collections::HashMap, path::PathBuf};
 use url::Url;
 use warp_core::context_flag::ContextFlag;
-use warp_core::user_preferences::GetUserPreferences as _;
-use warpui::clipboard::ClipboardContent;
 use warpui::keymap::{EditableBinding, FixedBinding};
 use warpui::windowing::WindowManager;
 

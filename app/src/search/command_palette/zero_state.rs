@@ -7,7 +7,6 @@ use crate::appearance::Appearance;
 use crate::search::command_palette::FilterChipRenderer;
 
 use crate::search::QueryFilter;
-use crate::workspace::Workspace;
 use std::collections::HashMap;
 use warpui::elements::{Container, Flex, MouseStateHandle, ParentElement, Shrinkable, Wrap};
 use warpui::{

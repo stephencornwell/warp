@@ -4,14 +4,12 @@ use super::*;
 use crate::warp_managed_paths_watcher::WarpManagedPathsWatcher;
 use repo_metadata::repositories::DetectedRepositories;
 use repo_metadata::watcher::DirectoryWatcher;
-use repo_metadata::RepoMetadataModel;
 use watcher::HomeDirectoryWatcher;
 
 use crate::editor::{EditorAction, TextStyleOperation};
 use crate::input_suggestions::{HistoryOrder, Item};
 use crate::network::NetworkStatus;
 use crate::settings::{AliasExpansionSettings, AppEditorSettings, InputBoxType};
-use crate::settings_view::keybindings::KeybindingChangedNotifier;
 #[cfg(windows)]
 use crate::system::SystemInfo;
 use crate::system::SystemStats;
@@ -21,7 +19,6 @@ use crate::terminal::keys::TerminalKeybindings;
 use crate::terminal::local_shell::LocalShellState;
 use crate::terminal::local_tty::shell::ShellStarter;
 use crate::terminal::model::ansi::{Handler, PrecmdValue};
-use crate::terminal::model::block::SerializedBlock;
 use crate::terminal::model::blocks::{insert_block, BlockListPoint};
 use crate::terminal::model::grid::Dimensions as _;
 use crate::terminal::model::index::Side;
@@ -32,14 +29,12 @@ use warpui::text::SelectionType;
 
 use crate::terminal::shell::ShellType;
 use crate::test_util::settings::initialize_settings_for_tests;
-use crate::themes::theme::AnsiColorIdentifier;
 use crate::workspace::{ActiveSession, OneTimeModalModel, ToastStack, WorkspaceRegistry};
 use crate::{
     editor::{DisplayPoint, Point},
     terminal::TerminalView,
 };
 use fuzzy_match::FuzzyMatchResult;
-use session_sharing_protocol::common::Role;
 use smol_str::SmolStr;
 use warp_completer::completer::{
     EngineFileType, Match, MatchStrategy, MatchedSuggestion, Priority, Suggestion,

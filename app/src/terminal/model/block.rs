@@ -3,7 +3,6 @@ mod serialized_block;
 
 pub use interaction_mode::*;
 pub use serialized_block::*;
-use warp_core::features::FeatureFlag;
 
 use super::grid::grid_handler::{GridHandler, PerformResetGridChecks};
 use super::grid::{Cursor, RespectDisplayedOutput};

@@ -5,7 +5,6 @@ mod bookmarks;
 pub mod init;
 pub mod inline_banner;
 // TODO(advait): if we align on prompt suggestions banner in Input, move code out of inline_banner mod.
-use crate::global_resource_handles::GlobalResourceHandlesProvider;
 mod link_detection;
 mod open_in_warp;
 mod pane_impl;
@@ -20,16 +19,13 @@ use warpui::clipboard_utils::get_image_filepaths_from_paths;
 
 use std::ops::Deref as _;
 
-use crate::search::slash_command_menu::static_commands::commands;
 pub use crate::terminal::view::rich_content::{
     RichContent, RichContentInsertionPosition, RichContentMetadata,
 };
 use crate::view_components::action_button::{ActionButton, ButtonSize, KeystrokeSource};
 
-use crate::terminal::model::blocks::RemovableBlocklistItem;
 #[cfg(feature = "local_fs")]
 use crate::util::file::external_editor::{settings::EditorLayout, EditorSettings};
-use crate::util::truncation::truncate_from_end;
 
 use crate::projects::ProjectManagementModel;
 
@@ -45,9 +41,7 @@ pub use init::{
 pub use inline_banner::{NotificationsDiscoveryBannerAction, NotificationsErrorBannerAction};
 #[cfg(feature = "local_fs")]
 use repo_metadata::repositories::{DetectedRepositories, RepoDetectionSource};
-use session_sharing_protocol::common::LongRunningCommandAgentInteractionState;
 use session_sharing_protocol::sharer::{RoleUpdateReason, SessionEndedReason, SessionSourceType};
-use uuid::Uuid;
 use warp_core::channel::ChannelState;
 use warpui::elements::{shimmering_text::ShimmeringTextStateHandle, Border, ChildView};
 use warpui::fonts::Properties;
@@ -62,7 +56,6 @@ use crate::pane_group::focus_state::PaneFocusHandle;
 use crate::persistence::{self, FinishedCommandMetadata};
 use crate::safe_warn;
 #[cfg(feature = "local_fs")]
-use crate::settings::import::model::ImportedConfigModel;
 use crate::settings::import::view::{SettingsImportEvent, SettingsImportView};
 use crate::settings::{
     AliasExpansionSettings, AppEditorSettings, BlockVisibilitySettings,
@@ -71,7 +64,6 @@ use crate::settings::{
     InputModeSettingsChangedEvent, InputSettings, PaneSettings, PaneSettingsChangedEvent,
     SelectionSettings, VimBannerSettings,
 };
-use crate::settings_view::flags;
 use crate::settings_view::keybindings::KeybindingChangedNotifier;
 use crate::settings_view::SettingsSection;
 use crate::shell_indicator::ShellIndicatorType;
@@ -85,16 +77,13 @@ use crate::terminal::block_filter::{
 use crate::terminal::block_list_viewport::OverhangingBlock;
 use crate::terminal::block_list_viewport::ScrollPositionUpdate;
 use crate::terminal::block_list_viewport::ScrollState;
-use crate::terminal::command_corrections_denylist::COMMAND_CORRECTIONS_PREFERRED_DENYLIST;
 use crate::terminal::general_settings::GeneralSettings;
 use crate::terminal::grid_size_util::grid_cell_dimensions;
 use crate::terminal::input::decorations::InputBackgroundJobOptions;
 use crate::terminal::input::{CommandExecutionSource, InputAction, InputEmptyStateChangeReason};
 use crate::terminal::ligature_settings::{should_use_ligature_rendering, LigatureSettings};
 #[cfg(feature = "local_tty")]
-use crate::terminal::local_tty::get_shell_starter;
 #[cfg(feature = "local_tty")]
-use crate::terminal::local_tty::shell::ShellStarter;
 #[cfg(all(windows, feature = "local_tty"))]
 use crate::terminal::local_tty::windows::get_user_and_system_env_variable;
 use crate::terminal::model::blockgrid::BlockGrid;
@@ -127,7 +116,6 @@ use crate::util::clipboard::clipboard_content_with_escaped_paths;
 use crate::util::openable_file_type::{is_markdown_file, resolve_file_target, FileTarget};
 use crate::view_components::{DismissibleToast, ToastFlavor};
 use crate::workspace::sync_inputs::SyncedInputState;
-use crate::workspace::ForkedConversationDestination;
 use crate::workspace::{CommandSearchOptions, OneTimeModalModel, ToastStack, WorkspaceAction};
 use crate::ActiveSession as WindowActiveSession;
 
@@ -144,7 +132,6 @@ use parking_lot::FairMutex;
 use pathfinder_color::ColorU;
 use regex::Regex;
 use serde::Serialize;
-use serde_json::json;
 use session_sharing_protocol::common::{
     AgentAttachment, ParticipantId, Role, RoleRequestId, RoleRequestResponse,
     ServerConversationToken as SessionSharingServerConversationToken,
@@ -152,7 +139,6 @@ use session_sharing_protocol::common::{
 };
 use std::any::Any;
 use std::borrow::Cow;
-use std::cell::RefCell;
 use std::collections::hash_map::Entry;
 use std::collections::{HashMap, HashSet};
 use std::fmt;
@@ -160,15 +146,12 @@ use std::hash::Hash;
 use std::ops::Range;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
-use std::str::FromStr;
 use std::sync::mpsc::SyncSender;
 use std::sync::Arc;
 use std::thread::JoinHandle;
 use std::time::Duration;
-use sum_tree::SeekBias;
 use vec1::vec1;
 use warp_core::context_flag::ContextFlag;
-use warp_core::user_preferences::GetUserPreferences as _;
 #[cfg(feature = "local_fs")]
 use warp_util::path::LineAndColumnArg;
 use warp_util::path::ShellFamily;
@@ -240,12 +223,10 @@ use crate::terminal::block_list_element::{
 };
 use crate::terminal::block_list_viewport::AutoscrollBehavior;
 use crate::terminal::block_list_viewport::{InputMode, ScrollPosition, ViewportState};
-use crate::terminal::bootstrap::init_subshell_command;
 use crate::terminal::event::TerminalMode;
 use crate::terminal::event::UserBlockCompleted;
 use crate::terminal::find::{BlockGridMatch, BlockListMatch, TerminalFindModel};
 use crate::terminal::input::{InputState, MenuPositioning, MenuPositioningProvider};
-use crate::terminal::keys::TerminalKeybindings;
 use crate::terminal::model::block::BlockMetadata;
 use crate::terminal::model::block::{Block, BlockId};
 use crate::terminal::model::blocks::{BlockFilter, BlockList};
@@ -287,21 +268,17 @@ use warpui::text::SelectionType;
 use self::link_detection::HighlightedLinkOption;
 use super::available_shells::AvailableShell;
 use super::block_list_viewport::FindMatchScrollLocation;
-use super::event::SshLoginStatus;
 use super::find::FindOptions;
 use super::model::ansi::{SystemDetails, WarpificationUnavailableReason};
 use super::model::block::{
     BlockSection, BlocklistEnvVarMetadata, LONG_RUNNING_COMMAND_DURATION_MS,
 };
-use super::model::blocks::RichContentItem;
 use super::model::completions::ShellCompletion;
-use super::model::rich_content::RichContentType;
 use super::model::secrets::RichContentSecretTooltipInfo;
 use super::model::selection::ExpandedSelectionRange;
 use super::model::session::SessionBootstrappedEvent;
 use super::settings::AltScreenPaddingMode;
 use super::{GridType, HistoryEvent};
-use crate::antivirus::AntivirusInfo;
 use crate::menu::{Event as MenuEvent, Menu, MenuItem, MenuItemFields};
 use crate::terminal::links::should_directly_open_link;
 use crate::terminal::model_events::{AnsiHandlerEvent, ModelEvent, ModelEventDispatcher};
@@ -311,7 +288,6 @@ use crate::terminal::{color::List, model::block::LONG_RUNNING_BOTTOM_PADDING_LIN
 use crate::terminal::{event::AfterBlockCompletedEvent, event::BlockLatencyData, event::BlockType};
 use crate::throttle::throttle;
 use crate::util::color::darken;
-use action::RememberForWarpification;
 use bookmarks::render_floating_block_snapshot;
 use command_corrections::rules::generic::history::History as CommandCorrectionsHistoryRule;
 use init::{INPUT_BOX_VISIBLE_KEY, TOGGLE_BLOCK_FILTER_KEYBINDING};
@@ -321,7 +297,6 @@ use inline_banner::{
     render_shell_process_terminated_banner, render_vim_mode_banner, AliasExpansionBanner,
     AliasExpansionBannerAction, OpenInWarpBannerState, VimModeBannerAction,
 };
-use warp_core::command::ExitCode;
 
 lazy_static! {
     // A set of commands that perform minimal work that we use as a baseline to measure the latency of blocks.

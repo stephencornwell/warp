@@ -18,11 +18,9 @@ use crate::view_components::ToastFlavor;
 use warp_terminal::shell::{ShellName, ShellType};
 
 use std::any::Any;
-use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
 use std::ffi::OsString;
 use std::path::PathBuf;
-use std::rc::Rc;
 use std::sync::{mpsc::SyncSender, Arc};
 
 use itertools::Itertools;
@@ -36,12 +34,9 @@ use serde::{Deserialize, Serialize};
 use session_sharing_protocol::common::{
     ParticipantId, Role, RoleRequestId, RoleRequestRejectedReason, RoleRequestResponse, SessionId,
 };
-use tree::DEFAULT_FLEX_VALUE;
 use typed_path::TypedPath;
 use url::Url;
 use uuid::Uuid;
-use warp_cli::agent::Harness;
-use warp_core::command::ExitCode;
 use warp_core::context_flag::ContextFlag;
 use warp_core::HostId;
 use warp_util::path::convert_wsl_to_windows_host_path;
@@ -89,7 +84,6 @@ use crate::terminal::view::{
     BlockNotification, ExecuteCommandEvent, LeftPanelTargetView, SyncEvent, TerminalViewState,
 };
 use crate::terminal::{MockTerminalManager, ShellLaunchData, ShellLaunchState};
-use session_sharing_protocol::sharer::SessionSourceType;
 use settings::Setting as _;
 
 use crate::code::active_file::ActiveFileModel;

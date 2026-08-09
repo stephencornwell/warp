@@ -18,7 +18,6 @@ use crate::{
         view::TerminalAction,
     },
 };
-use pathfinder_geometry::vector::vec2f;
 use settings::Setting;
 use warpui::{
     elements::{

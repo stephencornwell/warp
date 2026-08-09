@@ -5,7 +5,6 @@ use std::{collections::HashMap, ops::Range};
 
 use settings::Setting as _;
 use string_offset::{ByteOffset, CharOffset};
-use warp_core::features::FeatureFlag;
 use warpui::{AppContext, SingletonEntity, ViewContext};
 
 use crate::{

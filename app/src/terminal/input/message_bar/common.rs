@@ -10,7 +10,6 @@ use warpui::prelude::{Align, ConstrainedBox, CrossAxisAlignment, Flex, Text};
 use warpui::ui_components::keyboard_shortcut::keystroke_to_keys;
 use warpui::{AppContext, SingletonEntity};
 
-use crate::terminal;
 use crate::terminal::input::message_bar::{ChipHorizontalAlignment, Message, MessageItem};
 use crate::ui_components::blended_colors;
 

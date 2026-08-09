@@ -10,11 +10,9 @@ pub mod suggestions_mode_model;
 mod terminal;
 mod universal;
 
-use crate::context_chips::spacing;
 use crate::pane_group::focus_state::PaneFocusHandle;
 use crate::search::slash_command_menu::static_commands::commands::{self, COMMAND_REGISTRY};
 
-use crate::settings::PrivacySettings;
 use crate::suggestions::ignored_suggestions_model::{
     IgnoredSuggestionsModel, IgnoredSuggestionsModelEvent, SuggestionType,
 };
@@ -23,10 +21,7 @@ use crate::terminal::input::suggestions_mode_model::{
     InputSuggestionsModeEvent, InputSuggestionsModeModel,
 };
 use crate::terminal::model::session::active_session::ActiveSession;
-use crate::terminal::package_installers::command_at_cursor_has_common_package_installer_prefix;
-use crate::terminal::prompt_render_helper::should_render_ps1_prompt;
 use crate::terminal::view::CodeDiffAction;
-use crate::util::bindings::keybinding_name_to_normalized_string;
 #[cfg(feature = "local_fs")]
 use crate::util::file::external_editor;
 use crate::util::truncation::truncate_from_end;
@@ -85,7 +80,6 @@ use crate::{
     },
 };
 
-use base64::Engine as _;
 #[cfg(feature = "local_fs")]
 use diesel::SqliteConnection;
 use futures::FutureExt as _;
@@ -93,7 +87,6 @@ use itertools::Itertools;
 use lazy_static::lazy_static;
 use ordered_float::Float;
 use regex::Regex;
-use serde_json::json;
 use session_sharing_protocol::common::{AgentAttachment, ParticipantId, ServerConversationToken};
 use settings::{Setting as _, ToggleableSetting};
 use std::{
@@ -107,9 +100,7 @@ use std::{
     time::Duration,
 };
 use string_offset::CharOffset;
-use vec1::Vec1;
 use vim::vim::{VimHandler, VimMode};
-use warp_completer::util::parse_current_commands_and_tokens;
 
 use warp_completer::{
     completer::{

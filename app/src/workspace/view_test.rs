@@ -5,23 +5,16 @@ use crate::gpu_state::GPUState;
 use crate::network::NetworkStatus;
 use crate::pane_group::{Direction, PaneGroupAction, PaneId};
 use crate::report_if_error;
-use crate::suggestions::ignored_suggestions_model::IgnoredSuggestionsModel;
 #[cfg(feature = "local_fs")]
-use crate::user_config::tab_configs_dir;
 use repo_metadata::repositories::DetectedRepositories;
 use repo_metadata::watcher::DirectoryWatcher;
 #[cfg(feature = "local_fs")]
-use repo_metadata::CanonicalizedPath;
 #[cfg(feature = "local_fs")]
-use repo_metadata::RepoMetadataModel;
-use session_sharing_protocol::sharer::SessionSourceType;
 use std::collections::HashMap;
 #[cfg(feature = "local_fs")]
-use tempfile::TempDir;
 use watcher::HomeDirectoryWatcher;
 
 use crate::settings_view::keybindings::KeybindingChangedNotifier;
-use crate::settings_view::DisplayCount;
 use crate::system::SystemStats;
 use crate::tab_configs::tab_config::{TabConfigPaneNode, TabConfigPaneType};
 use crate::terminal::history::History;
@@ -29,17 +22,13 @@ use crate::terminal::keys::TerminalKeybindings;
 #[cfg(windows)]
 use crate::util::traffic_lights::windows::RendererState;
 
-use crate::referral_theme_status::ReferralThemeEvent;
-use crate::resource_center::Tip;
 use crate::terminal::local_tty::spawner::PtySpawner;
 use crate::test_util::settings::initialize_settings_for_tests;
 use crate::undo_close::UndoCloseSettings;
 use crate::warp_managed_paths_watcher::WarpManagedPathsWatcher;
 use crate::{workspace, GlobalResourceHandlesProvider};
 use pane_group::{PaneState, SplitPaneState, TerminalPaneId};
-use session_sharing_protocol::common::SessionId;
 use terminal::view::ActiveSessionState;
-use warp_editor::editor::NavigationKey;
 use warpui::AddSingletonModel;
 use warpui::{platform::WindowStyle, App, ViewHandle};
 

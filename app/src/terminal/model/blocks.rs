@@ -32,7 +32,6 @@ use std::ops::{AddAssign, Range, RangeInclusive};
 use std::sync::Arc;
 use std::time::Duration;
 use sum_tree::{Dimension, Item, SeekBias, SumTree};
-use warp_core::features::FeatureFlag;
 use warpui::color::ColorU;
 use warpui::r#async::executor::Background;
 use warpui::record_trace_event;

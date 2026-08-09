@@ -3,7 +3,6 @@ use std::ffi::OsStr;
 
 use byte_unit::Byte;
 use chrono::{DateTime, Local, Utc};
-use itertools::Itertools as _;
 use num_traits::Zero;
 use ordered_float::OrderedFloat;
 use serde::Serialize;

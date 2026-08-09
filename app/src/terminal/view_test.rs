@@ -1,6 +1,5 @@
 use std::any::Any;
 use std::cell::RefCell;
-use std::pin::pin;
 use std::rc::Rc;
 use std::sync::Arc;
 
@@ -14,7 +13,6 @@ use warpui::{App, ReadModel};
 
 use crate::pane_group::focus_state::PaneGroupFocusState;
 use crate::pane_group::{pane::PaneStack, BackingView, TerminalPaneId};
-use crate::settings::import::model::ImportedConfigModel;
 use crate::terminal::model::grid::Dimensions as _;
 use crate::{
     terminal::alt_screen::should_intercept_mouse,
@@ -25,8 +23,6 @@ use crate::context_chips::prompt::Prompt;
 use crate::editor::{AutosuggestionLocation, AutosuggestionType};
 
 use crate::settings::{AppEditorSettings, WarpPromptSeparator};
-
-use crate::features::FeatureFlag;
 
 use crate::terminal::block_list_element::{SnackbarPoint, SnackbarTranslationMode};
 use crate::terminal::block_list_viewport::{ClampingMode, ScrollLines};

@@ -20,7 +20,6 @@ use crate::{
     terminal::TerminalView,
     util::bindings::CustomAction,
 };
-use warp_core::context_flag::ContextFlag;
 use warpui::keymap::ContextPredicate;
 use warpui::keymap::{BindingDescription, PerPlatformKeystroke};
 use warpui::platform::OperatingSystem;

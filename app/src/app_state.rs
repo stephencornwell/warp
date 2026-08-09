@@ -1,7 +1,6 @@
 use pathfinder_geometry::rect::RectF;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
-use std::sync::Arc;
 use warpui::platform::FullscreenState;
 
 use warpui::AppContext;

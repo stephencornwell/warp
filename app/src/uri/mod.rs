@@ -19,8 +19,6 @@ use crate::{features::FeatureFlag, workspace::active_terminal_in_window};
 use crate::settings_view::SettingsSection;
 use crate::{quake_mode_window_id, quake_mode_window_is_open, safe_info, ChannelState, OpenPath};
 use anyhow::{anyhow, ensure, Result};
-use itertools::Itertools;
-use session_sharing_protocol::common::SessionId;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;

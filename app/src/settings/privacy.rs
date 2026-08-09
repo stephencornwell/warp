@@ -1,6 +1,5 @@
 use std::fmt::Display;
 
-use anyhow::Result;
 use regex::Regex;
 use warp_core::features::FeatureFlag;
 use warpui::{AppContext, Entity, ModelContext, SingletonEntity, UpdateModel};

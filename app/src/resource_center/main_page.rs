@@ -16,6 +16,11 @@ use warpui::{
 };
 
 use crate::{appearance::Appearance, workspace::WorkspaceAction};
+use crate::settings::Settings;
+use warp_core::{
+    channel::ChannelState,
+    features::FeatureFlag,
+};
 
 use super::{
     section_views::{
@@ -58,14 +63,12 @@ impl ResourceCenterMainView {
     pub fn new(
         ctx: &mut ViewContext<Self>,
         tips_completed: ModelHandle<TipsCompleted>,
-        changelog_model_handle: ModelHandle<ChangelogModel>,
     ) -> Self {
         let action_target = ctx.add_model(|_| ActionTarget::None);
         let section_views = Self::initialize_section_views(
             tips_completed.clone(),
             action_target.clone(),
             ctx,
-            changelog_model_handle.clone(),
         );
         Self {
             button_mouse_states: Default::default(),
@@ -79,7 +82,6 @@ impl ResourceCenterMainView {
         tips_completed: ModelHandle<TipsCompleted>,
         action_target: ModelHandle<ActionTarget>,
         ctx: &mut ViewContext<Self>,
-        changelog_model_handle: ModelHandle<ChangelogModel>,
     ) -> Vec<SectionViewHandle> {
         let sections = sections(ctx);
 
@@ -155,9 +157,6 @@ impl ResourceCenterMainView {
                 Section::Content(data) => {
                     SectionViewHandle::Content(Self::build_content_section_view(data, ctx))
                 }
-                Section::Changelog() => SectionViewHandle::Changelog(
-                    Self::build_changelog_section_view(changelog_model_handle.clone(), ctx),
-                ),
             })
             .collect()
     }
@@ -227,20 +226,6 @@ impl ResourceCenterMainView {
         ctx: &mut ViewContext<ResourceCenterMainView>,
     ) -> ViewHandle<ContentSectionView> {
         ctx.add_typed_action_view(|ctx| ContentSectionView::new(section_data.clone(), false, ctx))
-    }
-
-    fn build_changelog_section_view(
-        changelog_model_handle: ModelHandle<ChangelogModel>,
-        ctx: &mut ViewContext<ResourceCenterMainView>,
-    ) -> ViewHandle<ChangelogSectionView> {
-        let showing_new_changelog = match ChannelState::app_version() {
-            Some(version) => !Settings::has_changelog_been_shown(version, ctx),
-            None => false,
-        };
-
-        ctx.add_typed_action_view(|ctx: &mut ViewContext<_>| {
-            ChangelogSectionView::new(changelog_model_handle, showing_new_changelog, ctx)
-        })
     }
 
     pub fn set_action_target(
@@ -360,9 +345,7 @@ impl ResourceCenterMainView {
             ..default_styles
         };
 
-        let clicked_color = appearance.theme().accent().blend(
-            &FillTheme::black().with_opacity(*appearance.theme().details().button_click_opacity()),
-        );
+        let clicked_color = appearance.theme().accent();
         let clicked_styles = UiComponentStyles {
             background: Some(clicked_color.into()),
             border_color: Some(clicked_color.into()),
@@ -480,7 +463,7 @@ impl TypedActionView for ResourceCenterMainView {
             SkipTips => {
                 ();
                 self.tips_completed.update(ctx, |tips_completed, ctx| {
-                    skip_tips_and_write_to_user_defaults(tips_completed, ctx);
+                    tips_completed.skipped_or_completed = true;
                     ctx.notify();
                 });
             }
@@ -496,18 +479,9 @@ impl View for ResourceCenterMainView {
     fn render(&self, app: &AppContext) -> Box<dyn Element> {
         let appearance = Appearance::as_ref(app);
         let body = self.render_body(appearance);
-        let invite_button = self.render_invite_button(appearance);
         let skip_tips = self.render_skip_tips_button(appearance);
 
         let mut main_page = Flex::column();
-
-        if !AuthStateProvider::as_ref(app)
-            .get()
-            .is_anonymous_or_logged_out()
-            && !FeatureFlag::AvatarInTabBar.is_enabled()
-        {
-            main_page = main_page.with_child(invite_button);
-        }
 
         if !self.tips_completed.as_ref(app).skipped_or_completed
             && !FeatureFlag::AvatarInTabBar.is_enabled()

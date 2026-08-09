@@ -14,7 +14,6 @@ use settings::{
 
 use serde::{Deserialize, Serialize};
 
-use crate::workspaces::workspace::EnterpriseSecretRegex;
 
 pub trait RegexDisplayInfo {
     fn pattern(&self) -> &str;
@@ -45,16 +44,6 @@ impl CustomSecretRegex {
 impl RegexDisplayInfo for CustomSecretRegex {
     fn pattern(&self) -> &str {
         self.pattern.as_str()
-    }
-
-    fn name(&self) -> Option<&str> {
-        self.name.as_deref()
-    }
-}
-
-impl RegexDisplayInfo for EnterpriseSecretRegex {
-    fn pattern(&self) -> &str {
-        &self.pattern
     }
 
     fn name(&self) -> Option<&str> {
@@ -300,7 +289,7 @@ impl PrivacySettings {
     pub fn set_enterprise_secret_redaction_settings(
         &mut self,
         enabled: bool,
-        enterprise_regexes: Vec<EnterpriseSecretRegex>,
+        enterprise_regexes: Vec<CustomSecretRegex>,
         change_event_reason: ChangeEventReason,
         ctx: &mut ModelContext<Self>,
     ) {
@@ -313,22 +302,7 @@ impl PrivacySettings {
                 });
             }
 
-            // Convert EnterpriseSecretRegex to CustomSecretRegex for internal use
-            let mut enterprise_secrets = Vec::new();
-            for enterprise_regex in enterprise_regexes {
-                if let Ok(regex) = Regex::new(&enterprise_regex.pattern) {
-                    enterprise_secrets.push(CustomSecretRegex {
-                        pattern: regex,
-                        name: enterprise_regex.name,
-                    });
-                } else {
-                    log::error!(
-                        "Invalid enterprise secret regex pattern: {}",
-                        enterprise_regex.pattern
-                    );
-                }
-            }
-            self.enterprise_secret_regex_list = enterprise_secrets;
+            self.enterprise_secret_regex_list = enterprise_regexes;
         } else {
             // Clear enterprise secrets when disabled
             self.enterprise_secret_regex_list.clear();

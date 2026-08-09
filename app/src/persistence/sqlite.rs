@@ -29,7 +29,6 @@ use num_traits::FromPrimitive;
 use pathfinder_geometry::{rect::RectF, vector::Vector2F};
 use persistence::model::AMBIENT_AGENT_PANE_KIND;
 use uuid::Uuid;
-use warp_graphql::scalars::time::ServerTimestamp;
 use warpui::platform::FullscreenState;
 use warpui::{AppContext, SingletonEntity};
 
@@ -53,53 +52,21 @@ use crate::app_state::{
     EnvVarCollectionPaneSnapshot, LeftPanelSnapshot, SettingsPaneSnapshot,
     WorkflowPaneSnapshot,
 };
-use crate::auth::auth_manager::PersistedCurrentUserInformation;
-use crate::auth::auth_state::AuthStateProvider;
-use crate::auth::UserUid;
-use crate::cloud_object::model::actions::{ObjectAction, ObjectActionSubtype};
-use crate::cloud_object::model::generic_string_model::{CloudStringObject, GenericStringObjectId};
-use crate::cloud_object::{
-    CloudObject, JsonObjectType, ObjectIdType, ObjectType, Owner, RevisionAndLastEditor,
-    GENERIC_STRING_OBJECT_PREFIX, JSON_OBJECT_PREFIX,
-};
-use crate::drive::folders::{CloudFolder, CloudFolderModel, FolderId};
-use crate::drive::OpenWarpDriveObjectSettings;
-use crate::env_vars::{CloudEnvVarCollection, CloudEnvVarCollectionModel};
-use crate::features::FeatureFlag;
-use crate::notebooks::{CloudNotebook, NotebookId};
 use crate::persistence::model::{
-    NewCloudObjectsRefresh, NewGenericStringObject, NewPersistedObjectAction, NewTeamSettings,
-    ProjectRules, UserProfile, CODE_REVIEW_PANE_KIND, GET_STARTED_PANE_KIND,
+    ProjectRules, CODE_REVIEW_PANE_KIND, GET_STARTED_PANE_KIND,
 };
-use crate::server::experiments::ServerExperiment;
-use crate::server::ids::{ClientId, HashableId, ServerId, SyncId, ToServerId};
-use crate::settings::cloud_preferences::{CloudPreference, CloudPreferenceModel};
 use crate::settings_view::SettingsSection;
 use crate::suggestions::ignored_suggestions_model::SuggestionType;
 use crate::tab::SelectedTabColor;
 use crate::terminal::history::PersistedCommand;
 use crate::terminal::ShellLaunchData;
 use crate::themes::theme::AnsiColorIdentifier;
-use crate::workflows::workflow_enum::{CloudWorkflowEnum, CloudWorkflowEnumModel};
-use crate::workflows::{CloudWorkflow, WorkflowId};
-use crate::workspaces::team::Team as TeamMetadata;
-use crate::workspaces::workspace::Workspace as WorkspaceMetadata;
-use crate::workspaces::workspace::WorkspaceUid;
 use crate::{
     app_state::{
         AppState, BranchSnapshot, LeafContents,
         LeafSnapshot, NotebookPaneSnapshot, PaneFlex, PaneNodeSnapshot, SplitDirection,
         TabSnapshot, TerminalPaneSnapshot, WindowSnapshot,
     },
-    workspaces::user_profiles::UserProfileWithUID,
-};
-use crate::{
-    cloud_object::{CloudObjectMetadata, NumInFlightRequests, Revision, ServerCreationInfo},
-    notebooks::CloudNotebookModel,
-};
-use crate::{
-    cloud_object::{CloudObjectPermissions, CloudObjectStatuses, CloudObjectSyncStatus},
-    workflows::CloudWorkflowModel,
 };
 use crate::{report_error, report_if_error, safe_info};
 use lsp::supported_servers::LSPServerType;
@@ -113,15 +80,12 @@ diesel::define_sql_function! {
 const CHANNEL_SIZE: usize = 1024;
 const COMMANDS_COUNT_LIMIT: i64 = 10000;
 
-use warp_server_client::persistence::{upsert_cloud_object, CloudObjectId};
 
 const WARP_SQLITE_FILE_NAME: &str = "warp.sqlite";
 
 /// When delete a cloud object, this callback is used to delete the cloud
 /// object. It takes the id of the cloud object to delete as a parameter.
 /// The supplied conn has already started a transaction.
-type DeleteCloudObjectFn =
-    Box<dyn FnOnce(&mut SqliteConnection, CloudObjectId) -> Result<(), Error>>;
 
 /// Runs any migrations and creates the Sqlite database if it doesn't exist.
 /// Reads from the sqlite database to get the app state for session restoration.

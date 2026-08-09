@@ -59,11 +59,6 @@ pub fn wire_up_pty_controller_with_view<T: EventLoopSender>(
                     controller.write_bytes(bytes.clone(), ctx);
                 });
             }
-            view::Event::WriteAgentInputToPty { bytes, mode } => {
-                controller.update(ctx, |controller, ctx| {
-                    controller.write_agent_bytes(bytes.clone(), mode, ctx);
-                });
-            }
             view::Event::Resize { size_update } => {
                 controller.update(ctx, |controller, ctx| {
                     controller.resize_pty(*size_update, ctx);
@@ -79,7 +74,6 @@ pub fn wire_up_pty_controller_with_view<T: EventLoopSender>(
                     return;
                 };
 
-                model_clone.lock().block_list_mut().active_block_mut().set_cloud_workflow_state(event.workflow_id);
                 controller.update(ctx, |controller, ctx| {
                     controller.write_command(&event.command, shell_type, event.source.clone(), ctx)
                 });

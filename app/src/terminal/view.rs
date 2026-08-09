@@ -4042,36 +4042,13 @@ impl TerminalView {
                 // indicator in terminal tabs.
                 ctx.request_user_attention();
             }
-            ModelEvent::Exit { reason } => {
-                if !self.manual_pty_shutdown_requested {
-                    self.maybe_send_agent_exited_shell_telemetry(ctx);
-                }
-
-                // If the pty spawn has failed, we've already inserted a banner.
-                if !self.pty_spawn_failed {
-                    let shell_detail = self.shell_detail.take().unwrap_or("shell".to_owned());
-                    self.insert_shell_process_terminated_banner(
-                        shell_terminated_banner::TerminationType::Premature {
-                            shell_detail,
-                            reason: *reason,
-                        },
-                        ctx,
-                    );
-                }
-                // Mark the editor as disabled to ensure user interactions with
-                // it are ignored.
+            ModelEvent::Exit { reason: _ } => {
                 self.input.update(ctx, |input, ctx| {
                     input.editor().update(ctx, |editor, ctx| {
                         editor
                             .set_interaction_state(crate::editor::InteractionState::Disabled, ctx);
                     });
                 });
-
-                // If we failed to bootstrap by the time we exited, show the
-                // bootstrap block so the user might be able to see what went wrong.
-                if !self.is_login_shell_bootstrapped {
-                    self.show_initialization_block();
-                }
 
                 if !self.pty_spawn_failed {
                     ctx.emit(Event::Exited);
@@ -4084,30 +4061,6 @@ impl TerminalView {
                 self.input.update(ctx, |input, ctx| {
                     input.handle_block_completed_event(block_completed_event_clone, ctx);
                 });
-
-                if !matches!(block_completed_event.block_type, BlockType::BootstrapHidden) {
-                    if let Some(env_var_block) = self.active_env_var_collection_block(ctx) {
-                        let output_truncated =
-                            if let BlockType::User(completed) = &block_completed_event.block_type {
-                                Some(completed.output_truncated.clone())
-                            } else {
-                                None
-                            };
-                        env_var_block.update(ctx, move |block, ctx| {
-                            if block.is_running() {
-                                match output_truncated {
-                                    // If we have a non-empty response we assume it's an error. We are
-                                    // relying on this because we don't get a non-zero exit code for the
-                                    // `export` function
-                                    Some(output) if !output.is_empty() => {
-                                        block.on_failed(Some(output), ctx)
-                                    }
-                                    _ => block.on_succeeded(ctx),
-                                }
-                            }
-                        });
-                    }
-                }
 
                 // If this block ran a possible subshell command, and it exited before the 1s timer
                 // completed, abort showing the banner.
@@ -4127,13 +4080,6 @@ impl TerminalView {
                     // Since our baseline commands are all very small, when the command finishes,
                     // the same terminal almost certainly still has the focus.
                     if reset_focus {
-                        if let Some(block_latency_data) = &block_completed_event.block_latency_data
-                        {
-                            self.install_block_latency_telemetry_callback(
-                                block_latency_data.clone(),
-                                ctx,
-                            );
-                        }
                     }
                 }
 
@@ -4183,15 +4129,6 @@ impl TerminalView {
                 block_id,
                 ..
             } => {
-                let did_any_session_contains_remote_blocks =
-                    self.any_session_contains_remote_blocks;
-                self.any_session_contains_remote_blocks |=
-                    self.active_block_is_considered_remote(ctx);
-                if self.any_session_contains_remote_blocks != did_any_session_contains_remote_blocks
-                {
-                    self.update_focused_terminal_info(ctx);
-                }
-
                 if *is_for_in_band_command {
                     return;
                 }
@@ -4209,9 +4146,6 @@ impl TerminalView {
                     .set_prompt_snapshot(prompt_snapshot);
 
                 // Clear any previously active AM query suggestion banners and hidden blocks.
-                self.clear_prompt_suggestions(ctx);
-                self.drop_hidden_passive_ai_blocks(ctx);
-
                 // If the first word of the command is a shell alias, expand it
                 // for subshell/SSH detection. This enables warpification for
                 // aliased SSH commands (e.g. `alias myssh='ssh user@host'`).
@@ -4687,10 +4621,6 @@ impl TerminalView {
             ModelEvent::ExitShell { session_id } => {
             }
             // Handled by RemoteServerController via model subscription.
-            ModelEvent::SshInitShell { .. } => {}
-            ModelEvent::RemoteServerBlockRequested { session_id } => {
-                self.show_ssh_remote_server_choice_block(*session_id, ctx);
-            }
         }
     }
 

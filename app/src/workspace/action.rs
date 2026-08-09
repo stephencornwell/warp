@@ -853,7 +853,7 @@ impl WorkspaceAction {
             | TabConfigSidecarEditConfig { .. }
             | TabConfigSidecarRemoveConfig { .. }
             | OpenSettingsFile
-            | FixSettingsWithOz { .. }
+            | FixSettingsWithOz { .. } => false,
             #[cfg(debug_assertions)]
             #[cfg(target_family = "wasm")]
             ToggleConversationTranscriptDetailsPanel => false,

@@ -1,7 +1,4 @@
 use crate::search::mixer::SearchMixer;
-use crate::server::ids::SyncId;
-use crate::terminal::history::LinkedWorkflowData;
-use crate::workflows::{WorkflowSource, WorkflowType};
 
 pub type CommandSearchMixer = SearchMixer<CommandSearchItemAction>;
 
@@ -10,7 +7,7 @@ pub struct AcceptedHistoryItem {
     pub command: String,
 
     /// The workflow used to construct the command, if any.
-    pub linked_workflow_data: Option<LinkedWorkflowData>,
+    pub linked_workflow_data: Option<()>,
 }
 
 /// Payload for `AcceptWorkflow`: identifies which workflow was selected.
@@ -21,17 +18,6 @@ pub struct AcceptedHistoryItem {
 /// by separate sync data sources and carry owned data since they don't live
 /// in `CloudModel`.
 #[derive(Clone, Debug)]
-pub enum AcceptedWorkflow {
-    Cloud {
-        id: SyncId,
-        source: WorkflowSource,
-    },
-    Local {
-        workflow: Box<WorkflowType>,
-        source: WorkflowSource,
-    },
-}
-
 /// The set of events that may be produced by accepting or executing a search
 /// result.
 #[derive(Clone, Debug)]

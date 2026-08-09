@@ -6,7 +6,7 @@ use warpui::{AppContext, SingletonEntity, ViewHandle};
 
 use crate::PrivacySettings;
 use crate::{
-    ai::blocklist::{telemetry_banner::should_collect_ai_ugc_telemetry, SerializedBlockListItem},
+    terminal::model::block::SerializedBlock,
     appearance::Appearance,
     settings::{BlockVisibilitySettings, DebugSettings, InputModeSettings},
 };
@@ -80,7 +80,7 @@ pub(super) fn compute_block_size(initial_size: Vector2F, ctx: &mut AppContext) -
 #[allow(clippy::too_many_arguments)]
 pub(super) fn create_terminal_model(
     startup_directory: Option<PathBuf>,
-    restored_blocks: Option<&Vec<SerializedBlockListItem>>,
+    restored_blocks: Option<&Vec<SerializedBlock>>,
     initial_size: Vector2F,
     channel_event_proxy: ChannelEventListener,
     shell_state: ShellLaunchState,

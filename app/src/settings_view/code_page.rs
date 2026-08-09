@@ -1,4 +1,3 @@
-use crate::report_if_error;
 #[cfg(feature = "local_fs")]
 use super::features::external_editor::ExternalEditorView;
 use super::{

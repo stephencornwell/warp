@@ -25,7 +25,6 @@ use crate::{
     settings::{AppEditorSettings, FontSettings},
     view_components::find::FindDirection,
 };
-use ai::diff_validation::DiffDelta;
 use lazy_static::lazy_static;
 use num_traits::SaturatingSub;
 use pathfinder_geometry::vector::vec2f;
@@ -1301,12 +1300,6 @@ impl CodeEditorView {
     pub fn reset(&self, state: InitialBufferState, ctx: &mut ViewContext<Self>) {
         self.model.update(ctx, |model, ctx| {
             model.reset_content(state, ctx);
-        });
-    }
-
-    pub fn apply_diffs(&self, diffs: Vec<DiffDelta>, ctx: &mut ViewContext<Self>) {
-        self.model.update(ctx, |model, ctx| {
-            model.apply_diffs(diffs, ctx);
         });
     }
 

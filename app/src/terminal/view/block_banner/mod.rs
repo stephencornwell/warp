@@ -25,24 +25,13 @@ pub const BLOCK_BANNER_HEIGHT: f32 = CONSTRAINED_BANNER_HEIGHT + BANNER_TOP_MARG
 pub const BLOCK_BANNER_DESCRIPTION_MAX_HEIGHT: f32 = 24.;
 
 pub enum WithinBlockBanner {
-    WarpifyBanner(WarpifyBannerState),
 }
 
 impl WithinBlockBanner {
     pub fn banner_height(&self) -> f32 {
-        match self.warpify_mode() {
-            Some(WarpificationMode::Ssh { .. }) => {
-                BLOCK_BANNER_HEIGHT + BLOCK_BANNER_DESCRIPTION_MAX_HEIGHT
-            }
-            Some(WarpificationMode::Subshell { .. }) | None => BLOCK_BANNER_HEIGHT,
-        }
+        match *self {}
     }
 
-    pub fn warpify_mode(&self) -> Option<&WarpificationMode> {
-        match self {
-            WithinBlockBanner::WarpifyBanner(state) => Some(&state.mode),
-        }
-    }
 }
 
 /// These Elements should be common across all block banners. The specific content for each banner

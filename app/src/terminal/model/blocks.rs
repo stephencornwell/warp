@@ -1403,87 +1403,13 @@ impl BlockList {
 
     /// Associates the given blocks with a conversation, making them visible in that conversation's agent view.
     /// Returns a Vec of (block_id, visibility) for blocks that were found.
-    pub fn associate_blocks_with_conversation<'a>(
-        &mut self,
-        block_ids: impl Iterator<Item = &'a BlockId>,
-        conversation_id: AIConversationId,
-    ) -> Vec<(BlockId, AgentViewVisibility)> {
-        let mut modified_blocks = Vec::new();
-        for block_id in block_ids {
-            if let Some(block) = self.mut_block_from_id(block_id) {
-                if let AgentViewVisibility::Agent {
-                    origin_conversation_id,
-                    ..
-                } = block.agent_view_visibility()
-                {
-                    if *origin_conversation_id == conversation_id {
-                        continue;
-                    }
-                }
-                block.add_pending_conversation_id(conversation_id);
-                modified_blocks.push((block_id.clone(), block.agent_view_visibility().clone()));
-            }
-        }
-        modified_blocks
-    }
-
     /// Attaches every non-oz-startup block in the list to `conversation_id` so each block is
     /// visible while that conversation is the active one in agent view. Skips blocks flagged
     /// as `is_oz_environment_startup_command` since those are hidden by their own mechanism.
-    pub fn attach_non_startup_blocks_to_conversation(&mut self, conversation_id: AIConversationId) {
-        for block in &mut self.blocks {
-            if block.is_oz_environment_startup_command() {
-                continue;
-            }
-            if let AgentViewVisibility::Agent {
-                origin_conversation_id,
-                ..
-            } = block.agent_view_visibility()
-            {
-                if *origin_conversation_id == conversation_id {
-                    continue;
-                }
-            }
-            block.add_attached_conversation_id(conversation_id);
-        }
-
-        self.mark_agent_view_rich_content_dirty();
-        self.update_blocks_and_sumtree(None, None, |_| {}, |_| {});
-    }
-
     /// Removes the conversation association from the given blocks, making them disappear from that conversation's agent view.
     /// Returns a Vec of (block_id, visibility) for blocks that were modified.
-    pub fn remove_pending_context_assocation_for_blocks<'a>(
-        &mut self,
-        block_ids: impl Iterator<Item = &'a BlockId>,
-        conversation_id: AIConversationId,
-    ) -> Vec<(BlockId, AgentViewVisibility)> {
-        let mut modified_blocks = Vec::new();
-        for block_id in block_ids {
-            if let Some(block) = self.mut_block_from_id(block_id) {
-                if block.remove_pending_conversation_id(conversation_id) {
-                    modified_blocks.push((block_id.clone(), block.agent_view_visibility().clone()));
-                }
-            }
-        }
-        modified_blocks
-    }
-
     /// Promotes all blocks that are pending for the given conversation to attached.
     /// Returns a Vec of (block_id, visibility) for blocks that were modified.
-    pub fn promote_blocks_to_attached_from_conversation(
-        &mut self,
-        conversation_id: AIConversationId,
-    ) -> Vec<(BlockId, AgentViewVisibility)> {
-        let mut modified_blocks = Vec::new();
-        for block in &mut self.blocks {
-            if block.promote_pending_to_attached(conversation_id) {
-                modified_blocks.push((block.id().clone(), block.agent_view_visibility().clone()));
-            }
-        }
-        modified_blocks
-    }
-
     /// Update the height of an active block in the block heights SumTree. In general,
     /// blocks are immutable once finished. Only the active block and the most
     /// recent background output block can have their heights updated.

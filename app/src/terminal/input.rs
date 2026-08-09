@@ -11306,6 +11306,7 @@ impl Input {
         true
     }
 
+    /*
     /// Uploads image and file attachments to GCS via presigned URLs, then emits `SendAgentPrompt`
     /// with the resulting `FileReference` attachments appended.
     fn upload_files_then_send_prompt(
@@ -11457,6 +11458,7 @@ impl Input {
             },
         );
     }
+    */
 
     /// Returns true if toggling the input mode is disabled.
     fn is_input_mode_toggle_disabled(&self) -> bool {

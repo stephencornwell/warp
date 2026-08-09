@@ -154,7 +154,6 @@ use warpui::modals::{AlertDialogWithCallbacks, AppModalCallback};
 use warpui::platform::app::ApproveTerminateResult;
 use window_settings::WindowSettings;
 
-use crate::changelog_model::ChangelogModel;
 use crate::code::global_buffer_model::GlobalBufferModel;
 #[cfg(feature = "local_fs")]
 use crate::code::language_server_shutdown_manager::LanguageServerShutdownManager;
@@ -165,8 +164,6 @@ use crate::network::NetworkStatus;
 use crate::palette::PaletteMode;
 use crate::persistence::PersistenceWriter;
 use crate::projects::ProjectManagementModel;
-use crate::server::experiments::ServerExperiments;
-use crate::server::sync_queue::{QueueItem, SyncQueue};
 use crate::session_management::{RunningSessionSummary, SessionNavigationData};
 use crate::settings::manager::SettingsManager;
 use crate::settings::{AccessibilitySettings, ScrollSettings, SelectionSettings};
@@ -191,7 +188,6 @@ use interval_timer::IntervalTimer;
 use itertools::Itertools;
 use referral_theme_status::ReferralThemeStatus;
 use rust_embed::RustEmbed;
-use server::server_api::ServerApiProvider;
 use settings::{ExtraMetaKeys, PrivacySettings};
 use std::borrow::Cow;
 use std::collections::HashSet;
@@ -216,7 +212,6 @@ use crate::root_view::{
 use crate::terminal::CustomSecretRegexUpdater;
 use crate::util::bindings::is_binding_cross_platform;
 use crate::workspace::{PaneViewLocator, Workspace, WorkspaceAction};
-use crate::workspaces::user_workspaces::UserWorkspaces;
 use warp_logging::LogDestination;
 
 // Re-export the send_telemetry_from_ctx macro at the crate root level
@@ -1008,15 +1003,7 @@ fn initialize_app(
 
     timer.mark_interval_end("AUTH_MANAGER_SET_USER");
 
-    // NetworkLogModel must be registered before ServerApiProvider so that
-    // `network_logging::init` (invoked from within `ServerApiProvider::new`)
-    // can reach it via `NetworkLogModel::handle(ctx)` when forwarding items
-    // captured by the HTTP client hooks.
     ctx.add_singleton_model(|_ctx| NetworkLogModel::default());
-
-    let server_api_provider = ctx
-        .add_singleton_model(|ctx| ServerApiProvider::new(None, ctx));
-    let server_api = server_api_provider.as_ref(ctx).get();
 
     ctx.add_singleton_model(|_ctx| GPUState::new());
 
@@ -1122,24 +1109,6 @@ fn initialize_app(
                 Default::default(),
             )
         });
-
-    // Initialize a global model to track server-side experiment state.
-    // This depends on the [`GlobalResourceHandlesProvider`] and so it must
-    // be initialized after it.
-    ctx.add_singleton_model(|ctx| ServerExperiments::new_from_cache(experiments, ctx));
-
-
-    ctx.add_singleton_model(|ctx| {
-        UserWorkspaces::new(
-            server_api_provider.as_ref(ctx).get_team_client(),
-            server_api_provider.as_ref(ctx).get_workspace_client(),
-            cached_workspaces,
-            current_workspace_uid,
-            ctx,
-        )
-    });
-
-    // Initialize ApiKeyManager after UserWorkspaces so it can subscribe to workspace/settings changes
 
     ctx.add_singleton_model(AntivirusInfo::new);
 
@@ -1302,7 +1271,6 @@ fn initialize_app(
     let display_count = ctx.windows().display_count();
     ctx.add_singleton_model(|_| DisplayCount(display_count));
 
-    ctx.add_singleton_model(|_| ChangelogModel::new(server_api.clone()));
     ctx.add_singleton_model(|_| NetworkStatus::new());
     ctx.add_singleton_model(|_| SystemStats::new());
     ctx.add_singleton_model(|_| KeybindingChangedNotifier::new());

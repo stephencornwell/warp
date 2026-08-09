@@ -2114,10 +2114,6 @@ impl TerminalView {
 
         let _ = ctx.spawn_stream_local(resize_rx, Self::after_terminal_view_layout, |_, _| {});
 
-        let menu_positioning_provider = Arc::new(TerminalViewMenuPositioningProvider {
-            parent: ctx.handle(),
-        });
-
         let terminal_content_element_position_id =
             format!("terminal_content_element_{}", ctx.view_id());
 
@@ -13356,87 +13352,6 @@ impl TypedActionView for TerminalView {
         }
     }
 
-    fn menu_position(&self, app: &AppContext) -> MenuPositioning {
-        if let Some(terminal_view) = self.parent.upgrade(app) {
-            let view_ref = terminal_view.as_ref(app);
-            let TerminalView {
-                model, size_info, ..
-            } = view_ref;
-            let model = model.lock();
-            let input_mode = if view_ref.agent_view_controller.as_ref(app).is_fullscreen() {
-                InputMode::PinnedToBottom
-            } else {
-                *InputModeSettings::as_ref(app).input_mode.value()
-            };
-            let total_block_height_px = (model.block_list().block_heights().summary().height)
-                .to_pixels(size_info.cell_height_px);
-
-            // Menus are positioned as follows:
-            // - Always above the input for pinned to bottom
-            // - Always below the input for pinned to top
-            // - In Waterfall mode with no-gap, conditionally above or below depending
-            //   on whether the blocks take up more or less than half of the viewport size.
-            // - In Waterfall mode with a gap, conditionally above or below depending
-            //   on the size of the gap and the scroll position.  Basically, if the input is
-            //   is more than halfway down the screen, the menus render above; otherwise they render below.
-            let positioning = match (input_mode, model.block_list().active_gap()) {
-                (InputMode::PinnedToBottom, _) => MenuPositioning::AboveInputBox,
-                (InputMode::PinnedToTop, _) => MenuPositioning::BelowInputBox,
-                (InputMode::Waterfall, None) => {
-                    let height_ratio =
-                        total_block_height_px.as_f32() / size_info.pane_height_px().as_f32();
-                    if height_ratio < 0.5 {
-                        MenuPositioning::BelowInputBox
-                    } else {
-                        MenuPositioning::AboveInputBox
-                    }
-                }
-                (InputMode::Waterfall, Some(gap)) => {
-                    let viewport = view_ref.viewport_state(model.block_list(), input_mode, app);
-                    let scroll_top_px = viewport
-                        .scroll_top_in_lines()
-                        .to_pixels(size_info.cell_height_px());
-                    // Calculate how far into the viewport the input is (in pixels from the top).
-                    let input_position_in_viewport_px = total_block_height_px
-                        - gap.height().to_pixels(size_info.cell_height_px())
-                        - scroll_top_px;
-                    let height_ratio = input_position_in_viewport_px.as_f32()
-                        / size_info.pane_height_px().as_f32();
-                    if height_ratio < 0.5 {
-                        MenuPositioning::BelowInputBox
-                    } else {
-                        MenuPositioning::AboveInputBox
-                    }
-                }
-            };
-            return positioning;
-        }
-
-        // If we can't upgrade the terminal view reference, fall back to using just the InputMode setting
-        let input_mode = *InputModeSettings::as_ref(app).input_mode.value();
-
-        match input_mode {
-            InputMode::PinnedToBottom => MenuPositioning::AboveInputBox,
-            InputMode::PinnedToTop => MenuPositioning::BelowInputBox,
-            InputMode::Waterfall => {
-                // For Waterfall mode without terminal view context, default to BelowInputBox
-                MenuPositioning::BelowInputBox
-            }
-        }
-    }
-
-    fn inline_menu_position(&self, inline_menu_height: f32, app: &AppContext) -> MenuPositioning {
-        let Some(terminal_view) = self.parent.upgrade(app) else {
-            return MenuPositioning::AboveInputBox;
-        };
-
-        let terminal_content_height = terminal_view.as_ref(app).content_element_height_px(app);
-        if terminal_content_height > inline_menu_height {
-            MenuPositioning::AboveInputBox
-        } else {
-            MenuPositioning::BelowInputBox
-        }
-    }
 }
 
 impl Drop for TerminalView {

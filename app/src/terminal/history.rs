@@ -10,21 +10,13 @@ use warp_core::command::ExitCode;
 use warpui::{AppContext, Entity, ModelContext, SingletonEntity};
 
 use super::{
-    model::block::{AgentInteractionMetadata, Block, SerializedAIMetadata, SerializedBlock},
+    model::block::{Block, SerializedBlock},
     shell::ShellType,
 };
 use crate::{
-    cloud_object::{
-        model::{persistence::CloudModel, view::CloudViewModel},
-        Space,
-    },
     server::ids::{ClientId, HashableId as _, SyncId},
     terminal::model::session::{Session, SessionId},
     util::dedupe_from_last,
-    workflows::{
-        local_workflows::LocalWorkflows, workflow::Workflow, WorkflowId, WorkflowSource,
-        WorkflowType,
-    },
 };
 
 mod up_arrow;

@@ -23,7 +23,6 @@ use crate::ai::blocklist::agent_view::{AgentViewDisplayMode, AgentViewState};
 use crate::{
     ai::agent::redaction::redact_secrets,
     context_chips::prompt_snapshot::PromptSnapshot,
-    server::{block::DisplaySetting, ids::SyncId},
     terminal::{
         block_filter::BlockFilterQuery,
         block_list_element::GridType,
@@ -371,13 +370,6 @@ pub struct Block {
     home_dir: Option<String>,
 
     filter_query: Option<BlockFilterQuery>,
-
-    /// If the command is a cloud workflow, this is set to its id. If the block was not a workflow,
-    /// this is None.
-    cloud_workflow_id: Option<SyncId>,
-
-    /// If the command inluded an env var invocation. If not this will be None.
-    cloud_env_var_collection_id: Option<SyncId>,
 
     /// The last time this block was painted (i.e.: visible in the window),
     /// if ever.
@@ -1001,8 +993,6 @@ impl Block {
             prompt_snapshot: None,
             home_dir: None,
             filter_query: None,
-            cloud_workflow_id: None,
-            cloud_env_var_collection_id: None,
             last_painted_at: None.into(),
             has_received_user_input: false,
             hidden: false,
@@ -1529,28 +1519,6 @@ impl Block {
     /// line prompt, we render on the same line for PS1, but not for Warp prompt!
     pub fn render_prompt_on_same_line(&self) -> bool {
         self.honor_ps1()
-    }
-
-    /// Used for determining the height of the block with `DisplaySettings` used when sharing a block.
-    pub fn full_content_height_with_display_options(
-        &self,
-        display_setting: &DisplaySetting,
-        show_prompt: bool,
-    ) -> Lines {
-        let mut height = self.padding_top();
-        if show_prompt && !self.render_prompt_on_same_line() {
-            height += self.prompt_height() + self.command_padding_top();
-        }
-
-        let command_height = self.prompt_and_command_height();
-
-        height += match display_setting {
-            DisplaySetting::Command => command_height,
-            DisplaySetting::Output => self.output_grid_full_content_height(),
-            _ => command_height + self.padding_middle() + self.output_grid_full_content_height(),
-        };
-        height += self.padding_bottom();
-        height
     }
 
     /// The last part of the lifecycle for the block. After this, its contents
@@ -2619,22 +2587,6 @@ impl Block {
 
     pub fn set_home_dir(&mut self, home_dir: Option<String>) {
         self.home_dir = home_dir;
-    }
-
-    pub fn set_cloud_env_var_state(&mut self, env_var_collection_id: Option<SyncId>) {
-        self.cloud_env_var_collection_id = env_var_collection_id;
-    }
-
-    pub fn cloud_env_var_collection_state(&self) -> Option<SyncId> {
-        self.cloud_env_var_collection_id
-    }
-
-    pub fn set_cloud_workflow_state(&mut self, workflow_id: Option<SyncId>) {
-        self.cloud_workflow_id = workflow_id;
-    }
-
-    pub fn cloud_workflow_state(&self) -> Option<SyncId> {
-        self.cloud_workflow_id
     }
 
     pub fn server_pwd(&self) -> Option<Cow<'_, str>> {

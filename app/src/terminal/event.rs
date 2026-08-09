@@ -7,7 +7,6 @@ use std::time::Duration;
 
 use instant::Instant;
 
-use crate::server::ids::SyncId;
 use crate::terminal::model::block::BlockMetadata;
 use crate::terminal::model::block::SerializedBlock;
 use crate::terminal::model::completions::ShellCompletion;
@@ -224,11 +223,6 @@ pub struct AfterBlockCompletedEvent {
     pub block_type: BlockType,
     pub num_secrets_obfuscated: usize,
 
-    /// If the completed block was a workflow, this is its id.
-    pub cloud_workflow_id: Option<SyncId>,
-
-    /// If the completed block had an env var object associated.
-    pub cloud_env_var_collection_id: Option<SyncId>,
 }
 
 #[derive(Clone)]

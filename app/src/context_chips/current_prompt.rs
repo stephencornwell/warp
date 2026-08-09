@@ -177,10 +177,6 @@ pub struct CurrentPrompt {
     prompt_chip_logger: PromptChipLogger,
     update_tx: async_channel::Sender<()>,
 
-    /// When set, `ShellGitBranch` chip values are driven by filesystem events from
-    /// `GitRepoStatusModel` instead of the 30s periodic timer.
-    #[cfg(feature = "local_fs")]
-    git_repo_status: Option<WeakModelHandle<GitRepoStatusModel>>,
 }
 
 /// Context about the current terminal session, needed to update the prompt.
@@ -250,8 +246,6 @@ impl CurrentPrompt {
             update_tx,
             same_line_prompt_enabled: prompt.as_ref(ctx).same_line_prompt_enabled(),
             separator: prompt.as_ref(ctx).separator(),
-            #[cfg(feature = "local_fs")]
-            git_repo_status: None,
         }
     }
 
@@ -1395,15 +1389,6 @@ impl CurrentPrompt {
     /// Returns `true` when the given chip's value is updated externally
     /// (e.g. by a filesystem watcher) and the periodic timer should be skipped.
     fn is_updated_externally(&self, chip_kind: &ContextChipKind) -> bool {
-        #[cfg(feature = "local_fs")]
-        {
-            if matches!(
-                chip_kind,
-                ContextChipKind::ShellGitBranch | ContextChipKind::GitDiffStats
-            ) {
-                return self.git_repo_status.is_some();
-            }
-        }
         let _ = chip_kind;
         false
     }

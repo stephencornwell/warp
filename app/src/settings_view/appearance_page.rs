@@ -24,7 +24,6 @@ use crate::editor::{
     EditOrigin, Event as EditorEvent, InteractionState, SingleLineEditorOptions, TextOptions,
 };
 use crate::gpu_state::{GPUState, GPUStateEvent};
-use crate::prompt::editor_modal::OpenSource as PromptEditorOpenSource;
 use crate::settings::{
     active_theme_kind,
     app_icon::{AppIcon, AppIconSettings},
@@ -1267,7 +1266,6 @@ impl AppearanceSettingsPageView {
 
         let category_widgets: Vec<Box<dyn SettingsWidget<View = Self>>> = vec![
             Box::new(InputTypeWidget::default()),
-            Box::new(PromptWidget::default()),
             Box::new(InputModeWidget::default()),
         ];
 
@@ -3335,11 +3333,6 @@ impl SettingsWidget for PromptWidget {
                 .finish()
         })
         .with_cursor(Cursor::PointingHand)
-        .on_click(|ctx, _, _| {
-            ctx.dispatch_typed_action(WorkspaceAction::OpenPromptEditor {
-                open_source: PromptEditorOpenSource::AppearancePage,
-            })
-        })
         .finish()
     }
 }

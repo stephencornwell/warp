@@ -6,7 +6,6 @@ use warp_util::path::LineAndColumnArg;
 
 use crate::palette::PaletteMode;
 use crate::pane_group::PaneGroup;
-use crate::prompt::editor_modal::OpenSource as PromptEditorOpenSource;
 use crate::search;
 use crate::server::ids::SyncId;
 use crate::settings_view::{SettingsAction as SettingsTabAction, SettingsSection};
@@ -273,9 +272,6 @@ pub enum WorkspaceAction {
     /// An action to force terminal input syncing off
     DisableTerminalInputSync,
     HandleConflictingWorkflow(SyncId),
-    OpenPromptEditor {
-        open_source: PromptEditorOpenSource,
-    },
     OpenAgentToolbarEditor,
     OpenCLIAgentToolbarEditor,
     OpenHeaderToolbarEditor,

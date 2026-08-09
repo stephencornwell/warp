@@ -115,10 +115,6 @@ use crate::pane_group::{
 };
 use crate::terminal::keys_settings::KeysSettings;
 
-use crate::prompt::editor_modal::{
-    EditorModal as PromptEditorModal, EditorModalEvent as PromptEditorModalEvent,
-    OpenSource as PromptEditorOpenSource,
-};
 use crate::referral_theme_status::ReferralThemeEvent;
 use crate::resource_center::{
     mark_feature_used_and_write_to_user_defaults, skip_tips_and_write_to_user_defaults,
@@ -694,7 +690,6 @@ pub struct Workspace {
     reauth_banner_dismissed: bool,
     settings_file_error: Option<crate::settings::SettingsFileError>,
     settings_error_banner_dismissed: bool,
-    prompt_editor_modal: ViewHandle<PromptEditorModal>,
     header_toolbar_editor_modal: ViewHandle<HeaderToolbarEditorModal>,
     header_toolbar_context_menu: ViewHandle<Menu<WorkspaceAction>>,
     show_header_toolbar_context_menu: Option<Vector2F>,
@@ -1025,13 +1020,6 @@ impl Workspace {
         }
     }
 
-    fn build_prompt_editor_modal(ctx: &mut ViewContext<Self>) -> ViewHandle<PromptEditorModal> {
-        let modal = ctx.add_typed_action_view(PromptEditorModal::new);
-        ctx.subscribe_to_view(&modal, |me, _, event, ctx| {
-            me.handle_prompt_editor_modal_event(event, ctx);
-        });
-        modal
-    }
 
     fn build_reward_modal(ctx: &mut ViewContext<Self>) -> ViewHandle<Modal<RewardView>> {
         let reward_view = ctx.add_typed_action_view(|_| RewardView::new());
@@ -1833,7 +1821,6 @@ impl Workspace {
             })
             .collect();
 
-        let prompt_editor_modal = Self::build_prompt_editor_modal(ctx);
         let agent_toolbar_editor_modal = Self::build_agent_toolbar_editor_modal(ctx);
 
         Self::observe_server_api(ctx);
@@ -1921,7 +1908,6 @@ impl Workspace {
             agent_toast_stack,
             update_toast_stack,
             cached_keybindings,
-            prompt_editor_modal,
             header_toolbar_editor_modal: Self::build_header_toolbar_editor_modal(ctx),
             header_toolbar_context_menu: Self::build_header_toolbar_context_menu(ctx),
             show_header_toolbar_context_menu: None,
@@ -3224,20 +3210,6 @@ impl Workspace {
 
     /// Handle the close event from the reward modal
     /// Handle the call-to-action event from the reward modal view
-    fn handle_prompt_editor_modal_event(
-        &mut self,
-        event: &PromptEditorModalEvent,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        match event {
-            PromptEditorModalEvent::Close => {
-                self.current_workspace_state.is_prompt_editor_open = false;
-                self.focus_active_tab(ctx);
-                ctx.notify();
-            }
-        }
-    }
-
     fn build_header_toolbar_editor_modal(
         ctx: &mut ViewContext<Self>,
     ) -> ViewHandle<HeaderToolbarEditorModal> {
@@ -7956,50 +7928,6 @@ impl Workspace {
         ctx.notify();
     }
 
-    fn open_prompt_editor(
-        &mut self,
-        open_source: PromptEditorOpenSource,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        // Try to get a prompt preview from an active session. Otherwise, read it from the settings
-        // view.
-        let ps1_grid_info = self.active_session_ps1_grid_info(ctx).or_else(|| {
-            self.settings_pane
-                .read(ctx, |settings, app| settings.get_ps1_info(app))
-        });
-        let chip_runtime_capabilities = self
-            .active_tab_pane_group()
-            .as_ref(ctx)
-            .active_session_view(ctx)
-            .and_then(|terminal_view| {
-                terminal_view.read(ctx, |terminal, ctx| {
-                    let required_executables = crate::context_chips::available_chips()
-                        .into_iter()
-                        .filter_map(|kind| kind.to_chip())
-                        .flat_map(|chip| chip.runtime_policy().required_executables().to_vec())
-                        .collect::<std::collections::HashSet<_>>();
-                    terminal
-                        .active_block_session_id()
-                        .and_then(|id| terminal.sessions_model().as_ref(ctx).get(id))
-                        .as_deref()
-                        .map(|session| {
-                            ChipRuntimeCapabilities::from_session_with_external_command_queries(
-                                session,
-                                required_executables.iter().map(String::as_str),
-                                false,
-                            )
-                        })
-                })
-            })
-            .unwrap_or_default();
-        self.prompt_editor_modal.update(ctx, |prompt_editor, ctx| {
-            prompt_editor.open(ps1_grid_info, chip_runtime_capabilities, ctx);
-        });
-        self.close_all_overlays(ctx);
-        self.current_workspace_state.is_prompt_editor_open = true;
-        ctx.focus(&self.prompt_editor_modal);
-
-    }
 
     fn open_theme_creator_modal(&mut self, ctx: &mut ViewContext<Self>) {
         self.current_workspace_state.is_theme_creator_modal_open = true;
@@ -11012,7 +10940,6 @@ impl View for Workspace {
         }
 
         if self.current_workspace_state.is_prompt_editor_open {
-            stack.add_child(ChildView::new(&self.prompt_editor_modal).finish());
         }
 
         if FeatureFlag::AgentToolbarEditor.is_enabled()

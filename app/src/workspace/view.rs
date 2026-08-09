@@ -9148,10 +9148,6 @@ impl TypedActionView for Workspace {
             AddTabWithShell { shell, source } => {
                 self.add_tab_with_shell(shell.clone(), *source, ctx)
             }
-            AddGetStartedTab => self.add_get_started_tab(ctx),
-            AddAmbientAgentTab => self.add_ambient_agent_tab(ctx),
-            AddAgentTab => self.add_terminal_tab_with_new_agent_view(ctx),
-            AddDockerSandboxTab => self.add_docker_sandbox_tab(ctx),
             OpenNewSessionMenu { position } => self.open_new_session_dropdown_menu(*position, ctx),
             ToggleTabConfigsMenu => self.toggle_tab_configs_menu(ctx),
             ShowSessionConfigModal => self.show_session_config_modal(ctx),
@@ -9163,9 +9159,6 @@ impl TypedActionView for Workspace {
             }
             ToggleNewSessionMenu { position } => {
                 self.toggle_new_session_dropdown_menu(*position, ctx)
-            }
-            SelectNewSessionMenuItem(new_session_menu_item) => {
-                self.open_launch_config_from_menu(new_session_menu_item.clone(), ctx)
             }
             SelectTabConfig(tab_config) => {
                 self.open_tab_config(tab_config.clone(), ctx);
@@ -9257,8 +9250,7 @@ impl TypedActionView for Workspace {
                 ctx.notify();
             }
             OpenSettingsFile => {
-                let path = crate::settings::user_preferences_toml_file_path();
-                self.add_tab_for_code_file(path, None, ctx);
+                self.show_settings(ctx);
             }
             FixSettingsWithOz { .. } => {}
             OpenWorktreeInRepo { repo_path } => {
@@ -9266,12 +9258,8 @@ impl TypedActionView for Workspace {
             }
             OpenWorktreeAddRepoPicker => {
                 self.close_new_session_dropdown_menu(ctx);
-                self.open_folder_picker_for_worktree_submenu(ctx);
             }
             ApplyUpdate => self.apply_update(ctx),
-ExportAllWarpDriveObjects => {
-                self.export_all_warp_drive_objects(ctx);
-            }
             CopyVersion(version) => self.copy_version(version, ctx),
             DownloadNewVersion => self.download_new_version(ctx),
             ConfigureKeybindingSettings { keybinding_name } => {
@@ -9351,10 +9339,6 @@ ToggleLeftPanel => {
                 let file_tree_active = self
                     .left_panel_view
                     .read(ctx, |lp, _| lp.is_file_tree_active());
-                let warp_drive_active = self
-                    .left_panel_view
-                    .read(ctx, |lp, _| lp.is_warp_drive_active());
-
                 self.toggle_left_panel(ctx);
 
                 let is_open = active_pane_group.read(ctx, |pg, _| pg.left_panel_open);
@@ -9364,10 +9348,7 @@ ToggleLeftPanel => {
                         left_panel.focus_active_view_on_entry(ctx);
                     });
 
-                    if file_tree_active {
-                    } else if warp_drive_active {
-                        // Tools panel opened with Warp Drive as the active view
-                    }
+                    let _ = file_tree_active;
                 }
             }
 ClosePanel => {
@@ -9381,30 +9362,12 @@ ClosePanel => {
             OpenFilePath { path } => {
                 ctx.open_file_path(path);
             }
-ToggleAIAssistant => {
-                self.toggle_ai_assistant_panel(ctx);
-            }
-ShowAIAssistantWarmWelcome => {
-                self.should_show_ai_assistant_warm_welcome = true;
-                ctx.notify();
-            }
 DragTab {
                 tab_index,
                 tab_position,
             } => self.on_tab_drag(*tab_index, *tab_position, ctx),
             DropTab => {
                 self.current_workspace_state.is_tab_being_dragged = false;
-            }
-            CopyAccessTokenToClipboard => {
-                // Blocking is ok here only because this action is only registered in dev and local
-                // builds to aid in debugging and development.
-                let access_token =
-                    warpui::r#async::block_on(self.server_api.get_or_refresh_access_token());
-                if let Ok(token) = access_token {
-                    if let Some(bearer) = token.bearer_token() {
-                        ctx.clipboard().write(ClipboardContent::plain_text(bearer));
-                    }
-                }
             }
             CopyTextToClipboard(text) => {
                 ctx.clipboard()
@@ -9569,20 +9532,11 @@ ScrollToSettingsWidget { page, widget_id } => {
                 });
                 ctx.notify();
             }
-            OpenFileInNewTab {
-                full_path,
-                line_and_column,
-            } => {
-                self.add_tab_for_code_file(full_path.clone(), *line_and_column, ctx);
-            }
             OpenRepository { path } => {
                 self.open_repository(path.as_deref(), ctx);
             }
             OpenTabConfigRepoPicker { param_index } => {
                 self.open_repo_picker_for_tab_config_modal(*param_index, ctx);
-            }
-            NewCodeFile => {
-                self.add_tab_for_new_code_file(ctx);
             }
             #[cfg(not(target_family = "wasm"))]
             InsertForkSlashCommand => {

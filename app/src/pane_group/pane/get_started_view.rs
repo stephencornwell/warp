@@ -136,8 +136,9 @@ impl GetStartedView {
         ctx: &mut ViewContext<Self>,
     ) {
         match event {
-            CreateProjectEvent::SubmitPrompt(prompt) => {
-                self.start_create_new_project(prompt.clone(), ctx);
+            CreateProjectEvent::SubmitPrompt(_) => {
+                self.active_page = ActivePage::Main;
+                ctx.notify();
             }
             CreateProjectEvent::Cancel => {
                 self.active_page = Default::default();
@@ -153,36 +154,15 @@ impl GetStartedView {
         ctx: &mut ViewContext<Self>,
     ) {
         match event {
-            CloneRepoEvent::SubmitPrompt(url) => {
-                self.start_clone_repo(url.clone(), ctx);
+            CloneRepoEvent::SubmitPrompt(_) => {
+                self.active_page = ActivePage::Main;
+                ctx.notify();
             }
             CloneRepoEvent::Cancel => {
                 self.active_page = ActivePage::Main;
                 ctx.notify();
             }
         }
-    }
-
-    fn start_create_new_project(&mut self, prompt: String, ctx: &mut ViewContext<Self>) {
-        ctx.dispatch_typed_action(&WorkspaceAction::AddTerminalTab {
-            hide_homepage: true,
-        });
-        update_active_terminal(ctx, |terminal, ctx| {
-            terminal.create_new_project(prompt, ctx);
-        });
-
-        self.close(ctx);
-    }
-
-    fn start_clone_repo(&mut self, url: String, ctx: &mut ViewContext<Self>) {
-        ctx.dispatch_typed_action(&WorkspaceAction::AddTerminalTab {
-            hide_homepage: true,
-        });
-        update_active_terminal(ctx, |terminal, ctx| {
-            terminal.agent_clone_repository(url, ctx);
-        });
-
-        self.close(ctx);
     }
 
     fn render_main_content(&self, app: &AppContext) -> Box<dyn Element> {

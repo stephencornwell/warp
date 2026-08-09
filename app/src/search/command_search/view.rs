@@ -51,7 +51,6 @@ use crate::{
 };
 
 use super::{
-    env_var_collections::EnvVarCollectionDataSource,
     history::history_data_source_for_session,
     notebooks::notebooks_data_source,
     workflows::{cloud_workflows_data_source, WorkflowsDataSource},
@@ -259,14 +258,6 @@ impl CommandSearchView {
                     ctx,
                 );
 
-                // EnvVarCollectionDataSource stays synchronous because each match target is
-                // structurally short (title, variable name, description). The per-item fuzzy
-                // match cost is negligible, so offloading to an async task would add complexity
-                // without meaningful performance benefit.
-                mixer.add_sync_source(
-                    EnvVarCollectionDataSource::new(),
-                    HashSet::from([QueryFilter::EnvironmentVariables]),
-                );
             }
 
             if History::as_ref(ctx).is_queryable(&session_id) {
@@ -475,7 +466,6 @@ impl CommandSearchView {
                 | AcceptWorkflow(_)
                 | AcceptNotebook(_)
                 | OpenWarpAI
-                | AcceptEnvVarCollection(_)
                 | TranslateUsingWarpAI
                 | AcceptAIQuery(_) => false,
             };

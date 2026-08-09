@@ -269,13 +269,6 @@ pub fn init(app: &mut AppContext) {
         "root_view:move_quake_mode_window_from_screen_change",
         move_quake_mode_window_from_screen_change,
     );
-    #[cfg(feature = "voice_input")]
-    app.add_global_action("root_view:abort_voice_input", abort_voice_input);
-    #[cfg(feature = "voice_input")]
-    app.add_action(
-        "root_view:maybe_stop_active_voice_input",
-        RootView::maybe_stop_active_voice_input,
-    );
     app.add_action("root_view:log_out", RootView::log_out);
     app.add_action(
         "root_view:add_session_at_path",
@@ -1229,16 +1222,6 @@ fn show_or_hide_non_quake_mode_windows(_: &(), ctx: &mut AppContext) {
     };
 }
 
-#[cfg(feature = "voice_input")]
-fn abort_voice_input(_: &(), ctx: &mut AppContext) {
-    let voice_input = voice_input::VoiceInput::handle(ctx);
-    if voice_input.as_ref(ctx).is_listening() {
-        voice_input.update(ctx, |voice_input, _| {
-            voice_input.abort_listening();
-        });
-    }
-}
-
 #[derive(Clone)]
 pub enum NewWorkspaceSource {
     Empty {
@@ -1657,21 +1640,7 @@ impl View for RootView {
             );
         }
 
-        cfg_if::cfg_if! {
-            if #[cfg(feature = "voice_input")] {
-                use warpui::elements::{EventHandler, DispatchEventResult};
-                EventHandler::new(stack.finish())
-                    .on_modifier_state_changed(|ctx, _app, key_code, key_state| {
-                        if matches!(key_state, warpui::event::KeyState::Released) {
-                            ctx.dispatch_action("root_view:maybe_stop_active_voice_input", *key_code);
-                        }
-                        DispatchEventResult::PropagateToParent
-                    })
-                    .finish()
-            } else {
-                stack.finish()
-            }
-        }
+        stack.finish()
     }
 
     fn keymap_context(&self, app: &AppContext) -> warpui::keymap::Context {

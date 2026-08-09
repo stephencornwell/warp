@@ -156,7 +156,7 @@ impl Renderer {
         if self.is_disabled {
             color.a = (color.a / 2).max(48);
         }
-        let font_size = udi_font_size(appearance);
+        let font_size = (appearance.monospace_font_size() - 1.);
 
         let mut content = Flex::row().with_cross_axis_alignment(CrossAxisAlignment::Center);
 
@@ -192,7 +192,7 @@ impl Renderer {
             );
         }
 
-        let container = chip_container(content.finish(), None, appearance);
+        let container = Container::new(content.finish()).with_background(appearance.theme().surface_1());
 
         let mut hoverable = Hoverable::new(self.tooltip_state_handle.clone(), |mouse_state| {
             if !mouse_state.is_hovered()

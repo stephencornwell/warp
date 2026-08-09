@@ -221,7 +221,7 @@ impl ControlItemRenderer {
         remove_button: Option<Box<dyn Element>>,
         appearance: &Appearance,
     ) -> Box<dyn Element> {
-        let font_size = udi_font_size(appearance);
+        let font_size = (appearance.monospace_font_size() - 1.);
         let label = self.display_label().to_string();
         let icon = self.display_icon();
         let is_dragging = matches!(drag_state, ChipDragState::Draggable { is_dragging: true });
@@ -263,7 +263,7 @@ impl ControlItemRenderer {
                 );
             }
 
-            let button = chip_container(content.finish(), None, appearance)
+            let button = Container::new(content.finish())
                 .with_background(background)
                 .finish();
             if !show_hover {

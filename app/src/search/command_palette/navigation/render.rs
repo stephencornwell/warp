@@ -1,10 +1,6 @@
 use crate::appearance::Appearance;
-use crate::context_chips::display_chip::{
-    chip_container, render_git_diff_stats_content, render_udi_chip, udi_font_size, GitLineChanges,
-    UdiChipConfig,
-};
 use crate::context_chips::prompt_snapshot::PromptSnapshot;
-use crate::context_chips::{ChipValue, ContextChipKind};
+use crate::context_chips::ContextChipKind;
 use crate::search::command_palette::navigation::search::SessionHighlightIndices;
 use crate::search::result_renderer::ItemHighlightState;
 use crate::session_management::{CommandContext, SessionNavigationData};
@@ -152,42 +148,24 @@ fn render_prompt_udi(snapshot: &PromptSnapshot, appearance: &Appearance) -> Box<
         let Some(value) = chip_result.value() else {
             continue;
         };
-        // GitDiffStats are rendered differently than other chips, so we handle them separately.
-        // This ensures that the rendered chip matches the live input chip.
-        if matches!(chip_result.kind(), ContextChipKind::GitDiffStats) {
-            let line_changes = match value {
-                ChipValue::GitDiffStats(g) => g.clone(),
-                ChipValue::Text(raw) => {
-                    let Some(parsed) = GitLineChanges::parse_from_git_output(raw) else {
-                        continue;
-                    };
-                    parsed
-                }
-            };
-            let font_size = udi_font_size(appearance);
-            let content = render_git_diff_stats_content(
-                &line_changes,
-                font_size,
-                appearance.monospace_font_family(),
-                font_size,
-                appearance,
-            );
-            chip_row.add_child(chip_container(content, Some(Border::all(0.)), appearance).finish());
-            continue;
-        }
-
         let color = chip_result
             .kind()
             .default_styles(appearance, false)
             .value_color;
         let value_text = value.to_string();
-        let config = if let Some(icon) = chip_result.kind().udi_icon() {
-            UdiChipConfig::new_with_icon(icon, color, value_text)
-        } else {
-            UdiChipConfig::new(color, value_text)
-        }
-        .with_border_override(Border::all(0.));
-        chip_row.add_child(render_udi_chip(config, appearance));
+        chip_row.add_child(
+            Container::new(
+                warpui::elements::Text::new_inline(
+                    value_text,
+                    appearance.monospace_font_family(),
+                    appearance.monospace_font_size() - 1.,
+                )
+                .with_color(warp_core::ui::theme::Fill::Solid(color).into())
+                .finish(),
+            )
+            .with_border(Border::all(0.))
+            .finish(),
+        );
     }
 
     let prompt_section = Container::new(chip_row.finish())

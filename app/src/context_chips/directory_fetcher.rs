@@ -1,13 +1,11 @@
 use std::cmp::Ordering;
 
 use crate::completer::SessionContext;
-use crate::ui_components::icons::Icon;
 use typed_path::TypedPathBuf;
 use warp_completer::completer::{EngineDirEntry, EngineFileType, PathCompletionContext};
 use warp_util::file_type::is_binary_file;
 use warpui::{r#async::SpawnedFutureHandle, AppContext, Entity, ModelContext};
 
-use super::display_menu::GenericMenuItem;
 
 /// DirectoryFetcher model that caches directory state and provides an explicit refetch API
 pub struct DirectoryFetcher {
@@ -161,29 +159,6 @@ pub enum DirectoryType {
 pub struct DirectoryItem {
     pub name: String,
     pub directory_type: DirectoryType,
-}
-
-impl GenericMenuItem for DirectoryItem {
-    fn as_any(&self) -> &dyn std::any::Any {
-        self
-    }
-
-    fn name(&self) -> String {
-        self.name.clone()
-    }
-
-    fn icon(&self, _app: &AppContext) -> Option<Icon> {
-        Some(match self.directory_type {
-            DirectoryType::Directory => Icon::Folder,
-            DirectoryType::TextFile => Icon::File,
-            DirectoryType::OtherFile => Icon::File,
-            DirectoryType::NavigateToParent => Icon::ArrowUp,
-        })
-    }
-
-    fn action_data(&self) -> String {
-        self.name.clone()
-    }
 }
 
 /// Sort menu items: directories first, then text files, then other files, all alphabetically within their groups

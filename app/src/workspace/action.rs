@@ -138,7 +138,6 @@ pub enum WorkspaceAction {
         position: Vector2F,
     },
     SelectNewSessionMenuItem(NewSessionMenuItem),
-    AutoupdateFailureLink,
     ApplyUpdate,
     LogOut,
     CopyVersion(&'static str),
@@ -702,8 +701,7 @@ impl WorkspaceAction {
             | SelectTabConfig(_) => true, // actions that actually change a state of the state of user's
             // workspace would most likely require a save, so that if the app gets
             // restarted, the user can continue working
-            AutoupdateFailureLink
-            | ApplyUpdate
+            ApplyUpdate
             | CopyVersion(_)
             | DownloadNewVersion
             | ConfigureKeybindingSettings { .. }

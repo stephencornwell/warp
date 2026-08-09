@@ -10,7 +10,6 @@ use warpui::{
 };
 
 use crate::{
-    autoupdate::{self},
     channel::{Channel, ChannelState},
     features::{FeatureFlag, PREVIEW_FLAGS},
     server::server_api::ServerApi,
@@ -54,15 +53,9 @@ impl ChangelogModel {
             }
             ChangelogState::None => {
                 self.changelog = ChangelogState::Pending;
-                let server_api = self.server_api.clone();
-                let _ = ctx.spawn(
-                    async move {
-                        (
-                            request_type,
-                            autoupdate::get_current_changelog(server_api).await,
-                        )
-                    },
-                    Self::handle_changelog_check,
+                self.handle_changelog_check(
+                    (request_type, Ok(None)),
+                    ctx,
                 );
             }
         }

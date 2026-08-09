@@ -712,69 +712,6 @@ impl CodeEditorModel {
     }
 
     /// Returns the content of a line given the location of the line,
-    /// along with the number of added and removed lines.
-    /// For Current and Collapsed lines, retrieves from the buffer.
-    /// For Removed lines, retrieves from the diff base content.
-    /// Prepends '+' for added/modified lines and '-' for removed lines.
-    pub fn get_diff_content_for_line(
-        &self,
-        line: &EditorLineLocation,
-        ctx: &AppContext,
-    ) -> LineDiffContent {
-        match line {
-            EditorLineLocation::Collapsed { .. } | EditorLineLocation::Current { .. } => {
-                let buffer = self.buffer().as_ref(ctx);
-
-                let (modified, mut content) = if let Some(line_number) = line.line_number() {
-                    // TODO(CLD-558) Buffer lines are 1-indexed.
-                    let start_offset =
-                        Point::new(line_number.as_u32() + 1, 0).to_buffer_char_offset(buffer);
-                    let end_offset =
-                        Point::new(line_number.as_u32() + 2, 0).to_buffer_char_offset(buffer);
-
-                    let modified = self.diff.as_ref(ctx).is_line_added_or_changed(&line_number);
-                    (
-                        modified,
-                        buffer.text_in_range(start_offset..end_offset).into_string(),
-                    )
-                } else {
-                    (false, String::new())
-                };
-
-                // Prepend '+' for modified lines
-                if modified {
-                    content = format!("+{content}");
-                }
-
-                LineDiffContent {
-                    content,
-                    lines_added: if modified {
-                        LineCount::from(1)
-                    } else {
-                        LineCount::from(0)
-                    },
-                    lines_removed: LineCount::from(0),
-                }
-            }
-            EditorLineLocation::Removed { .. } => {
-                let mut content = self
-                    .diff
-                    .as_ref(ctx)
-                    .deleted_line_content(line)
-                    .unwrap_or_default();
-
-                // Prepend '-' for removed lines
-                content = format!("-{content}");
-
-                LineDiffContent {
-                    content,
-                    lines_added: LineCount::from(0),
-                    lines_removed: LineCount::from(1),
-                }
-            }
-        }
-    }
-
     /// Find the 0-based index of the temporary block containing the given
     /// content-space vertical offset within its diff hunk.
     ///

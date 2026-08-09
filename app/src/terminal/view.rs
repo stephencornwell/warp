@@ -11,9 +11,6 @@ mod open_in_warp;
 mod pane_impl;
 pub mod rich_content;
 mod shell_terminated_banner;
-pub mod ssh_file_upload;
-pub(crate) mod ssh_remote_server_choice_view;
-pub(crate) mod ssh_remote_server_failed_banner;
 mod tab_metadata;
 #[cfg(any(test, feature = "integration_tests"))]
 mod testing;

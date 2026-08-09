@@ -11393,25 +11393,6 @@ impl TypedActionView for Workspace {
                     view.add_ephemeral_toast(new_toast, ctx);
                 });
             }
-SignupAnonymousUser => {
-                self.initiate_user_signup(AnonymousUserSignupEntrypoint::SignUpButton, ctx);
-            }
-HandleConflictingWorkflow(workflow_id) => {
-                self.toast_stack.update(ctx, |view, ctx| {
-                    view.dismiss_older_toasts(&workflow_id.uid(), ctx);
-                });
-                self.open_workflow_with_existing(
-                    *workflow_id,
-                    &OpenWarpDriveObjectSettings::default(),
-                    ctx,
-                );
-            }
-            OpenPromptEditor { open_source } => {
-                self.open_prompt_editor(*open_source, ctx);
-            }
-OpenCLIAgentToolbarEditor => {
-                self.open_agent_toolbar_editor(AgentToolbarEditorMode::CLIAgent, ctx);
-            }
             OpenHeaderToolbarEditor => {
                 self.open_header_toolbar_editor(ctx);
             }
@@ -11426,15 +11407,6 @@ OpenCLIAgentToolbarEditor => {
                 // Instead, we use a global action to ensure we don't try to
                 // perform nested updates on the workspace.
                 ctx.dispatch_global_action("app:undo_close", ());
-            }
-StopSharingSessionFromTabMenu { terminal_view_id } => {
-                self.stop_sharing_session(terminal_view_id, SharedSessionActionSource::Tab, ctx)
-            }
-=> {
-                self.stop_sharing_all_panes_in_tab(pane_group, ctx)
-            }
-=> {
-                self.copy_shared_session_link_from_tab(*tab_index, ctx)
             }
             AddWindow => {
                 ctx.dispatch_global_action("root_view:open_new", ());

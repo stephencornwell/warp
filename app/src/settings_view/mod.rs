@@ -1,3 +1,4 @@
+use crate::send_telemetry_from_ctx;
 use crate::pane_group::focus_state::PaneFocusHandle;
 use crate::{
     appearance::Appearance,

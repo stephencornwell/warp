@@ -1,3 +1,4 @@
+use crate::send_telemetry_from_ctx;
 /// This module contains a model that can be used for loading and saving text files
 /// and displaying them in a code editor.
 /// It also handles applying an optional diff to the file content that will be applied

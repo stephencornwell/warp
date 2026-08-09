@@ -1,3 +1,4 @@
+use crate::send_telemetry_from_ctx;
 use crate::auth::AuthStateProvider;
 use crate::pricing::PricingInfoModel;
 use crate::ui_components::blended_colors;

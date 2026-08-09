@@ -1,3 +1,4 @@
+use crate::send_telemetry_from_ctx;
 use super::data_source::{Query, QueryResult};
 use crate::debounce::debounce;
 use crate::search::QueryFilter;

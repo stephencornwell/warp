@@ -1,3 +1,4 @@
+use crate::send_telemetry_from_ctx;
 use sharing::SharedPaneContent;
 use std::fmt::Debug;
 use crate::workspace::TabBarDropTargetData;

@@ -1,3 +1,4 @@
+use crate::send_telemetry_from_ctx;
 use itertools::Itertools;
 use warpui::{
     elements::{Container, CrossAxisAlignment, Flex, ParentElement, Shrinkable},

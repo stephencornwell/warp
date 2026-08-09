@@ -1,3 +1,5 @@
+use crate::send_telemetry_from_app_ctx;
+use crate::send_telemetry_sync_from_ctx;
 use std::collections::VecDeque;
 use std::ffi::OsStr;
 

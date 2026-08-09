@@ -1,3 +1,4 @@
+use crate::send_telemetry_from_ctx;
 use pathfinder_color::ColorU;
 use settings::Setting as _;
 use warp_editor::editor::NavigationKey;

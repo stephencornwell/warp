@@ -1,3 +1,4 @@
+use crate::send_telemetry_from_ctx;
 use crate::code::editor::scroll::ScrollPosition;
 use crate::code::editor::view::CodeEditorRenderOptions;
 use crate::code::editor_management::CodeEditorStatus;

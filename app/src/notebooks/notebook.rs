@@ -1,3 +1,4 @@
+use crate::send_telemetry_from_ctx;
 use anyhow::Context;
 use async_channel::Sender;
 use futures_util::stream::AbortHandle;

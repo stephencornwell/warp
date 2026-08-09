@@ -1,3 +1,4 @@
+use crate::send_telemetry_from_ctx;
 use instant::Instant;
 use markdown_parser::{FormattedText, FormattedTextFragment, FormattedTextLine};
 use warp_core::features::FeatureFlag;

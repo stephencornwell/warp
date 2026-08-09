@@ -1,3 +1,4 @@
+use crate::send_telemetry_from_ctx;
 use super::{
     flags,
     settings_page::{

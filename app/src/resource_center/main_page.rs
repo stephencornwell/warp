@@ -1,3 +1,4 @@
+use crate::send_telemetry_from_ctx;
 use pathfinder_geometry::vector::vec2f;
 use warpui::{
     elements::{

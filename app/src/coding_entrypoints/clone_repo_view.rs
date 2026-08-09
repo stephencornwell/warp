@@ -1,3 +1,4 @@
+use crate::send_telemetry_from_ctx;
 use crate::coding_entrypoints::glowing_editor::{GlowingEditor, GlowingEditorEvent};
 use warpui::{
     elements::{ChildView, Flex, ParentElement as _},

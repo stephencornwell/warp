@@ -1,3 +1,4 @@
+use crate::send_telemetry_from_ctx;
 use std::borrow::Cow;
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};

@@ -1,3 +1,4 @@
+use crate::send_telemetry_from_ctx;
 pub mod active_session;
 pub mod command_executor;
 

@@ -1,3 +1,4 @@
+use crate::send_telemetry_from_ctx;
 use crate::terminal::model::session::Sessions;
 
 use crate::terminal::event::{

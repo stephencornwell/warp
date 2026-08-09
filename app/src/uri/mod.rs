@@ -1,3 +1,4 @@
+use crate::send_telemetry_from_app_ctx;
 mod docker;
 pub mod parse_url_paths;
 pub mod web_intent_parser;

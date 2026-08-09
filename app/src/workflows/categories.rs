@@ -1,3 +1,4 @@
+use crate::send_telemetry_from_ctx;
 use itertools::Itertools;
 use warp_editor::editor::NavigationKey;
 use warpui::{

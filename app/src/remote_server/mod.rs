@@ -1,3 +1,4 @@
+use crate::send_telemetry_from_ctx;
 #[cfg(not(target_family = "wasm"))]
 use crate::server::server_api::{ServerApiEvent, ServerApiProvider};
 #[cfg(not(target_family = "wasm"))]

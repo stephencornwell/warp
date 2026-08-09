@@ -1,3 +1,4 @@
+use crate::send_telemetry_from_ctx;
 use alias_bar::{AliasBar, AliasBarEvent};
 use argument_editor::{ArgumentEditorRow, DEFAULT_ARGUMENT_PREFIX};
 use itertools::Itertools;

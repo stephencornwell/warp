@@ -1,3 +1,4 @@
+use crate::send_telemetry_from_ctx;
 use super::{CTAButton, CheckboxConfig, LaunchModalEvent, Slide};
 use crate::terminal::view::OnboardingIntention;
 use crate::ui_components::icons::Icon;

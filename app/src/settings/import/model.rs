@@ -1,3 +1,4 @@
+use crate::send_telemetry_from_ctx;
 use std::collections::HashMap;
 
 use crate::interval_timer::IntervalTimer;

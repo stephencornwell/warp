@@ -1,3 +1,4 @@
+use crate::send_telemetry_from_ctx;
 use warpui::{
     elements::{
         Align, ConstrainedBox, Container, CrossAxisAlignment, Element, Flex, Hoverable, Icon,

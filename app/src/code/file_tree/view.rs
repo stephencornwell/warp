@@ -1,3 +1,4 @@
+use crate::send_telemetry_from_ctx;
 use editing::sort_entries_for_file_tree;
 use itertools::Itertools;
 use pathfinder_geometry::rect::RectF;

@@ -1,3 +1,4 @@
+use crate::send_telemetry_from_app_ctx;
 use itertools::Itertools;
 use settings::ToggleableSetting as _;
 use std::fmt::Write;

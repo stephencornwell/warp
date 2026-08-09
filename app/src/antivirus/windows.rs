@@ -1,3 +1,4 @@
+use crate::send_telemetry_from_ctx;
 use crate::antivirus::{AntivirusInfo, AntivirusInfoEvent};
 use warpui::ModelContext;
 use windows::Win32::System::Com::{

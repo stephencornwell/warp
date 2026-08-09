@@ -1,3 +1,4 @@
+use crate::send_telemetry_from_ctx;
 use crate::appearance::Appearance;
 use crate::editor::{
     EditorView, Event as EditorEvent, PropagateAndNoOpNavigationKeys, SingleLineEditorOptions,

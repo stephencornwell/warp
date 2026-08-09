@@ -1,3 +1,4 @@
+use crate::send_telemetry_from_app_ctx;
 use uuid::Uuid;
 use warpui::{
     r#async::SpawnedFutureHandle, AppContext, ClosedWindowData, Entity, EntityId, ModelContext,

@@ -1,3 +1,4 @@
+use crate::send_telemetry_from_app_ctx;
 use std::{collections::HashMap, fmt::Display};
 use regex::Regex;
 use url::Url;

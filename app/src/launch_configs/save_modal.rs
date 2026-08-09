@@ -1,3 +1,4 @@
+use crate::send_telemetry_from_ctx;
 use crate::app_state::{get_app_state, AppState};
 use crate::appearance::Appearance;
 use crate::editor::{

@@ -31,7 +31,6 @@ use crate::{
     settings::PaneSettings,
     settings_view::SettingsView,
     terminal::{available_shells::AvailableShell, TerminalView},
-    workflows::workflow_view::WorkflowView,
 };
 use serde::{Deserialize, Serialize};
 use url::Url;
@@ -122,7 +121,6 @@ pub(crate) enum IPaneType {
     Code,
     CodeDiff,
     EnvironmentManagement,
-    Workflow,
     Settings,
     AIFact,
     AIDocument,
@@ -145,7 +143,6 @@ impl Display for IPaneType {
             IPaneType::Code => write!(f, "Code"),
             IPaneType::CodeDiff => write!(f, "Code Diff"),
             IPaneType::EnvironmentManagement => write!(f, "Environment Management"),
-            IPaneType::Workflow => write!(f, "Workflow"),
             IPaneType::Settings => write!(f, "Settings"),
             IPaneType::AIFact => write!(f, "AI Fact"),
             IPaneType::AIDocument => write!(f, "AI Document"),
@@ -356,7 +353,6 @@ impl PaneId {
         matches!(
             self.0.pane_type,
             IPaneType::Notebook
-                | IPaneType::Workflow
                 | IPaneType::AIFact
         )
     }

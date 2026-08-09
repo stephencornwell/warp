@@ -22,7 +22,7 @@ impl MockTerminalManager {
     pub fn create_model(
         shell_state: ShellLaunchState,
         resources: TerminalViewResources,
-        restored_blocks: Option<&Vec<crate::terminal::model::block::SerializedBlock>>,
+            restored_blocks: Option<&Vec<crate::terminal::model::block::SerializedBlock>>,
         initial_size: Vector2F,
         window_id: WindowId,
         ctx: &mut AppContext,
@@ -153,7 +153,7 @@ mod testing {
     impl MockTerminalManager {
         pub fn create_new_terminal_view_window_for_test(
             app: &mut App,
-            restored_blocks: Option<&[SerializedBlockListItem]>,
+            restored_blocks: Option<&[crate::terminal::model::block::SerializedBlock]>,
         ) -> ViewHandle<TerminalView> {
             let tips_model = app.add_model(|_| Default::default());
 

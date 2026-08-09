@@ -1,5 +1,6 @@
 use super::*;
 use crate::editor::Event;
+use crate::default_terminal::DefaultTerminal;
 use crate::gpu_state::GPUState;
 use crate::network::NetworkStatus;
 use crate::pane_group::{Direction, PaneGroupAction, PaneId};
@@ -30,6 +31,7 @@ use crate::util::traffic_lights::windows::RendererState;
 
 use crate::terminal::local_tty::spawner::PtySpawner;
 use crate::resource_center::Tip;
+use crate::referral_theme_status::ReferralThemeEvent;
 use crate::test_util::settings::initialize_settings_for_tests;
 use crate::undo_close::UndoCloseSettings;
 use crate::warp_managed_paths_watcher::WarpManagedPathsWatcher;

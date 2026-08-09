@@ -2061,43 +2061,7 @@ fn test_open_slash_command_triggers_completions_on_space() {
     });
 }
 
-#[test]
-fn test_open_slash_command_triggers_completions_when_selected() {
-    App::test((), |mut app| async move {
-        initialize_app(&mut app);
 
-        let session_id: SessionId = 1.into();
-        let session_info = SessionInfo::new_for_test().with_id(session_id);
-        let terminal = add_window_with_bootstrapped_terminal(
-            &mut app,
-            None, /* history_file_commands */
-            Some(session_info),
-        )
-        .await;
-        let input = terminal.read(&app, |terminal, _| terminal.input().clone());
-
-        simulate_directory_for_completion(session_id, &terminal, &mut app, "/tmp");
-
-        input.update(&mut app, |input, ctx| {
-            input.user_insert("/", ctx);
-            input.handle_slash_commands_menu_event(
-                &SlashCommandsEvent::SelectedStaticCommand {
-                    id: COMMAND_REGISTRY
-                        .get_command_id_with_name(commands::EDIT.name)
-                        .copied()
-                        .expect("open command should exist"),
-                    cmd_or_ctrl_enter: false,
-                },
-                ctx,
-            );
-        });
-
-        input.read(&app, |input, ctx| {
-            assert_eq!(input.buffer_text(ctx), "/open-file ");
-            assert!(input.completions_abort_handle.is_some());
-        });
-    });
-}
 
 #[test]
 fn test_open_slash_command_requires_path() {

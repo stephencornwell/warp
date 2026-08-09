@@ -38,7 +38,7 @@ impl TerminalView {
     #[cfg(test)]
     pub fn new_for_test_with_cloud_mode(
         tips_model: ModelHandle<TipsCompleted>,
-        restored_blocks: Option<&[SerializedBlockListItem]>,
+        restored_blocks: Option<&[SerializedBlock]>,
         is_cloud_mode: bool,
         ctx: &mut ViewContext<Self>,
     ) -> Self {

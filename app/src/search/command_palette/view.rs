@@ -28,7 +28,6 @@ use std::ops::Deref;
 use std::sync::Arc;
 
 use crate::palette::PaletteMode;
-use crate::root_view::OpenLaunchConfigArg;
 use crate::search::command_palette::data_sources::DataSourceStore;
 use crate::server::ids::SyncId;
 use crate::session_management::SessionSource;
@@ -92,8 +91,6 @@ pub enum Event {
     InvokeEnvironmentVariables { id: SyncId },
     /// Open a notebook identified by `id`.
     OpenNotebook { id: SyncId },
-    /// View the relevant object in the Warp Drive sidebar.
-    ViewInWarpDrive { id: CloudObjectTypeAndId },
     /// Open a file at the given path.
     OpenFile {
         path: String,
@@ -606,23 +603,6 @@ impl View {
     }
 
     fn close(&mut self, ctx: &mut ViewContext<Self>, accepted_action_type: Option<&'static str>) {
-        let buffer_length = self.search_bar.as_ref(ctx).query(ctx).len();
-        let filter = self.active_query_filter(ctx);
-        let event = if let Some(result_type) = accepted_action_type {
-            TelemetryEvent::PaletteSearchResultAccepted {
-                result_type,
-                filter,
-                buffer_length,
-            }
-        } else {
-            TelemetryEvent::PaletteSearchExited {
-                filter,
-                buffer_length,
-            }
-        };
-
-        ();
-
         self.state.clipped_scroll_state = Default::default();
         self.reset(ctx);
 
@@ -803,19 +783,6 @@ impl View {
 
                 ();
             }
-            CommandPaletteItemAction::OpenLaunchConfiguration {
-                open_in_active_window,
-                config,
-            } => {
-                ctx.dispatch_global_action(
-                    "root_view:open_launch_config",
-                    OpenLaunchConfigArg {
-                        open_in_active_window,
-                        launch_config: config.deref().clone(),
-                        ui_location: LaunchConfigUiLocation::CommandPalette,
-                    },
-                );
-            }
             CommandPaletteItemAction::ExecuteWorkflow { id } => {
                 ctx.emit(Event::ExecuteWorkflow { id })
             }
@@ -823,9 +790,6 @@ impl View {
                 ctx.emit(Event::InvokeEnvironmentVariables { id })
             }
             CommandPaletteItemAction::OpenNotebook { id } => ctx.emit(Event::OpenNotebook { id }),
-            CommandPaletteItemAction::ViewInWarpDrive { id } => {
-                ctx.emit(Event::ViewInWarpDrive { id })
-            }
             CommandPaletteItemAction::NewSession { source } => {
                 self.dispatch_typed_action_on_view(source.action().deref(), ctx);
             }

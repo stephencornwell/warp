@@ -1050,88 +1050,6 @@ fn decode_path(bytes: Vec<u8>) -> PathBuf {
     }
 }
 
-fn get_all_workspace_language_servers_by_workspace(
-    conn: &mut SqliteConnection,
-) -> Result<HashMap<PathBuf, HashMap<LSPServerType, EnablementState>>, diesel::result::Error> {
-    use schema::workspace_language_server::dsl::*;
-    use schema::workspace_metadata;
-
-    let results = workspace_language_server
-        .inner_join(workspace_metadata::table)
-        .select((workspace_metadata::repo_path, language_server_name, enabled))
-        .load::<(String, String, String)>(conn)?;
-
-    let mut grouped: HashMap<PathBuf, HashMap<LSPServerType, EnablementState>> = HashMap::new();
-    for (path_str, server_name, enablement_str) in results {
-        let path = PathBuf::from(path_str);
-        let Some(server_type) = serde_json::from_str(&server_name).ok() else {
-            continue;
-        };
-
-        let Some(enablement) = serde_json::from_str(&enablement_str).ok() else {
-            continue;
-        };
-
-        grouped
-            .entry(path)
-            .or_default()
-            .insert(server_type, enablement);
-    }
-
-    Ok(grouped)
-}
-
-fn upsert_workspace_language_server(
-    conn: &mut SqliteConnection,
-    workspace_path: &Path,
-    server_type: LSPServerType,
-    enablement: EnablementState,
-) -> Result<()> {
-    use schema::workspace_language_server::dsl::*;
-    use schema::workspace_metadata::dsl::*;
-    let path_string = workspace_path.to_string_lossy().to_string();
-
-    // Try to find existing workspace
-    let metadata = workspace_metadata
-        .filter(repo_path.eq(&path_string))
-        .first::<WorkspaceMetadataModel>(conn)
-        .optional()?
-        .ok_or(anyhow::anyhow!("Can't find workspace for path"))?;
-
-    let ws_id = metadata.id;
-    let server_name = serde_json::to_string(&server_type)?;
-
-    // Now upsert the language server setting
-    // Check if record already exists
-    let existing = workspace_language_server
-        .filter(workspace_id.eq(ws_id))
-        .filter(language_server_name.eq(server_name.clone()))
-        .first::<model::WorkspaceLanguageServer>(conn)
-        .optional()?;
-
-    let enablement_str = serde_json::to_string(&enablement)?;
-
-    if let Some(existing_record) = existing {
-        // Update existing record
-        diesel::update(workspace_language_server.find(existing_record.id))
-            .set(enabled.eq(enablement_str))
-            .execute(conn)?;
-    } else {
-        // Insert new record
-        let new_language_server = model::NewWorkspaceLanguageServer {
-            workspace_id: ws_id,
-            language_server_name: server_name,
-            enabled: enablement_str.to_string(),
-        };
-
-        diesel::insert_into(workspace_language_server)
-            .values(&new_language_server)
-            .execute(conn)?;
-    }
-
-    Ok(())
-}
-
 fn delete_codebase_index_metadata(conn: &mut SqliteConnection, index_path: &Path) -> Result<()> {
     use schema::workspace_metadata::dsl::*;
 
@@ -1167,47 +1085,6 @@ fn delete_project(conn: &mut SqliteConnection, project_path: &str) -> Result<()>
     use schema::projects::dsl::*;
 
     diesel::delete(projects.filter(path.eq(project_path))).execute(conn)?;
-
-    Ok(())
-}
-
-fn get_all_project_rules(
-    conn: &mut SqliteConnection,
-) -> Result<Vec<ProjectRulePath>, diesel::result::Error> {
-    use schema::project_rules::dsl::*;
-
-    Ok(project_rules
-        .load_iter::<ProjectRules, DefaultLoadingMode>(conn)?
-        .filter_map(|item| match item {
-            Ok(rule) => Some(ProjectRulePath {
-                path: PathBuf::from(rule.path),
-                project_root: PathBuf::from(rule.project_root),
-            }),
-            Err(_) => None,
-        })
-        .collect_vec())
-}
-
-fn upsert_project_rules(
-    conn: &mut SqliteConnection,
-    new_project_rules: Vec<ProjectRulePath>,
-) -> Result<()> {
-    use schema::project_rules::dsl::*;
-
-    // SQLite doesn't support batch upserts, so we need to iterate
-    for rule in new_project_rules {
-        let new_rule = model::NewProjectRules {
-            path: rule.path.to_string_lossy().to_string(),
-            project_root: rule.project_root.to_string_lossy().to_string(),
-        };
-
-        diesel::insert_into(project_rules)
-            .values(&new_rule)
-            .on_conflict(path)
-            .do_update()
-            .set(&new_rule)
-            .execute(conn)?;
-    }
 
     Ok(())
 }

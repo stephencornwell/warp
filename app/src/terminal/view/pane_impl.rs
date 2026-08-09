@@ -112,11 +112,7 @@ impl TerminalView {
                     conversation_title
                 }
                 None => {
-                    if is_ambient_agent {
-                        default_agent_conversation_title(is_ambient_agent)
-                    } else {
-                        self.terminal_title.clone()
-                    }
+                    self.terminal_title.clone()
                 }
             }
         };

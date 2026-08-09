@@ -11,7 +11,6 @@ use super::{
 };
 use crate::{
     appearance::Appearance,
-    code::lsp_telemetry::{LspControlActionType, LspEnablementSource, LspTelemetryEvent},
     settings::CodeSettings,
     terminal::general_settings::GeneralSettings,
     ui_components::{

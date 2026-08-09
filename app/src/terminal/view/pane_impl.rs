@@ -193,27 +193,6 @@ impl TerminalView {
         header_ctx: &view::HeaderRenderContext,
         app: &AppContext,
     ) -> Box<dyn Element> {
-        // When viewing a child agent under an orchestrator, replace the
-        // regular conversation title with a breadcrumb path: [Parent] / [Child].
-        // Clicking the parent crumb navigates the current pane back to the
-        // orchestrator (which then shows the pill bar again).
-        //
-        // Return the breadcrumbs element directly. `render_three_column_header`
-        // wraps the title in `Shrinkable + Clipped` which gives the inner
-        // breadcrumbs Flex (whose crumbs are themselves Shrinkable) a finite
-        // main-axis constraint. Wrapping it in our own `MainAxisSize::Min`
-        // Flex here would forward an infinite constraint and panic.
-        // Pass our persistent `parent_conversation_header_link` mouse state
-        // to the breadcrumb's parent crumb so hover and click events work
-        // (a fresh `MouseStateHandle::default()` per render would not).
-        if let Some(breadcrumbs) = render_orchestration_breadcrumbs(
-            self.agent_view_controller.as_ref(app),
-            self.mouse_states.parent_conversation_header_link.clone(),
-            app,
-        ) {
-            return breadcrumbs;
-        }
-
         let appearance = Appearance::as_ref(app);
         let pane_config = self.pane_configuration.as_ref(app);
         let title = pane_config.title().to_owned();
@@ -380,28 +359,6 @@ impl TerminalView {
         (right_row.finish(), min_width)
     }
 
-    fn render_parent_conversation_header_card(&self, app: &AppContext) -> Option<Box<dyn Element>> {
-        if !(FeatureFlag::Orchestration.is_enabled()
-            && FeatureFlag::AgentView.is_enabled()
-            && self.agent_view_controller.as_ref(app).is_fullscreen())
-        {
-            return None;
-        }
-
-        let active_conversation_id = self
-            .agent_view_controller
-            .as_ref(app)
-            .agent_view_state()
-            .active_conversation_id()?;
-        let active_conversation =
-            BlocklistAIHistoryModel::as_ref(app).conversation(&active_conversation_id)?;
-        parent_conversation_navigation_card(
-            active_conversation,
-            self.mouse_states.parent_conversation_header_link.clone(),
-            app,
-        )
-    }
-
     fn maybe_add_parent_navigation_card(
         &self,
         header: Box<dyn Element>,
@@ -482,16 +439,7 @@ impl TerminalView {
             header_ctx.header_left_inset,
             header_ctx.draggable_state.is_dragging(),
         );
-        let header =
-            self.maybe_add_parent_navigation_card(header, parent_conversation_header_card, app);
-
-        if is_fullscreen_agent_view {
-            Container::new(header)
-                .with_background(agent_view_bg_fill(app))
-                .finish()
-        } else {
-            header
-        }
+        self.maybe_add_parent_navigation_card(header, parent_conversation_header_card, app)
     }
 }
 
@@ -760,8 +708,10 @@ impl TerminalView {
             .with_width(appearance.ui_font_size())
             .finish()
         } else if FeatureFlag::NewTabStyling.is_enabled() {
-            let icon_size = appearance.ui_font_size() + 2.0 - STATUS_ELEMENT_PADDING * 2.;
-            render_status_element(&status, icon_size, appearance)
+            ConstrainedBox::new(status.render_icon(appearance).finish())
+                .with_height(appearance.ui_font_size())
+                .with_width(appearance.ui_font_size())
+                .finish()
         } else {
             ConstrainedBox::new(status.render_icon(appearance).finish())
                 .with_height(appearance.ui_font_size())

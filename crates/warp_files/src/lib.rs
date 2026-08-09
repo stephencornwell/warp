@@ -28,7 +28,7 @@ use warp_util::content_version::ContentVersion;
 use warp_util::file::FileSaveError;
 use warp_util::file::{FileId, FileLoadError};
 use warpui::ModelHandle;
-use warpui::{r#async::SpawnedFutureHandle, AppContext, Entity, ModelContext, SingletonEntity};
+use warpui::{r#async::SpawnedFutureHandle, Entity, ModelContext, SingletonEntity};
 use watcher::{BulkFilesystemWatcher, BulkFilesystemWatcherEvent};
 
 pub mod text_file_reader;
@@ -216,9 +216,7 @@ impl FileState {
     fn local_iter_mut(&mut self) -> impl Iterator<Item = (&FileId, &mut LocalFile)> {
         self.files
             .iter_mut()
-            .filter_map(|(id, backend)| match backend {
-                FileBackend::Local(f) => Some((id, f)),
-            })
+            .map(|(id, FileBackend::Local(f))| (id, f))
     }
 }
 

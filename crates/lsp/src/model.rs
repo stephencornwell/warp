@@ -382,8 +382,6 @@ impl LspServerModel {
         }
     }
 
-    /// Manually starts the server (WASM stub).
-
     /// Restarts the LSP server by stopping it and starting it again.
     /// The server will emit `LspEvent::Stopped` followed by `LspEvent::Started` on success.
     pub fn restart(&mut self, ctx: &mut ModelContext<Self>) {

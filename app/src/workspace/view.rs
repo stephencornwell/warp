@@ -8055,9 +8055,6 @@ impl Workspace {
             pane_group::Event::FileDeleted { path } => {
                 self.close_tabs_with_file_path(path, ctx);
             }
-            pane_group::Event::OpenAgentProfileEditor { profile_id } => {
-                self.open_execution_profile_editor_pane(None, *profile_id, ctx);
-            }
             pane_group::Event::OpenLspLogs { log_path } => {
                 self.open_lsp_logs(log_path, ctx);
             }
@@ -8069,87 +8066,6 @@ impl Workspace {
                         left_panel.on_left_panel_visibility_changed(*is_open, ctx);
                     });
                 }
-            }
-            pane_group::Event::InsertCodeReviewComments {
-                repo_path,
-                comments,
-                diff_mode,
-                open_code_review,
-            } => {
-                if let Some(open_code_review) = open_code_review {
-                }
-
-                self.working_directories_model
-                    .update(ctx, |working_directories, ctx| {
-                        working_directories.insert_code_review_comments(
-                            pane_group.id(),
-                            repo_path.as_path(),
-                            comments,
-                            diff_mode,
-                            ctx,
-                        )
-                    });
-            }
-            pane_group::Event::OpenCodeReviewPaneAndScrollToComment {
-                open_code_review,
-                comment,
-                diff_mode,
-            } => {
-
-                let Some(repo_path) = &open_code_review.repo_path else {
-                    return;
-                };
-                self.working_directories_model
-                    .update(ctx, |working_directories, ctx| {
-                        working_directories.upsert_flattened_code_review_comments(
-                            repo_path,
-                            vec![comment.clone()],
-                            ctx,
-                        );
-                    });
-
-                let Some(code_review_view) = self
-                    .working_directories_model
-                    .as_ref(ctx)
-                    .get_code_review_view(pane_group.id(), repo_path)
-                else {
-                    return;
-                };
-                code_review_view.update(ctx, |code_review, ctx| {
-                    code_review.navigate_to_imported_comment(comment.id, diff_mode.clone(), ctx);
-                });
-            }
-            pane_group::Event::ImportAllCodeReviewComments {
-                comments,
-                diff_mode,
-                open_code_review,
-            } => {
-
-                let Some(repo_path) = &open_code_review.repo_path else {
-                    return;
-                };
-                self.working_directories_model
-                    .update(ctx, |working_directories, ctx| {
-                        working_directories.upsert_flattened_code_review_comments(
-                            repo_path,
-                            comments.clone(),
-                            ctx,
-                        );
-                    });
-
-                if let Some(code_review_view) = self
-                    .working_directories_model
-                    .as_ref(ctx)
-                    .get_code_review_view(pane_group.id(), repo_path.as_path())
-                {
-                    code_review_view.update(ctx, |code_review_view, ctx| {
-                        code_review_view.set_diff_base(diff_mode.clone(), ctx);
-                        code_review_view.expand_comment_list(ctx);
-                    });
-                }
-            }
-            pane_group::Event::ShowCloudAgentCapacityModal { variant } => {
-                self.open_cloud_agent_capacity_modal(*variant, ctx);
             }
         }
     }

@@ -7936,35 +7936,6 @@ impl Workspace {
     }
 
     /// Show a toast notification for a forked conversation.
-    fn show_fork_toast(
-        conversation_id: AIConversationId,
-        window_id: WindowId,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        let history_model = BlocklistAIHistoryModel::handle(ctx);
-        let source_title = history_model
-            .as_ref(ctx)
-            .conversation(&conversation_id)
-            .and_then(|c| c.title())
-            .map(|s| s.to_string())
-            .unwrap_or_else(|| "Conversation".to_string());
-
-        let title = if source_title.chars().count() > MAX_FORK_TOAST_TITLE_LENGTH {
-            let truncated: String = source_title
-                .chars()
-                .take(MAX_FORK_TOAST_TITLE_LENGTH)
-                .collect();
-            format!("{truncated}...")
-        } else {
-            source_title
-        };
-
-        WorkspaceToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
-            let toast = DismissibleToast::default(format!("Forked \"{title}\""));
-            toast_stack.add_ephemeral_toast(toast, window_id, ctx);
-        });
-    }
-
     /// Handle a tab being dragged
     ///
     /// Will determine if the dragged tab needs to be swapped with another tab in the list and
@@ -8265,17 +8236,6 @@ impl Workspace {
         ctx.notify();
     }
 
-    fn open_recent_repos_and_convos_palette(&mut self, ctx: &mut ViewContext<Self>) {
-        self.palette.update(ctx, |view, ctx| {
-            view.reset(ctx);
-            view.set_fixed_query_filters(
-                "Search recent repos and conversations".to_string(),
-                vec![QueryFilter::HistoricalConversations, QueryFilter::Repos],
-                ctx,
-            );
-        });
-    }
-
     fn open_ctrl_tab_palette(
         &mut self,
         shift_pressed_initially: bool,
@@ -8564,108 +8524,6 @@ impl Workspace {
             warp_drive.set_focused_index(index, ctx);
         });
         ctx.notify();
-    }
-
-    fn handle_changelog_event(&mut self, event: &ChangelogEvent, ctx: &mut ViewContext<Self>) {
-        // For certain contexts, like shared sessions, we do not want to force open the side panel
-        // or display the reward modal.
-        if !ContextFlag::ForceSidePanelOpen.is_enabled() {
-            return;
-        }
-        // Don't show changelog if user has disabled it in settings.
-        let show_changelog_setting = *ChangelogSettings::as_ref(ctx).show_changelog_after_update;
-
-        let mut request_type = None;
-        let should_show_changelog = match event {
-            ChangelogEvent::ChangelogRequestFailed {
-                request_type: ChangelogRequestType::UserAction,
-            }
-            | ChangelogEvent::ChangelogRequestComplete {
-                request_type: ChangelogRequestType::UserAction,
-                ..
-            } => {
-                request_type = Some(ChangelogRequestType::UserAction);
-                true
-            }
-            ChangelogEvent::ChangelogRequestComplete {
-                request_type: ChangelogRequestType::WindowLaunch,
-                ..
-            } => match ChannelState::app_version() {
-                Some(version) => {
-                    let opening_warp_drive_on_start_up = OPENING_WARP_DRIVE_ON_START_UP
-                        .lock()
-                        .expect("Should be able to access OPENING_WARP_DRIVE_ON_START_UP");
-
-                    request_type = Some(ChangelogRequestType::WindowLaunch);
-                    // Do not show changelog on quake mode window or if it has already been shown
-                    // or if we are opening Warp Drive on start up
-                    quake_mode_window_id() != Some(ctx.window_id())
-                        && !Settings::has_changelog_been_shown(version, ctx)
-                        && !*opening_warp_drive_on_start_up
-                }
-                None => false,
-            },
-            ChangelogEvent::ChangelogRequestFailed {
-                request_type: ChangelogRequestType::WindowLaunch,
-            } => false,
-            ChangelogEvent::ImageRequestComplete => false,
-        } && show_changelog_setting;
-
-        match (
-            should_show_changelog,
-            request_type,
-            self.reward_modal_pending,
-        ) {
-            (true, Some(ChangelogRequestType::WindowLaunch), _) => {
-                if let Some(version) = ChannelState::app_version() {
-                    Settings::mark_changelog_shown(version, ctx);
-                    if FeatureFlag::AvatarInTabBar.is_enabled() {
-                        self.update_toast_stack.update(ctx, |stack, ctx| {
-                            // Get keybinding for view changelog action
-                            let keystroke = ctx
-                                .editable_bindings()
-                                .find(|binding| binding.name == "workspace:view_changelog")
-                                .and_then(|binding| trigger_to_keystroke(binding.trigger));
-
-                            let mut link = ToastLink::new("View changelog".to_owned())
-                                .with_onclick_action(WorkspaceAction::ViewLatestChangelog);
-                            if let Some(keystroke) = keystroke {
-                                link = link.with_keystroke(keystroke);
-                            }
-
-                            let toast = DismissibleToast::default(String::from("Warp updated!"))
-                                .with_link(link);
-
-                            stack.add_ephemeral_toast(toast, ctx);
-                        });
-                    } else {
-                        // If resource center isn't already open and Warp AI isn't open, then open resource center
-                        if !self.current_workspace_state.is_resource_center_open
-                            && !self.current_workspace_state.is_ai_assistant_panel_open
-                        {
-                            self.open_resource_center_main_page(ctx);
-                            self.update_resource_center_action_target(ctx);
-                            ctx.notify();
-                        }
-                    }
-                }
-            }
-            (_, Some(ChangelogRequestType::UserAction), _) => {
-                if !self.current_workspace_state.is_resource_center_open
-                    && !self.current_workspace_state.is_ai_assistant_panel_open
-                {
-                    self.open_resource_center_main_page(ctx);
-                    self.update_resource_center_action_target(ctx);
-                    ctx.notify();
-                }
-            }
-            (false, _, Some(kind)) => {
-                // We shouldn't show the changelog modal, but we have a pending reward modal, so we
-                // should show that now that we know the changelog won't be shown
-                self.show_reward_modal(kind, ctx);
-            }
-            _ => {}
-        }
     }
 
     fn manual_check_for_update(&self, ctx: &mut ViewContext<Self>) {
@@ -9938,31 +9796,6 @@ impl Workspace {
         };
     }
 
-    fn handle_resource_center_event(
-        &mut self,
-        event: &ResourceCenterEvent,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        match event {
-            ResourceCenterEvent::Close => {
-                self.current_workspace_state.is_resource_center_open = false;
-                ctx.notify();
-            }
-            ResourceCenterEvent::Escape => {
-                // Calls terminal view focus to determine where focus should be
-                if let Some(pane_group_handle) = self.get_pane_group_view(self.active_tab_index) {
-                    pane_group_handle.update(ctx, |pane_group, ctx| {
-                        if let Some(terminal_view_handle) = pane_group.active_session_view(ctx) {
-                            terminal_view_handle.update(ctx, |terminal, ctx| {
-                                terminal.redetermine_global_focus(ctx);
-                            });
-                        }
-                    });
-                }
-            }
-        };
-    }
-
     fn show_command_search(
         &mut self,
         query_filter: Option<search::QueryFilter>,
@@ -10359,55 +10192,6 @@ impl Workspace {
     }
 
     /// Opens the LSP log file in a new terminal pane using `tail -f`.
-    fn open_lsp_logs(&mut self, log_path: &PathBuf, ctx: &mut ViewContext<Self>) {
-
-        let active_pane_group = self.active_tab_pane_group();
-
-        // Add a terminal pane to the right
-        active_pane_group.update(ctx, |pane_group, ctx| {
-            pane_group.add_terminal_pane(PaneGroupDirection::Right, None, ctx);
-        });
-
-        let Some(terminal_view_handle) = active_pane_group.as_ref(ctx).active_session_view(ctx)
-        else {
-            log::error!("Could not get terminal view handle when attempting to open LSP logs.");
-            return;
-        };
-
-        terminal_view_handle.update(ctx, |terminal, ctx| {
-            let tail_command = format!("tail -f {}", log_path.display());
-            terminal.set_pending_command(&tail_command, ctx);
-        });
-    }
-
-    fn run_tab_config_skill(&mut self, path: &Path, ctx: &mut ViewContext<Self>) {
-        if !AISettings::as_ref(ctx).is_any_ai_enabled(ctx) {
-            return;
-        }
-
-        let Some(terminal_view_handle) =
-            self.focus_terminal_input(None, TerminalSessionFallbackBehavior::OpenIfNeeded, ctx)
-        else {
-            return;
-        };
-
-        let prefix = CLIAgentSessionsModel::as_ref(ctx)
-            .session(terminal_view_handle.id())
-            .map(|session| session.agent.skill_command_prefix())
-            .unwrap_or("/");
-        let prompt = format!("{prefix}update-tab-config Update {} to...", path.display());
-
-        terminal_view_handle.update(ctx, |terminal_view, ctx| {
-            terminal_view.input().update(ctx, |input, ctx| {
-                input.clear_buffer_and_reset_undo_stack(ctx);
-                input.set_input_mode_agent(true, ctx);
-                input.ensure_agent_mode_for_ai_features(true, ctx);
-                input.replace_buffer_content(&prompt, ctx);
-                input.focus_input_box(ctx);
-            });
-        });
-    }
-
     /// Runs a workflow in whichever terminal input is currently active.
     /// No-ops if the active session is long-running.
     /// Inserts given command into active Input Editor, optionally replacing the current buffer. No-ops if
@@ -10988,31 +10772,6 @@ impl Workspace {
     }
 
     /// Handle an event from the referral theme status model, showing the reward modal if necessary
-    fn handle_referral_theme_status_event(
-        &mut self,
-        event: &ReferralThemeEvent,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        // A referral theme was activated, so we need to show the reward modal
-        // If the changelog modal is currently shown or pending, then we delay showing the
-        // reward modal until after that is completed / closed.
-
-        // Also: We overwrite the pending reward modal kind, so that only one is ever shown
-        // This could, in theory, lead to a user activating both in the same login and only
-        // seeing one modal, however that is low impact since it the modal still takes them to
-        // the theme picker, which will show both themes anyway.
-        let kind = match event {
-            ReferralThemeEvent::SentReferralThemeActivated => RewardKind::SentReferralTheme,
-            ReferralThemeEvent::ReceivedReferralThemeActivated => RewardKind::ReceivedReferralTheme,
-        };
-
-        if self.is_changelog_open_or_pending(ctx) {
-            self.reward_modal_pending = Some(kind);
-        } else {
-            self.show_reward_modal(kind, ctx);
-        }
-    }
-
     /// This listens for changes to keybindings and keeps the cached versions up-to-date in our
     /// tooltips.
     fn handle_keybinding_changed(

@@ -1773,7 +1773,6 @@ impl Workspace {
             pending_session_config_replacement: None,
             pending_session_config_tab_config_chip: false,
             show_session_config_tab_config_chip: false,
-            pending_session_config_tab_config_chip_tutorial: None,
             new_worktree_modal,
             close_session_confirmation_dialog,
             command_search_view,
@@ -2255,12 +2254,6 @@ impl Workspace {
         if self.left_panel_view.is_self_or_child_focused(app) {
             return FocusRegion::LeftPanel;
         }
-        if self.ai_assistant_panel.is_self_or_child_focused(app)
-            || self.resource_center_view.is_self_or_child_focused(app)
-        {
-            return FocusRegion::Other;
-        }
-
         FocusRegion::Other
     }
 
@@ -2302,11 +2295,7 @@ impl Workspace {
     }
 
     fn focus_right_region_entry(&mut self, ctx: &mut ViewContext<Self>) {
-        if self.current_workspace_state.is_ai_assistant_panel_open {
-            ctx.focus(&self.ai_assistant_panel);
-        } else if self.current_workspace_state.is_resource_center_open {
-            ctx.focus(&self.resource_center_view);
-        }
+        self.focus_active_tab(ctx);
     }
 
     fn navigate_pane_or_panel(
@@ -2314,7 +2303,7 @@ impl Workspace {
         direction: PanePanelDirection,
         ctx: &mut ViewContext<Self>,
     ) {
-        let current_region = self.current_focus_region(ctx);
+        let current_region = FocusRegion::PaneGroup;
         let has_left_panel = self.has_left_region(ctx);
         let has_right_panel = self.has_right_region(ctx);
 
@@ -4195,14 +4184,9 @@ impl Workspace {
     /// Cleans up pending state and closes the tab-config params modal without
     /// creating a tab config. Used when the modal is dismissed or cancelled.
     fn cancel_tab_config_params_modal(&mut self, ctx: &mut ViewContext<Self>) {
-        let pending_intention = self.pending_onboarding_intention.take();
         self.pending_session_config_replacement = None;
         self.pending_session_config_tab_config_chip = false;
         self.close_tab_config_params_modal(ctx);
-
-        if let Some(intention) = pending_intention {
-            self.dispatch_tutorial_when_bootstrapped(false, intention, ctx);
-        }
     }
 
     fn handle_tab_config_params_modal_body_event(
@@ -4212,7 +4196,6 @@ impl Workspace {
     ) {
         match event {
             TabConfigParamsModalEvent::Submit { config, params } => {
-                let pending_intention = self.pending_onboarding_intention.take();
                 let should_track_existing_config_open =
                     self.pending_session_config_replacement.is_none();
                 let worktree_name = self.maybe_generate_worktree_name(config);
@@ -6018,17 +6001,11 @@ impl Workspace {
     ) {
         self.close_all_overlays(ctx);
 
-        // Set the shared session viewer state before opening the palette
-        // so it can determine which data sources to include (e.g., exclude Files in shared sessions)
-        let is_shared_session_viewer = self.is_shared_session_viewer_focused(ctx);
         let active_palette = if matches!(source, PaletteSource::CtrlTab { .. }) {
             &self.ctrl_tab_palette
         } else {
             &self.palette
         };
-        active_palette.update(ctx, |palette, ctx| {
-            palette.set_is_shared_session_viewer(is_shared_session_viewer, ctx);
-        });
 
         if matches!(source, PaletteSource::TitleBarSearchBar) {
             self.tab_bar_pinned_by_popup = true;
@@ -6041,16 +6018,14 @@ impl Workspace {
         match mode {
             PaletteMode::Command => self.open_command_palette(ctx),
             PaletteMode::Navigation => match source {
-                PaletteSource::CtrlTab {
-                    shift_pressed_initially,
-                } => self.open_ctrl_tab_palette(shift_pressed_initially, ctx),
+                PaletteSource::CtrlTab { .. } => self.open_navigation_palette(ctx),
                 _ => self.open_navigation_palette(ctx),
             },
             PaletteMode::LaunchConfig => self.open_launch_config_palette(ctx),
-            PaletteMode::WarpDrive => self.open_warp_drive_palette(ctx),
             PaletteMode::Files => self.open_files_palette(ctx),
-            PaletteMode::Conversations => self.open_conversations_palette(ctx),
-            PaletteMode::ConversationsAndRepos => self.open_recent_repos_and_convos_palette(ctx),
+            PaletteMode::WarpDrive
+            | PaletteMode::Conversations
+            | PaletteMode::ConversationsAndRepos => self.open_navigation_palette(ctx),
         }
 
         ctx.focus(&self.palette);

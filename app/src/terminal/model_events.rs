@@ -2,8 +2,8 @@ use crate::terminal::model::session::Sessions;
 
 use crate::terminal::event::{
     AfterBlockCompletedEvent, BlockCompletedEvent, BlockMetadataReceivedEvent, Event,
-    ExecutedExecutorCommandEvent, InitSshEvent, InitSubshellEvent, SourcedRcFileInSubshellEvent,
-    TerminalMode,
+    ExecutedExecutorCommandEvent, ImageProtocol, InitSshEvent, InitSubshellEvent,
+    SourcedRcFileInSubshellEvent, TerminalMode,
 };
 
 use crate::terminal::ClipboardType;

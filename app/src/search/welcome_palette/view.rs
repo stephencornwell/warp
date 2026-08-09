@@ -25,7 +25,6 @@ use warpui::{
 use super::super::palette_styles as styles;
 use crate::appearance::Appearance;
 use crate::cloud_object::model::persistence::CloudModel;
-use crate::drive::CloudObjectTypeAndId;
 use crate::palette::PaletteMode;
 use crate::pane_group::pane::welcome_view::WelcomeViewAction;
 use crate::search::action::search_item::MatchedBinding;
@@ -33,7 +32,6 @@ use crate::search::action::{CommandBindingDataSource, Event as CommandBindingDat
 use crate::search::binding_source::BindingSource;
 use crate::search::command_palette::mixer::CommandPaletteItemAction;
 use crate::search::command_palette::new_session::{AllowedSessionKinds, NewSessionDataSource};
-use crate::search::command_palette::{launch_config, warp_drive, CommandPaletteMixer};
 use crate::search::command_search::projects::project_data_source::ProjectDataSource;
 use crate::search::command_search::projects::{ProjectSearchItem, SuggestedProjectsDataSource};
 use crate::search::data_source::QueryResult;
@@ -46,7 +44,6 @@ use crate::search::QueryFilter;
 use crate::terminal::History;
 use crate::themes::theme::WarpTheme;
 use crate::ui_components::icons::Icon;
-use crate::workflows::{WorkflowSelectionSource, WorkflowSource, WorkflowType};
 use crate::workspace::WorkspaceAction;
 
 /// Position ID for the command palette list.

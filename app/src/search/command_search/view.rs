@@ -31,28 +31,22 @@ use crate::{
         AuthStateProvider, UserUid,
     },
     completer::SessionContext,
-    drive::settings::WarpDriveSettings,
     search::{
         command_search::searcher::{CommandSearchItemAction, CommandSearchMixer},
         result_renderer::{QueryResultRenderer, QueryResultRendererStyles},
         search_bar::{SearchBar, SearchBarEvent, SearchBarState, SearchResultOrdering},
         QueryFilter,
     },
-    server::{ids::ServerId, telemetry::TelemetryEvent},
-    settings::AISettings,
     terminal::{
         input::MenuPositioning,
         model::session::SessionId,
         resizable_data::{ModalType, ResizableData, DEFAULT_UNIVERSAL_SEARCH_WIDTH},
         History, HistoryEvent,
     },
-    workspaces::user_workspaces::UserWorkspaces,
 };
 
 use super::{
     history::history_data_source_for_session,
-    notebooks::notebooks_data_source,
-    workflows::{cloud_workflows_data_source, WorkflowsDataSource},
     zero_state::{CommandSearchZeroStateEvent, CommandSearchZeroStateView},
 };
 

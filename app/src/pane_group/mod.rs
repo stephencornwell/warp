@@ -1840,155 +1840,6 @@ impl PaneGroup {
     }
 
 
-    fn open_share_session_denied_modal(
-        &mut self,
-        terminal_pane_id: TerminalPaneId,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        self.share_session_modal.update(ctx, |modal, ctx| {
-            modal.open_denied(terminal_pane_id, ctx);
-        });
-        self.terminal_with_open_share_session_modal = Some(terminal_pane_id);
-        ctx.focus(&self.share_session_modal);
-        ctx.notify();
-    }
-
-    /// Closes the share session modal if it is open. Does nothing otherwise. Does not change
-    /// which element is focused.
-    fn close_share_session_modal(&mut self, ctx: &mut ViewContext<Self>) {
-        let Some(terminal_pane_id) = self.terminal_with_open_share_session_modal.take() else {
-            return;
-        };
-
-        if let Some(terminal_view) = self.terminal_view_from_pane_id(terminal_pane_id, ctx) {
-            terminal_view.update(ctx, |view, ctx| {
-                view.set_show_pane_accent_border(false, ctx)
-            });
-        }
-        ctx.notify();
-    }
-
-
-    fn open_shared_session_viewer_request_modal(
-        &mut self,
-        terminal_pane_id: TerminalPaneId,
-        role: Role,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        let Some(terminal_view) = self.terminal_view_from_pane_id(terminal_pane_id, ctx) else {
-            log::warn!("Tried to open role request modal for non-existent terminal pane");
-            return;
-        };
-
-        let Some(presence_manager) =
-            terminal_view.read(ctx, |view, _| view.shared_session_presence_manager())
-        else {
-            log::warn!("Tried to open role request modal for non-existent presence manager");
-            return;
-        };
-
-        let Some(sharer) = presence_manager.as_ref(ctx).get_sharer() else {
-            log::warn!("Tried to open role request modal with non-existent sharer");
-            return;
-        };
-
-        let display_name = sharer.info.profile_data.display_name.clone();
-        self.shared_session_role_change_modal
-            .update(ctx, |modal, ctx| {
-                modal.open_for_viewer_request(terminal_pane_id, display_name, role, ctx);
-            });
-
-        self.terminal_with_shared_session_role_change_modal_open = Some(terminal_pane_id);
-        ctx.focus(&self.shared_session_role_change_modal);
-        ctx.notify();
-    }
-
-    /// If modal is already open, we update it with the new role request
-    fn open_shared_session_sharer_response_modal(
-        &mut self,
-        terminal_pane_id: TerminalPaneId,
-        viewer_id: ParticipantId,
-        role_request_id: RoleRequestId,
-        role: Role,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        let Some(terminal_view) = self.terminal_view_from_pane_id(terminal_pane_id, ctx) else {
-            log::warn!("Tried to open role request modal for non-existent terminal pane");
-            return;
-        };
-
-        let Some(presence_manager) =
-            terminal_view.read(ctx, |view, _| view.shared_session_presence_manager())
-        else {
-            log::warn!("Tried to open role request modal for non-existent presence manager");
-            return;
-        };
-
-        let Some(participant) = presence_manager.as_ref(ctx).get_participant(&viewer_id) else {
-            log::warn!("Tried to open role request modal with non-existent participant");
-            return;
-        };
-
-        let params = ParticipantAvatarParams::new(participant, false);
-        let firebase_uid = participant.info.profile_data.firebase_uid.clone();
-        self.shared_session_role_change_modal
-            .update(ctx, |modal, ctx| {
-                modal.open_for_sharer_response(
-                    terminal_pane_id,
-                    viewer_id,
-                    firebase_uid,
-                    role_request_id,
-                    params,
-                    role,
-                    ctx,
-                );
-            });
-
-        self.terminal_with_shared_session_role_change_modal_open = Some(terminal_pane_id);
-        ctx.focus(&self.shared_session_role_change_modal);
-        ctx.notify();
-    }
-
-    fn open_shared_session_sharer_grant_modal(
-        &mut self,
-        terminal_pane_id: TerminalPaneId,
-        participant_id: ParticipantId,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        self.shared_session_role_change_modal
-            .update(ctx, |modal, ctx| {
-                modal.open_for_sharer_grant(terminal_pane_id, participant_id, ctx);
-            });
-        self.terminal_with_shared_session_role_change_modal_open = Some(terminal_pane_id);
-        ctx.focus(&self.shared_session_role_change_modal);
-        ctx.notify();
-    }
-
-    /// Closes the parent shared session role change modal if it is open. Does nothing otherwise.
-
-    fn remove_shared_session_role_request(
-        &mut self,
-        role_request_id: RoleRequestId,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        self.shared_session_role_change_modal
-            .update(ctx, |modal, ctx| {
-                modal.remove_role_request(role_request_id, ctx);
-            });
-    }
-
-    fn set_shared_session_role_change_modal_request_id(
-        &mut self,
-        role_request_id: RoleRequestId,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        self.shared_session_role_change_modal
-            .update(ctx, |modal, _| {
-                modal.set_role_request_id(role_request_id);
-            });
-    }
-
-
     fn new_internal(
         tips_completed: ModelHandle<TipsCompleted>,
         user_default_shell_unsupported_banner_model_handle: ModelHandle<BannerState>,
@@ -2873,7 +2724,6 @@ impl PaneGroup {
             let terminal_view_id = terminal_view.id();
 
             // Discard any child agent panes parented by this terminal view.
-            self.remove_child_agent_panes(terminal_view_id, ctx);
 
             // Preserve conversations from terminal views before cleaning up the pane
             BlocklistAIHistoryModel::handle(ctx).update(ctx, |history_model, _| {
@@ -2921,51 +2771,6 @@ impl PaneGroup {
         self.remove_from_pane_history(pane_id_to_remove);
     }
 
-    /// Returns true if the given pane is a child agent pane tracked in `child_agent_panes`.
-    fn is_child_agent_pane(&self, pane_id: PaneId) -> bool {
-        self.child_agent_panes.values().any(|&id| id == pane_id)
-    }
-
-    /// Collects the child agent pane IDs whose conversations are parented by
-    /// a conversation on the given terminal view.
-    fn child_pane_ids_for_parent(
-        &self,
-        parent_terminal_view_id: EntityId,
-        ctx: &AppContext,
-    ) -> Vec<(AIConversationId, PaneId)> {
-        let history_model = BlocklistAIHistoryModel::as_ref(ctx);
-        self.child_agent_panes
-            .iter()
-            .filter(|(conv_id, _)| {
-                history_model
-                    .conversation(conv_id)
-                    .and_then(|c| c.parent_conversation_id())
-                    .and_then(|parent_id| {
-                        history_model.terminal_view_id_for_conversation(&parent_id)
-                    })
-                    .is_some_and(|tv_id| tv_id == parent_terminal_view_id)
-            })
-            .map(|(conv_id, pane_id)| (*conv_id, *pane_id))
-            .collect()
-    }
-
-    /// Removes and discards all child agent panes whose parent conversation
-    /// lives on the given terminal view.  Used by both `close_pane` and
-    /// `discard_pane` to ensure children are cleaned up regardless of which
-    /// path removes the parent.
-    fn remove_child_agent_panes(
-        &mut self,
-        parent_terminal_view_id: EntityId,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        let children = self.child_pane_ids_for_parent(parent_terminal_view_id, ctx);
-        for (conv_id, child_pane_id) in children {
-            self.child_agent_panes.remove(&conv_id);
-            self.panes.remove_hidden_pane(child_pane_id);
-            self.discard_pane(child_pane_id, ctx);
-        }
-    }
-
     pub fn close_pane(&mut self, pane_id: PaneId, ctx: &mut ViewContext<Self>) {
         // Don't close a pane that doesn't exist
         if !self.pane_contents.contains_key(&pane_id) {
@@ -2988,10 +2793,6 @@ impl PaneGroup {
             return;
         }
 
-        // If this is a parent with child agents, discard the children first.
-        if let Some(terminal_view) = self.terminal_view_from_pane_id(pane_id, ctx) {
-            self.remove_child_agent_panes(terminal_view.id(), ctx);
-        }
 
         if FeatureFlag::UndoClosedPanes.is_enabled() {
             // Don't clase a pane that's already been hidden to allow for undo functionality

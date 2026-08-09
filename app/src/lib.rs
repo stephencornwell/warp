@@ -28,7 +28,6 @@ mod default_terminal;
 mod download_method;
 #[cfg(windows)]
 mod dynamic_libraries;
-mod env_vars;
 mod experiments;
 mod external_secrets;
 #[cfg(target_family = "wasm")]
@@ -163,7 +162,6 @@ use crate::code::global_buffer_model::GlobalBufferModel;
 use crate::code::language_server_shutdown_manager::LanguageServerShutdownManager;
 use crate::context_chips::prompt::Prompt;
 use crate::default_terminal::DefaultTerminal;
-use crate::env_vars::manager::EnvVarCollectionManager;
 use crate::gpu_state::GPUState;
 use crate::network::NetworkStatus;
 use crate::palette::PaletteMode;
@@ -1310,12 +1308,10 @@ fn initialize_app(
     tab_configs::new_worktree_modal::init(ctx);
     tab_configs::params_modal::init(ctx);
     settings_view::update_environment_form::init(ctx);
-    env_vars::env_var_collection_block::init(ctx);
     terminal::ssh::install_tmux::init(ctx);
     terminal::ssh::warpify::init(ctx);
     terminal::ssh::error::init(ctx);
     context_chips::node_version_popup::init(ctx);
-    env_vars::view::env_var_collection::init(ctx);
     terminal::view::init_environment::mode_selector::init(ctx);
     coding_entrypoints::project_buttons::init(ctx);
 
@@ -1376,7 +1372,6 @@ fn initialize_app(
     ctx.add_singleton_model(|_| ResizableData::default());
 
     // Add a singleton model to maintain state of shared session across all windows.
-    ctx.add_singleton_model(EnvVarCollectionManager::new);
     AutoupdateState::register(ctx, server_api.clone());
 
 

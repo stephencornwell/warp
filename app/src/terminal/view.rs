@@ -8379,7 +8379,6 @@ impl TerminalView {
                 }
             }
         } else if self.is_long_running() {
-            self.on_ssh_warpification_key_event(None, ctx);
             let sequence =
                 EscCodes::build_escape_sequence(self.model.lock().deref(), &[EscCodes::ARROW_UP]);
             self.write_user_bytes_to_pty(sequence, ctx);
@@ -8526,11 +8525,6 @@ impl TerminalView {
         }
 
         self.maybe_copy_selection_to_clipboard(ctx);
-
-        // The text selection changed, so clear any previously attached context text.
-        self.ai_context_model.update(ctx, |context_model, ctx| {
-            context_model.set_pending_context_selected_text(None, false, ctx);
-        });
 
         ctx.notify();
     }
@@ -8700,9 +8694,6 @@ impl TerminalView {
                     self.update_incompatible_configuration_banner(session.shell().plugins(), ctx)
                 }
 
-                // honor_ps1 affects whether the Warp prompt is active, which
-                // determines if we need git status updates.
-                self.update_git_status_subscription(ctx);
             }
             _ => {}
         }
@@ -9274,12 +9265,6 @@ impl TerminalView {
         let render_context = self.get_terminal_view_render_context(model, app);
 
         let enforce_minimum_contrast = *FontSettings::as_ref(app).enforce_minimum_contrast;
-        let active_cli_subagent_view = model
-            .block_list()
-            .active_block()
-            .is_agent_in_control()
-            .then(|| self.cli_subagent_views.get(model.active_block_id()))
-            .flatten();
         let mut alt_screen_element = AltScreenElement::new(
             self.model.clone(),
             render_context,
@@ -9293,13 +9278,10 @@ impl TerminalView {
             self.alt_screen_scroll_top,
             // TODO(zachbai): Remove this.
             None,
-            active_cli_subagent_view.map(|view| ChildView::new(view).finish()),
+            None,
         );
         if should_use_ligature_rendering(app) {
             alt_screen_element = alt_screen_element.with_ligature_rendering();
-        }
-        if self.should_hide_cli_agent_cursor_cell(app) {
-            alt_screen_element = alt_screen_element.with_hide_cursor_cell();
         }
         // Pass voice input toggle key if the CLI agent footer should be rendered
         #[cfg(feature = "voice_input")]

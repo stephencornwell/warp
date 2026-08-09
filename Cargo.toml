@@ -9,9 +9,7 @@ exclude = [
   "crates/warp_graphql_schema",
   "crates/warp_server_client",
   "crates/managed_secrets",
-  "crates/managed_secrets_wasm",
   "crates/remote_server",
-  "crates/serve-wasm",
 ]
 
 # Include all members except serve-wasm (since it's a helper helper for serving
@@ -82,7 +80,6 @@ warp_logging = { path = "crates/warp_logging" }
 warp_ripgrep = { path = "crates/warp_ripgrep" }
 warp_terminal = { path = "crates/warp_terminal" }
 warp_util = { path = "crates/warp_util" }
-warp_web_event_bus = { path = "crates/warp_web_event_bus" }
 warpui = { path = "crates/warpui" }
 warpui_core = { path = "crates/warpui_core" }
 warpui_extras = { path = "crates/warpui_extras", default-features = false }

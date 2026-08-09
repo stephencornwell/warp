@@ -52,7 +52,6 @@ impl Default for LanguageServerId {
     }
 }
 
-#[cfg_attr(target_arch = "wasm32", allow(dead_code))]
 pub enum LspState {
     Stopped {
         manually_stopped: bool,

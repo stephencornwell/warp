@@ -986,12 +986,6 @@ impl SizeUpdateBuilder {
                 // account for the inline menu being open - it should remain the same size, and
                 // we explicitly subtract the height of the inline menu from the height of the input
                 // we use to determine the new gap height.
-                input_height -= view
-                    .inline_menu_positioner
-                    .as_ref(ctx)
-                    .blocklist_top_inset_when_in_waterfall_mode(ctx)
-                    .unwrap_or_default()
-                    .to_lines(new_size.cell_height_px());
 
                 let new_height = max_scroll_top
                     + new_size
@@ -2123,6 +2117,7 @@ impl TerminalView {
                 resources.tips_completed.clone(),
                 sessions.clone(),
                 size_info,
+                Arc::new(MenuPositioning::BelowInputBox),
                 current_prompt.clone(),
                 terminal_view_id,
                 None, // current_repo_path - will be set when CWD is determined
@@ -2132,10 +2127,6 @@ impl TerminalView {
             )
         });
 
-        let inline_menu_positioner = input.as_ref(ctx).inline_terminal_menu_positioner().clone();
-        ctx.subscribe_to_model(&inline_menu_positioner, |_, _, _, ctx| {
-            ctx.notify();
-        });
         let suggestions_mode_model = input.as_ref(ctx).suggestions_mode_model().clone();
         ctx.subscribe_to_model(&suggestions_mode_model, |_, _, _, ctx| {
             ctx.notify();
@@ -2166,23 +2157,12 @@ impl TerminalView {
         });
 
         let slow_bootstrap_banner = ctx.add_typed_action_view(|_| {
-            Banner::<TerminalAction>::new_with_buttons(
-                BannerTextContent::formatted_text(vec![
-                    FormattedTextFragment::plain_text(
-                        "Seems like your shell is taking a while to start...  ",
-                    ),
-                    FormattedTextFragment::hyperlink("More info", KNOWN_ISSUES_URL),
-                ]),
-                vec![BannerTextButton::new(
-                    "Show initialization block".to_string(),
-                    Rc::new(|event_ctx, _ctx, _position| {
-                        event_ctx.dispatch_typed_action(BannerAction::<TerminalAction>::Action(
-                            TerminalAction::ShowInitializationBlock,
-                        ));
-                    }),
-                )],
-                true,
-            )
+            Banner::new(BannerTextContent::formatted_text(vec![
+                FormattedTextFragment::plain_text(
+                    "Seems like your shell is taking a while to start...  ",
+                ),
+                FormattedTextFragment::hyperlink("More info", KNOWN_ISSUES_URL),
+            ]))
         });
         ctx.subscribe_to_view(&slow_bootstrap_banner, |me, _, event, ctx| {
             me.handle_slow_bootstrap_banner_event(event, ctx);
@@ -2197,10 +2177,7 @@ impl TerminalView {
                 FormattedTextFragment::plain_text("Seems like your completions are not working ("),
                 FormattedTextFragment::hyperlink("more info", CONTROLMASTER_ISSUES_URL),
                 FormattedTextFragment::plain_text("). Enabling tmux warpification in "),
-                FormattedTextFragment::hyperlink_action(
-                    "settings",
-                    TerminalAction::ShowWarpifySettings,
-                ),
+                FormattedTextFragment::plain_text("settings"),
                 FormattedTextFragment::plain_text(" may resolve this issue."),
             ]))
         });

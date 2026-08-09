@@ -1,5 +1,4 @@
 use crate::{
-    ai::blocklist::InputType,
     appearance::Appearance,
     context_chips::spacing,
     features::FeatureFlag,
@@ -24,7 +23,7 @@ use warpui::{
 use super::{
     common::{
         add_command_xray_overlay, add_input_suggestions_overlays, add_vim_status_to_stack,
-        add_voltron_overlay, add_workflow_info_overlay, maybe_add_buy_credits_banner,
+        add_voltron_overlay,
         wrap_input_with_terminal_padding_and_focus_handler,
     },
     Input,
@@ -74,20 +73,6 @@ impl Input {
 
         column.add_child(prompt_row.finish());
 
-        let ai_input_model = self.ai_input_model.as_ref(app);
-
-        if FeatureFlag::ImageAsContext.is_enabled()
-            && matches!(ai_input_model.input_type(), InputType::AI)
-        {
-            if let Some(images) = self.render_attachment_chips(appearance) {
-                column.add_child(
-                    Container::new(images)
-                        .with_margin_top(spacing::UDI_CHIP_MARGIN)
-                        .finish(),
-                );
-            }
-        }
-
         let terminal_spacing = TerminalSettings::as_ref(app)
             .terminal_input_spacing(appearance.line_height_ratio(), app);
         column.add_child(
@@ -126,18 +111,6 @@ impl Input {
             true, // use adjusted padding for UDI
         ));
 
-        if let Some(selected_workflow_state) = self.workflows_state.selected_workflow_state.as_ref()
-        {
-            if selected_workflow_state.should_show_more_info_view {
-                add_workflow_info_overlay(
-                    &mut stack,
-                    selected_workflow_state,
-                    self.size_info(app).pane_height_px().as_f32(),
-                    menu_positioning,
-                );
-            }
-        }
-
         if self.is_voltron_open && self.is_pane_focused(app) {
             add_voltron_overlay(&mut stack, &self.voltron_view, menu_positioning);
         }
@@ -156,15 +129,6 @@ impl Input {
                 app,
             );
         }
-
-        maybe_add_buy_credits_banner(
-            &mut stack,
-            &self.buy_credits_banner,
-            self.is_pane_focused(app),
-            self.terminal_view_id,
-            self.is_input_at_top(&model, app),
-            app,
-        );
 
         // If the file tree is enabled, don't include the top margin for UDI so that the UDI is flush with the
         // file tree.

@@ -2395,7 +2395,6 @@ impl Input {
     }
 
     pub fn clear_buffer_and_reset_undo_stack(&mut self, ctx: &mut ViewContext<Self>) {
-        self.clear_cached_hint_text();
         self.editor.update(ctx, |view, ctx| {
             view.clear_buffer_and_reset_undo_stack(ctx);
         });
@@ -2490,7 +2489,6 @@ impl Input {
             should_restore_buffer_before_history_up,
             ctx,
         );
-        self.clear_selected_workflow(ctx);
     }
 
     /// Closes any active suggestion mode UI when starting a new conversation.
@@ -2595,9 +2593,8 @@ impl Input {
     fn maybe_generate_autosuggestion(&mut self, ctx: &mut ViewContext<Self>) {
         let editor = self.editor.as_ref(ctx);
 
-        let should_generate_autosuggestion = !editor.active_autosuggestion()
-            && self.enable_autosuggestions_setting
-            && !self.ai_input_model.as_ref(ctx).is_ai_input_enabled();
+        let should_generate_autosuggestion =
+            !editor.active_autosuggestion() && self.enable_autosuggestions_setting;
 
         if should_generate_autosuggestion {
             let buffer_text = editor.buffer_text(ctx);
@@ -3269,17 +3266,6 @@ impl Input {
             }
         }
 
-        let input_type = self.ai_input_model.as_ref(ctx).input_type();
-
-        // Don't trigger completions if the last character typed is whitespace, in AI input mode.
-        // The user is likely typing in a natural language word at this point, not a filepath.
-        if input_type.is_ai()
-            && completions_trigger == CompletionsTrigger::AsYouType
-            && before_cursor_text.ends_with(char::is_whitespace)
-        {
-            return;
-        }
-
         let Some(session_id) = self.completer_data().active_block_session_id() else {
             return;
         };
@@ -3435,26 +3421,7 @@ impl Input {
             input.set_enum_variants(variants.clone(), ctx);
         });
 
-        if let InputSuggestionsMode::DynamicWorkflowEnumSuggestions {
-            menu_position,
-            selected_ranges,
-            cursor_point,
-            command,
-            ..
-        } = self.suggestions_mode_model.as_ref(ctx).mode()
-        {
-            let updated_mode = InputSuggestionsMode::DynamicWorkflowEnumSuggestions {
-                dynamic_enum_status: status,
-                suggestions: variants,
-                menu_position: *menu_position,
-                selected_ranges: selected_ranges.clone(),
-                cursor_point: *cursor_point,
-                command: command.clone(),
-            };
-            self.suggestions_mode_model.update(ctx, |model, ctx| {
-                model.set_mode(updated_mode, ctx);
-            });
-        }
+        let _ = status;
 
         ctx.notify();
     }
@@ -3922,14 +3889,6 @@ impl Input {
             self.input_suggestions.update(ctx, |suggestions, ctx| {
                 suggestions.select_next(ctx);
             });
-        } else if matches!(
-            self.suggestions_mode_model.as_ref(ctx).mode(),
-            InputSuggestionsMode::StaticWorkflowEnumSuggestions { .. }
-                | InputSuggestionsMode::DynamicWorkflowEnumSuggestions { .. }
-        ) {
-            self.input_suggestions.update(ctx, |suggestions, ctx| {
-                suggestions.select_next(ctx);
-            });
         } else if is_tab_bound_to_open_completions && self.cursor_positioned_for_completion(ctx) {
             self.open_completion_suggestions(CompletionsTrigger::Keybinding, ctx);
         } else {
@@ -4119,13 +4078,7 @@ impl Input {
     /// Only queues when AI input is active — if the user is in shell mode the
     /// input is not queued (so e.g. `ls` still runs in the terminal).
     fn is_input_mode_toggle_disabled(&self) -> bool {
-        // Don't allow input mode changes for:
-        // - read-only viewers in shared sessions.
-        // - long-running commands with an agent tagged in or in control.
-        let terminal_model = self.model.lock();
-        let active_block = terminal_model.block_list().active_block();
-        terminal_model.shared_session_status().is_reader()
-            || active_block.is_agent_in_control_or_tagged_in()
+        false
     }
 
     /// Set input mode to natural language detection (auto-detection)
@@ -4133,15 +4086,6 @@ impl Input {
         if self.is_input_mode_toggle_disabled() {
             return;
         }
-
-        let is_input_buffer_empty = self.editor.as_ref(ctx).buffer_text(ctx).is_empty();
-        self.ai_input_model.update(ctx, |ai_input_model, ctx| {
-            let new_config = InputConfig {
-                input_type: InputType::Shell,
-                is_locked: true,
-            };
-            ai_input_model.set_input_config(new_config, is_input_buffer_empty, ctx);
-        });
 
         if steal_focus {
             self.focus_input_box(ctx);
@@ -4154,21 +4098,13 @@ impl Input {
         config: InputConfig,
         ctx: &mut ViewContext<Self>,
     ) {
-        // do nothing if the config is the same as the current config
-        if config == self.ai_input_model.as_ref(ctx).input_config() {
-            return;
-        }
-
-        let is_input_buffer_empty = self.editor.as_ref(ctx).buffer_text(ctx).is_empty();
-        self.ai_input_model.update(ctx, |model, ctx| {
-            model.set_input_config(config, is_input_buffer_empty, ctx);
-        });
+        let _ = (config, ctx);
     }
 
     /// Returns true if the input is locked in shell mode
     fn is_locked_in_shell_mode(&self, ctx: &ViewContext<Self>) -> bool {
-        let ai_input_model = self.ai_input_model.as_ref(ctx);
-        ai_input_model.is_input_type_locked() && !ai_input_model.input_type().is_ai()
+        let _ = ctx;
+        true
     }
 
     /// Exits `!` shell mode by switching back to AI mode. For CLI agent input
@@ -4202,11 +4138,7 @@ impl Input {
         // When `FeatureFlag::AgentView` is enabled, blocks are attachable as AI context in terminal
         // mode. Selections are preserved so they can be attached to the query when entering the
         // agent view.
-        if !self.ai_input_model.as_ref(ctx).is_ai_input_enabled()
-            && !FeatureFlag::AgentView.is_enabled()
-        {
-            self.model.lock().block_list_mut().clear_selection();
-        }
+        self.model.lock().block_list_mut().clear_selection();
 
         ctx.focus(&self.editor);
         self.editor.update(ctx, |editor, ctx| match edit_origin {
@@ -4329,12 +4261,6 @@ impl Input {
                     self.deferred_remote_operations.latest_block_id = latest_block_id;
                 }
             }
-
-            // Update the segmented control disabled state based on the new state.
-            self.universal_developer_input_button_bar
-                .update(ctx, |button_bar, ctx| {
-                    button_bar.update_segmented_control_disabled_state(ctx);
-                });
 
             // Generate autosuggestion if the input is not empty (user had type-ahead).
             self.maybe_generate_autosuggestion(ctx);
@@ -4473,9 +4399,7 @@ impl Input {
         let constrained_banner = ConstrainedBox::new(banner)
             .with_height(2. * appearance.line_height_ratio() * appearance.monospace_font_size())
             .finish();
-        let should_use_udi_spacing = self.should_show_universal_developer_input(app)
-            || (FeatureFlag::AgentView.is_enabled()
-                && self.agent_view_controller.as_ref(app).is_active());
+        let should_use_udi_spacing = self.should_show_universal_developer_input(app);
         let mut container: Container = Container::new(constrained_banner);
         let (suggestion_to_prompt_padding, suggestion_to_input_border_padding) =
             if should_use_udi_spacing {
@@ -4506,23 +4430,8 @@ impl Input {
         input_mode: InputMode,
         is_compact_mode: bool,
     ) -> Option<Box<dyn Element>> {
-        if let Some(prompt_suggestions_banner_state) = &self.prompt_suggestions_banner_state {
-            if prompt_suggestions_banner_state.should_hide {
-                return None;
-            }
-
-            let prompt_suggestions_banner = ChildView::new(&self.prompt_suggestions_view).finish();
-
-            Some(self.apply_input_banner_padding(
-                prompt_suggestions_banner,
-                is_compact_mode,
-                input_mode,
-                appearance,
-                app,
-            ))
-        } else {
-            None
-        }
+        let _ = (appearance, app, input_mode, is_compact_mode);
+        None
     }
 
     fn render_input_box(

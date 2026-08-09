@@ -443,6 +443,21 @@ pub struct BufferState {
     cursor_point: Option<BufferPoint>,
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+enum InputType {
+    #[default]
+    Shell,
+}
+
+impl InputType {
+    fn is_ai(self) -> bool { false }
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+struct InputConfig {
+    input_type: InputType,
+}
+
 impl BufferState {
     pub fn new(buffer: String, cursor_point: Option<BufferPoint>) -> Self {
         Self {
@@ -2197,7 +2212,7 @@ impl Input {
                         me.ai_input_model.update(ctx, |ai_input_model, ctx| {
                             let is_auto_detection_enabled = !ai_input_model.is_input_type_locked();
                             if is_auto_detection_enabled {
-                                ai_input_model.set_input_type(InputType::AI, ctx);
+                                ai_input_model.set_input_type(InputType::Shell, ctx);
                             }
                         });
                     }
@@ -2774,7 +2789,7 @@ impl Input {
                 // Ensure hint text is cached for new conversations
                 get_stable_agent_mode_hint_text(&mut self.cached_agent_mode_hint_text)
             }
-            (InputType::AI, _) => {
+            (InputType::Shell, _) => {
                 // Follow the `agent_indicator` pattern (see `app/src/tab.rs`):
                 //  * `None` (no conversation, empty, passive, or untitled) => new conversation => "Warp anything"
                 //  * `InProgress`                                           => agent running    => "Steer"
@@ -3065,7 +3080,7 @@ impl Input {
 
                 if switch_to_auto {
                     self.set_input_mode_natural_language_detection(ctx);
-                } else if *input_type == InputType::AI {
+                } else if *input_type == InputType::Shell {
                 }
             }
             UniversalDeveloperInputButtonBarEvent::EnableAutoDetection => {
@@ -3104,7 +3119,7 @@ impl Input {
     /// Switches to AI mode but preserves current lock state.
     fn enter_ai_mode(&mut self, ctx: &mut ViewContext<Self>) {
         self.ai_input_model.update(ctx, |input_model, ctx| {
-            input_model.set_input_type(InputType::AI, ctx);
+            input_model.set_input_type(InputType::Shell, ctx);
         });
     }
 
@@ -4053,7 +4068,7 @@ impl Input {
         ctx: &mut ViewContext<Input>,
     ) {
         let input_type = if workflow_type.as_workflow().is_agent_mode_workflow() {
-            InputType::AI
+            InputType::Shell
         } else {
             InputType::Shell
         };
@@ -4518,7 +4533,7 @@ impl Input {
 
                         self.ai_input_model.update(ctx, |ai_input_model, ctx| {
                             let input_type = if selected_item.is_ai_query() {
-                                InputType::AI
+                                InputType::Shell
                             } else {
                                 InputType::Shell
                             };
@@ -6208,7 +6223,7 @@ impl Input {
                             self.ai_input_model.update(ctx, |ai_input_model, ctx| {
                                 ai_input_model.set_input_config(
                                     InputConfig {
-                                        input_type: InputType::AI,
+                                        input_type: InputType::Shell,
                                         is_locked: true,
                                     },
                                     is_input_buffer_empty,
@@ -7182,7 +7197,7 @@ impl Input {
         // Check if Agent Mode enabled, in active agent view, or if the buffer is empty
         // (if the buffer is empty, we assume that the user wants the images to be attached).
         let ai_input = self.ai_input_model.as_ref(ctx);
-        let in_agent_mode = matches!(ai_input.input_type(), InputType::AI);
+        let in_agent_mode = matches!(ai_input.input_type(), InputType::Shell);
         let is_buffer_empty = self.buffer_text(ctx).is_empty();
         let in_active_agent_view = self.agent_view_controller.as_ref(ctx).is_active();
         in_agent_mode || is_buffer_empty || in_active_agent_view
@@ -10076,12 +10091,12 @@ impl Input {
 
         if should_unlock {
             self.ai_input_model.update(ctx, |ai_input_model, ctx| {
-                ai_input_model.enable_autodetection(InputType::AI, ctx);
+                ai_input_model.enable_autodetection(InputType::Shell, ctx);
             });
         } else {
             self.ai_input_model.update(ctx, |ai_input_model, ctx| {
                 let new_config = InputConfig {
-                    input_type: InputType::AI,
+                    input_type: InputType::Shell,
                     is_locked: true,
                 };
                 ai_input_model.set_input_config(new_config, is_input_buffer_empty, ctx);
@@ -10144,12 +10159,12 @@ impl Input {
             CLIAgentSessionsModel::as_ref(ctx).is_input_open(self.terminal_view_id);
         let new_config = if is_cli_agent_input_open {
             InputConfig {
-                input_type: InputType::AI,
+                input_type: InputType::Shell,
                 is_locked: true,
             }
         } else {
             InputConfig {
-                input_type: InputType::AI,
+                input_type: InputType::Shell,
                 is_locked: true,
             }
             .unlocked_if_autodetection_enabled(true, ctx)

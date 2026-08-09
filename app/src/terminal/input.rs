@@ -5,7 +5,6 @@ mod common;
 pub mod decorations;
 pub mod message_bar;
 pub mod prompts;
-pub mod repos;
 mod suggestions_mode_menu;
 pub mod suggestions_mode_model;
 mod terminal;
@@ -22,7 +21,6 @@ use crate::suggestions::ignored_suggestions_model::{
 };
 use crate::terminal::input::buffer_model::InputBufferModel;
 use crate::terminal::input::prompts::{InlinePromptsMenuEvent, InlinePromptsMenuView};
-use crate::terminal::input::repos::{InlineReposMenuEvent, InlineReposMenuView};
 use crate::terminal::input::suggestions_mode_model::{
     InputSuggestionsModeEvent, InputSuggestionsModeModel,
 };

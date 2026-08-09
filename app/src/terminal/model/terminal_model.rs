@@ -1275,41 +1275,6 @@ impl TerminalModel {
         }
     }
 
-    /// Sends an Agent ResponseEvent to viewers if this session is shared.
-    /// The participant_id should be the ID of the participant who initiated the query.
-    /// The forked_from_conversation_token is used for forked conversations to help viewers
-    /// link the new server-assigned token to an existing conversation from historical replay.
-    pub fn send_agent_response_for_shared_session(
-        &mut self,
-        response: &warp_multi_agent_api::ResponseEvent,
-        response_initiator: Option<ParticipantId>,
-        forked_from_conversation_token: Option<String>,
-    ) {
-        // We should always have a response initiator for shared sessions,
-        // but if we don't we should still send the response event to the viewers
-        // (as opposed to completely failing and skipping the send).
-        if response_initiator.is_none() {
-            report_error!(anyhow::anyhow!(
-                "No response initiator tracked for agent response event."
-            ));
-        }
-
-        if self.shared_session_status().is_sharer() {
-            if let Some(tx) = &self.ordered_terminal_events_for_shared_session_tx {
-                let encoded = encode_agent_response_event(response);
-                if let Err(e) = tx.try_send(OrderedTerminalEventType::AgentResponseEvent {
-                    response_initiator,
-                    response_event: encoded,
-                    forked_from_conversation_token,
-                }) {
-                    log::warn!("Failed to send OrderedTerminalEventType::AgentResponseEvent: {e}");
-                }
-            }
-        } else {
-            log::debug!("Not sharing this session; ignoring agent response event");
-        }
-    }
-
     pub fn send_agent_conversation_replay_started_for_shared_session(&mut self) {
         if self.shared_session_status().is_sharer() {
             if let Some(tx) = &self.ordered_terminal_events_for_shared_session_tx {
@@ -2136,85 +2101,6 @@ impl TerminalModel {
     /// Stop monitoring for the end of ssh login.
     pub fn end_notify_on_ssh_login_complete(&mut self) {
         self.notify_on_end_of_ssh_login = None;
-    }
-
-    /// Emits the event [Event::DetectedEndOfSshLogin] if the last line of output in the
-    /// ssh session indicates login is complete. The check_type parameter specifies whether
-    /// this is the initial check or a confirmation check (i.e., a previous check has already
-    /// succeeded).
-    ///
-    /// Overall, the heuristic waits for the line "Last login:" to appear in a line of output,
-    /// indicating that login is complete. However, this isn't enough. Users might have a .hushlogin
-    /// that suppresses that output line, so we also have a backup check. When we receive
-    /// a line of output that is not a known SSH output, we consider that to be some mild evidence that
-    /// login is complete. Though, because that output line might be a false alarm (i.e., it could be
-    /// an SSH banner OR a line like "Permission denied."), we wait some amount of time and check again
-    /// before indicating we're ready for warpification.
-    pub fn check_for_end_of_ssh_login(&mut self, confirmation_check: bool) {
-        let Some(mut ssh_login_state) = self.notify_on_end_of_ssh_login.clone() else {
-            return;
-        };
-
-        // Only check for the end of ssh login if it was specifically enabled for the current active block.
-        let active_block = self.block_list().active_block();
-        if &ssh_login_state.block_id != active_block.id() {
-            return;
-        }
-
-        // Only check for the end of ssh login if it wasn't already detected and notified.
-        if ssh_login_state.notification_state == SshLoginNotificationState::Completed {
-            return;
-        }
-
-        let is_initial_check = !confirmation_check;
-        let block_output = active_block.output_to_string();
-        match ssh::util::check_ssh_login_state(&block_output) {
-            SshLoginState::LastLogin | SshLoginState::PromptDetected => {
-                self.event_proxy
-                    .send_terminal_event(Event::DetectedEndOfSshLogin(
-                        SshLoginStatus::ReadyToWarpify,
-                    ));
-
-                ssh_login_state.notification_state = SshLoginNotificationState::Completed;
-            }
-            SshLoginState::NonSshOutput => {
-                // If we detect non-SSH output AND we haven't already notified, send a notification.
-                if is_initial_check {
-                    if ssh_login_state.notification_state == SshLoginNotificationState::Monitoring {
-                        self.event_proxy
-                            .send_terminal_event(Event::DetectedEndOfSshLogin(
-                                SshLoginStatus::RecheckBeforeWarpifying,
-                            ));
-
-                        // We want to avoid emitting redundant events for the initial check.
-                        ssh_login_state.notification_state =
-                            SshLoginNotificationState::SentInitialNotification;
-                    }
-                } else {
-                    self.event_proxy
-                        .send_terminal_event(Event::DetectedEndOfSshLogin(
-                            SshLoginStatus::ReadyToWarpify,
-                        ));
-
-                    ssh_login_state.notification_state = SshLoginNotificationState::Completed;
-                }
-            }
-            SshLoginState::Authenticating => {
-                // False alarm case. If this is the confirmation check and it's detected that
-                // we have NOT completed login, then we should start over and go back to monitoring
-                // each output chunk for lines indicating login completion.
-                if !is_initial_check {
-                    ssh_login_state.notification_state = SshLoginNotificationState::Monitoring;
-                }
-            }
-        }
-
-        // Update the notification state.
-        self.notify_on_end_of_ssh_login = Some(ssh_login_state);
-    }
-
-    pub fn is_ssh_block(&self) -> bool {
-        self.notify_on_end_of_ssh_login.is_some()
     }
 
     pub fn tmux_control_mode_active(&self) -> bool {

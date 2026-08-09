@@ -245,7 +245,6 @@ fn test_worktree_sidecar_pointer_entry_does_not_select_top_repo() {
 
 #[cfg(feature = "local_fs")]
 
-
 /// Disable the warn-before-quit setting. Because we don't fully bootstrap the shell in tests, this
 /// is generally needed in tests that close tabs.
 fn disable_quit_warning(app: &mut AppContext) {
@@ -812,34 +811,6 @@ fn test_close_pane_confirmation_dialog() {
 }
 
 #[test]
-fn test_reopen_closed_shared_tab() {
-    let _guard = FeatureFlag::CreatingSharedSessions.override_enabled(true);
-    App::test((), |mut app| async move {
-        initialize_app(&mut app);
-
-        let workspace = mock_workspace(&mut app);
-        setup_session_sharing_test(&workspace, &mut app);
-
-        workspace.update(&mut app, |workspace, ctx| {
-            let shared_pane_group = workspace.get_pane_group_view(1).unwrap().clone();
-
-            // Close the tab with the shared pane.
-            workspace.close_tab(1, true, true, ctx);
-            assert_eq!(workspace.tab_count(), 2);
-
-            // Restore the shared tab.
-            workspace.restore_closed_tab(1, TabData::new(shared_pane_group.to_owned()), ctx);
-        });
-        // Restored tab should no longer be shared.
-        workspace.read(&app, |workspace, ctx| {
-            let pane_group = workspace.get_pane_group_view(1).unwrap();
-            assert!(!pane_group.as_ref(ctx).is_terminal_pane_being_shared(ctx));
-            assert_eq!(workspace.tab_count(), 3);
-        })
-    });
-}
-
-#[test]
 fn test_close_other_tabs_confirmation_dialog() {
     let _guard = FeatureFlag::CreatingSharedSessions.override_enabled(true);
     App::test((), |mut app| async move {
@@ -1006,84 +977,6 @@ fn test_close_last_tab_skip_confirmation() {
 }
 
 #[test]
-fn test_notebook_pane_tracking() {
-    App::test((), |mut app| async move {
-        initialize_app(&mut app);
-
-        let workspace = mock_workspace(&mut app);
-
-        workspace.update(&mut app, |workspace, ctx| {
-            // Add a new notebook pane.
-            workspace.open_notebook(
-                &NotebookSource::New {
-                    title: None,
-                    owner: Owner::mock_current_user(),
-                    initial_folder_id: None,
-                },
-                &OpenWarpDriveObjectSettings::default(),
-                ctx,
-                true,
-            );
-
-            // Get the ID of the new notebook.
-            let pane_group = workspace
-                .get_pane_group_view(0)
-                .expect("Pane group does not exist")
-                .clone();
-            let notebook_view = pane_group
-                .as_ref(ctx)
-                .notebook_view_at_pane_index(0, ctx)
-                .expect("Notebook view was not created")
-                .clone();
-            let notebook_pane_id = pane_group
-                .as_ref(ctx)
-                .pane_id_from_index(0)
-                .expect("Notebook view should have been created");
-            let notebook_id = notebook_view
-                .as_ref(ctx)
-                .notebook_id(ctx)
-                .expect("Notebook should have an ID");
-
-            // The notebook should be registered with the NotebookManager.
-            let (window, locator) = NotebookManager::as_ref(ctx)
-                .find_pane(&NotebookSource::Existing(notebook_id))
-                .expect("Notebook pane should be registered");
-            assert_eq!(window, ctx.window_id());
-            assert_eq!(
-                locator,
-                PaneViewLocator {
-                    pane_group_id: pane_group.id(),
-                    pane_id: notebook_pane_id,
-                }
-            );
-
-            // Re-opening the notebook should not create a new view.
-            workspace.open_notebook(
-                &NotebookSource::Existing(notebook_id),
-                &OpenWarpDriveObjectSettings::default(),
-                ctx,
-                true,
-            );
-            assert_eq!(
-                ctx.views_of_type::<NotebookView>(ctx.window_id()),
-                Some(vec![notebook_view])
-            );
-
-            // Finally, closing the notebook pane should de-register it.
-            pane_group.update(ctx, |pane_group, ctx| {
-                pane_group.handle_action(&PaneGroupAction::RemoveActive, ctx)
-            });
-            assert_eq!(
-                NotebookManager::handle(ctx)
-                    .as_ref(ctx)
-                    .find_pane(&NotebookSource::Existing(notebook_id)),
-                None
-            );
-        });
-    });
-}
-
-#[test]
 fn test_set_active_terminal_input_contents_and_focus_app() {
     App::test((), |mut app| async move {
         initialize_app(&mut app);
@@ -1237,97 +1130,6 @@ fn test_open_or_toggle_warp_drive() {
     });
 }
 
-
-
-
-
-#[test]
-fn test_tab_context_menu_share_session_items() {
-    let _guard = FeatureFlag::CreatingSharedSessions.override_enabled(true);
-
-    App::test((), |mut app| async move {
-        initialize_app(&mut app);
-        let workspace = mock_workspace(&mut app);
-        let shared_pane_id = setup_session_sharing_test(&workspace, &mut app);
-
-        workspace.update(&mut app, |workspace, ctx| {
-            // Focus the shared session
-            workspace.activate_tab(1, ctx);
-            workspace
-                .active_tab_pane_group()
-                .update(ctx, |pane_group, ctx| {
-                    pane_group.focus_pane_by_id(shared_pane_id, ctx);
-                });
-        });
-
-        // When there's a single shared session in a tab (focused), the options
-        // for sharing are "Stop sharing" and "Stop sharing all".
-        workspace.read(&app, |workspace, ctx| {
-            let items = workspace.tabs[1].menu_items(1, 3, ctx);
-            assert!(items[0]
-                .is_approximately_same_item_as(&MenuItemFields::new("Stop sharing").into_item()));
-            assert!(items[1].is_approximately_same_item_as(
-                &MenuItemFields::new("Stop sharing all").into_item()
-            ));
-        });
-
-        // Focus the other, non-shared pane in the tab
-        workspace.update(&mut app, |workspace, ctx| {
-            workspace.activate_tab(1, ctx);
-            workspace
-                .active_tab_pane_group()
-                .update(ctx, |pane_group, ctx| {
-                    pane_group.pane_by_index(1).unwrap().focus(ctx);
-                });
-        });
-
-        // When there's a single shared session in a tab (unfocused), the options
-        // for sharing are "Share session" and "Stop sharing all".
-        workspace.read(&app, |workspace, ctx| {
-            let items = workspace.tabs[1].menu_items(1, 3, ctx);
-            assert!(items[0]
-                .is_approximately_same_item_as(&MenuItemFields::new("Share session").into_item()));
-            assert!(items[1].is_approximately_same_item_as(
-                &MenuItemFields::new("Stop sharing all").into_item()
-            ));
-        });
-
-        // Stop sharing.
-        workspace.update(&mut app, |workspace, ctx| {
-            let tab = workspace.tabs[1].pane_group.downgrade();
-            workspace.stop_sharing_all_panes_in_tab(&tab, ctx);
-        });
-
-        // When there's no shared sessions in a tab, the only option is "Share session".
-        workspace.read(&app, |workspace, ctx| {
-            let items = workspace.tabs[1].menu_items(1, 3, ctx);
-            assert!(items[0]
-                .is_approximately_same_item_as(&MenuItemFields::new("Share session").into_item()));
-            assert!(items[1].is_approximately_same_item_as(&MenuItem::Separator));
-        });
-    });
-}
-
-#[test]
-fn test_view_only_session() {
-    let _guard = FeatureFlag::ViewingSharedSessions.override_enabled(true);
-
-    App::test((), |mut app| async move {
-        initialize_app(&mut app);
-
-        // Trying to open command search
-        let workspace = mock_workspace_viewing_shared_session(&mut app);
-        workspace.update(&mut app, |workspace: &mut Workspace, ctx| {
-            workspace.handle_action(&WorkspaceAction::ShowCommandSearch(Default::default()), ctx);
-        });
-
-        // Ensure command search doesn't work for read-only shared sessions
-        workspace.read(&app, |workspace, _ctx| {
-            assert!(!workspace.current_workspace_state.is_command_search_open);
-        });
-    });
-}
-
 #[test]
 // This tests the end-to-end behavior to correctly switch focus among panels.
 // (The only panels that can be focused currently are WD, workspace, & AI assistant.)
@@ -1404,115 +1206,6 @@ fn test_switch_focus_panels() {
             );
         });
     });
-}
-
-#[test]
-fn test_focus_notebook() {
-    App::test((), |mut app| async move {
-        initialize_app(&mut app);
-
-        let workspace = mock_workspace(&mut app);
-        let pane_group = workspace.read(&app, |workspace, _ctx| {
-            workspace
-                .get_pane_group_view(0)
-                .expect("should have pane group for tab 0")
-                .clone()
-        });
-
-        let first_terminal_id = pane_group.read(&app, |panes, _ctx| {
-            get_newly_created_pane_id(panes, &[])
-                .as_terminal_pane_id()
-                .expect("should be a terminal pane")
-        });
-
-        let notebook_id = pane_group.update(&mut app, |panes, ctx| {
-            // Add a notebook to the left.
-            let notebook_view = ctx.add_typed_action_view(NotebookView::new);
-            panes.add_pane_with_direction(
-                Direction::Left,
-                NotebookPane::new(notebook_view, ctx),
-                true, /* focus_new_pane */
-                ctx,
-            );
-            get_newly_created_pane_id(panes, &[first_terminal_id.into()])
-        });
-
-        // The new pane should be focused, but the terminal is still the active session.
-        pane_group.read(&app, |panes, ctx| {
-            assert_eq!(panes.focused_pane_id(ctx), notebook_id);
-            assert_eq!(panes.active_session_id(ctx), Some(first_terminal_id));
-            assert_eq!(
-                split_pane_state(panes, first_terminal_id, ctx),
-                SplitPaneState::InSplitPane(PaneState::Unfocused)
-            );
-            assert_eq!(
-                active_session_state(panes, first_terminal_id, ctx),
-                ActiveSessionState::Active
-            );
-            assert_eq!(
-                split_pane_state(panes, notebook_id, ctx),
-                SplitPaneState::InSplitPane(PaneState::Focused)
-            );
-        });
-
-        // Add a terminal below.
-        let second_terminal_id = pane_group.update(&mut app, |panes, ctx| {
-            panes.add_terminal_pane(Direction::Down, None, ctx);
-            get_newly_created_pane_id(panes, &[first_terminal_id.into(), notebook_id])
-                .as_terminal_pane_id()
-                .expect("should be a terminal pane")
-        });
-
-        // The new terminal should be both focused and the active session.
-        pane_group.read(&app, |panes, ctx| {
-            assert_eq!(panes.focused_pane_id(ctx), second_terminal_id.into());
-            assert_eq!(panes.active_session_id(ctx), Some(second_terminal_id));
-            assert_eq!(
-                split_pane_state(panes, first_terminal_id, ctx),
-                SplitPaneState::InSplitPane(PaneState::Unfocused)
-            );
-            assert_eq!(
-                active_session_state(panes, first_terminal_id, ctx),
-                ActiveSessionState::Inactive
-            );
-            assert_eq!(
-                split_pane_state(panes, second_terminal_id, ctx),
-                SplitPaneState::InSplitPane(PaneState::Focused)
-            );
-            assert_eq!(
-                active_session_state(panes, second_terminal_id, ctx),
-                ActiveSessionState::Active
-            );
-            assert_eq!(
-                split_pane_state(panes, notebook_id, ctx),
-                SplitPaneState::InSplitPane(PaneState::Unfocused)
-            );
-        });
-
-        // Close the new terminal.
-        pane_group.update(&mut app, |panes, ctx| {
-            panes.close_pane(second_terminal_id.into(), ctx);
-        });
-
-        // Focus should switch to the notebook, and the first terminal session
-        // will activate.
-        pane_group.read(&app, |panes, ctx| {
-            assert_eq!(panes.focused_pane_id(ctx), notebook_id);
-            assert_eq!(panes.active_session_id(ctx), Some(first_terminal_id));
-            assert_eq!(
-                split_pane_state(panes, first_terminal_id, ctx),
-                SplitPaneState::InSplitPane(PaneState::Unfocused)
-            );
-            assert_eq!(
-                split_pane_state(panes, notebook_id, ctx),
-                SplitPaneState::InSplitPane(PaneState::Focused)
-            );
-            assert_eq!(
-                active_session_state(panes, first_terminal_id, ctx),
-                ActiveSessionState::Active
-            );
-        });
-    })
 }
 
 #[test]

@@ -88,7 +88,6 @@ fn mock_workspace(app: &mut App) -> ViewHandle<Workspace> {
     let (_, workspace) = app.add_window(WindowStyle::NotStealFocus, |ctx| {
         Workspace::new(
             global_resource_handles,
-            None,
             NewWorkspaceSource::Empty {
                 previous_active_window: active_window_id,
                 shell: None,
@@ -825,4 +824,3 @@ fn test_standard_tab_context_menu_shows_hover_only_tab_bar() {
         });
     });
 }
-

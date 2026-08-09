@@ -81,7 +81,7 @@ fn test_sqlite_loads_legacy_vertical_tabs_panel_open_and_discards_it() {
 
     save_app_state(&mut conn, &app_state).expect("app state should save");
 
-    let restored = read_sqlite_data(&mut conn, None)
+    let restored = read_sqlite_data(&mut conn)
         .expect("app state should load")
         .app_state;
 

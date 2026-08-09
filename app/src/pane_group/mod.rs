@@ -1347,9 +1347,7 @@ impl PaneGroup {
         pane_contents: &mut HashMap<PaneId, Box<dyn AnyPaneContent>>,
         ctx: &mut ViewContext<Self>,
     ) -> (PaneData, InitialFocus) {
-        for (placeholder_id, leaf) in deferred_panes {
-            let _ = (placeholder_id, leaf, pane_contents, ctx);
-        }
+        let _ = (deferred_panes, pane_contents, ctx);
 
         result
     }
@@ -1402,6 +1400,7 @@ impl PaneGroup {
                             is_active: pane_id.as_terminal_pane_id() == self.active_session_id(app),
                             is_read_only: false,
                             shell_launch_data: None,
+                            input_config: None,
                             active_profile_id: None,
                         })
                     }
@@ -1665,6 +1664,8 @@ impl PaneGroup {
             dragged_border: None,
             user_default_shell_changed_banner,
             active_file_model,
+            terminal_with_open_share_session_modal: None,
+            terminal_with_shared_session_role_change_modal_open: None,
             terminal_with_open_summarization_dialog: None,
             pane_with_open_environment_setup_mode_selector: None,
             pane_with_open_agent_assisted_environment_modal: None,
@@ -1737,15 +1738,12 @@ impl PaneGroup {
         let (view, terminal_manager) = PaneGroup::create_session(
             options.initial_directory,
             options.env_vars,
-            options.is_shared_session_creator,
             resources,
             None,
-            options.conversation_restoration,
             unsupported_banner_model_handle,
             view_bounds.size(),
             model_event_sender.clone(),
             options.shell,
-            None,
             ctx,
         );
         let uuid = Uuid::new_v4();

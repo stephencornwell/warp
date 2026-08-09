@@ -1016,7 +1016,6 @@ impl PaneGroup {
                         // TODO(CORE-3187): On Windows, support WSL directory restoration.
                         Some(cwd).filter(|p| p.exists()),
                         HashMap::new(),
-                        IsSharedSessionCreator::No,
                         resources,
                         None,
                         None, // no conversation restoration for launch config
@@ -1251,10 +1250,8 @@ impl PaneGroup {
                 let (terminal_view, terminal_manager) = PaneGroup::create_session(
                     startup_directory,
                     HashMap::new(),
-                    IsSharedSessionCreator::No,
                     resources,
                     block_list,
-                    conversation_restoration,
                     user_default_shell_unsupported_banner_model_handle,
                     view_size,
                     model_event_sender.clone(),
@@ -3333,15 +3330,12 @@ impl PaneGroup {
     fn create_session(
         startup_directory: Option<PathBuf>,
         env_vars: HashMap<OsString, OsString>,
-        is_shared_session: IsSharedSessionCreator,
         resources: TerminalViewResources,
         restored_blocks: Option<&Vec<SerializedBlockListItem>>,
-        conversation_restoration: Option<ConversationRestorationInNewPaneType>,
         user_default_shell_unsupported_banner_model_handle: ModelHandle<BannerState>,
         initial_size: Vector2F,
         model_event_sender: Option<SyncSender<ModelEvent>>,
         chosen_shell: Option<AvailableShell>,
-        initial_input_config: Option<InputConfig>,
         ctx: &mut ViewContext<Self>,
     ) -> (
         ViewHandle<TerminalView>,
@@ -3354,23 +3348,19 @@ impl PaneGroup {
                     initial_size,
                     model_event_sender,
                     ctx.window_id(),
-                    initial_input_config,
                     ctx,
                 );
             } else if #[cfg(feature = "local_tty")] {
                 let terminal_manager: ModelHandle<Box<dyn TerminalManager>> = crate::terminal::local_tty::TerminalManager::create_model(
                     startup_directory,
                     env_vars,
-                    is_shared_session,
                     resources,
                     restored_blocks,
-                    conversation_restoration,
                     user_default_shell_unsupported_banner_model_handle,
                     initial_size,
                     model_event_sender,
                     ctx.window_id(),
                     chosen_shell,
-                    initial_input_config,
                     ctx,
                 );
             } else {
@@ -3384,7 +3374,6 @@ impl PaneGroup {
                     },
                     resources,
                     None,
-                    conversation_restoration,
                     initial_size,
                     ctx.window_id(),
                     ctx,
@@ -3505,7 +3494,6 @@ impl PaneGroup {
         base_pane_id: Option<PaneId>,
         chosen_shell: Option<AvailableShell>,
         startup_directory: Option<PathBuf>,
-        conversation_restoration: Option<ConversationRestorationInNewPaneType>,
         default_session_mode_behavior: DefaultSessionModeBehavior,
         ctx: &mut ViewContext<Self>,
     ) -> TerminalPaneId {

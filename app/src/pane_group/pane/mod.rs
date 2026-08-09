@@ -16,7 +16,6 @@ pub(super) mod terminal_pane;
 pub mod view;
 pub(super) mod welcome_pane;
 pub(crate) mod welcome_view;
-pub mod workflow_pane;
 
 use std::{any::Any, fmt::Display};
 

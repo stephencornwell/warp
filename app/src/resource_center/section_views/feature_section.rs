@@ -14,6 +14,11 @@ use crate::resource_center::{
     complete_tips_and_write_to_user_defaults, main_page::ActionTarget,
     skip_tips_and_write_to_user_defaults, FeatureItem, FeatureSectionData, Tip, TipsCompleted,
 };
+use crate::{
+    appearance::Appearance,
+    settings_view::keybindings::{KeybindingChangedEvent, KeybindingChangedNotifier},
+};
+use warpui::elements::Fill;
 
 use super::{
     SectionAction, SectionView, CHEVRON_ICON_SIZE, DESCRIPTION_FONT_SIZE, ELLIPSE_ICON_SIZE,

@@ -20761,7 +20761,6 @@ impl TerminalView {
             self.size_info.cell_height_px(),
             viewport.scroll_top_in_pixels(),
             self.size_info.pane_height_px(),
-            self.inline_menu_positioner.clone(),
         );
 
         let theme = appearance.theme();

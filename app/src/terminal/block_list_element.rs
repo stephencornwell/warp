@@ -941,11 +941,6 @@ impl BlockListElement {
         }
     }
 
-    pub fn with_voice_input_toggle_key(mut self, key_code: Option<KeyCode>) -> Self {
-        self.voice_input_toggle_key_code = key_code;
-        self
-    }
-
     pub fn with_ligature_rendering(mut self) -> Self {
         self.use_ligature_rendering = true;
         self

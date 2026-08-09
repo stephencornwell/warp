@@ -238,9 +238,7 @@ impl FeatureSectionView {
                 font_size: Some(DESCRIPTION_FONT_SIZE),
                 font_color: Some(match color {
                     Fill::Solid(color) => color,
-                    Fill::None => warpui::elements::Fill::Solid(pathfinder_color::ColorU::new(
-                        0, 0, 0, 255,
-                    )),
+                    Fill::None => pathfinder_color::ColorU::new(0, 0, 0, 255),
                 }),
                 ..Default::default()
             })

@@ -1,5 +1,5 @@
 //! Implementation of terminal panes.
-use std::{collections::HashMap, sync::mpsc::SyncSender};
+use std::sync::mpsc::SyncSender;
 
 use base64::{engine::general_purpose::STANDARD as BASE64_STANDARD, Engine as _};
 use url::Url;
@@ -631,46 +631,6 @@ fn handle_terminal_view_event(
             Event::StartAgentConversation(request) => {
                 let request = request.clone();
                 match request.execution_mode.clone() {
-                    StartAgentExecutionMode::Local { harness_type: None } => {
-                        if let Some(HiddenChildAgentConversation {
-                            terminal_view: new_terminal_view,
-                            conversation_id,
-                            ..
-                        }) = create_hidden_child_agent_conversation(
-                            group,
-                            pane_id,
-                            request.name,
-                            request.parent_conversation_id,
-                            HashMap::new(),
-                            ctx,
-                        ) {
-                            register_legacy_local_lifecycle_subscription(
-                                request.parent_conversation_id,
-                                conversation_id,
-                                request.lifecycle_subscription,
-                                ctx,
-                            );
-
-                            new_terminal_view.update(ctx, |terminal_view, ctx| {
-                                terminal_view
-                                    .ai_controller()
-                                    .update(ctx, |controller, ctx| {
-                                        controller.send_agent_query_in_conversation(
-                                            request.prompt,
-                                            conversation_id,
-                                            ctx,
-                                        );
-                                    });
-
-                                terminal_view.enter_agent_view(
-                                    None,
-                                    Some(conversation_id),
-                                    AgentViewEntryOrigin::ChildAgent,
-                                    ctx,
-                                );
-                            });
-                        }
-                    }
                     #[cfg(not(target_family = "wasm"))]
                     StartAgentExecutionMode::Local {
                         harness_type: Some(harness_type),

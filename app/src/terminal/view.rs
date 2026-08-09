@@ -729,9 +729,6 @@ pub struct PromptSuggestion {
     /// The prompt that is used as the input to Agent Mode.
     pub prompt: String,
 
-    /// If this is some, we eagerly pre-fetch the Agent Mode response for this query.
-    pub coding_query_context: Option<Vec<FileLocations>>,
-
     /// If this is a static prompt suggestion, we store the name of the suggestion type here.
     pub static_prompt_suggestion_name: Option<String>,
 
@@ -742,10 +739,6 @@ pub struct PromptSuggestion {
 }
 
 impl PromptSuggestion {
-    pub fn is_coding_query(&self) -> bool {
-        self.coding_query_context.is_some()
-    }
-
     /// Returns specified label for Prompt Suggestion if it exists, otherwise returns the query
     /// (which is considered to be the "default" label).
     pub fn label(&self) -> &String {
@@ -1527,117 +1520,6 @@ impl BlockEntity {
     }
 }
 
-/// Represents the possible "states" of an items inclusion in blocklist AI context.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum AIContextInclusionState {
-    /// The item will be included with the next AI query.
-    Pending,
-
-    /// The item was included as context in a past AI message in the active conversation.
-    Active,
-}
-
-pub struct BlocklistAIRenderContext {
-    /// The set of `BlockId`s corresponding to blocks to be included or previously included as AI
-    /// context.
-    ///
-    /// This map is keyed by `ContextInclusionState`, where the corresponding set represents the
-    /// blocks for that state.
-    block_ids: HashMap<AIContextInclusionState, HashSet<BlockId>>,
-
-    /// The ID of the selected Agent Mode conversation, if any.
-    ///
-    selected_conversation_id: Option<AIConversationId>,
-
-    /// The IDs of exchanges in the selected conversation.
-    exchange_ids: Option<HashSet<AIAgentExchangeId>>,
-
-    /// `true` if we should highlight pending and active context in this conversation.
-    pub should_highlight_context: bool,
-
-    /// `true` if ai_input is enabled.
-    pub is_ai_input_enabled: bool,
-
-    /// `true` if there is pending context selected text attached.
-    pub has_pending_context_selected_text: bool,
-}
-
-impl BlocklistAIRenderContext {
-    /// Returns `true` if there's an active AI conversation.
-    pub fn has_active_conversation(&self) -> bool {
-        self.selected_conversation_id.is_some()
-    }
-
-    /// Returns `true` if the exchange with the given ID is in the active conversation.
-    pub fn is_exchange_in_active_conversation(&self, id: &AIAgentExchangeId) -> bool {
-        self.exchange_ids
-            .as_ref()
-            .is_some_and(|active_exchange_ids| active_exchange_ids.contains(id))
-    }
-
-    pub fn context_inclusion_state_for_block(
-        &self,
-        block: &Block,
-    ) -> Option<AIContextInclusionState> {
-        if let (Some(ai_metadata), Some(active_conversation_id)) = (
-            block.agent_interaction_metadata(),
-            self.selected_conversation_id.as_ref(),
-        ) {
-            if ai_metadata.conversation_id() == active_conversation_id {
-                return Some(AIContextInclusionState::Active);
-            }
-        }
-
-        [
-            AIContextInclusionState::Pending,
-            AIContextInclusionState::Active,
-        ]
-        .iter()
-        .find(|state| {
-            self.block_ids
-                .get(state)
-                .map(|ids| ids.contains(block.id()))
-                .unwrap_or(false)
-        })
-        .copied()
-    }
-
-    /// Returns the AI context stripe color to use for a block, if any.
-    pub fn context_color_for_block(&self, block: &Block, theme: &WarpTheme) -> Option<ColorU> {
-        match self.context_inclusion_state_for_block(block) {
-            Some(AIContextInclusionState::Active) => self.context_color(theme),
-            _ => None,
-        }
-    }
-
-    /// Returns the AI context stripe color to use for rich content, if any,
-    pub fn context_color_for_rich_content(
-        &self,
-        rich_content: &RichContentMetadata,
-        theme: &WarpTheme,
-    ) -> Option<ColorU> {
-        match rich_content {
-            RichContentMetadata::AIBlock(ai_metadata)
-                if self.is_exchange_in_active_conversation(&ai_metadata.exchange_id) =>
-            {
-                self.context_color(theme)
-            }
-            RichContentMetadata::AIOnboardingBlock { exchange_id, .. }
-                if self.is_exchange_in_active_conversation(exchange_id) =>
-            {
-                self.context_color(theme)
-            }
-            _ => None,
-        }
-    }
-
-    /// The context color to use for a block, given its conversation phase.
-    /// This assumes the block is part of the active conversation.
-    fn context_color(&self, theme: &WarpTheme) -> Option<ColorU> {
-        (self.is_ai_input_enabled && self.should_highlight_context).then(|| ai_brand_color(theme))
-    }
-}
-
 /// Groups together some structs to represent the state of the Terminal View for the
 /// current frame. Passed to `AltScreenElement` and `BlockListElement`.
 pub struct TerminalViewRenderContext {
@@ -1661,9 +1543,6 @@ pub struct TerminalViewRenderContext {
 
     pub horizontal_clipped_scroll_state: ClippedScrollStateHandle,
 
-    /// Context for struct containing information about blocks and AI blocks used to render
-    /// AI-specific decoration in the blocklist element.
-    pub ai_render_context: Rc<RefCell<BlocklistAIRenderContext>>,
 }
 
 #[derive(Default)]
@@ -2927,26 +2806,6 @@ impl TerminalView {
             });
         }
 
-        let ai_render_context = Rc::new(RefCell::new(BlocklistAIRenderContext {
-            block_ids: HashMap::from_iter([
-                (
-                    AIContextInclusionState::Pending,
-                    ai_context_model
-                        .as_ref(ctx)
-                        .pending_context_block_ids()
-                        .clone(),
-                ),
-                (AIContextInclusionState::Active, Default::default()),
-            ]),
-            selected_conversation_id: None,
-            exchange_ids: None,
-            should_highlight_context: false,
-            is_ai_input_enabled: ai_input_model.as_ref(ctx).is_ai_input_enabled(),
-            has_pending_context_selected_text: ai_context_model
-                .as_ref(ctx)
-                .pending_context_selected_text()
-                .is_some(),
-        }));
 
         ctx.subscribe_to_model(&ai_context_model, Self::handle_ai_context_model_event);
         ctx.subscribe_to_model(
@@ -3879,7 +3738,6 @@ impl TerminalView {
                         id: Uuid::new_v4().to_string(),
                         label: Some("Execute this plan".to_string()),
                         prompt: "Execute this plan".to_string(),
-                        coding_query_context: None,
                         static_prompt_suggestion_name: Some("EXECUTE_CREATED_PLAN".to_string()),
                         should_start_new_conversation: false,
                     });
@@ -3996,13 +3854,6 @@ impl TerminalView {
                     .pending_context_selected_text()
                     .cloned();
 
-                self.ai_render_context.borrow_mut().block_ids.insert(
-                    AIContextInclusionState::Pending,
-                    pending_context_block_ids.clone(),
-                );
-                self.ai_render_context
-                    .borrow_mut()
-                    .has_pending_context_selected_text = pending_context_selected_text.is_some();
                 if let Some(conversation_id) = self
                     .agent_view_controller
                     .as_ref(ctx)
@@ -4354,10 +4205,6 @@ impl TerminalView {
                 // If a new conversation has been started, update context block and
                 // AI exchange IDs in the `ai_render_context` for the active and inactive
                 // conversations.
-                let mut ai_render_context = self.ai_render_context.borrow_mut();
-                ai_render_context.selected_conversation_id = Some(*new_conversation_id);
-
-                ai_render_context.exchange_ids = Some(HashSet::new());
             }
             BlocklistAIHistoryEvent::UpdatedStreamingExchange { .. } => {
                 self.update_context_blocks_and_exchanges(ctx);
@@ -5008,44 +4855,7 @@ impl TerminalView {
     }
 
     fn update_context_blocks_and_exchanges(&mut self, ctx: &mut ViewContext<Self>) {
-        // If there is new active conversation history, update the context block
-        // and AI exchange IDs in the `ai_render_context` for the active conversations.
-        let mut ai_render_context = self.ai_render_context.borrow_mut();
-        let Some(conversation) = self.ai_context_model.as_ref(ctx).selected_conversation(ctx)
-        else {
-            // If we're starting a new conversation, there should be no active block or exchange IDs.
-            ai_render_context
-                .block_ids
-                .remove(&AIContextInclusionState::Active);
-            ai_render_context.exchange_ids = None;
-            ai_render_context.should_highlight_context = false;
-            return;
-        };
-        ai_render_context.should_highlight_context = true;
-        let active_conversation_historical_ai_context_block_ids = conversation
-            .get_root_task()
-            .into_iter()
-            .flat_map(|task| {
-                task.all_contexts().filter_map(|context| {
-                    if let AIAgentContext::Block(block) = context {
-                        Some(block.id.clone())
-                    } else {
-                        None
-                    }
-                })
-            })
-            .collect();
-        ai_render_context.block_ids.insert(
-            AIContextInclusionState::Active,
-            active_conversation_historical_ai_context_block_ids,
-        );
-
-        let exchange_ids = blocklist_filter::exchanges_for_blocklist(conversation)
-            .into_iter()
-            .map(|exchange| exchange.id)
-            .collect();
-
-        let _ = ai_render_context.exchange_ids.insert(exchange_ids);
+        let _ = ctx;
     }
 
     fn handle_ai_input_model_event(
@@ -5056,8 +4866,6 @@ impl TerminalView {
     ) {
         match event {
             BlocklistAIInputEvent::InputTypeChanged { config } => {
-                self.ai_render_context.borrow_mut().is_ai_input_enabled = config.input_type.is_ai();
-
                 // Force re-render all AIBlocks to ensure that selected text is recolored properly
                 self.rerender_rich_content_blocks(ctx);
 
@@ -6474,9 +6282,7 @@ impl TerminalView {
             // When `FeatureFlag::AgentView` is enabled, blocks are attachable as AI context in
             // terminal mode. Selections are preserved so they can be attached to the query when
             // entering the agent view.
-            if !self.ai_render_context.borrow().is_ai_input_enabled
-                && !FeatureFlag::AgentView.is_enabled()
-            {
+            if !FeatureFlag::AgentView.is_enabled() {
                 self.clear_selected_blocks(ctx);
                 self.clear_selected_text(ctx);
             }
@@ -7823,7 +7629,6 @@ impl TerminalView {
     ) {
         if let Some(banner) = &mut self.inline_banners_state.prompt_suggestions_banner {
             banner.should_hide = false;
-            banner.prompt_suggestion.coding_query_context = None;
             self.input.update(ctx, |input, ctx| {
                 input.maybe_set_prompt_suggestions_banner_state_should_hide(false);
                 input.notify_and_notify_children(ctx);
@@ -12330,7 +12135,6 @@ impl TerminalView {
                 id: suggestion_id.clone(),
                 label: label.clone(),
                 prompt: prompt.to_string(),
-                coding_query_context: None,
                 static_prompt_suggestion_name: None,
                 should_start_new_conversation: false,
             },
@@ -15339,32 +15143,8 @@ impl TerminalView {
 
     /// Determines if a position in the terminal grid is within an Agent Mode conversation.
     fn is_position_in_agent_mode_conversation(&self, position: &WithinModel<Point>) -> bool {
-        // First check if there's an active conversation at all
-        let ai_render_context = self.ai_render_context.borrow();
-        if !ai_render_context.has_active_conversation() {
-            return false;
-        }
-
-        // If we're in the alt screen, the content wouldn't be sent to the AI
-        if matches!(position, WithinModel::AltScreen(_)) {
-            return false;
-        }
-
-        // If we're in a block, check if that specific block is part of the active conversation
-        if let WithinModel::BlockList(within_block) = position {
-            let model = self.model.lock();
-            if let Some(block) = model.block_list().block_at(within_block.block_index) {
-                // Check if this block has the same visual indicator (pink bar) that shows
-                // it's part of the active conversation
-                ai_render_context
-                    .context_inclusion_state_for_block(block)
-                    .is_some()
-            } else {
-                false
-            }
-        } else {
-            false
-        }
+        let _ = position;
+        false
     }
 
     fn click_on_grid(
@@ -17001,9 +16781,7 @@ impl TerminalView {
         // When `FeatureFlag::AgentView` is enabled, blocks are attachable as AI context in terminal
         // mode. Selections are preserved so they can be attached to the query when entering the
         // agent view.
-        if !self.ai_render_context.borrow().is_ai_input_enabled
-            && !FeatureFlag::AgentView.is_enabled()
-        {
+        if !FeatureFlag::AgentView.is_enabled() {
             self.clear_selected_blocks(ctx);
         }
 
@@ -19715,7 +19493,6 @@ impl TerminalView {
             obfuscate_secrets: get_secret_obfuscation_mode(app),
             hovered_secret: self.hovered_secret,
             horizontal_clipped_scroll_state: self.horizontal_clipped_scroll_state.clone(),
-            ai_render_context: self.ai_render_context.clone(),
         }
     }
 

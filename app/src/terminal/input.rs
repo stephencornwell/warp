@@ -1799,55 +1799,6 @@ impl Input {
             .start_byte_index_of_first_selection(ctx)
     }
 
-    // Returns the appropriate hint/placeholder text to render in an empty input when Agent Mode is
-    // enabled (the feature flag, not the specific AI input mode). This method ensures that hint text
-    // is cached when needed for new conversations.
-    fn agent_mode_hint_text(&mut self, app: &AppContext) -> &str {
-        let input_model = self.ai_input_model.as_ref(app);
-        let is_udi_enabled = InputSettings::as_ref(app).is_universal_developer_input_enabled(app);
-
-        match (
-            input_model.input_type(),
-            input_model.should_run_input_autodetection(app),
-        ) {
-            (InputType::Shell, false) => AGENT_MODE_AI_DISABLED_AUTODETECTION_DISABLED_HINT_TEXT,
-            (InputType::Shell, true) => {
-                // Ensure hint text is cached for new conversations
-                get_stable_agent_mode_hint_text(&mut self.cached_agent_mode_hint_text)
-            }
-            (InputType::Shell, _) => {
-                // Follow the `agent_indicator` pattern (see `app/src/tab.rs`):
-                //  * `None` (no conversation, empty, passive, or untitled) => new conversation => "Warp anything"
-                //  * `InProgress`                                           => agent running    => "Steer"
-                //  * Any other status                                       => finished         => "Ask a follow up"
-                match self
-                    .ai_context_model
-                    .as_ref(app)
-                    .selected_conversation_status_for_hint(app)
-                {
-                    Some(status) if status.is_in_progress() => {
-                        if is_udi_enabled {
-                            AGENT_MODE_AI_ENABLED_STEER_HINT_TEXT_UDI
-                        } else {
-                            AGENT_MODE_AI_ENABLED_STEER_HINT_TEXT_CLASSIC
-                        }
-                    }
-                    Some(_) => {
-                        if is_udi_enabled {
-                            AGENT_MODE_AI_ENABLED_FOLLOW_UP_HINT_TEXT_UDI
-                        } else {
-                            AGENT_MODE_AI_ENABLED_FOLLOW_UP_HINT_TEXT_CLASSIC
-                        }
-                    }
-                    None => {
-                        // Ensure hint text is cached for new conversations
-                        get_stable_agent_mode_hint_text(&mut self.cached_agent_mode_hint_text)
-                    }
-                }
-            }
-        }
-    }
-
     fn handle_input_settings_event(
         &mut self,
         input_settings: ModelHandle<InputSettings>,
@@ -2073,11 +2024,7 @@ impl Input {
         }
 
         // Save the zero state next command state before clearing it.
-        let zerostate_next_command_suggestion_info = self
-            .next_command_model
-            .as_ref(ctx)
-            .get_zero_state_suggestion_info()
-            .cloned();
+        let zerostate_next_command_suggestion_info = None;
         // Clear the auto-suggestion in the editor, so the height of
         // the input box is not inaccurate for its contents. Since we
         // we adjust the height of the long running block to be the same
@@ -2100,9 +2047,6 @@ impl Input {
                 editor.clear_all_placeholder_text();
                 ctx.notify();
             });
-            self.next_command_model.update(ctx, |model, _| {
-                model.clear_state();
-            });
         }
 
         let home_dir = prompt::home_dir_for_block(
@@ -2116,7 +2060,7 @@ impl Input {
             .set_home_dir(home_dir);
 
         // Record whether NLD was overridden (input type manually locked) at submission time.
-        let nld_overridden = self.ai_input_model.as_ref(ctx).is_input_type_locked();
+        let nld_overridden = false;
         self.model
             .lock()
             .block_list_mut()
@@ -2132,8 +2076,6 @@ impl Input {
             .has_received_precmd()
         {
             // Reset state for whether the user accepted the intelligent autosuggestion.
-            self.was_intelligent_autosuggestion_accepted = false;
-
             self.tips_completed.update(ctx, |tips, ctx| {
                 mark_feature_used_and_write_to_user_defaults(
                     Tip::Hint(TipHint::CreateBlock),
@@ -2163,8 +2105,6 @@ impl Input {
         }
 
         // Close the workflows info box if it was open.
-        self.clear_selected_workflow(ctx);
-
         // Close the input suggestions menu if it was open.
         self.close_input_suggestions(/*should_focus_input=*/ false, ctx);
         did_execute
@@ -2188,7 +2128,9 @@ impl Input {
         };
         ctx.emit(Event::ExecuteCommand(Box::new(ExecuteCommandEvent {
             command: command.to_string(),
+            workflow_id: None,
             session_id,
+            workflow_command: None,
             should_add_command_to_history: true,
             source,
         })));
@@ -2494,7 +2436,8 @@ impl Input {
     }
 
     pub fn input_type(&self, app: &AppContext) -> InputType {
-        self.ai_input_model.as_ref(app).input_type()
+        let _ = app;
+        InputType::Shell
     }
 
     pub fn handle_command_search_closed(
@@ -2579,11 +2522,6 @@ impl Input {
 
     fn editor_escape(&mut self, ctx: &mut ViewContext<Self>) {
         let vim_mode = self.editor.as_ref(ctx).vim_mode(ctx);
-        let has_attached_context = {
-            let context_model = self.ai_context_model.as_ref(ctx);
-            !context_model.pending_context_block_ids().is_empty()
-                || context_model.pending_context_selected_text().is_some()
-        };
         if vim_mode == Some(VimMode::Insert)
             && (self.suggestions_mode_model.as_ref(ctx).is_history_up()
                 || self
@@ -2594,19 +2532,6 @@ impl Input {
             self.editor.update(ctx, |editor, editor_ctx| {
                 editor.handle_action(&EditorAction::VimEscape, editor_ctx);
             });
-        } else if self.suggestions_mode_model.as_ref(ctx).is_ai_context_menu() {
-            // Handle AI context menu escape specifically to ensure proper state reset
-            self.close_ai_context_menu(ctx);
-        } else if self.suggestions_mode_model.as_ref(ctx).is_slash_commands() {
-            if self.maybe_clear_v2_slash_section_filter(ctx) {
-                return;
-            }
-            self.slash_command_model
-                .update(ctx, |model, ctx| model.disable(ctx));
-            self.suggestions_mode_model.update(ctx, |model, ctx| {
-                model.set_mode(InputSuggestionsMode::Closed, ctx);
-            });
-            ctx.notify();
         } else if self
             .suggestions_mode_model
             .as_ref(ctx)

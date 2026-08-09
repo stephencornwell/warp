@@ -1,5 +1,5 @@
 //! Implementation of terminal panes.
-use std::sync::mpsc::SyncSender;
+use std::{collections::HashMap, sync::mpsc::SyncSender};
 
 use base64::{engine::general_purpose::STANDARD as BASE64_STANDARD, Engine as _};
 use url::Url;
@@ -15,6 +15,7 @@ use crate::{
     session_management::SessionNavigationData,
     terminal::{
         general_settings::GeneralSettings,
+        shared_session::SharedSessionStatus,
         view::Event,
         TerminalManager, TerminalView,
     },
@@ -476,11 +477,7 @@ fn handle_terminal_view_event(
                 ctx.emit(pane_group::Event::OpenCodeInWarp {
                     source: source.clone(),
                     layout: *layout,
-                    line_col: if let CodeSource::Link { range_start, .. } = source {
-                        *range_start
-                    } else {
-                        None
-                    },
+                    line_col: None,
                 });
             }
             Event::OpenCodeDiff { view } => {

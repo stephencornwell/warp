@@ -1383,152 +1383,16 @@ pub enum Event {
     OpenCodeDiff {
         view: ViewHandle<CodeDiffView>,
     },
-    StartSharingCurrentSession {
-        scrollback_type: SharedSessionScrollbackType,
-        source_type: SessionSourceType,
-    },
-    EstablishedSharedSession {
-        session_id: session_sharing_protocol::common::SessionId,
-    },
-    FailedToShareSession {
-        reason: String,
-        cause: Option<Arc<anyhow::Error>>,
-    },
-    RejoinCurrentSession,
-    StopSharingCurrentSession {
-        reason: SessionEndedReason,
-    },
-    CloseRequested,
-    OpenShareSessionModal {
-        open_source: SharedSessionActionSource,
-    },
-    OpenShareSessionDeniedModal,
-    /// Used to focus and bring this session to the foreground.
-    FocusSession,
-    /// Emitted when the onboarding init flow completes.
-    OnboardingInitCompleted,
-    /// Emitted when the guided onboarding tutorial callout is completed or dismissed.
-    OnboardingTutorialCompleted,
-    SelectedBlocksChanged,
-    SelectedTextChanged,
-    UpdateSessionLinkPermissions {
-        role: Option<Role>,
-    },
-    UpdateSessionTeamPermissions {
-        role: Option<Role>,
-        team_uid: String,
-    },
-    /// Emitted when a shared session sharer updates a viewer's role and
-    /// needs to notify the server of a role change.
-    UpdateRole {
-        participant_id: ParticipantId,
-        role: Role,
-    },
-    UpdateUserRole {
-        user_uid: UserUid,
-        role: Role,
-    },
-    UpdatePendingUserRole {
-        email: String,
-        role: Role,
-    },
-    AddGuests {
-        emails: Vec<String>,
-        role: Role,
-    },
-    RemoveGuest {
-        user_uid: UserUid,
-    },
-    RemovePendingGuest {
-        email: String,
-    },
-    MakeAllParticipantsReaders {
-        reason: RoleUpdateReason,
-    },
-    RequestSharedSessionRole(Role),
-    /// A viewer in a shared session is requesting to send an agent prompt.
-    SendAgentPrompt {
-        server_conversation_token: Option<SessionSharingServerConversationToken>,
-        prompt: String,
-        attachments: Vec<AgentAttachment>,
-    },
-    /// A viewer in a shared session is requesting to cancel the active agent conversation.
-    CancelSharedSessionConversation {
-        server_conversation_token: SessionSharingServerConversationToken,
-    },
-    /// The viewer is reporting its terminal size for viewer-driven PTY sizing.
-    ReportViewerTerminalSize {
-        window_size: SessionSharingWindowSize,
-    },
-    /// The input editor was locally edited and
-    /// peers should be notified, if applicable.
-    InputEditorUpdated {
-        /// The block ID associated to the buffer that
-        /// these operations were made in.
-        block_id: BlockId,
-
-        /// The CRDT-compliant operations.
-        operations: Rc<Vec<CrdtOperation>>,
-    },
-    /// Emitted when a shared session participant tries to
-    /// change a role. `source` dictates how the modal is rendered,
-    /// and what fields are needed
-    OpenSharedSessionRoleChangeModal {
-        source: RoleChangeOpenSource,
-    },
-    CloseSharedSessionRoleChangeModal(RoleChangeCloseSource),
-    RoleRequestInFlight {
-        role_request_id: RoleRequestId,
-    },
-    CancelRoleRequest(RoleRequestId),
-    RoleRequestCancelled(RoleRequestId),
-    RespondToRoleRequest {
-        participant_id: ParticipantId,
-        role_request_id: RoleRequestId,
-        response: RoleRequestResponse,
-    },
     /// Emitted when a pending command (e.g. tab config setup commands) has
     /// been submitted and its block has completed.
     PendingCommandCompleted,
     SessionBootstrapped,
-    AnonymousUserSignup,
     ShellSpawned(ShellType),
-
-    /// This terminal pane has initiated a file upload to a remote host.
-    CopyFileToRemote {
-        command: String,
-        upload_id: FileUploadId,
-    },
-    /// This terminal pane is taking care of a file upload to a remote host
-    /// and requires a password.
-    FileUploadPasswordPending,
-    /// This terminal pane was taking care of a file upload to a remote host
-    /// and just finished a block.
-    FileUploadFinished(ExitCode),
-    /// Open the terminal pane that is taking care of a file upload to
-    /// this pane's remote host.
-    OpenFileUploadSession(FileUploadId),
-    /// Terminate the session that took care of a file upload for this pane's
-    /// remote host.
-    TerminateFileUploadSession(FileUploadId),
     RunNativeShellCompletions {
         buffer_text: String,
         results_tx: async_channel::Sender<Vec<ShellCompletion>>,
     },
-    /// Emitted when the user clicks "install" in the SSH remote-server choice block.
-    RemoteServerInstallRequested {
-        session_id: SessionId,
-    },
-    /// Emitted when the user clicks "skip" in the SSH remote-server choice block.
-    RemoteServerSkipRequested {
-        session_id: SessionId,
-    },
-    SignupAnonymousUser {
-        entrypoint: AnonymousUserSignupEntrypoint,
-    },
-
     OpenThemeChooser,
-    OpenConversationHistory,
     OpenMCPSettingsPage {
         page: Option<MCPServersSettingsPage>,
     },
@@ -1539,9 +1403,7 @@ pub enum Event {
         initial_content: Option<String>,
     },
     OpenEnvironmentManagementPane,
-    OpenFilesPalette {
-        source: PaletteSource,
-    },
+    OpenFilesPalette,
     #[cfg(feature = "local_fs")]
     OpenFileWithTarget {
         path: PathBuf,
@@ -1565,40 +1427,15 @@ pub enum Event {
         force_open: bool,
     },
     SlowBootstrap,
-    OpenAgentProfileEditor {
-        profile_id: ClientProfileId,
-    },
-    OpenAutoReloadModal {
-        purchased_credits: i32,
-    },
-    #[cfg(not(target_family = "wasm"))]
-    OpenPluginInstructionsPane(CLIAgent, PluginModalKind),
     ShowToast {
         message: String,
         flavor: ToastFlavor,
-    },
-    /// Emitted when the agent's interaction state with a long-running command changes.
-    LongRunningCommandAgentInteractionStateChanged {
-        state: LongRunningCommandAgentInteractionState,
     },
     /// A pluggable notification triggered via OSC 9 or OSC 777 escape sequences.
     /// Used to show an in-app toast notification.
     PluggableNotification {
         title: Option<String>,
         body: String,
-    },
-    /// Emitted when cloud mode runs should display the cloud-agent capacity/credits modal.
-    ShowCloudAgentCapacityModal {
-        variant: CloudAgentCapacityModalVariant,
-    },
-    FreeTierLimitCheckTriggered,
-    /// Emitted when the StartAgent executor needs the workspace to create a new child
-    /// agent conversation in a split pane.
-    StartAgentConversation(StartAgentRequest),
-    /// Emitted when the user clicks a child agent row in the status card to reveal
-    /// its hidden pane.
-    RevealChildAgent {
-        conversation_id: AIConversationId,
     },
 }
 

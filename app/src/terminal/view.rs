@@ -7666,7 +7666,6 @@ impl TerminalView {
 
     fn num_non_hidden_selected_blocks(&self) -> usize {
         let model = self.model.lock();
-        let agent_view_state = AgentViewState::Inactive;
         self.selected_blocks
             .ranges()
             .iter()
@@ -7675,7 +7674,9 @@ impl TerminalView {
                 model
                     .block_list()
                     .block_at(*block_index)
-                    .is_some_and(|block| !block.is_empty(agent_view_state))
+                    .is_some_and(|block| {
+                        !block.command_grid().is_empty() || !block.output_grid().is_empty()
+                    })
             })
             .count()
     }
@@ -7687,14 +7688,15 @@ impl TerminalView {
         let input_mode = *InputModeSettings::as_ref(ctx).input_mode.value();
         let sort_direction = input_mode.block_sort_direction();
         let model = self.model.lock();
-        let agent_view_state = AgentViewState::Inactive;
         let sorted_ranges = self.selected_blocks.sorted_ranges(sort_direction);
         for selection_range in sorted_ranges {
             for block_index in selection_range.range(Some(sort_direction)) {
                 if let Some(block) = model
                     .block_list()
                     .block_at(block_index)
-                    .filter(|block| !block.is_empty(agent_view_state))
+                    .filter(|block| {
+                        !block.command_grid().is_empty() || !block.output_grid().is_empty()
+                    })
                 {
                     action(block);
                 }

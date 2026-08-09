@@ -868,7 +868,6 @@ fn open_shared_session_as_viewer(session_id: &SessionId, ctx: &mut AppContext) {
 
 /// Opens a new window to view a persisted view-only cloud conversation.
 /// The conversation data is loaded via GraphQL API.
-#[cfg(any())]
 fn open_conversation_viewer(conversation_id: &ServerConversationToken, ctx: &mut AppContext) {
     // Trigger the workspace loading mechanism by dispatching the LoadConversationData event
     // This will open a new window with a loading state, fetch data via GraphQL, and display it
@@ -881,7 +880,6 @@ fn open_conversation_viewer(conversation_id: &ServerConversationToken, ctx: &mut
 }
 
 /// Opens a new window and starts the guided `/create-environment` setup flow.
-#[cfg(any())]
 fn create_environment(arg: &CreateEnvironmentArg, ctx: &mut AppContext) {
     let repos = arg.repos.clone();
     let (window_id, root_handle) = open_new_with_workspace_source(
@@ -915,7 +913,6 @@ fn create_environment(arg: &CreateEnvironmentArg, ctx: &mut AppContext) {
 }
 
 /// Opens a new window and starts the guided `/create-environment` setup flow immediately.
-#[cfg(any())]
 fn create_environment_and_run(arg: &CreateEnvironmentArg, ctx: &mut AppContext) {
     let repos = arg.repos.clone();
     let (window_id, root_handle) = open_new_with_workspace_source(
@@ -1652,14 +1649,12 @@ impl RootView {
         true
     }
 
-    #[cfg(any())]
     fn build_plan_yearly_price_cents(ctx: &AppContext) -> Option<i32> {
         PricingInfoModel::as_ref(ctx)
             .plan_pricing(&StripeSubscriptionPlan::Build)
             .map(|p| p.yearly_plan_price_per_month_usd_cents)
     }
 
-    #[cfg(any())]
     fn create_agent_onboarding_view(
         ctx: &mut ViewContext<Self>,
     ) -> ViewHandle<AgentOnboardingView> {
@@ -1804,7 +1799,6 @@ impl RootView {
     }
 
     /// Debug method to enter the onboarding state.
-    #[cfg(any())]
     fn debug_enter_onboarding_state(&mut self, _: &(), ctx: &mut ViewContext<Self>) -> bool {
         if !ChannelState::enable_debug_features() {
             log::warn!("Attempted to enter onboarding state in release build");
@@ -1823,7 +1817,6 @@ impl RootView {
         true
     }
 
-    #[cfg(any())]
     fn onboarding_theme_kind(theme_name: &str) -> Option<ThemeKind> {
         WarpThemeConfig::new()
             .theme_items()
@@ -1832,7 +1825,6 @@ impl RootView {
             })
     }
 
-    #[cfg(any())]
     fn handle_login_slide_event(&mut self, event: &LoginSlideEvent, ctx: &mut ViewContext<Self>) {
         match event {
             LoginSlideEvent::BackToOnboarding => {
@@ -1875,7 +1867,6 @@ impl RootView {
         }
     }
 
-    #[cfg(any())]
     fn handle_agent_onboarding_event(
         &mut self,
         event: &AgentOnboardingEvent,
@@ -2362,7 +2353,6 @@ impl RootView {
     /// Opens a cloud conversation in an existing window.
     /// If the user owns the conversation, restores or navigates to it directly.
     /// Otherwise, opens a read-only transcript viewer.
-    #[cfg(any())]
     pub fn open_cloud_conversation_in_existing_window(
         &mut self,
         conversation_id: &ServerConversationToken,
@@ -2383,7 +2373,6 @@ impl RootView {
     }
 
     /// Adds a tab and starts the guided `/create-environment` setup flow.
-    #[cfg(any())]
     fn create_environment_in_existing_window(
         &mut self,
         arg: &CreateEnvironmentArg,
@@ -2425,7 +2414,6 @@ impl RootView {
     }
 
     /// Adds a tab and starts the guided `/create-environment` setup flow immediately.
-    #[cfg(any())]
     fn create_environment_in_existing_window_and_run(
         &mut self,
         arg: &CreateEnvironmentArg,
@@ -2588,7 +2576,6 @@ impl RootView {
     /// `AuthComplete`, so it also covers users who skipped login during onboarding
     /// and later signed up through a different entrypoint (e.g. login modal,
     /// settings, command palette) while already in the `Terminal` state.
-    #[cfg(any())]
     fn sync_local_onboarding_to_server(auth_state: &AuthState, ctx: &mut AppContext) {
         let is_onboarded = auth_state.is_onboarded().unwrap_or(true);
         let is_anonymous = auth_state.is_user_anonymous().unwrap_or(false);
@@ -2812,7 +2799,6 @@ impl RootView {
     /// writes we make here are the last writes and won't be clobbered by that
     /// pass. By this point the user is also logged in, so AIExecutionProfile
     /// edits can successfully create cloud objects via `edit_profile_internal`.
-    #[cfg(any())]
     fn handle_cloud_preferences_syncer_event(
         &mut self,
         event: &CloudPreferencesSyncerEvent,
@@ -2829,7 +2815,6 @@ impl RootView {
 
     /// If onboarding stored a pending tutorial (because login was required first),
     /// start it now that the workspace exists.
-    #[cfg(any())]
     fn start_pending_tutorial(&mut self, ctx: &mut ViewContext<Self>) {
         let Some(tutorial) = self.pending_tutorial.take() else {
             return;
@@ -3014,7 +2999,6 @@ impl WorkspaceArgs {
     }
 }
 
-#[cfg(any())]
 impl AuthOnboardingState {
     fn complete_auth_and_create_workspace(&mut self, ctx: &mut ViewContext<RootView>) {
         // Check if we should show onboarding (only for users who are not yet onboarded).
@@ -3190,7 +3174,6 @@ impl AuthOnboardingState {
     }
 }
 
-#[cfg(any())]
 impl AuthOnboardingTarget {
     fn to_workspace(&self, ctx: &mut ViewContext<RootView>) -> ViewHandle<Workspace> {
         match self {

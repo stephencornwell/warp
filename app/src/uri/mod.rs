@@ -98,8 +98,7 @@ impl UriHost {
     fn handle(&self, primary_window_id: Option<WindowId>, url: &Url, ctx: &mut AppContext) {
         // Handle host
         match self {
-            #[cfg(any())]
-            UriHost::Auth => {
+                    UriHost::Auth => {
                 ctx.window_ids()
                     .collect_vec()
                     .into_iter()
@@ -120,8 +119,7 @@ impl UriHost {
                         );
                     });
             }
-            #[cfg(any())]
-            UriHost::Team => {
+                    UriHost::Team => {
                 match url.path_segments().into_iter().flatten().last() {
                     // If the last segment of the URL is "settings", open the team settings page.
                     Some("settings") => {
@@ -176,8 +174,7 @@ impl UriHost {
                     log::warn!("couldn't turn launch link '{}' into path", url.path());
                 }
             }
-            #[cfg(any())]
-            UriHost::SharedSession => {
+                    UriHost::SharedSession => {
                 // We expect the uri to have the ID of the session to join as the last segment.
                 // e.g. warp://shared_session/{id}
                 let session_id = url
@@ -209,8 +206,7 @@ impl UriHost {
                     log::warn!("Failed to join shared session with uri={url}");
                 }
             }
-            #[cfg(any())]
-            UriHost::Conversation => {
+                    UriHost::Conversation => {
                 // We expect the uri to have the conversation ID as the last segment.
                 // e.g. warp://conversation/{conversation_id}
                 let conversation_id: Option<ServerConversationToken> = url
@@ -244,8 +240,7 @@ impl UriHost {
                     log::warn!("Failed to open conversation with uri={url}");
                 }
             }
-            #[cfg(any())]
-            UriHost::Drive => {
+                    UriHost::Drive => {
                 // We expect the uri to have the ID of the object we are trying to open and the object_type.
                 // e.g. warp://drive/{object_type}?id={UID}
                 // For folder links, we expect an additional query parameter primary_object_id which refers to the id object

@@ -13706,7 +13706,6 @@ impl Workspace {
         }
     }
 
-    #[cfg(any())]
     fn handle_oz_launch_modal_event(
         &mut self,
         event: &LaunchModalEvent,
@@ -16799,7 +16798,6 @@ impl Workspace {
         ctx.focus(&self.openwarp_launch_modal);
     }
 
-    #[cfg(any())]
     fn open_tab_and_focus_oz_launch_modal(&mut self, ctx: &mut ViewContext<Self>) {
         // Create a new tab with one terminal session titled "Introducing Oz"
         self.add_tab_with_pane_layout(
@@ -18171,8 +18169,7 @@ impl TypedActionView for Workspace {
                 log::info!("AWS Bedrock login banner dismissed state has been reset");
             }
             #[cfg(debug_assertions)]
-            #[cfg(any())]
-            OpenOzLaunchModal => {
+                    OpenOzLaunchModal => {
                 // Force open the Oz launch modal for debugging
                 OneTimeModalModel::handle(ctx).update(ctx, |model, ctx| {
                     model.force_open_oz_launch_modal(ctx);
@@ -18180,8 +18177,7 @@ impl TypedActionView for Workspace {
                 ctx.notify();
             }
             #[cfg(debug_assertions)]
-            #[cfg(any())]
-            ResetOzLaunchModalState => {
+                    ResetOzLaunchModalState => {
                 // Reset the Oz launch modal dismissed state for debugging
                 let old_value = *AISettings::as_ref(ctx).did_check_to_trigger_oz_launch_modal;
                 AISettings::handle(ctx).update(ctx, |ai_settings, ctx| {

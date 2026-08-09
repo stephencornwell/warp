@@ -3432,7 +3432,6 @@ impl TerminalView {
         callback(self, ctx);
     }
 
-    #[cfg(any())]
     fn can_exit_agent_view_for_terminal_view(
         &self,
         ctx: &AppContext,
@@ -3447,7 +3446,6 @@ impl TerminalView {
         }
     }
 
-    #[cfg(any())]
     fn can_pop_nested_cloud_agent_view(&self, ctx: &AppContext) -> bool {
         self.is_ambient_agent_session(ctx) && self.is_nested_cloud_mode(ctx)
     }
@@ -3458,7 +3456,6 @@ impl TerminalView {
     /// conversation completed successfully, was cancelled, or encountered an error.
     /// The callback receives the `FinishReason` to allow different handling based on how the
     /// conversation ended.
-    #[cfg(any())]
     pub fn on_next_conversation_finished<F>(&mut self, callback: F)
     where
         F: FnOnce(&mut Self, FinishReason, &mut ViewContext<Self>) + 'static,
@@ -3468,7 +3465,6 @@ impl TerminalView {
     }
 
     #[cfg(feature = "local_fs")]
-    #[cfg(any())]
     fn handle_git_repo_status_event(&mut self, ctx: &mut ViewContext<Self>) {
         if let Some(deferred) = self.deferred_code_review_open.take() {
             self.toggle_code_review_pane(
@@ -3489,7 +3485,6 @@ impl TerminalView {
     /// longer needed (e.g. the git chip was removed) but the user is still in
     /// the same repository.
     #[cfg(feature = "local_fs")]
-    #[cfg(any())]
     fn clear_git_repo_status_subscription(&mut self, ctx: &mut ViewContext<Self>) {
         self.git_repo_status = None;
         self.deferred_code_review_open = None;
@@ -3506,7 +3501,6 @@ impl TerminalView {
     /// Fully clear the per-repo git status handle, including the input's repo
     /// path. Use this when navigating out of a git repository.
     #[cfg(feature = "local_fs")]
-    #[cfg(any())]
     fn clear_git_repo_status(&mut self, ctx: &mut ViewContext<Self>) {
         self.clear_git_repo_status_subscription(ctx);
         self.input.update(ctx, |input, ctx| {
@@ -3516,7 +3510,6 @@ impl TerminalView {
 
     /// Helper to read metadata from the per-repo sub-model.
     #[cfg(feature = "local_fs")]
-    #[cfg(any())]
     fn git_status_metadata<'a>(&'a self, ctx: &'a AppContext) -> Option<&'a GitStatusMetadata> {
         self.git_repo_status
             .as_ref()
@@ -3529,7 +3522,6 @@ impl TerminalView {
     /// 2. Terminal mode with the Warp prompt enabled and the git stats chip
     ///    configured.
     #[cfg(feature = "local_fs")]
-    #[cfg(any())]
     fn should_subscribe_to_git_status(&self, ctx: &AppContext) -> bool {
         // Agent view: subscribe only when the configured agent footer includes git stats.
         if self.agent_view_controller.as_ref(ctx).is_active() {
@@ -3593,7 +3585,6 @@ impl TerminalView {
         }
     }
 
-    #[cfg(any())]
     fn handle_ai_controller_event(
         &mut self,
         _: ModelHandle<BlocklistAIController>,
@@ -3719,7 +3710,6 @@ impl TerminalView {
         }
     }
 
-    #[cfg(any())]
     fn handle_legacy_passive_suggestions_event(
         &mut self,
         _: ModelHandle<LegacyPassiveSuggestionsModel>,
@@ -3754,7 +3744,6 @@ impl TerminalView {
         }
     }
 
-    #[cfg(any())]
     fn build_agent_todos_popup(
         ai_context_model: ModelHandle<BlocklistAIContextModel>,
         ctx: &mut ViewContext<Self>,
@@ -3771,7 +3760,6 @@ impl TerminalView {
         agent_todos_popup
     }
 
-    #[cfg(any())]
     pub fn attach_path_as_context(&mut self, path: &Path, ctx: &mut ViewContext<Self>) {
         // If a CLI agent is running, write the path directly to the PTY.
         if self.active_cli_agent(ctx).is_some() {
@@ -3788,7 +3776,6 @@ impl TerminalView {
         });
     }
 
-    #[cfg(any())]
     pub fn attach_plan_as_context(
         &mut self,
         ai_document_id: AIDocumentId,
@@ -3801,7 +3788,6 @@ impl TerminalView {
         });
     }
 
-    #[cfg(any())]
     fn handle_ai_context_model_event(
         &mut self,
         context_model: ModelHandle<BlocklistAIContextModel>,
@@ -3952,7 +3938,6 @@ impl TerminalView {
         }
     }
 
-    #[cfg(any())]
     fn handle_ai_history_model_event(
         &mut self,
         history_model: ModelHandle<BlocklistAIHistoryModel>,
@@ -4310,7 +4295,6 @@ impl TerminalView {
         ctx.notify();
     }
 
-    #[cfg(any())]
     fn handle_cli_subagent_controller_event(
         &mut self,
         _: ModelHandle<CLISubagentController>,
@@ -4466,7 +4450,6 @@ impl TerminalView {
         }
     }
 
-    #[cfg(any())]
     fn handle_continue_conversation(
         &mut self,
         conversation_id: &AIConversationId,
@@ -4502,7 +4485,6 @@ impl TerminalView {
         self.redetermine_global_focus(ctx);
     }
 
-    #[cfg(any())]
     fn handle_resume_conversation(
         &mut self,
         conversation_id: &AIConversationId,
@@ -4534,7 +4516,6 @@ impl TerminalView {
     /// Handle the opening and closing of the usage footer.
     /// We insert the usage footer as a rich content view into the blocklist
     /// below the block that triggered the toggle event.
-    #[cfg(any())]
     fn handle_usage_footer_toggled(
         &mut self,
         source_ai_block_view_id: EntityId,
@@ -4637,7 +4618,6 @@ impl TerminalView {
         ctx.notify();
     }
 
-    #[cfg(any())]
     fn toggle_usage_footer(&mut self, ctx: &mut ViewContext<Self>) {
         let conversation_id = self
             .agent_view_controller
@@ -4678,7 +4658,6 @@ impl TerminalView {
         self.current_repo_path.is_some() && self.can_auto_open_panel()
     }
 
-    #[cfg(any())]
     fn toggle_or_open_code_review_pane(
         &mut self,
         delta_pref: GitDeltaPreference,
@@ -4724,7 +4703,6 @@ impl TerminalView {
         }
     }
 
-    #[cfg(any())]
     pub fn toggle_code_review_pane(
         &mut self,
         delta_pref: GitDeltaPreference,
@@ -4743,7 +4721,6 @@ impl TerminalView {
         )
     }
 
-    #[cfg(any())]
     pub fn open_code_review_pane(
         &mut self,
         delta_pref: GitDeltaPreference,
@@ -4763,7 +4740,6 @@ impl TerminalView {
     }
 
     #[cfg(feature = "local_fs")]
-    #[cfg(any())]
     fn handle_attach_diffset_context(&mut self, diff_mode: DiffMode, ctx: &mut ViewContext<Self>) {
         let Some(repo_path) = self.current_repo_path.clone() else {
             return;
@@ -4828,7 +4804,6 @@ impl TerminalView {
         let _ = ctx;
     }
 
-    #[cfg(any())]
     fn handle_ai_input_model_event(
         &mut self,
         _ai_input_model: ModelHandle<BlocklistAIInputModel>,
@@ -4848,7 +4823,6 @@ impl TerminalView {
         }
     }
 
-    #[cfg(any())]
     fn handle_ai_action_model_event(
         &mut self,
         action_model: ModelHandle<BlocklistAIActionModel>,
@@ -4938,7 +4912,6 @@ impl TerminalView {
         }
     }
 
-    #[cfg(any())]
     fn handle_insert_code_review_comments_event(
         &mut self,
         repo_path: &Path,
@@ -4987,7 +4960,6 @@ impl TerminalView {
     /// Gets the DiffMode for the given branch name by fetching the main branch name
     /// for this session and comparing it to the given branch name.
     #[cfg_attr(not(feature = "local_fs"), allow(unused_variables))]
-    #[cfg(any())]
     fn diff_mode_for_branch(
         &self,
         base_branch: Option<&str>,
@@ -5008,7 +4980,6 @@ impl TerminalView {
         }
     }
 
-    #[cfg(any())]
     fn handle_shell_command_executor_event(
         &mut self,
         _: ModelHandle<ShellCommandExecutor>,
@@ -5177,7 +5148,6 @@ impl TerminalView {
         }
     }
 
-    #[cfg(any())]
     fn handle_start_agent_executor_event(
         &mut self,
         _: ModelHandle<StartAgentExecutor>,
@@ -5191,7 +5161,6 @@ impl TerminalView {
         }
     }
 
-    #[cfg(any())]
     fn get_ai_notification_summary(
         &self,
         conversation: &AIConversation,
@@ -6781,7 +6750,6 @@ impl TerminalView {
     /// Collapses any expanded UX within SSH blocks.
     /// To ensure we can always see what we're typing, we collapse
     /// the SSH block when typing.
-    #[cfg(any())]
     fn on_ssh_warpification_key_event(
         &mut self,
         key_event: Option<SshKeyEvent>,
@@ -6803,7 +6771,6 @@ impl TerminalView {
         }
     }
 
-    #[cfg(any())]
     fn handle_remote_warpification_is_unavailable(
         &mut self,
         reason: WarpificationUnavailableReason,
@@ -6868,7 +6835,6 @@ impl TerminalView {
         self.add_ssh_error_block(reason, ctx);
     }
 
-    #[cfg(any())]
     fn add_ssh_warpify_prompt(
         &mut self,
         command: &str,
@@ -6883,7 +6849,6 @@ impl TerminalView {
     }
 
     /// This method assumes the active block in the blocklist is a long-running SSH command.
-    #[cfg(any())]
     fn add_ssh_warpifying_block(&mut self, ctx: &mut ViewContext<Self>) {
         // Shared session viewers can't initiate warpification currently.
         if self.model.lock().shared_session_status().is_viewer() {
@@ -6937,7 +6902,6 @@ impl TerminalView {
     }
 
     /// This method assumes the active block in the blocklist is a long-running SSH command.
-    #[cfg(any())]
     fn add_ssh_install_tmux_block(
         &mut self,
         system_details: &SystemDetails,
@@ -7001,7 +6965,6 @@ impl TerminalView {
             });
     }
 
-    #[cfg(any())]
     fn add_ssh_error_block(
         &mut self,
         error_reason: WarpificationUnavailableReason,
@@ -7049,7 +7012,6 @@ impl TerminalView {
         self.warpify_state.focus(ctx);
     }
 
-    #[cfg(any())]
     fn add_bootstrap_success_block(
         &mut self,
         SessionBootstrappedEvent {
@@ -7112,7 +7074,6 @@ impl TerminalView {
         self.refresh_warp_prompt(ctx);
     }
 
-    #[cfg(any())]
     fn handle_ssh_warpify_block_event(
         &mut self,
         event: &SshWarpifyBlockEvent,
@@ -7145,7 +7106,6 @@ impl TerminalView {
         }
     }
 
-    #[cfg(any())]
     fn handle_ssh_install_tmux_block_event(
         &mut self,
         event: &SshInstallTmuxBlockEvent,
@@ -7210,7 +7170,6 @@ impl TerminalView {
         }
     }
 
-    #[cfg(any())]
     fn handle_ssh_error_block_events(
         &mut self,
         event: &SshErrorBlockEvent,
@@ -7228,7 +7187,6 @@ impl TerminalView {
         }
     }
 
-    #[cfg(any())]
     fn handle_ssh_success_block_events(
         &mut self,
         event: &WarpifySuccessBlockEvent,
@@ -7241,7 +7199,6 @@ impl TerminalView {
         }
     }
 
-    #[cfg(any())]
     fn dismiss_warpify_banner(
         &mut self,
         remember_command: &RememberForWarpification,
@@ -7276,7 +7233,6 @@ impl TerminalView {
         }
     }
 
-    #[cfg(any())]
     fn show_warpify_banner(
         &mut self,
         input: WarpificationMode,
@@ -7481,7 +7437,6 @@ impl TerminalView {
     }
 
     /// Returns the view type for prompt suggestion telemetry based on whether agent view is active.
-    #[cfg(any())]
     fn prompt_suggestion_view_type(&self, ctx: &ViewContext<Self>) -> PromptSuggestionViewType {
         if FeatureFlag::AgentView.is_enabled() && self.agent_view_controller.as_ref(ctx).is_active()
         {
@@ -7491,7 +7446,6 @@ impl TerminalView {
         }
     }
 
-    #[cfg(any())]
     fn resolve_prompt_suggestion(
         &mut self,
         resolution: PromptSuggestionResolution,
@@ -7614,7 +7568,6 @@ impl TerminalView {
 
     /// Try clearing agent mode query banner's passive code generation state.
     /// Called when a suggested code diff fails and we need to fall back to prompt suggestions.
-    #[cfg(any())]
     fn try_clear_prompt_suggestions_banner_code_state(
         &mut self,
         fallback_reason: PromptSuggestionFallbackReason,
@@ -7630,7 +7583,6 @@ impl TerminalView {
         }
     }
 
-    #[cfg(any())]
     fn associate_and_promote_block_for_conversation(
         &mut self,
         block_id: BlockId,
@@ -7766,7 +7718,6 @@ impl TerminalView {
         });
     }
 
-    #[cfg(any())]
     fn agent_mode_setup_speedbump_banner_action(
         &mut self,
         action: AgentModeSetupSpeedbumpBannerAction,
@@ -7789,7 +7740,6 @@ impl TerminalView {
         }
     }
 
-    #[cfg(any())]
     fn codebase_index_speedbump_banner_action(
         &mut self,
         action: CodebaseIndexSpeedbumpBannerAction,
@@ -7886,7 +7836,6 @@ impl TerminalView {
     }
 
     #[cfg(feature = "local_fs")]
-    #[cfg(any())]
     fn insert_agent_mode_setup_speedbump_banner(
         &mut self,
         repo_path: PathBuf,
@@ -7916,7 +7865,6 @@ impl TerminalView {
     }
 
     #[cfg(feature = "local_fs")]
-    #[cfg(any())]
     fn insert_codebase_index_speedbump_banner(
         &mut self,
         repo_path: PathBuf,
@@ -7980,7 +7928,6 @@ impl TerminalView {
         // No-op when local filesystem is unavailable.
     }
 
-    #[cfg(any())]
     fn anonymous_user_ai_sign_up_banner_action(
         &mut self,
         action: AnonymousUserLoginBannerAction,
@@ -7999,7 +7946,6 @@ impl TerminalView {
         }
     }
 
-    #[cfg(any())]
     fn insert_anonymous_user_ai_sign_up_banner(&mut self, ctx: &mut ViewContext<Self>) {
         if *GeneralSettings::as_ref(ctx)
             .anonymous_user_ai_sign_up_banner_shown
@@ -8053,7 +7999,6 @@ impl TerminalView {
         ctx.notify();
     }
 
-    #[cfg(any())]
     fn handle_aws_bedrock_login_banner_action(
         &mut self,
         action: AwsBedrockLoginBannerAction,
@@ -8109,7 +8054,6 @@ impl TerminalView {
     /// isn't already using it. If so, inserts a banner prompting the user to log in.
     ///
     /// The banner is shown when the user could be using AWS Bedrock to save on warp AI spend, but isn't.
-    #[cfg(any())]
     fn maybe_insert_aws_bedrock_login_banner(
         &mut self,
         model_id: &LLMId,
@@ -8185,7 +8129,6 @@ impl TerminalView {
         ctx.notify();
     }
 
-    #[cfg(any())]
     fn handle_aws_cli_not_installed_banner_action(
         &mut self,
         action: AwsCliNotInstalledBannerAction,
@@ -8202,7 +8145,6 @@ impl TerminalView {
 
     /// Checks if the user tried to run an AWS login command and the AWS CLI wasn't installed.
     /// If so, shows a helpful banner explaining the issue.
-    #[cfg(any())]
     fn maybe_show_aws_cli_not_installed_suggestion(
         &mut self,
         exit_code: ExitCode,
@@ -8317,7 +8259,6 @@ impl TerminalView {
     }
 
     /// Inserts telemetry policy banner into the blocklist.
-    #[cfg(any())]
     pub fn insert_telemetry_banner(&mut self, is_onboarded: bool, ctx: &mut ViewContext<Self>) {
         // Don't ever show telemetry banner for enterprise users.
         if UserWorkspaces::as_ref(ctx)
@@ -8352,7 +8293,6 @@ impl TerminalView {
         }
     }
 
-    #[cfg(any())]
     fn hide_telemetry_banner_permanently(&mut self, ctx: &mut ViewContext<Self>) {
         GeneralSettings::handle(ctx).update(ctx, |general_settings, ctx| {
             let _ = general_settings
@@ -8618,7 +8558,6 @@ impl TerminalView {
     }
 
     // Abort any pending prompt or code suggestions, which may now be irrelevant.
-    #[cfg(any())]
     fn abort_prompt_and_code_suggestions(&mut self, ctx: &mut ViewContext<Self>) {
         // Abort both models to handle any in-flight requests from before a
         // feature flag change.
@@ -8662,7 +8601,6 @@ impl TerminalView {
     /// state (AI blocks rely on conversation state in the history model to render). If there is
     /// more than one AI block corresponding to the same conversation as `passive_block`, does
     /// nothing.
-    #[cfg(any())]
     fn cleanup_and_remove_conversation_for_ai_block(
         &mut self,
         passive_block: &ViewHandle<AIBlock>,
@@ -8712,7 +8650,6 @@ impl TerminalView {
     }
 
     /// Sends telemetry if an AI-requested command caused the shell to exit.
-    #[cfg(any())]
     fn maybe_send_agent_exited_shell_telemetry(&self, ctx: &mut ViewContext<Self>) {
         let model = self.model.lock();
         let block_list = model.block_list();
@@ -9917,7 +9854,6 @@ impl TerminalView {
 
     /// Creates the [`SshRemoteServerChoiceView`] and inserts it as a
     /// rich content block pinned to the bottom of the block list.
-    #[cfg(any())]
     fn show_ssh_remote_server_choice_block(
         &mut self,
         session_id: SessionId,
@@ -9966,7 +9902,6 @@ impl TerminalView {
 
     /// Returns a clone of the `SshRemoteServerChoiceView` handle for the
     /// first active SSH remote-server choice block, if any.
-    #[cfg(any())]
     fn active_ssh_remote_server_choice_block(
         &self,
     ) -> Option<ViewHandle<SshRemoteServerChoiceView>> {
@@ -9983,7 +9918,6 @@ impl TerminalView {
 
     /// Returns `true` when the pending session has a connecting remote-server setup state
     /// and no failure banner is already shown for that session.
-    #[cfg(any())]
     fn show_remote_server_loading_footer(&self, model: &TerminalModel, app: &AppContext) -> bool {
         if !FeatureFlag::SshRemoteServer.is_enabled() {
             return false;
@@ -10014,7 +9948,6 @@ impl TerminalView {
 
 
     /// Creates and inserts the install-failed banner as rich content.
-    #[cfg(any())]
     fn show_ssh_remote_server_failed_banner(
         &mut self,
         session_id: SessionId,
@@ -10055,7 +9988,6 @@ impl TerminalView {
     }
 
     /// Removes any install-failed banner for the given session.
-    #[cfg(any())]
     fn remove_ssh_remote_server_failed_banner(
         &mut self,
         session_id: SessionId,
@@ -10087,7 +10019,6 @@ impl TerminalView {
     }
 
     /// Removes [`SshRemoteServerChoiceView`] with the given `session_id`, if present.
-    #[cfg(any())]
     fn remove_ssh_remote_server_choice_block(
         &mut self,
         session_id: SessionId,
@@ -10121,7 +10052,6 @@ impl TerminalView {
     /// Handles an OSC 777 event with the `warp://cli-agent` sentinel title.
     /// On `session_start`, creates a `CLIAgentSessionListener` that subscribes
     /// to subsequent events from this terminal's PTY.
-    #[cfg(any())]
     fn handle_cli_agent_notification(
         &mut self,
         title: Option<&str>,
@@ -10149,7 +10079,6 @@ impl TerminalView {
         }
     }
 
-    #[cfg(any())]
     fn register_cli_agent_listener_from_event(
         &mut self,
         notification: &CLIAgentEvent,
@@ -10194,7 +10123,6 @@ impl TerminalView {
     }
 
     /// Creates and registers a listener for flows without a `SessionStart` event.
-    #[cfg(any())]
     fn register_cli_agent_listener_without_session_start_event(
         &mut self,
         agent: CLIAgent,
@@ -10228,7 +10156,6 @@ impl TerminalView {
     /// If the startup auto-open setting is enabled, auto-opens rich input for a
     /// CLI agent session. Called after creating a command-detected session or
     /// registering a listener so rich input is shown immediately.
-    #[cfg(any())]
     fn maybe_auto_open_cli_agent_rich_input(&mut self, ctx: &mut ViewContext<Self>) {
         let ai_settings = AISettings::as_ref(ctx);
         if !*ai_settings.auto_open_rich_input_on_cli_agent_start
@@ -10252,7 +10179,6 @@ impl TerminalView {
     /// Also handles auto-show/hide of CLI agent rich input based on the
     /// `auto_toggle_rich_input` setting: closes rich input when blocked
     /// (agent requires keyboard interaction) and opens it when the agent resumes.
-    #[cfg(any())]
     fn handle_cli_agent_sessions_event(
         &mut self,
         event: &CLIAgentSessionsModelEvent,
@@ -10623,7 +10549,6 @@ impl TerminalView {
         None
     }
 
-    #[cfg(any())]
     pub fn insert_drive_sharing_onboarding_block(
         &mut self,
         object_id: CloudObjectTypeAndId,
@@ -10698,7 +10623,6 @@ impl TerminalView {
         ps1_grid_info
     }
 
-    #[cfg(any())]
     fn add_agentic_suggestions_block(&mut self, ctx: &mut ViewContext<Self>) {
         self.reset_onboarding_blocks(ctx);
         self.block_onboarding_active = true;
@@ -10755,7 +10679,6 @@ impl TerminalView {
     }
 
     #[cfg_attr(not(feature = "local_fs"), allow(dead_code))]
-    #[cfg(any())]
     fn add_settings_import_block(&mut self, ctx: &mut ViewContext<Self>) {
         self.block_onboarding_active = true;
         let current_block_view_handle = ctx.add_typed_action_view(SettingsImportView::new);
@@ -10800,7 +10723,6 @@ impl TerminalView {
     }
 
     #[cfg_attr(not(feature = "local_fs"), allow(dead_code))]
-    #[cfg(any())]
     fn add_prompt_block(&mut self, ctx: &mut ViewContext<Self>) {
         let ps1_grid_info = self.get_ps1_grid_info();
         let current_block_view_handle =
@@ -10827,8 +10749,6 @@ impl TerminalView {
         }
     }
 
-    #[cfg(any())]
-    #[cfg(any())]
     fn handle_onboarding_agentic_suggestions_block_event(
         &mut self,
         event: &OnboardingAgenticSuggestionsBlockEvent,
@@ -10859,7 +10779,6 @@ impl TerminalView {
         }
     }
 
-    #[cfg(any())]
     pub fn interrupt_onboarding_blocks(&mut self, ctx: &mut ViewContext<Self>) {
         if let Some(onboarding_prompt_block_handle) = &self.onboarding_prompt_block {
             onboarding_prompt_block_handle.update(ctx, |onboarding_prompt_block, block_ctx| {
@@ -10885,7 +10804,6 @@ impl TerminalView {
     }
 
     /// Opens a folder that the user may or may not have opened in the past
-    #[cfg(any())]
     pub fn open_repo_folder(
         &mut self,
         path: String,
@@ -10905,21 +10823,18 @@ impl TerminalView {
         self.toggle_left_panel_file_tree(true, ctx);
     }
 
-    #[cfg(any())]
     pub fn create_new_project(&mut self, prompt: String, ctx: &mut ViewContext<Self>) {
         self.input.update(ctx, |input, ctx| {
             input.initiate_create_new_project(prompt, ctx);
         });
     }
 
-    #[cfg(any())]
     pub fn agent_clone_repository(&mut self, url: String, ctx: &mut ViewContext<Self>) {
         self.input.update(ctx, |input, ctx| {
             input.initiate_clone_repository(url, ctx);
         });
     }
 
-    #[cfg(any())]
     pub fn maybe_set_pending_repo_init_path(&mut self, path: PathBuf) {
         self.on_next_block_completed(move |me, ctx| {
             if me
@@ -10934,7 +10849,6 @@ impl TerminalView {
 
     // Initialize project for a path and suppress the agent mode setup banner for that path. This also auto-opens
     // the code-review pane after the initialization step completes.
-    #[cfg(any())]
     fn init_project_and_suppress_banners(&mut self, path: PathBuf, ctx: &mut ViewContext<Self>) {
         log::info!("Indexing and running /init for new repo at {path:?}");
 
@@ -10957,7 +10871,6 @@ impl TerminalView {
     }
 
     // Show or hide codebase index speedbump depending when a settings change happens.
-    #[cfg(any())]
     fn check_codebase_index_speedbump_on_settings_changed(&mut self, ctx: &mut ViewContext<Self>) {
         if let Some(working_directory) = self.pwd_if_local(ctx) {
             let path_buf = PathBuf::from(&working_directory);
@@ -10965,7 +10878,6 @@ impl TerminalView {
         }
     }
 
-    #[cfg(any())]
     fn summarize_conversation(&mut self, ctx: &mut ViewContext<Self>) {
         self.ai_controller.update(ctx, |controller, ctx| {
             controller
@@ -10973,7 +10885,6 @@ impl TerminalView {
         });
     }
 
-    #[cfg(any())]
     fn init_project(
         &mut self,
         open_code_review_pane_after_rule_generation: bool,
@@ -11135,7 +11046,6 @@ impl TerminalView {
     }
 
     /// Insert an InitStepBlock for the given step kind
-    #[cfg(any())]
     fn insert_init_step_block(
         &mut self,
         kind: InitStepKind,
@@ -11159,7 +11069,6 @@ impl TerminalView {
     }
 
     /// Try to focus the most recent init step block that's awaiting user input
-    #[cfg(any())]
     fn try_focus_active_init_step(&mut self, ctx: &mut ViewContext<Self>) {
         for rc in self.rich_content_views.iter().rev() {
             if let Some(block_handle) = rc.init_step_block_handle() {
@@ -11170,7 +11079,6 @@ impl TerminalView {
     }
 
     /// Check if completed command was `warp environment create` and emit event if successful
-    #[cfg(any())]
     fn maybe_handle_environment_create_command(
         &mut self,
         block_completed: &UserBlockCompleted,
@@ -11192,8 +11100,6 @@ impl TerminalView {
         }
     }
 
-    #[cfg(any())]
-    #[cfg(any())]
     fn enter_environment_setup_selector(&mut self, args: Vec<String>, ctx: &mut ViewContext<Self>) {
         // If arguments are provided (repo paths/URLs), skip the mode selector and go directly
         // to the local agent flow
@@ -11224,8 +11130,6 @@ impl TerminalView {
         ctx.focus(&self.environment_setup_mode_selector);
     }
 
-    #[cfg(any())]
-    #[cfg(any())]
     fn setup_cloud_environment(&mut self, args: Vec<String>, ctx: &mut ViewContext<Self>) {
         if FeatureFlag::AgentView.is_enabled()
             && !self.agent_view_controller.as_ref(ctx).is_active()
@@ -11277,8 +11181,6 @@ impl TerminalView {
         self.redetermine_global_focus(ctx);
     }
 
-    #[cfg(any())]
-    #[cfg(any())]
     fn handle_environment_setup_mode_selector_event(
         &mut self,
         event: &EnvironmentSetupModeSelectorEvent,
@@ -11312,8 +11214,6 @@ impl TerminalView {
         }
     }
 
-    #[cfg(any())]
-    #[cfg(any())]
     fn setup_cloud_environment_and_start(
         &mut self,
         args: Vec<String>,
@@ -11348,8 +11248,6 @@ impl TerminalView {
         self.start_cloud_environment_setup(repos, use_current_dir, ctx);
     }
 
-    #[cfg(any())]
-    #[cfg(any())]
     fn start_cloud_environment_setup(
         &mut self,
         repos: Vec<String>,
@@ -11389,7 +11287,6 @@ impl TerminalView {
     }
 
     #[cfg(feature = "local_fs")]
-    #[cfg(any())]
     fn update_agent_mode_setup_speedbump_banner(
         &mut self,
         directory: PathBuf,
@@ -11416,7 +11313,6 @@ impl TerminalView {
     }
 
     #[cfg(feature = "local_fs")]
-    #[cfg(any())]
     fn should_show_agent_mode_setup_for_directory(
         &self,
         directory: &Path,
@@ -11459,7 +11355,6 @@ impl TerminalView {
         false
     }
 
-    #[cfg(any())]
     fn mark_agent_init_callout_as_shown_for_directory(
         &self,
         directory: &Path,
@@ -11536,7 +11431,6 @@ impl TerminalView {
 }
 
 impl TerminalView {
-    #[cfg(any())]
     fn start_agent_onboarding_tutorial(
         &mut self,
         version: AgentOnboardingVersion,
@@ -11622,7 +11516,6 @@ impl TerminalView {
         ctx.notify();
     }
 
-    #[cfg(any())]
     fn handle_onboarding_callout_view_event(
         &mut self,
         callout_view: &ViewHandle<OnboardingCalloutView>,
@@ -11897,7 +11790,6 @@ impl TerminalView {
         }
     }
 
-    #[cfg(any())]
     fn clear_prompt_suggestions(&mut self, ctx: &mut ViewContext<Self>) {
         if self
             .inline_banners_state
@@ -11917,7 +11809,6 @@ impl TerminalView {
         };
     }
 
-    #[cfg(any())]
     fn update_input_prompt_suggestions_banner_state(&mut self, ctx: &mut ViewContext<Self>) {
         for rich_content in &self.rich_content_views {
             if let Some(ai_metadata) = rich_content.ai_block_metadata() {
@@ -11947,7 +11838,6 @@ impl TerminalView {
     ///
     /// Hidden AI blocks are only generated when generating passive codegen suggestions after a
     /// compiler error.
-    #[cfg(any())]
     fn drop_hidden_passive_ai_blocks(&mut self, ctx: &mut ViewContext<Self>) {
         let mut ai_block_ids_to_remove = vec![];
         self.rich_content_views.retain(|rich_content| {
@@ -11994,7 +11884,6 @@ impl TerminalView {
     /// Removes AI blocks from `rich_content_views` that match the given conversation and exchange IDs.
     /// This handles cleanup of the block, removal from the block list model, and notifying the
     /// new last AI block in the conversation so it re-renders with the footer.
-    #[cfg(any())]
     fn remove_ai_blocks_for_exchanges(
         &mut self,
         conversation_id: &AIConversationId,
@@ -12051,7 +11940,6 @@ impl TerminalView {
         self.update_scroll_position_locking(ScrollPositionUpdate::AfterEnd, ctx);
     }
 
-    #[cfg(any())]
     fn handle_maa_passive_suggestions_event(
         &mut self,
         _: ModelHandle<MaaPassiveSuggestionsModel>,
@@ -12103,7 +11991,6 @@ impl TerminalView {
     }
 
     #[allow(clippy::too_many_arguments)]
-    #[cfg(any())]
     fn on_maa_prompt_suggestion_generated(
         &mut self,
         prompt: &str,
@@ -12151,7 +12038,6 @@ impl TerminalView {
     }
 
     #[allow(clippy::too_many_arguments)]
-    #[cfg(any())]
     fn on_maa_code_diff_generated(
         &mut self,
         diffs: Vec<FileDiff>,
@@ -12342,7 +12228,6 @@ impl TerminalView {
         );
     }
 
-    #[cfg(any())]
     fn on_legacy_prompt_suggestion_generated(
         &mut self,
         prompt_suggestion: AgentModePromptSuggestion,
@@ -12421,7 +12306,6 @@ impl TerminalView {
     }
 
     /// Generates command corrections, if applicable.
-    #[cfg(any())]
     fn maybe_generate_command_suggestions(
         &mut self,
         block_completed: &UserBlockCompleted,
@@ -12447,7 +12331,6 @@ impl TerminalView {
         }
     }
 
-    #[cfg(any())]
     fn can_suggest_alias_expansion(&mut self, ctx: &mut ViewContext<TerminalView>) -> bool {
         let has_user_seen_banner: bool = ctx
             .private_user_preferences()
@@ -12472,7 +12355,6 @@ impl TerminalView {
             && !is_fish_shell
     }
 
-    #[cfg(any())]
     fn maybe_suggest_alias_expansion(
         &mut self,
         block_completed: &UserBlockCompleted,
@@ -12492,7 +12374,6 @@ impl TerminalView {
         }
     }
 
-    #[cfg(any())]
     fn suggest_alias_expansion(
         &mut self,
         aliased_command: Option<AliasedCommand>,
@@ -12506,7 +12387,6 @@ impl TerminalView {
         }
     }
 
-    #[cfg(any())]
     fn maybe_send_block_completed_notification(
         &mut self,
         block: &UserBlockCompleted,
@@ -12588,7 +12468,6 @@ impl TerminalView {
     /// May become separate triggers if we show sub-tasks in the UI.
     /// Note that this does NOT handle agent mode toast notifications in-app.
     /// Those are handled in the workspace view on AgentManagementEvent::ConversationNeedsAttention.
-    #[cfg(any())]
     fn maybe_send_agent_mode_desktop_notification(
         &mut self,
         conversation_id: &AIConversationId,
@@ -12628,7 +12507,6 @@ impl TerminalView {
 
     /// Shared logic for sending a desktop notification (or showing a discovery banner)
     /// for any agent status change (both Warp's agent and any CLI agent).
-    #[cfg(any())]
     fn send_agent_desktop_notification_or_show_banner(
         &mut self,
         trigger: NotificationsTrigger,
@@ -13921,7 +13799,6 @@ impl TerminalView {
         });
     }
 
-    #[cfg(any())]
     fn close_environment_setup_mode_selector(&mut self, ctx: &mut ViewContext<Self>) {
         if self.is_environment_setup_mode_selector_open {
             self.is_environment_setup_mode_selector_open = false;
@@ -16783,7 +16660,6 @@ impl TerminalView {
     }
 
     /// Handles AI block events for both live and restored AI blocks.
-    #[cfg(any())]
     fn handle_ai_block_event(
         &mut self,
         block: ViewHandle<AIBlock>,
@@ -17069,7 +16945,6 @@ impl TerminalView {
         ctx.notify();
     }
 
-    #[cfg(any())]
     fn imported_comments_panel_arg(&self) -> CodeReviewPanelArg {
         CodeReviewPanelArg {
             repo_path: self.current_repo_path.clone(),
@@ -17084,7 +16959,6 @@ impl TerminalView {
     /// given conversation, which marks the start of the current thread.
     ///
     /// Returns `None` if the conversation has no user-query exchanges.
-    #[cfg(any())]
     fn thread_start_exchange_id(
         conversation_id: &AIConversationId,
         ctx: &AppContext,
@@ -17104,7 +16978,6 @@ impl TerminalView {
     ///
     /// This does **not** dereference view handles; callers add their own
     /// `.map()` to obtain `&AIBlock` references.
-    #[cfg(any())]
     fn ai_block_metadata_for_current_thread<'a>(
         &'a self,
         conversation_id: &'a AIConversationId,
@@ -17127,7 +17000,6 @@ impl TerminalView {
     /// Returns an iterator over the `AIBlock`s that belong to the current
     /// thread of `conversation_id` (newest first, bounded by the most recent
     /// user query).
-    #[cfg(any())]
     fn ai_blocks_for_current_thread<'a>(
         &'a self,
         conversation_id: &'a AIConversationId,
@@ -17139,7 +17011,6 @@ impl TerminalView {
 
     /// Collects all imported review comments from blocks in the current thread of the given
     /// conversation.
-    #[cfg(any())]
     fn all_comments_in_thread(
         &self,
         conversation_id: &AIConversationId,
@@ -17171,7 +17042,6 @@ impl TerminalView {
             .any(|ai_block| ai_block.has_any_imported_comments())
     }
 
-    #[cfg(any())]
     fn active_ai_block(&self, ctx: &AppContext) -> Option<&ViewHandle<AIBlock>> {
         // Skip trailing non-AI items (usage footers, pending user query blocks)
         // as they don't impact the conversation state.
@@ -17193,7 +17063,6 @@ impl TerminalView {
     }
 
     /// Check if there's an active (non-completed, non-cancelled) /init in progress
-    #[cfg(any())]
     fn has_active_init_project(&self, ctx: &AppContext) -> bool {
         self.active_init_project_model
             .as_ref()
@@ -17201,7 +17070,6 @@ impl TerminalView {
     }
 
     /// Check if there are any init step blocks for the given conversation
-    #[cfg(any())]
     fn has_init_steps_for_conversation(&self, conversation_id: AIConversationId) -> bool {
         self.rich_content_views
             .iter()
@@ -17209,7 +17077,6 @@ impl TerminalView {
     }
 
     /// Returns whether the last block in the currently visible conversation is an `InitStepBlock`.
-    #[cfg(any())]
     fn is_last_block_init_step(&self, ctx: &AppContext) -> bool {
         let last_visible_block = if FeatureFlag::AgentView.is_enabled() {
             let visible_conversation_id = self
@@ -17228,8 +17095,6 @@ impl TerminalView {
         last_visible_block.is_some_and(|rc| rc.is_init_step())
     }
 
-    #[cfg(any())]
-    #[cfg(any())]
     fn active_init_environment_block(
         &self,
         ctx: &AppContext,
@@ -17255,7 +17120,6 @@ impl TerminalView {
         None
     }
 
-    #[cfg(any())]
     fn ai_block_for_exchange(
         &self,
         exchange_id: &AIAgentExchangeId,
@@ -17269,7 +17133,6 @@ impl TerminalView {
         })
     }
 
-    #[cfg(any())]
     fn ai_block_handle_by_view_id(&self, view_id: EntityId) -> Option<&ViewHandle<AIBlock>> {
         self.rich_content_views.iter().find_map(|rich_content| {
             let ai_metadata = rich_content.ai_block_metadata()?;
@@ -17282,7 +17145,6 @@ impl TerminalView {
 
     /// Returns the last block's `EnvVarCollectionBlock` if it is uncompleted, scoped to the
     /// currently visible conversation.
-    #[cfg(any())]
     fn active_env_var_collection_block(
         &self,
         ctx: &AppContext,
@@ -19099,7 +18961,6 @@ impl TerminalView {
     }
 
     /// Returns the environment setup mode selector view handle for tab-level rendering.
-    #[cfg(any())]
     pub fn environment_setup_mode_selector_handle(
         &self,
     ) -> Option<&ViewHandle<EnvironmentSetupModeSelector>> {

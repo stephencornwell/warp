@@ -23,7 +23,6 @@ pub enum RichContentInsertionPosition {
 }
 
 /// Metadata for an AI block rich content.
-#[cfg(any())]
 #[derive(Clone, Debug)]
 pub struct AIBlockMetadata {
     /// The ID corresponding to the `AIAgentExchange` represented in this block.
@@ -35,7 +34,6 @@ pub struct AIBlockMetadata {
 }
 
 /// Metadata for an agent view entry rich content.
-#[cfg(any())]
 #[derive(Clone, Debug)]
 pub struct AgentViewEntryMetadata {
     pub conversation_id: AIConversationId,
@@ -58,7 +56,6 @@ pub struct RichContent {
     /// This is used to determine visibility when switching between agent view conversations.
     /// Rich content created within an agent view should only be visible when that conversation
     /// is active.
-    #[cfg(any())]
     agent_view_conversation_id: Option<AIConversationId>,
 }
 
@@ -88,13 +85,11 @@ impl RichContent {
     }
 
     /// Returns the conversation ID of the agent view this content was created in, if any.
-    #[cfg(any())]
     pub fn agent_view_conversation_id(&self) -> Option<AIConversationId> {
         self.agent_view_conversation_id
     }
 
     /// Updates the associated agent view conversation id with this rich content item.
-    #[cfg(any())]
     pub fn update_agent_view_conversation_id(
         &mut self,
         new_agent_view_conversation_id: AIConversationId,
@@ -103,7 +98,6 @@ impl RichContent {
     }
 
     /// Sets the associated agent view conversation id for this rich content item.
-    #[cfg(any())]
     pub fn set_agent_view_conversation_id(
         &mut self,
         agent_view_conversation_id: Option<AIConversationId>,
@@ -129,7 +123,6 @@ impl RichContent {
         self.metadata.as_mut()
     }
 
-    #[cfg(any())]
     pub fn is_ai_block(&self) -> bool {
         matches!(self.metadata, Some(RichContentMetadata::AIBlock(_)))
     }
@@ -138,7 +131,6 @@ impl RichContent {
         matches!(self.metadata, Some(RichContentMetadata::UsageFooter))
     }
 
-    #[cfg(any())]
     pub fn is_telemetry_banner(&self) -> bool {
         matches!(
             self.metadata,
@@ -146,12 +138,10 @@ impl RichContent {
         )
     }
 
-    #[cfg(any())]
     pub fn is_agent_view_entry(&self) -> bool {
         matches!(self.metadata, Some(RichContentMetadata::AgentViewEntry(_)))
     }
 
-    #[cfg(any())]
     pub fn is_inline_agent_view_header(&self) -> bool {
         matches!(
             self.metadata,
@@ -159,7 +149,6 @@ impl RichContent {
         )
     }
 
-    #[cfg(any())]
     pub fn is_agent_view_zero_state(&self) -> bool {
         matches!(self.metadata, Some(RichContentMetadata::AgentViewZeroState))
     }
@@ -168,12 +157,10 @@ impl RichContent {
         matches!(self.metadata, Some(RichContentMetadata::PendingUserQuery))
     }
 
-    #[cfg(any())]
     pub fn is_init_step(&self) -> bool {
         matches!(self.metadata, Some(RichContentMetadata::InitStep { .. }))
     }
 
-    #[cfg(any())]
     pub fn init_step_kind(&self) -> Option<InitStepKind> {
         match &self.metadata {
             Some(RichContentMetadata::InitStep { step_kind, .. }) => Some(*step_kind),
@@ -181,7 +168,6 @@ impl RichContent {
         }
     }
 
-    #[cfg(any())]
     pub fn init_step_block_handle(&self) -> Option<&ViewHandle<InitStepBlock>> {
         match &self.metadata {
             Some(RichContentMetadata::InitStep { block_handle, .. }) => Some(block_handle),
@@ -189,7 +175,6 @@ impl RichContent {
         }
     }
 
-    #[cfg(any())]
     pub fn ai_block_metadata(&self) -> Option<&AIBlockMetadata> {
         match &self.metadata {
             Some(RichContentMetadata::AIBlock(metadata)) => Some(metadata),
@@ -197,7 +182,6 @@ impl RichContent {
         }
     }
 
-    #[cfg(any())]
     pub fn agent_view_entry_metadata(&self) -> Option<&AgentViewEntryMetadata> {
         match &self.metadata {
             Some(RichContentMetadata::AgentViewEntry(metadata)) => Some(metadata),
@@ -215,64 +199,48 @@ impl RichContent {
 /// `RichContent` view-specific metadata required for rendering in the `BlocklistElement`.
 #[derive(Clone, Debug)]
 pub enum RichContentMetadata {
-    #[cfg(any())]
     AIBlock(AIBlockMetadata),
-    #[cfg(any())]
     AIOnboardingBlock {
         /// The ID corresponding to the `AIAgentExchange` represented in this block.
         exchange_id: AIAgentExchangeId,
     },
     UsageFooter,
-    #[cfg(any())]
     InitStep {
         step_kind: InitStepKind,
         block_handle: ViewHandle<InitStepBlock>,
     },
-    #[cfg(any())]
     OnboardingAgenticSuggestions {
         agentic_suggestions_block_handle: ViewHandle<OnboardingAgenticSuggestionsBlock>,
     },
-    #[cfg(any())]
     EnvVarCollectionBlock {
         env_var_collection_block_handle: ViewHandle<EnvVarCollectionBlock>,
     },
-    #[cfg(any())]
     SshWarpifyBlock {
         ssh_warpify_block_handle: ViewHandle<SshWarpifyBlock>,
     },
-    #[cfg(any())]
     SshInstallTmuxBlock {
         ssh_install_tmux_block_handle: ViewHandle<SshInstallTmuxBlock>,
     },
-    #[cfg(any())]
     SshErrorBlock {
         ssh_error_block_handle: ViewHandle<SshErrorBlock>,
     },
-    #[cfg(any())]
     SshRemoteServerChoiceBlock {
         handle: ViewHandle<SshRemoteServerChoiceView>,
     },
-    #[cfg(any())]
     SshRemoteServerFailedBanner {
         handle: ViewHandle<SshRemoteServerFailedBanner>,
     },
-    #[cfg(any())]
     WarpifySuccessBlock {
         bootstrap_success_block_handle: ViewHandle<WarpifySuccessBlock>,
     },
-    #[cfg(any())]
     TelemetryBanner {
         telemetry_banner_handle: ViewHandle<TelemetryBanner>,
     },
-    #[cfg(any())]
     AgentViewEntry(AgentViewEntryMetadata),
-    #[cfg(any())]
     AmbientAgentBlock {
         block_handle: ViewHandle<AmbientAgentEntryBlock>,
     },
-    #[cfg(any())]
     InlineAgentViewHeader,
-    #[cfg(any())]
     AgentViewZeroState,
     TerminalViewZeroState,
     PluginInstructionsBlock,

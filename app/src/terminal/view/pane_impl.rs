@@ -786,7 +786,6 @@ impl TerminalView {
             .finish()
     }
 
-    #[cfg(any())]
     fn render_agent_indicator(
         &self,
         conversation_id: crate::ai::agent::conversation::AIConversationId,

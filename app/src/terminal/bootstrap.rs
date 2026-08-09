@@ -1,19 +1,14 @@
 use std::borrow::Cow;
 
-use itertools::Itertools;
 use lazy_static::lazy_static;
 use memo_map::MemoMap;
 use warpui::{AppContext, AssetProvider, SingletonEntity};
 
-use crate::{
-    env_vars::EnvVar,
-    terminal::{session_settings::SessionSettings, shell::ShellType},
-};
+use crate::terminal::{session_settings::SessionSettings, shell::ShellType};
 
 #[cfg(feature = "local_fs")]
 use super::{
     model::session::{BootstrapSessionType, SessionInfo},
-    warpify::settings::{PIPENV_SUBSHELL_COMMAND_REGEX, POETRY_SUBSHELL_COMMAND_REGEX},
 };
 
 lazy_static! {
@@ -61,23 +56,13 @@ pub fn should_use_rc_file_bootstrap_method(
     match session_type {
         BootstrapSessionType::Local => {
             let subshell_initialization_info = session_info.subshell_info.as_ref();
-            let is_poetry_subshell = subshell_initialization_info
-                .as_ref()
-                .map(|info| POETRY_SUBSHELL_COMMAND_REGEX.is_match(info.spawning_command.as_str()))
-                .unwrap_or(false);
-            let is_pipenv_subshell = subshell_initialization_info
-                .as_ref()
-                .map(|info| PIPENV_SUBSHELL_COMMAND_REGEX.is_match(info.spawning_command.as_str()))
-                .unwrap_or(false);
             let is_msys2 = session_info
                 .launch_data
                 .as_ref()
                 .is_some_and(|data| matches!(data, ShellLaunchData::MSYS2 { .. }));
             shell_type == ShellType::Fish
                 || shell_type == ShellType::PowerShell
-                || is_poetry_subshell
-                || ((is_pipenv_subshell
-                    || (subshell_initialization_info.is_some() && cfg!(windows)))
+                || (subshell_initialization_info.is_some() && cfg!(windows)
                     && shell_type == ShellType::Zsh)
                 || is_msys2
         }
@@ -208,13 +193,12 @@ pub fn init_shell_script_for_shell(shell_type: ShellType, assets: &dyn AssetProv
 /// `InitShell` hook based on the shell it is evaluated in.
 pub fn init_subshell_command(
     shell_type: Option<ShellType>,
-    vars: &[EnvVar],
     ctx: &AppContext,
 ) -> String {
     match shell_type {
         Some(shell_type) => {
             let subshell_script =
-                init_subshell_script_for_shell(shell_type, &crate::ASSETS, vars, ctx);
+                init_subshell_script_for_shell(shell_type, &crate::ASSETS, ctx);
             format!(r#" [ -z $WARP_BOOTSTRAPPED ] && eval '{subshell_script}'"#)
         }
         None => init_subshell_script_for_unknown_shell(&crate::ASSETS),
@@ -229,22 +213,13 @@ pub fn init_subshell_command(
 fn init_subshell_script_for_shell(
     shell_type: ShellType,
     assets: &dyn AssetProvider,
-    env_vars: &[EnvVar],
     ctx: &AppContext,
 ) -> String {
     let honor_ps1 = *SessionSettings::as_ref(ctx).honor_ps1;
     let honor_ps1_env_var_value = if honor_ps1 { "1" } else { "0" };
 
     // Prepend environment variable settings to the script
-    let env_setup_script = format!(
-        "export WARP_HONOR_PS1={}; {}",
-        honor_ps1_env_var_value,
-        env_vars
-            .iter()
-            .map(|var| var.get_initialization_string(shell_type))
-            .collect_vec()
-            .join(" ")
-    );
+    let env_setup_script = format!("export WARP_HONOR_PS1={honor_ps1_env_var_value};");
 
     // Load and escape the shell-specific init script
     let shell_init_script = match shell_type {

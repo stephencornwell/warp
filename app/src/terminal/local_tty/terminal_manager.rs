@@ -125,11 +125,6 @@ pub struct TerminalManager {
     #[allow(dead_code)]
     inactive_pty_reads_rx: InactiveReceiver<Arc<Vec<u8>>>,
 
-    /// The model responsible for implementing the sharer's side of the
-    /// session sharing protocol. Only [`Some`] when there is a shared session
-    /// connection ongoing.
-    #[allow(dead_code)]
-    session_sharer: Rc<RefCell<Option<ModelHandle<Network>>>>,
 }
 
 impl Drop for TerminalManager {
@@ -172,10 +167,8 @@ impl TerminalManager {
     pub fn create_model(
         startup_directory: Option<PathBuf>,
         env_vars: HashMap<OsString, OsString>,
-        is_shared_session_creator: IsSharedSessionCreator,
         resources: TerminalViewResources,
         restored_blocks: Option<&Vec<SerializedBlockListItem>>,
-        conversation_restoration: Option<ConversationRestorationInNewPaneType>,
         user_default_shell_unsupported_banner_model_handle: ModelHandle<BannerState>,
         initial_size: Vector2F,
         model_event_sender: Option<SyncSender<ModelEvent>>,
@@ -209,7 +202,6 @@ impl TerminalManager {
                 .read(ctx, |shells, ctx| shells.get_user_preferred_shell(ctx))
         });
 
-        let session_sharer: Rc<RefCell<Option<ModelHandle<Network>>>> = Rc::new(RefCell::new(None));
         let wsl_name_or_shell_starter = ShellStarter::init(preferred_shell.clone());
 
         // If we have explicit restored_blocks, prioritize those (these come from db on startup).
@@ -621,9 +613,7 @@ impl TerminalManager {
             pty_controller,
             #[cfg(feature = "integration_tests")]
             pid: None,
-
             inactive_pty_reads_rx,
-            session_sharer,
         };
 
         let terminal_manager_model = ctx.add_model(|ctx| {

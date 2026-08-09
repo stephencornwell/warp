@@ -6250,15 +6250,6 @@ impl TerminalView {
                         ))
                         .into_item(),
                 ]);
-                items.append(&mut vec![MenuItemFields::new("Toggle block filter")
-                    .with_on_select_action(TerminalAction::ToggleBlockFilterOnSelectedOrLastBlock(
-                        ToggleBlockFilterSource::ContextMenu,
-                    ))
-                    .with_key_shortcut_label(keybinding_name_to_display_string(
-                        TOGGLE_BLOCK_FILTER_KEYBINDING,
-                        ctx,
-                    ))
-                    .into_item()]);
                 items.append(&mut vec![MenuItemFields::new("Toggle bookmark")
                     .with_on_select_action(TerminalAction::ContextMenu(
                         ContextMenuAction::ToggleBookmark,
@@ -11999,7 +11990,6 @@ impl TypedActionView for TerminalView {
                     ();
                 }
             }
-            OpenShareSessionModal { source } => self.open_share_session_modal(*source, ctx),
             StopSharingCurrentSession { source } => self.stop_sharing_session(*source, ctx),
             ToggleBlockFilterOnSelectedOrLastBlock(source) => {
                 self.toggle_block_filter_on_selected_or_last_block(*source, ctx);
@@ -12017,7 +12007,6 @@ impl TypedActionView for TerminalView {
                 self.drag_and_drop_files(paths, ctx);
             }
             WarpifySSHSession => self.add_ssh_warpifying_block(ctx),
-            NotifySshErrorBlock(action) => {
                 if let Some(SshBlockState::Error {
                     handle: ssh_error_block_handle,
                 }) = self.warpify_state.ssh_block_state()
@@ -12027,7 +12016,6 @@ impl TypedActionView for TerminalView {
                     });
                 }
             }
-            SetInputModeAgent => {
                 // Guard: when a CLI agent session is active, block mode
                 // toggling and LRC subagent invocation. Context predicates
                 // handle the Terminal-level case, but when the editor child
@@ -12245,19 +12233,16 @@ impl TypedActionView for TerminalView {
                 });
                 ctx.notify();
             }
-            ExitAgentView => {
                 if self.can_exit_agent_view_for_terminal_view(ctx).is_ok() {
                     self.exit_agent_view(ctx);
                     ctx.notify();
                 }
             }
-            EnterCloudAgentView => {
                 let mut draft_text = self.input.as_ref(ctx).buffer_text(ctx);
                 draft_text.truncate(draft_text.trim_end().len());
                 let initial_prompt = (!draft_text.trim().is_empty()).then_some(draft_text);
                 self.enter_cloud_agent_view(initial_prompt, ctx);
             }
-            StartNewAgentConversation => {
                 self.input.update(ctx, |input, ctx| {
                     input.handle_action(&InputAction::StartNewAgentConversation, ctx);
                 });
@@ -12300,12 +12285,10 @@ impl TypedActionView for TerminalView {
             ToggleUsageFooter => {
                 self.toggle_usage_footer(ctx);
             }
-            RevealChildAgent { conversation_id } => {
                 ctx.emit(Event::RevealChildAgent {
                     conversation_id: *conversation_id,
                 });
             }
-            SwitchAgentViewToConversation { conversation_id } => {
                 self.enter_agent_view_for_conversation(
                     None,
                     AgentViewEntryOrigin::OrchestrationPillBar,

@@ -638,7 +638,6 @@ pub struct BlockListElement {
     /// in compact mode. Setting Self::subshell_separator_height to 0 will effectively hide the
     /// flags.
     subshell_separators: HashMap<SeparatorId, Box<dyn Element>>,
-    cli_subagent_views: HashMap<BlockId, Box<dyn Element>>,
     subshell_separator_height: f32,
 
     selected_blocks: SelectedBlocks,
@@ -714,12 +713,10 @@ pub struct BlockListElement {
     rich_content_elements: HashMap<EntityId, Box<dyn Element>>,
     rich_content_metadata: HashMap<EntityId, RichContentMetadata>,
 
-    shared_session_banner_state: SharedSessionBanners,
 
     horizontal_clipped_scroll_state: ClippedScrollStateHandle,
 
     /// Information about blocks and AI blocks used to render blocklist AI-specific decoration.
-    ai_render_context: Rc<RefCell<BlocklistAIRenderContext>>,
 
     /// The last laid out size of the input view.
     input_size_at_last_frame: Vector2F,
@@ -735,7 +732,6 @@ pub struct BlockListElement {
     #[cfg(feature = "voice_input")]
     voice_input_toggle_key_code: Option<KeyCode>,
 
-    inline_menu_positioner: ModelHandle<InlineMenuPositioner>,
 }
 
 #[derive(Debug)]
@@ -874,12 +870,9 @@ impl BlockListElement {
         filter_elements_builder: Box<FilterBuilderFn>,
         inline_banners: HashMap<InlineBannerId, Box<dyn Element>>,
         subshell_separators: HashMap<SeparatorId, Box<dyn Element>>,
-        cli_subagent_views: HashMap<BlockId, Box<dyn Element>>,
         selection_ranges: Option<Vec1<SelectionRange>>,
         block_banner: Option<Box<dyn Element>>,
-        shared_session_banners: SharedSessionBanners,
         input_size_at_last_frame: Vector2F,
-        inline_menu_positioner: ModelHandle<InlineMenuPositioner>,
         cursor_hint_text_element: Option<Box<dyn Element>>,
     ) -> Self {
         let highlighted_url = terminal_view_render_context
@@ -953,15 +946,11 @@ impl BlockListElement {
             filtered_blocks: None,
             rich_content_elements: HashMap::new(),
             rich_content_metadata: HashMap::new(),
-            shared_session_banner_state: shared_session_banners,
             horizontal_clipped_scroll_state: terminal_view_render_context
                 .horizontal_clipped_scroll_state,
-            ai_render_context: terminal_view_render_context.ai_render_context,
             input_size_at_last_frame,
             block_footer_elements: HashMap::new(),
             cursor_hint_text_element,
-            cli_subagent_views,
-            inline_menu_positioner,
             #[cfg(feature = "voice_input")]
             voice_input_toggle_key_code: None,
         }

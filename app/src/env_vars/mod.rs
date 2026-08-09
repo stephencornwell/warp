@@ -3,10 +3,7 @@ use serde::{Deserialize, Serialize};
 use view::command_dialog::EnvVarSecretCommand;
 use warp_util::path::ShellFamily;
 
-pub mod active_env_var_collection_data;
 pub mod env_var_collection_block;
-pub mod manager;
-pub mod view;
 
 use crate::{
     cloud_object::{

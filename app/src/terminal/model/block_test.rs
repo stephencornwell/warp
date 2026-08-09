@@ -2,7 +2,6 @@ use std::{collections::HashMap, pin::pin, time::Duration};
 
 use super::*;
 use crate::{
-    ai::blocklist::agent_view::AgentViewState,
     terminal::model::{
         ansi::{Attr, Handler},
         cell::Flags,
@@ -1364,26 +1363,6 @@ fn test_restored_block_was_local() {
         .with_bootstrap_stage(BootstrapStage::RestoreBlocks)
         .build();
     assert_eq!(block.restored_block_was_local(), None);
-}
-
-#[test]
-fn test_deserialize_legacy_agent_view_visibility_agent_variant() {
-    let origin_conversation_id = AIConversationId::new();
-    let json = format!("{{\"Agent\":{{\"conversation_id\":\"{origin_conversation_id}\"}}}}");
-
-    let visibility: SerializedAgentViewVisibility = serde_json::from_str(&json).unwrap();
-    match visibility {
-        SerializedAgentViewVisibility::Agent {
-            origin_conversation_id: parsed_origin_conversation_id,
-            pending_other_conversation_ids,
-            other_conversation_ids,
-        } => {
-            assert_eq!(parsed_origin_conversation_id, origin_conversation_id);
-            assert!(pending_other_conversation_ids.is_empty());
-            assert!(other_conversation_ids.is_empty());
-        }
-        _ => panic!("Expected agent visibility"),
-    }
 }
 
 #[test]

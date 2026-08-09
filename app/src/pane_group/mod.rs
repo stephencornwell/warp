@@ -2345,9 +2345,7 @@ impl PaneGroup {
         let (view, terminal_manager) = PaneGroup::create_session(
             startup_directory,
             env_vars,
-            IsSharedSessionCreator::No,
             resources,
-            None,
             None,
             self.user_default_shell_unsupported_banner_model_handle
                 .clone(),

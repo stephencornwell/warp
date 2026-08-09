@@ -1,18 +1,16 @@
 use std::future::Future;
 use std::pin::Pin;
 use std::time::Duration;
-use std::{fmt, future};
+use std::fmt;
 
 #[cfg(not(target_family = "wasm"))]
 use async_compat::{Compat, CompatExt};
-use async_stream::stream;
 use bytes::Bytes;
-use futures::{Stream, StreamExt};
+use futures::Stream;
 use http::HeaderValue;
 use http::header::HeaderName;
 pub use http::{HeaderMap, StatusCode, header::AUTHORIZATION};
 use reqwest::IntoUrl;
-use reqwest_eventsource::RequestBuilderExt;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use warp_core::{
@@ -72,24 +70,6 @@ pub type RequestHookFn = Box<dyn Fn(&reqwest::Request, &Option<String>) + 'stati
 /// Type for 'hook' functions to be executed after receiving a response. The sole argument is a
 /// reference to the inbound response object.
 pub type ResponseHookFn = Box<dyn Fn(&reqwest::Response) + 'static + Send + Sync>;
-
-cfg_if::cfg_if! {
-    if #[cfg(target_family = "wasm")] {
-        // The WASM version of this type has no bound on `Send`, which is not implemented on
-        // `wasm_bindgen::JsValue`, which is ultimately used in reqwest_eventsource::Error.
-        // Furthermore, `Send` is an unnecessary bound when targeting wasm because the browser is
-        // single-threaded (and we don't leverage WebWorkers for async execution in WoW).
-        pub type EventSourceStream = futures::stream::LocalBoxStream<
-            'static,
-            Result<reqwest_eventsource::Event, reqwest_eventsource::Error>,
-        >;
-    } else {
-        pub type EventSourceStream = futures::stream::BoxStream<
-            'static,
-            Result<reqwest_eventsource::Event, reqwest_eventsource::Error>,
-        >;
-    }
-}
 
 /// A custom request builder that is a wrapper around a `request::RequestBuilder`. Ensures any async
 /// call to the underyling `reqwest::RequestBuilder` are properly adapted to run outside of a Tokio
@@ -407,77 +387,6 @@ impl<'a> RequestBuilder<'a> {
                 .body(bytes),
             serialized_payload: serialized.ok(),
             ..self
-        }
-    }
-
-    /// Sends the request to the endpoint, which is assumed to be a streaming server-sent-events
-    /// endpoint, and returns a corresponding `EventSource`.
-    pub fn eventsource(self) -> EventSourceStream {
-        cfg_if::cfg_if! {
-            if #[cfg(target_family = "wasm")] {
-                let mut stream = self
-                    .wrapped
-                    .eventsource()
-                    .expect("Request type for SSE endpoint must be cloneable.");
-
-                let stream = stream! {
-                    while let Some(event) = stream.next().await {
-                        match event {
-                            Ok(event) => {
-                                yield Ok(event);
-                            }
-                            Err(err) => {
-                                yield Err(err);
-
-                                // Close the stream if an error occurs.
-                                stream.close();
-                            }
-                        }
-                    }
-                };
-            } else {
-                let mut stream = self
-                    .wrapped
-                    .eventsource()
-                    .expect("Request type for SSE endpoint must be cloneable.");
-
-                let stream = stream! {
-                    // Wrap the stream with async-compat since reqwest requires Tokio.
-                    while let Some(event) = stream.next().compat().await {
-                        match event {
-                            Ok(event) => {
-                                yield Ok(event);
-                            }
-                            Err(err) => {
-                                yield Err(err);
-
-                                // Close the stream if an error occurs.
-                                stream.close();
-                            }
-                        }
-                    }
-                };
-            }
-        }
-        let stream = stream.take_while(|event| {
-            if let Err(reqwest_eventsource::Error::StreamEnded) = event {
-                return future::ready(false);
-            }
-            future::ready(true)
-        });
-
-        // Wrap the stream in one that holds onto a prevent_sleep guard, if one is required here.
-        let stream = prevent_sleep::Stream::wrap(
-            stream,
-            self.prevent_sleep_reason.map(prevent_sleep::prevent_sleep),
-        );
-
-        cfg_if::cfg_if! {
-            if #[cfg(target_family = "wasm")] {
-                stream.boxed_local()
-            } else {
-                stream.boxed()
-            }
         }
     }
 

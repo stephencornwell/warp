@@ -286,11 +286,6 @@ tantivy = "0.26.0"
 
 [target.'cfg(target_family = "wasm")'.dependencies]
 console_error_panic_hook = { version = "0.1.6" }
-# We only have an indirect dependency on this crate; we depend on reqwest-eventsource@0.6.0 which depends on
-# futures-timer@3.0.2. For whatever unfortunate reason, this crate doesn't automatically enable its feature
-# required for wasm-compatibility when targeting wasm. So we need to explicitly specify this dependency when
-# targeting wasm and leverage the fact that cargo enables the superset of enabled features for a given crate.
-futures-timer = { version = "3.0.2", features = ["wasm-bindgen"] }
 js-sys = "0.3.63"
 # Make sure we embed the data into the wasm binary even when running in debug
 # mode, as it cannot be read directly from the filesystem.

@@ -21,7 +21,6 @@ oauth2.workspace = true
 prevent_sleep.workspace = true
 prost.workspace = true
 reqwest.workspace = true
-reqwest-eventsource.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 serde_urlencoded.workspace = true

@@ -1271,51 +1271,8 @@ impl Workspace {
     ) {
         match event {
             SessionConfigModalEvent::Completed(selection) => {
-                let pending_intention = self.pending_onboarding_intention.take();
                 self.close_session_config_modal(ctx);
-                let has_worktree = selection.enable_worktree;
-                let has_params = {
-                    use crate::tab_configs::session_config::build_tab_config;
-                    let config = build_tab_config(
-                        &selection.session_type,
-                        &selection.directory,
-                        selection.enable_worktree,
-                        selection.autogenerate_worktree_branch_name,
-                    );
-                    !config.params.is_empty()
-                };
                 self.handle_session_config_completed(selection, ctx);
-
-                if let Some(intention) = pending_intention {
-                    if has_worktree && has_params {
-                        // Worktree with params modal: the tab hasn't been
-                        // created yet. Keep the intention so the params modal
-                        // handler can queue the tutorial after it closes.
-                        self.pending_onboarding_intention = Some(intention);
-                    } else if has_worktree {
-                        self.queue_onboarding_tutorial_after_session_config_tab_config_chip(
-                            PendingSessionConfigTabConfigChipTutorial::AfterSetupCommands {
-                                intention,
-                            },
-                            ctx,
-                        );
-                    } else {
-                        // No worktree: tab is ready. Start the tutorial after
-                        // the tab-config chip is dismissed.
-                        // TODO(roland): We do have a directory in this case so we could consider passing has_project = true
-                        // which has an optional /init flow. But the behavior of /init needs to be revisited:
-                        // 1. Sends /init as a query which differs in behavior from /init slash command
-                        // 2. Sends /init even if not in a git repo - unclear if this should happen (depends on desired behavior from 1)
-                        // 3. With no free AI, /init will not work.
-                        self.queue_onboarding_tutorial_after_session_config_tab_config_chip(
-                            PendingSessionConfigTabConfigChipTutorial::WhenBootstrapped {
-                                has_project: false,
-                                intention,
-                            },
-                            ctx,
-                        );
-                    }
-                }
 
                 // Show the chip only when no params modal followed.
                 if !self.current_workspace_state.is_tab_config_params_modal_open {
@@ -1323,16 +1280,10 @@ impl Workspace {
                 }
             }
             SessionConfigModalEvent::Dismissed => {
-                let pending_intention = self.pending_onboarding_intention.take();
-
                 // No tab config was created, so don't show the chip.
                 self.pending_session_config_tab_config_chip = false;
                 self.close_session_config_modal(ctx);
 
-                // Start the onboarding tutorial without project context.
-                if let Some(intention) = pending_intention {
-                    self.dispatch_tutorial_when_bootstrapped(false, intention, ctx);
-                }
             }
         }
     }
@@ -1406,7 +1357,7 @@ impl Workspace {
 
         self.session_config_modal.open();
         self.current_workspace_state.is_session_config_modal_open = true;
-        self.pending_session_config_tab_config_chip = self.pending_onboarding_intention.is_some();
+        self.pending_session_config_tab_config_chip = false;
         self.show_session_config_tab_config_chip = false;
         ctx.focus(&self.session_config_modal.view);
         ctx.notify();
@@ -1772,10 +1723,6 @@ impl Workspace {
             })
             .collect();
 
-        let agent_toolbar_editor_modal = Self::build_agent_toolbar_editor_modal(ctx);
-
-        Self::observe_server_api(ctx);
-
         Self::subscribe_to_workspace_toast_stack(toast_stack.clone(), ctx);
         Self::subscribe_to_tab_config_errors(toast_stack.clone(), ctx);
         Self::subscribe_to_settings_errors(ctx);
@@ -1794,23 +1741,6 @@ impl Workspace {
         });
 
         let native_modal = Self::build_native_modal_view(ctx);
-
-        ctx.subscribe_to_model(&OneTimeModalModel::handle(ctx), |me, model, event, ctx| {
-            let OneTimeModalEvent::VisibilityChanged { is_open } = event;
-            if *is_open {
-                // Only trigger modal actions if this is the target window.
-                // The model has already determined which window should show the modal.
-                let model_ref = model.as_ref(ctx);
-                if model_ref.target_window_id() == Some(ctx.window_id()) {
-                    if model_ref.is_openwarp_launch_modal_open() {
-                        me.focus_openwarp_launch_modal(ctx);
-                    } else if model_ref.is_build_plan_migration_modal_open() {
-                        me.focus_build_plan_migration_modal(ctx);
-                    }
-                }
-            }
-            ctx.notify();
-        });
 
         let mut ws = Self {
             tabs: Vec::new(),
@@ -2107,7 +2037,6 @@ impl Workspace {
                     None,
                     ctx,
                 );
-                self.check_and_trigger_onboarding(ctx);
             }
             #[cfg(feature = "local_fs")]
             NewWorkspaceSource::TransferredTab {
@@ -2197,8 +2126,6 @@ impl Workspace {
                 LeftPanelDisplayedTab::GlobalSearch => ToolPanelView::GlobalSearch {
                     entry_focus: GlobalSearchEntryFocus::Results,
                 },
-                LeftPanelDisplayedTab::WarpDrive => ToolPanelView::ProjectExplorer,
-                LeftPanelDisplayedTab::ConversationListView => ToolPanelView::ProjectExplorer,
             };
             lp.restore_active_view_from_snapshot(active_view, ctx);
             lp.set_active_pane_group(pane_group.clone(), &self.working_directories_model, ctx);
@@ -2214,20 +2141,14 @@ impl Workspace {
         shell: Option<AvailableShell>,
         ctx: &mut ViewContext<Self>,
     ) {
-        if self.should_trigger_get_started_onboarding(ctx) {
-            self.trigger_get_started_onboarding(ctx);
-        } else if FeatureFlag::WelcomeTab.is_enabled() {
-            self.add_welcome_tab(ctx);
-        } else {
-            self.add_new_session_tab_with_default_mode(
-                NewSessionSource::Window,
-                previous_active_window,
-                shell,
-                None,
-                false,
-                ctx,
-            );
-        }
+        self.add_new_session_tab_with_default_mode(
+            NewSessionSource::Window,
+            previous_active_window,
+            shell,
+            None,
+            false,
+            ctx,
+        );
     }
 
     /// Opens a cloud conversation by server token.
@@ -6817,156 +6738,13 @@ impl Workspace {
                 ctx.notify();
             }
             pane_group::Event::ClearHoveredTabIndex => self.hovered_tab_index = None,
-            pane_group::Event::OpenWarpDriveObjectInPane(uid) => {
-                self.open_warp_drive_object_in_new_pane(uid, ctx);
-            }
-            pane_group::Event::OpenSuggestedAgentModeWorkflowModal { workflow_and_id } => {
-                self.open_suggested_agent_mode_workflow_modal(workflow_and_id, ctx);
-            }
-            pane_group::Event::OpenSuggestedRuleModal { rule_and_id } => {
-                self.open_suggested_rule_modal(rule_and_id, ctx);
-            }
-            pane_group::Event::OpenDriveObjectShareDialog {
-                cloud_object_type_and_id,
-                invitee_email,
-                source,
-            } => {
-                self.open_object_sharing_settings(
-                    *cloud_object_type_and_id,
-                    invitee_email.clone(),
-                    *source,
-                    ctx,
-                );
-            }
             pane_group::Event::OpenPalette {
                 mode,
                 source,
                 query,
-            } => self.open_palette_action(*mode, *source, query.as_deref(), ctx),
-            pane_group::Event::FileUploadCommand {
-                upload_id,
-                command: _,
-                remote_pane_id,
-                local_pane_id,
             } => {
-                self.file_upload_sessions
-                    .local_to_remote_map
-                    .insert(*local_pane_id, *remote_pane_id);
-                self.file_upload_sessions
-                    .local_to_upload_id_map
-                    .insert(*local_pane_id, (*remote_pane_id, *upload_id));
-                self.file_upload_sessions
-                    .upload_id_to_local_map
-                    .insert((*remote_pane_id, *upload_id), *local_pane_id);
-            }
-            pane_group::Event::FileUploadPasswordPending { local_pane_id } => {
-                if let Some(remote_pane_id) = self
-                    .file_upload_sessions
-                    .local_to_remote_map
-                    .get(local_pane_id)
-                {
-                    let (_, upload_id) = self
-                        .file_upload_sessions
-                        .local_to_upload_id_map
-                        .get(local_pane_id)
-                        .expect("Local session should map to upload ID");
-
-                    let terminal_view =
-                        self.active_tab_pane_group().read(ctx, |pane_group, ctx| {
-                            pane_group
-                                .terminal_view_from_pane_id(*remote_pane_id, ctx)
-                                .expect("PaneGroup should find remote pane ID")
-                        });
-                    terminal_view.update(ctx, |terminal_view, ctx| {
-                        terminal_view
-                            .ssh_file_upload()
-                            .update(ctx, |file_upload, ctx| {
-                                file_upload.prompt_for_file_upload_password(*upload_id, ctx);
-                            });
-                    });
-                }
-            }
-            pane_group::Event::FileUploadFinished {
-                local_pane_id,
-                exit_code,
-            } => {
-                if let Some(remote_pane_id) = self
-                    .file_upload_sessions
-                    .local_to_remote_map
-                    .get(local_pane_id)
-                {
-                    let (_, upload_id) = self
-                        .file_upload_sessions
-                        .local_to_upload_id_map
-                        .get(local_pane_id)
-                        .expect("Local session should map to upload ID");
-
-                    let terminal_view =
-                        self.active_tab_pane_group().read(ctx, |pane_group, ctx| {
-                            pane_group
-                                .terminal_view_from_pane_id(*remote_pane_id, ctx)
-                                .expect("PaneGroup should find remote pane ID")
-                        });
-
-                    terminal_view.update(ctx, |terminal_view, ctx| {
-                        terminal_view
-                            .ssh_file_upload()
-                            .update(ctx, |file_upload, ctx| {
-                                file_upload.file_upload_finished(*upload_id, exit_code, ctx);
-                            });
-                    });
-                }
-            }
-            pane_group::Event::OpenFileUploadSession {
-                remote_pane_id,
-                upload_id,
-            } => {
-                // Find the local pane handling the upload.
-                let local_pane_id = *self
-                    .file_upload_sessions
-                    .upload_id_to_local_map
-                    .get(&(*remote_pane_id, *upload_id))
-                    .expect("Upload ID should map to a local session");
-
-                // Toggle the visibility of the local pane.
-                let local_pane_open =
-                    self.active_tab_pane_group().update(ctx, |pane_group, ctx| {
-                        pane_group.toggle_pane_visibility_for_job(local_pane_id.into(), ctx)
-                    });
-
-                // Inform the remote pane of the state of the local pane.
-                let terminal_view = self.active_tab_pane_group().read(ctx, |pane_group, ctx| {
-                    pane_group
-                        .terminal_view_from_pane_id(*remote_pane_id, ctx)
-                        .expect("PaneGroup should find remote pane ID")
-                });
-                terminal_view.update(ctx, |terminal_view, ctx| {
-                    terminal_view
-                        .ssh_file_upload()
-                        .update(ctx, |file_upload, ctx| {
-                            file_upload.local_session_state_changed(
-                                *upload_id,
-                                local_pane_open,
-                                ctx,
-                            );
-                        });
-                });
-            }
-            pane_group::Event::TerminateFileUploadSession {
-                remote_pane_id,
-                upload_id,
-            } => {
-                // Find the local pane handling the upload.
-                let local_pane_id = *self
-                    .file_upload_sessions
-                    .upload_id_to_local_map
-                    .get(&(*remote_pane_id, *upload_id))
-                    .expect("Upload ID should map to a local session");
-
-                // Close the local pane.
-                self.active_tab_pane_group().update(ctx, |pane_group, ctx| {
-                    pane_group.close_pane(local_pane_id.into(), ctx);
-                });
+                let _ = query;
+                self.open_palette(*mode, *source, ctx);
             }
             pane_group::Event::ShowToast {
                 message,
@@ -6991,16 +6769,8 @@ impl Workspace {
             pane_group::Event::OpenThemeChooser => {
                 self.show_theme_chooser_for_custom_theme(ctx);
             }
-            pane_group::Event::OpenConversationHistory => {
-                self.open_palette_action(
-                    PaletteMode::Conversations,
-                    PaletteSource::ConversationManager,
-                    None,
-                    ctx,
-                );
-            }
             pane_group::Event::OpenFilesPalette { source } => {
-                self.open_palette_action(PaletteMode::Files, *source, None, ctx);
+                self.open_palette(PaletteMode::Files, *source, ctx);
             }
             pane_group::Event::ToggleLeftPanel {
                 target_view,
@@ -7010,7 +6780,6 @@ impl Workspace {
                     self.left_panel_view
                         .read(ctx, |left_panel, _| match target_view {
                             LeftPanelTargetView::FileTree => left_panel.is_file_tree_active(),
-                            LeftPanelTargetView::WarpDrive => left_panel.is_warp_drive_active(),
                         });
 
                 if self.active_tab_pane_group().as_ref(ctx).left_panel_open && is_target_active {
@@ -7025,7 +6794,6 @@ impl Workspace {
                     self.left_panel_view.update(ctx, |left_panel, ctx| {
                         let action = match target_view {
                             LeftPanelTargetView::FileTree => LeftPanelAction::ProjectExplorer,
-                            LeftPanelTargetView::WarpDrive => LeftPanelAction::WarpDrive,
                         };
                         left_panel.handle_action_with_force_open(&action, *force_open, ctx);
                     });
@@ -7056,9 +6824,6 @@ impl Workspace {
             #[cfg(feature = "local_fs")]
             pane_group::Event::FileDeleted { path } => {
                 self.close_tabs_with_file_path(path, ctx);
-            }
-            pane_group::Event::OpenLspLogs { log_path } => {
-                self.open_lsp_logs(log_path, ctx);
             }
             pane_group::Event::LeftPanelToggled { is_open } => {
                 // Only handle visibility changes from the active pane group.

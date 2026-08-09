@@ -2787,30 +2787,11 @@ impl TerminalView {
         }
 
 
-        ctx.subscribe_to_model(&CLIAgentSessionsModel::handle(ctx), |me, _, event, ctx| {
-            if let CLIAgentSessionsModelEvent::Ended {
-                terminal_view_id, ..
-            } = event
-            {
-                if *terminal_view_id == me.view_id
-                    && me.auto_stop_sharing_on_cli_end
-                    && me.model.lock().shared_session_status().is_active_sharer()
-                {
-                    me.auto_stop_sharing_on_cli_end = false;
-                    me.stop_sharing_session(SharedSessionActionSource::NonUser, ctx);
-                }
-            }
-            me.handle_cli_agent_sessions_event(event, ctx)
-        });
         ctx.subscribe_to_model(
             &ai_action_model.as_ref(ctx).shell_command_executor(ctx),
             Self::handle_shell_command_executor_event,
         );
 
-        ctx.subscribe_to_model(
-            &ai_action_model.as_ref(ctx).start_agent_executor(ctx),
-            Self::handle_start_agent_executor_event,
-        );
         let find_bar = ctx.add_typed_action_view(|ctx| Find::new(find_model.clone(), ctx));
         ctx.subscribe_to_view(&find_bar, move |me, _, event, ctx| {
             me.handle_find_event(event, ctx);
@@ -5174,6 +5155,7 @@ impl TerminalView {
         }
     }
 
+    #[cfg(any())]
     fn handle_start_agent_executor_event(
         &mut self,
         _: ModelHandle<StartAgentExecutor>,
@@ -10673,9 +10655,7 @@ impl TerminalView {
 
             ctx.subscribe_to_view(
                 &onboarding_agentic_suggestions_block,
-                move |me, _, event, ctx| {
-                    me.handle_onboarding_agentic_suggestions_block_event(event, ctx);
-                },
+                |_me, _block, _event, _ctx| {},
             );
 
             self.insert_rich_content(
@@ -10777,6 +10757,7 @@ impl TerminalView {
         }
     }
 
+    #[cfg(any())]
     fn handle_onboarding_agentic_suggestions_block_event(
         &mut self,
         event: &OnboardingAgenticSuggestionsBlockEvent,

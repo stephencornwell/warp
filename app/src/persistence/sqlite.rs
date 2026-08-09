@@ -852,6 +852,7 @@ fn save_pane_state(
                 .values(settings_pane)
                 .execute(conn)?;
         }
+        LeafContents::ExecutionProfileEditor => {}
         LeafContents::GetStarted => {
             // Stateless
         }

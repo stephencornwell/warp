@@ -605,7 +605,6 @@ pub enum WorkspaceAction {
     },
     /// Opens (or focuses) the in-app network log pane as a right-split of the
     /// active pane group. Gated on `ContextFlag::NetworkLogConsole`.
-    OpenNetworkLogPane,
 }
 
 impl From<&WorkspaceAction> for LoginGatedFeature {
@@ -857,7 +856,6 @@ impl WorkspaceAction {
             | TabConfigSidecarRemoveConfig { .. }
             | OpenSettingsFile
             | FixSettingsWithOz { .. }
-            | OpenNetworkLogPane => false,
             #[cfg(debug_assertions)]
             #[cfg(target_family = "wasm")]
             ToggleConversationTranscriptDetailsPanel => false,

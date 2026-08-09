@@ -7168,47 +7168,6 @@ impl TerminalView {
         }
     }
 
-    /// Updates the [`BlocklistAIContextModel`]'s pending context to match currently selected blocks.
-    /// Be careful about calling `set_pending_context_block_ids` outside of this function, as invoking
-    /// `set_pending_context_block_ids` in multiple places will increase the likelihood of desync.
-    fn sync_pending_context_block_ids(&mut self, ctx: &mut ViewContext<Self>) {
-        let selected_block_ids = {
-            let model = self.model.lock();
-            self.selected_blocks
-                .to_block_ids(model.block_list())
-                .cloned()
-                .collect_vec()
-        };
-
-        self.ai_context_model.update(ctx, |context_model, ctx| {
-            context_model.set_pending_context_block_ids(selected_block_ids, false, ctx);
-        })
-    }
-
-    /// Sets the pending query follow-up state for this terminal view's AI context model.
-    pub fn set_pending_query_state(
-        &mut self,
-        state: PendingQueryState,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        self.ai_context_model
-            .update(ctx, |context_model, ctx| match state {
-                PendingQueryState::New { .. } => {
-                    context_model.set_pending_query_state_for_new_conversation(
-                        AgentViewEntryOrigin::ConversationSelector,
-                        ctx,
-                    );
-                }
-                PendingQueryState::Existing { conversation_id } => {
-                    context_model.set_pending_query_state_for_existing_conversation(
-                        conversation_id,
-                        AgentViewEntryOrigin::ConversationSelector,
-                        ctx,
-                    );
-                }
-            });
-    }
-
     // Additionally handles side effects of changing block selections (i.e. CMD + F results,
     // Agent Mode context, etc.). The field `self.selected_blocks` should only be mutated as part of
     // a `change_block_selections` or `change_block_selections_to_match_ai_context` invocation.
@@ -7219,9 +7178,6 @@ impl TerminalView {
         change_selection(&mut self.selected_blocks);
         self.update_find_selection(ctx);
 
-        // In AI mode, selected blocks also serve as context. When we change the block
-        // selections, we must also update the context
-        self.sync_pending_context_block_ids(ctx);
         ctx.emit(Event::SelectedBlocksChanged);
     }
 
@@ -7479,7 +7435,7 @@ impl TerminalView {
         }
 
         if should_directly_open_link {
-            self.maybe_open_link(LinkOpenMethod::CmdClick, position, ctx);
+            self.maybe_open_link(position, ctx);
         }
     }
 
@@ -7520,7 +7476,6 @@ impl TerminalView {
 
     fn maybe_open_link(
         &mut self,
-        link_open_method: LinkOpenMethod,
         position: &WithinModel<Point>,
         ctx: &mut ViewContext<Self>,
     ) {
@@ -7865,35 +7820,7 @@ impl TerminalView {
     /// Returns true iff the clear was successful.
 
     fn clear_buffer(&mut self, ctx: &mut ViewContext<Self>) {
-        let agent_view_state = self.agent_view_controller.as_ref(ctx).agent_view_state();
-        let is_fullscreen_agent_view = agent_view_state.is_fullscreen();
-        let is_ambient_agent = self.is_ambient_agent_session(ctx);
-
-        // When in the modal agent view, "clear buffer" has special semantics.
-        // Try to clear it specially, but if it wasn't successful, then clear normally.
-        if is_fullscreen_agent_view && !is_ambient_agent && self.try_clear_buffer_in_agent_view(ctx)
-        {
-            ctx.notify();
-            return;
-        }
-
-        // Don't clear the buffer if the agent is monitoring a long running command
-        let is_agent_monitoring = self
-            .model
-            .lock()
-            .block_list()
-            .active_block()
-            .is_agent_monitoring();
-
-        if is_agent_monitoring {
-            return;
-        }
-
         self.clear_selected_blocks(ctx);
-
-        self.ai_context_model.update(ctx, |context_model, ctx| {
-            context_model.reset_context_to_default(ctx);
-        });
 
         // Focus the appropriate part of the terminal view (possibly a
         // long-running block, possibly the input field) depending on its
@@ -7909,14 +7836,6 @@ impl TerminalView {
         self.block_list_mouse_states.bookmark_mouse_states.clear();
         self.block_list_mouse_states.filter_mouse_states.clear();
         self.bookmarked_blocks.clear();
-
-        // Clean up the active AI block if there is one. This MUST be done before
-        // clearing the rich content views.
-        if let Some(ai_block_handle) = self.active_ai_block(ctx) {
-            ai_block_handle.update(ctx, |ai_block, ctx| {
-                ai_block.cleanup_block(ctx);
-            });
-        }
 
         self.rich_content_views.clear();
 
@@ -7968,12 +7887,6 @@ impl TerminalView {
             }
         }
 
-        // When we clear the blocklist, the user can't see past AI exchanges anymore, so these conversations should no longer
-        // appear active for the terminal view anymore.
-        BlocklistAIHistoryModel::handle(ctx).update(ctx, |ai_history_model, ctx| {
-            ai_history_model.clear_conversations_in_terminal_view(self.view_id, ctx)
-        });
-
         // No more restored blocks, since we just cleared the buffer
         log::info!("Clearing buffer.  resetting any_session_contains_restored_remote_blocks");
         self.any_session_contains_restored_remote_blocks = false;
@@ -7984,9 +7897,6 @@ impl TerminalView {
 
         ctx.notify();
 
-        if self.block_onboarding_active {
-            self.reset_onboarding_blocks(ctx);
-        }
     }
 
     fn find_within_block(&mut self, ctx: &mut ViewContext<Self>) {
@@ -8057,43 +7967,6 @@ impl TerminalView {
     pub fn session_command_context(&self, app: &AppContext) -> CommandContext {
         let model = self.model.lock();
         let block_list = model.block_list();
-
-        let ai_history_model = BlocklistAIHistoryModel::as_ref(app);
-
-        // Check if the active block is a rich content block.
-        if let Some(ai_block_handle) = self.active_ai_block(app) {
-            let ai_block = ai_block_handle.as_ref(app);
-            if let Some(prompt) = ai_history_model
-                .conversation(&ai_block.conversation_id())
-                .and_then(|conversation| conversation.latest_user_query())
-            {
-                return CommandContext::RunningAIBlock {
-                    prompt: prompt.to_owned(),
-                };
-            }
-        }
-
-        // Check if the last non-hidden block is a rich content block.
-        let block_index = block_list.last_non_hidden_block_by_index();
-        if let Some((_, content)) =
-            block_list.last_non_hidden_rich_content_block_after_block(block_index)
-        {
-            if let Some(rich_content) = self.rich_content_views.last() {
-                if rich_content.view_id() == content.view_id {
-                    if let Some(ai_metadata) = rich_content.ai_block_metadata() {
-                        let ai_block = ai_metadata.ai_block_handle.as_ref(app);
-                        if let Some(prompt) = ai_history_model
-                            .conversation(&ai_block.conversation_id())
-                            .and_then(|conversation| conversation.latest_user_query())
-                        {
-                            return CommandContext::LastRunAIBlock {
-                                prompt: prompt.to_owned(),
-                            };
-                        }
-                    }
-                }
-            }
-        }
 
         // Fall back to existing command context logic for terminal blocks
         let active_block = block_list.active_block();

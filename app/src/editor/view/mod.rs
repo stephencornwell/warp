@@ -54,7 +54,6 @@ use crate::ui_components::icons;
 use crate::view_components::DismissibleToast;
 use crate::vim_registers::{RegisterContent, VimRegisters};
 use crate::workspace::ToastStack;
-use crate::settings::AISettings;
 
 use crate::editor::RangeExt;
 use crate::features::FeatureFlag;
@@ -71,7 +70,7 @@ use crate::util::clipboard::clipboard_content_with_escaped_paths;
 use crate::util::color::{ContrastingColor, MinimumAllowedContrast};
 use crate::util::image::{resize_image, MAX_IMAGE_COUNT_FOR_QUERY, MAX_IMAGE_SIZE_BYTES};
 use crate::util::merge_ranges;
-use crate::{workspace::Workspace, BlocklistAIHistoryModel};
+use crate::workspace::Workspace;
 use anyhow::Result;
 use core::f32;
 use std::path::Path;
@@ -4164,14 +4163,7 @@ impl EditorView {
             });
 
         // If an agent is responding, we don't want ctrl+c to clear the persistent input.
-        let is_agent_responding = terminal_view
-            .as_ref()
-            .and_then(|terminal_view| {
-                BlocklistAIHistoryModel::as_ref(ctx).active_conversation(terminal_view.id())
-            })
-            .is_some_and(|conversation| {
-                conversation.status().is_in_progress() && conversation.exchange_count() > 0
-            });
+        let is_agent_responding = false;
 
         // If there is a pending passive ai block, we don't want ctrl+c to clear the buffer.
         let is_pending_passive_ai_block = terminal_view.is_some_and(|terminal_view| {
@@ -4771,12 +4763,8 @@ impl EditorView {
     }
 
     fn voice_input_toggle_key_code(&self, ctx: &AppContext) -> Option<KeyCode> {
-        let ai_settings_handle = &AISettings::handle(ctx);
-        ai_settings_handle
-            .as_ref(ctx)
-            .voice_input_toggle_key
-            .value()
-            .to_key_code()
+        let _ = ctx;
+        None
     }
 
     pub fn attach_files(&mut self, ctx: &mut ViewContext<Self>) {
@@ -7985,7 +7973,7 @@ impl EditorView {
         }
         let input_settings = InputSettings::as_ref(ctx);
         let is_universal_input_enabled = input_settings.is_universal_developer_input_enabled(ctx);
-        let is_any_ai_enabled = AISettings::as_ref(ctx).is_any_ai_enabled(ctx);
+        let is_any_ai_enabled = false;
         let should_show_image = !FeatureFlag::AgentView.is_enabled()
             && self.image_context_options.should_show_button()
             && !is_universal_input_enabled;

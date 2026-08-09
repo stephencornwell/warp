@@ -14829,11 +14829,6 @@ impl TerminalView {
         ctx: &mut ViewContext<Self>,
     ) -> Vec<MenuItem<TerminalAction>> {
         let mut items = vec![
-            MenuItemFields::new("Copy")
-                .with_on_select_action(TerminalAction::ContextMenu(
-                    ContextMenuAction::CopyAIBlock { ai_block_view_id },
-                ))
-                .into_item(),
             MenuItemFields::new("Copy prompt")
                 .with_on_select_action(TerminalAction::ContextMenu(
                     ContextMenuAction::CopyAIBlockQuery { ai_block_view_id },
@@ -14951,14 +14946,6 @@ impl TerminalView {
                 );
             }
         }
-
-        items.push(
-            MenuItemFields::new("Copy conversation text")
-                .with_on_select_action(TerminalAction::ContextMenu(
-                    ContextMenuAction::CopyAIBlockConversation { ai_block_view_id },
-                ))
-                .into_item(),
-        );
 
         items
     }
@@ -21259,32 +21246,6 @@ impl TerminalView {
                         if ai_metadata.ai_block_handle.id() == *ai_block_view_id {
                             ai_metadata.ai_block_handle.update(ctx, |block, ctx| {
                                 block.handle_action(&AIBlockAction::CopyOutput, ctx);
-                            });
-                            break;
-                        }
-                    }
-                }
-            }
-            CopyAIBlock { ai_block_view_id } => {
-                // Copy current AI block's prompt and output
-                for rich_content in self.rich_content_views.iter() {
-                    if let Some(ai_metadata) = rich_content.ai_block_metadata() {
-                        if ai_metadata.ai_block_handle.id() == *ai_block_view_id {
-                            ai_metadata.ai_block_handle.update(ctx, |block, ctx| {
-                                block.handle_action(&AIBlockAction::Copy, ctx);
-                            });
-                            break;
-                        }
-                    }
-                }
-            }
-            CopyAIBlockConversation { ai_block_view_id } => {
-                // Copy the entire conversation by delegating to the AI block
-                for rich_content in self.rich_content_views.iter() {
-                    if let Some(ai_metadata) = rich_content.ai_block_metadata() {
-                        if ai_metadata.ai_block_handle.id() == *ai_block_view_id {
-                            ai_metadata.ai_block_handle.update(ctx, |block, ctx| {
-                                block.handle_action(&AIBlockAction::CopyConversation, ctx);
                             });
                             break;
                         }

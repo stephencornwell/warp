@@ -1056,9 +1056,6 @@ impl fmt::Debug for InputContextMenuAction {
             SelectAll => f.write_str("SelectAll"),
             Paste => f.write_str("Paste"),
             ShowCommandSearch => f.write_str("CommandSearch"),
-            _ShowAICommandSearch => f.write_str("AICommandSearch"),
-            _AskWarpAI => f.write_str("AskWarpAI"),
-            _SaveAsWorkflow => f.write_str("SaveAsWorkflow"),
             ToggleInputHintText => f.write_str("ToggleInputHintText"),
         }
     }
@@ -10038,10 +10035,6 @@ impl TypedActionView for TerminalView {
                 format!("Open block filter editor for block {block_index}"),
                 WarpA11yRole::TextRole,
             )),
-            _ShowInitializationBlock => Custom(AccessibilityContent::new_without_help(
-                "Showed initialization block",
-                WarpA11yRole::TextareaRole,
-            )),
             OpenFilesPalette { .. } => Custom(AccessibilityContent::new_without_help(
                 "Opened file search palette",
                 WarpA11yRole::ButtonRole,
@@ -10441,8 +10434,6 @@ impl TypedActionView for TerminalView {
                 selected_range,
             } => self.set_marked_text_on_terminal(marked_text, selected_range, ctx),
             ClearMarkedText => self.clear_marked_text_on_terminal(ctx),
-            _ShowInitializationBlock => {}
-            InitProject => {}
             AddProjectAtCurrentDirectory => {
                 // Get the current working directory and add it as a project
                 if let Some(current_dir) = self.pwd() {
@@ -10466,68 +10457,6 @@ impl TypedActionView for TerminalView {
                             .value(),
                     });
                 }
-            }
-            _OpenBillingAndUsagePane => {
-                ctx.emit(Event::OpenSettings(SettingsSection::BillingAndUsage));
-            }
-            OpenAddRulePane => {
-                ctx.emit(Event::OpenAddRulePane);
-            }
-            OpenRulesPane => {
-                ctx.emit(Event::OpenRulesPane);
-            }
-            OpenAddPromptPane => ctx.emit(Event::OpenAddPromptPane {
-                initial_content: None,
-            }),
-            PickRepoToOpen => {
-                ctx.dispatch_typed_action(&WorkspaceAction::OpenRepository { path: None });
-            }
-            OpenFilesPalette { .. } => {}
-            DismissCodeToolbeltTooltip => {
-                CodeSettings::handle(ctx).update(ctx, |settings, ctx| {
-                    if let Err(e) = settings
-                        .dismissed_code_toolbelt_new_feature_popup
-                        .set_value(true, ctx)
-                    {
-                        log::warn!(
-                            "Failed to mark code toolbelt new feature popup as dismissed: {e}"
-                        );
-                    }
-                });
-                ctx.notify();
-            }
-            StartLspServer => {
-                let _ = ctx;
-            }
-            _OpenConversationsPalette => {
-                let _ = ctx;
-            }
-            ToggleHideCliResponses => {
-                let _ = ctx;
-            }
-            OpenInlineHistoryMenu => {
-                self.input.update(ctx, |input, ctx| {
-                    input.handle_action(&InputAction::OpenInlineHistoryMenu, ctx);
-                });
-            }
-            OpenModelSelector => {
-                self.input.update(ctx, |input, ctx| {
-                    input.handle_action(&InputAction::OpenModelSelector, ctx);
-                });
-            }
-            _ToggleCloudModeDetailsPanel => {
-                let _ = ctx;
-            }
-            _CancelAmbientAgentTask => {
-                let _ = ctx;
-            }
-            _ToggleUsageFooter => {
-                let _ = ctx;
-            }
-            ToggleSessionRecording => {
-                self.pty_recorder.update(ctx, |recorder, ctx| {
-                    recorder.toggle_recording(ctx);
-                });
             }
         }
     }

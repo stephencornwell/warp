@@ -58,13 +58,11 @@ use crate::{
         SaveOutcome, ShowFindReferencesCardProvider,
     },
     debounce::debounce,
-    settings::AISettings,
     terminal::TerminalView,
     util::sync::Condition,
 };
 use crate::{
-    code::{editor::EditorReviewComment, global_buffer_model::GlobalBufferModelEvent},
-    code_review::comments::CommentId,
+    code::global_buffer_model::GlobalBufferModelEvent,
 };
 use ai::diff_validation::DiffType;
 use pathfinder_color::ColorU;
@@ -138,15 +136,6 @@ pub enum LocalCodeEditorEvent {
         /// The ID of the LSP server that produced this definition.
         /// Used to register external files with the correct server.
         source_server_id: LanguageServerId,
-    },
-    /// Emitted when a comment is saved. This propagates the comment content
-    /// changes to the CodeReviewView, which will update the comment model.
-    CommentSaved {
-        comment: EditorReviewComment,
-    },
-    RequestOpenComment(CommentId),
-    DeleteComment {
-        id: CommentId,
     },
     /// Emitted when the viewport is updated after layout
     ViewportUpdated,
@@ -423,17 +412,6 @@ impl LocalCodeEditorView {
                         me.lsp_hover_state = LspHoverState::Loading(None);
                     }
                 }
-            }
-            CodeEditorEvent::CommentSaved { comment } => {
-                ctx.emit(LocalCodeEditorEvent::CommentSaved {
-                    comment: comment.clone(),
-                });
-            }
-            CodeEditorEvent::DeleteComment { id } => {
-                ctx.emit(LocalCodeEditorEvent::DeleteComment { id: *id });
-            }
-            CodeEditorEvent::RequestOpenComment(uuid) => {
-                ctx.emit(LocalCodeEditorEvent::RequestOpenComment(*uuid));
             }
             CodeEditorEvent::ViewportUpdated => {
                 ctx.emit(LocalCodeEditorEvent::ViewportUpdated);
@@ -2113,9 +2091,7 @@ impl View for LocalCodeEditorView {
         if self.selection_as_context_tooltip.is_some() {
             // When a single terminal exists in the window and the user has made a selection (but isn't currently selecting),
             // we render a tooltip that allows them to add the selected text to the terminal context.
-            let is_ai_enabled = AISettings::as_ref(app).is_any_ai_enabled(app);
-            if is_ai_enabled
-                && FeatureFlag::SelectionAsContext.is_enabled()
+            if FeatureFlag::SelectionAsContext.is_enabled()
                 && !editor.is_selecting()
             {
                 let tooltip = self.render_selection_tooltip(app);

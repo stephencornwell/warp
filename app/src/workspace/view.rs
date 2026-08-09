@@ -123,7 +123,7 @@ use crate::resource_center::{
 use crate::reward_view::{RewardEvent, RewardKind, RewardView};
 use crate::root_view::{quake_mode_window_id, NewWorkspaceSource, OpenLaunchConfigArg};
 use crate::search::command_search::searcher::{
-    AcceptedHistoryItem, AcceptedWorkflow, CommandSearchItemAction,
+    AcceptedHistoryItem, CommandSearchItemAction,
 };
 use crate::search::command_search::view::{CommandSearchEvent, CommandSearchView};
 use crate::server::ids::{ObjectUid, ServerId, SyncId};

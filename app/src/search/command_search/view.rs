@@ -387,14 +387,8 @@ impl CommandSearchView {
         {
             use CommandSearchItemAction::*;
             let was_immediately_executed = match &result_action {
-                ExecuteHistory(_) | RunAIQuery(_) => true,
-
-                AcceptHistory(_)
-                | AcceptWorkflow(_)
-                | AcceptNotebook(_)
-                | OpenWarpAI
-                | TranslateUsingWarpAI
-                | AcceptAIQuery(_) => false,
+                ExecuteHistory(_) => true,
+                AcceptHistory(_) => false,
             };
 
             let (a11y_content, a11y_help_content) = if was_immediately_executed {

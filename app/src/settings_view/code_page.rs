@@ -1,3 +1,4 @@
+use crate::report_if_error;
 use super::features::external_editor::ExternalEditorView;
 use super::{
     flags,

@@ -879,7 +879,6 @@ impl Workspace {
         ctx.subscribe_to_view(&editor, |me, editor_view, event, ctx| match event {
             EditorEvent::Edited(_) => {
                 me.worktree_sidecar_search_query = editor_view.as_ref(ctx).buffer_text(ctx);
-                me.refresh_worktree_sidecar_if_active(ctx);
                 ctx.notify();
             }
             EditorEvent::Escape => {
@@ -3167,10 +3166,6 @@ impl Workspace {
 
                 crate::util::file::open_file_path_in_external_editor(line_col, path.clone(), ctx);
             }
-            FileTarget::CodeEditor(layout) => {
-                let open_as_preview = false;
-                self.open_code(code_source, layout, line_col, open_as_preview, &[], ctx);
-            }
             FileTarget::ExternalEditor(editor) => {
                 crate::util::file::open_file_path_with_editor(
                     line_col,
@@ -3626,17 +3621,6 @@ impl Workspace {
         );
     }
 
-    fn attach_path_as_context(&mut self, path: PathBuf, ctx: &mut ViewContext<Self>) {
-        let Some(view) = self.active_session_view(ctx) else {
-            log::warn!("No active terminal view session when trying to attach path as context");
-            return;
-        };
-
-        view.update(ctx, |terminal_view, ctx| {
-            terminal_view.attach_path_as_context(&path, ctx);
-        });
-    }
-
     fn cd_to_directory(&mut self, path: PathBuf, ctx: &mut ViewContext<Self>) {
         let Some(input_handle) = self.get_active_input_view_handle(ctx) else {
             log::warn!("No active input view when trying to cd to directory");
@@ -3986,12 +3970,7 @@ impl Workspace {
             MenuEvent::Close { .. } => {
                 self.close_new_session_dropdown_menu(ctx);
             }
-            MenuEvent::ItemHovered => {
-                self.update_new_session_sidecar(ctx);
-            }
-            MenuEvent::ItemSelected => {
-                self.update_new_session_sidecar(ctx);
-            }
+            MenuEvent::ItemHovered | MenuEvent::ItemSelected => {}
         }
     }
 
@@ -5187,50 +5166,6 @@ impl Workspace {
         }
     }
 
-    /// Closes all tabs that have code panes with the specified file path open.
-    /// This is used when a file is renamed or deleted in the file tree
-    #[cfg(feature = "local_fs")]
-    fn close_tabs_with_file_path(&mut self, old_path: &Path, ctx: &mut ViewContext<Self>) {
-        // Find all code panes across all tabs that have this file open
-        for tab_data in &self.tabs {
-            // Check if this tab has any code panes with the old file path open
-            tab_data.pane_group.update(ctx, |pane_group, ctx| {
-                // Collect code panes first to avoid borrowing issues
-                let code_panes: Vec<_> = pane_group.code_panes(ctx).collect();
-                for (_, code_pane) in code_panes {
-                    code_pane.update(ctx, |code_view, ctx| {
-                        code_view.close_tabs_with_path(old_path, ctx);
-                    });
-                }
-            });
-        }
-
-        ctx.notify();
-    }
-
-    /// Renames all open code tabs that point to `old_path` to now point to `new_path`,
-    /// updating their contents in-place rather than closing them.
-    #[cfg(feature = "local_fs")]
-    fn rename_tabs_with_file_path(
-        &mut self,
-        old_path: &Path,
-        new_path: &Path,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        for tab_data in &self.tabs {
-            tab_data.pane_group.update(ctx, |pane_group, ctx| {
-                // Collect code panes first to avoid borrowing issues
-                let code_panes: Vec<_> = pane_group.code_panes(ctx).collect();
-                for (_, code_pane) in code_panes {
-                    code_pane.update(ctx, |code_view, ctx| {
-                        code_view.rename_tabs_with_path(old_path, new_path, ctx);
-                    });
-                }
-            });
-        }
-        ctx.notify();
-    }
-
     /// Update this workspace when it is reopened after being closed.
     pub fn handle_reopen(&mut self, ctx: &mut ViewContext<Self>) {
         self.sync_window_button_visibility(ctx);
@@ -5318,16 +5253,6 @@ impl Workspace {
         ctx: &mut ViewContext<Self>,
     ) {
         // Check if we should default to agent mode (only for new sessions, not restorations)
-        let should_enter_agent_view = false;
-        #[cfg(feature = "local_tty")]
-        let is_docker_sandbox = chosen_shell
-            .as_ref()
-            .is_some_and(AvailableShell::is_docker_sandbox);
-        #[cfg(not(feature = "local_tty"))]
-        let is_docker_sandbox = {
-            let _ = chosen_shell.as_ref();
-            false
-        };
 
         let startup_directory = self.get_new_tab_startup_directory(
             new_session_source,
@@ -5348,24 +5273,6 @@ impl Workspace {
             ctx,
         );
 
-        #[cfg(all(feature = "local_tty", not(target_family = "wasm")))]
-        if is_docker_sandbox {
-            if let Some(terminal_view) = self
-                .active_tab_pane_group()
-                .as_ref(ctx)
-                .active_session_view(ctx)
-            {
-                TerminalView::initialize_docker_sandbox_environment(&terminal_view, ctx);
-            } else {
-                log::warn!("Could not find docker sandbox terminal view after creating new tab");
-            }
-        }
-        #[cfg(not(all(feature = "local_tty", not(target_family = "wasm"))))]
-        let _ = is_docker_sandbox;
-        // If the default session mode is Agent and AI is enabled, enter agent view
-        if should_enter_agent_view {
-            self.enter_agent_view_on_active_tab(ctx);
-        }
     }
 
     /// Enters agent view with a new conversation on the active tab's terminal.
@@ -5398,7 +5305,6 @@ impl Workspace {
                 self.tips_completed.clone(),
                 self.user_default_shell_unsupported_banner_model_handle
                     .clone(),
-                self.server_api.clone(),
                 panes_layout,
                 block_lists,
                 self.model_event_sender.clone(),
@@ -5479,7 +5385,6 @@ impl Workspace {
                 self.tips_completed.clone(),
                 self.user_default_shell_unsupported_banner_model_handle
                     .clone(),
-                self.server_api.clone(),
                 self.model_event_sender.clone(),
                 ctx,
             )
@@ -6014,26 +5919,12 @@ impl Workspace {
             .terminal_view_working_directories(ctx)
             .filter_map(|(id, cwd)| cwd.map(|c| (id, c)))
             .collect();
-        let code_local_paths: Vec<(EntityId, String)> = pane_group
-            .as_ref(ctx)
-            .code_view_local_paths(ctx)
-            .filter_map(|(id, cwd)| cwd.map(|c| (id, c)))
-            .collect();
-        let code_diff_local_paths: Vec<(EntityId, String)> = pane_group
-            .as_ref(ctx)
-            .code_diff_view_local_paths(ctx)
-            .filter_map(|(id, cwd)| cwd.map(|c| (id, c)))
-            .collect();
         let notebook_local_paths: Vec<(EntityId, String)> = pane_group
             .as_ref(ctx)
             .file_notebook_local_paths(ctx)
             .filter_map(|(id, cwd)| cwd.map(|c| (id, c)))
             .collect();
-        let local_paths: Vec<(EntityId, String)> = code_local_paths
-            .into_iter()
-            .chain(notebook_local_paths)
-            .chain(code_diff_local_paths)
-            .collect();
+        let local_paths: Vec<(EntityId, String)> = notebook_local_paths;
 
         // Get the focused terminal ID to prioritize it in the repo_to_terminal map
         let focused_terminal_id = pane_group
@@ -6234,29 +6125,6 @@ impl Workspace {
                     }
                 }
             }
-            #[cfg(feature = "local_fs")]
-            pane_group::Event::RemoteRepoNavigated {
-                host_id,
-                indexed_path,
-            } => {
-                use warp_util::standardized_path::StandardizedPath;
-
-                if let Ok(std_path) = StandardizedPath::try_new(indexed_path) {
-                    let remote_id = RemoteRepositoryIdentifier::new(host_id.clone(), std_path);
-                    let pane_group_id = pane_group.id();
-                    if let Some(file_tree_view) = self
-                        .working_directories_model
-                        .as_ref(ctx)
-                        .get_file_tree_view(pane_group_id)
-                    {
-                        file_tree_view.update(ctx, |view, ctx| {
-                            view.set_remote_root_directories(std::slice::from_ref(&remote_id), ctx);
-                        });
-                    }
-                }
-            }
-            #[cfg(not(feature = "local_fs"))]
-            pane_group::Event::RemoteRepoNavigated { .. } => {}
             pane_group::Event::SwitchTabFocusAndMovePane {
                 tab_idx,
                 pane_id,
@@ -6274,14 +6142,7 @@ impl Workspace {
                 // If a code pane is being dragged over a workspace tab with an existing code pane,
                 // we don't allow it to be placed freely. Instead, it should be merged into the existing
                 // code pane in the target tab (handled above in the OverTab case).
-                let should_not_move_pane = prefers_tabbed_editor_view
-                    && pane_id.is_code_pane()
-                    && self
-                        .get_pane_group_view(*tab_idx)
-                        .map(|target_pane_group| {
-                            target_pane_group.read(ctx, |pane_group, _| pane_group.has_code_panes())
-                        })
-                        .unwrap_or(false);
+                let should_not_move_pane = false;
 
                 // If we are already on this tab, then we should just make sure the pane is hidden.
                 if self.active_tab_index() == *tab_idx || should_not_move_pane {
@@ -6383,14 +6244,6 @@ impl Workspace {
                     },
                     ctx,
                 );
-            }
-            #[cfg(feature = "local_fs")]
-            pane_group::Event::FileRenamed { old_path, new_path } => {
-                self.rename_tabs_with_file_path(old_path, new_path, ctx);
-            }
-            #[cfg(feature = "local_fs")]
-            pane_group::Event::FileDeleted { path } => {
-                self.close_tabs_with_file_path(path, ctx);
             }
             pane_group::Event::LeftPanelToggled { is_open } => {
                 // Only handle visibility changes from the active pane group.
@@ -9320,13 +9173,6 @@ ScrollToSettingsWidget { page, widget_id } => {
                 });
             }
             #[cfg(feature = "local_fs")]
-            FileRenamed { old_path, new_path } => {
-                self.rename_tabs_with_file_path(old_path, new_path, ctx);
-            }
-            #[cfg(feature = "local_fs")]
-            FileDeleted { path } => {
-                self.close_tabs_with_file_path(path, ctx);
-            }
             #[cfg(debug_assertions)]
             OpenBuildPlanMigrationModal => {
                 // Force open the modal for debugging

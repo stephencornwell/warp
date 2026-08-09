@@ -72,7 +72,6 @@ mod view_components;
 mod vim_registers;
 mod warp_managed_paths_watcher;
 mod window_settings;
-mod word_block_editor;
 
 // PLEASE DO NOT ADD MORE PUBLIC MODULES!
 //

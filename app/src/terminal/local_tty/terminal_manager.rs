@@ -1,6 +1,5 @@
 use crate::terminal::model::terminal_model::ExitReason;
 use crate::terminal::shell::ShellName;
-use crate::terminal::warpify::settings::WarpifySettings;
 use crate::terminal::TerminalManager as _;
 use anyhow::Context as _;
 use async_broadcast::InactiveReceiver;
@@ -19,7 +18,6 @@ use session_sharing_protocol::sharer::{
 use crate::editor::CrdtOperation;
 use crate::network::{NetworkStatusEvent, NetworkStatusKind};
 use crate::terminal::available_shells::{AvailableShell, AvailableShells};
-use crate::terminal::shared_session::permissions_manager::SessionPermissionsManager;
 use crate::terminal::ShellLaunchData;
 use crate::terminal::ShellLaunchState;
 use crate::view_components::ToastFlavor;
@@ -27,9 +25,6 @@ use crate::view_components::ToastFlavor;
 use parking_lot::{FairMutex, Mutex};
 use pathfinder_geometry::vector::Vector2F;
 
-use crate::terminal::cli_agent_sessions::{
-    CLIAgentInputState, CLIAgentSessionsModel, CLIAgentSessionsModelEvent,
-};
 use session_sharing_protocol::common::{
     ActivePrompt, AgentPromptFailureReason, CLIAgentSessionState, CommandExecutionFailureReason,
     ControlAction, ControlActionFailureReason, SelectedAgentModel,
@@ -45,14 +40,6 @@ use warpui::{AppContext, ModelContext, ModelHandle, SingletonEntity, ViewHandle,
 
 use warp_core::execution_mode::AppExecutionMode;
 
-use crate::ai::active_agent_views_model::ActiveAgentViewsModel;
-use crate::ai::agent::conversation::AIConversation;
-use crate::ai::blocklist::agent_view::{AgentViewController, AgentViewControllerEvent};
-use crate::ai::blocklist::{
-    BlocklistAIContextEvent, BlocklistAIContextModel, BlocklistAIControllerEvent,
-    BlocklistAIHistoryEvent, BlocklistAIHistoryModel, InputConfig, SerializedBlockListItem,
-};
-use crate::terminal::view::ConversationRestorationInNewPaneType;
 
 use crate::banner::BannerState;
 use crate::context_chips::current_prompt::CurrentPrompt;

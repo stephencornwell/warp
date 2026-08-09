@@ -21,6 +21,12 @@ use std::{any::Any, fmt::Display};
 use crate::pane_group::focus_state::PaneFocusHandle;
 use crate::pane_group::pane::get_started_view::GetStartedView;
 use crate::view_components::action_button::ActionButton;
+use crate::{
+    menu::MenuItem,
+    settings::PaneSettings,
+    settings_view::{environments_page::EnvironmentsPageView, SettingsView},
+    terminal::{available_shells::AvailableShell, TerminalView},
+};
 use serde::{Deserialize, Serialize};
 use url::Url;
 use warp_core::HostId;

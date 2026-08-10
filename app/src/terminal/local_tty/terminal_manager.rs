@@ -452,7 +452,6 @@ impl TerminalManager {
         }
 
         self.view.update(ctx, |terminal_view, ctx| {
-            terminal_view.on_shell_determined(ctx);
             terminal_view.on_active_shell_launch_data_updated(Some(shell_launch_data), ctx);
         });
 

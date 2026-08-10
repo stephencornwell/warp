@@ -2796,9 +2796,8 @@ impl Workspace {
         }
 
         match target {
-            FileTarget::CodeEditor(_) => {}
-            FileTarget::MarkdownViewer(layout) => {
-                let _ = (path, layout);
+            FileTarget::CodeEditor(_) | FileTarget::MarkdownViewer(_) => {
+                crate::util::file::open_file_path_in_external_editor(line_col, path, ctx);
             }
             FileTarget::EnvEditor => {
                 let editor_value: Option<String> = self
@@ -5313,8 +5312,8 @@ impl Workspace {
                 self.update_active_session(ctx);
                 ctx.notify();
             }
-            pane_group::Event::OpenFileInWarp { path, session } => {
-                let _ = (path, session);
+            pane_group::Event::OpenFileInWarp { path, .. } => {
+                ctx.open_file_path(path);
             }
             pane_group::Event::CDToDirectory { path } => {
                 self.cd_to_directory(path.clone(), ctx);

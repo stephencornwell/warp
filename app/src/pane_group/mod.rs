@@ -1094,7 +1094,6 @@ impl PaneGroup {
         user_default_shell_unsupported_banner_model_handle: ModelHandle<BannerState>,
         view_size: Vector2F,
         model_event_sender: Option<SyncSender<ModelEvent>>,
-        deferred_panes: &mut Vec<(PaneId, LeafSnapshot)>,
     ) -> anyhow::Result<(PaneData, InitialFocus)> {
         match root {
             PaneNodeSnapshot::Leaf(leaf) => Self::restore_pane_leaf(
@@ -1106,7 +1105,6 @@ impl PaneGroup {
                 user_default_shell_unsupported_banner_model_handle,
                 view_size,
                 model_event_sender,
-                deferred_panes,
             ),
             PaneNodeSnapshot::Branch(pane) => {
                 let mut len = 0;
@@ -1136,7 +1134,6 @@ impl PaneGroup {
                         user_default_shell_unsupported_banner_model_handle.clone(),
                         view_size,
                         model_event_sender.clone(),
-                        deferred_panes,
                     ) {
                         Ok((child, child_focus)) => {
                             len += child.len();
@@ -1171,8 +1168,6 @@ impl PaneGroup {
         user_default_shell_unsupported_banner_model_handle: ModelHandle<BannerState>,
         view_size: Vector2F,
         model_event_sender: Option<SyncSender<ModelEvent>>,
-        #[cfg_attr(not(feature = "local_fs"), allow(unused_variables, clippy::ptr_arg))]
-        _deferred_panes: &mut Vec<(PaneId, LeafSnapshot)>,
     ) -> anyhow::Result<(PaneData, InitialFocus)> {
         let result = match leaf.contents {
             LeafContents::Terminal(terminal_snapshot) => {
@@ -1308,18 +1303,6 @@ impl PaneGroup {
                 }
             }
         };
-
-        result
-    }
-
-    #[cfg_attr(not(feature = "local_fs"), allow(unused_variables, unused_mut))]
-    fn process_deferred_panes(
-        deferred_panes: Vec<(PaneId, LeafSnapshot)>,
-        result: (PaneData, InitialFocus),
-        pane_contents: &mut HashMap<PaneId, Box<dyn AnyPaneContent>>,
-        ctx: &mut ViewContext<Self>,
-    ) -> (PaneData, InitialFocus) {
-        let _ = (deferred_panes, pane_contents, ctx);
 
         result
     }
@@ -1735,7 +1718,6 @@ impl PaneGroup {
                     model_event_sender_clone,
                 ),
                 PanesLayout::Snapshot(panes_snapshot) => {
-                    let mut deferred_panes = Vec::new();
                     let result = Self::restore_pane_tree(
                         *panes_snapshot,
                         block_lists,
@@ -1745,7 +1727,6 @@ impl PaneGroup {
                         unsupported_banner_model_handle.clone(),
                         view_bounds.size(),
                         model_event_sender_clone.clone(),
-                        &mut deferred_panes,
                     )
                     .unwrap_or_else(|err| {
                         log::warn!("Error restoring pane tree: {err:#}");
@@ -1763,7 +1744,7 @@ impl PaneGroup {
                         )
                     });
 
-                    Self::process_deferred_panes(deferred_panes, result, pane_contents, ctx)
+                    result
                 }
                 PanesLayout::SingleTerminal(options) => Self::initial_single_terminal_pane(
                     *options,

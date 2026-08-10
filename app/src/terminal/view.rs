@@ -14,8 +14,6 @@ mod tab_metadata;
 mod testing;
 mod tooltips;
 
-use warpui::clipboard_utils::get_image_filepaths_from_paths;
-
 use std::ops::Deref as _;
 
 pub use crate::terminal::view::rich_content::{
@@ -353,8 +351,6 @@ const BOOKMARK_INDICATOR_HEIGHT: f32 = 4.;
 const BRACKETED_PASTE_PREFIX: &str = "\x1b[200~";
 const BRACKETED_PASTE_SUFFIX: &str = "\x1b[201~";
 
-/// Duration before we consider a session to have failed bootstrapping.
-const BOOTSTRAP_FAILED_DURATION: Duration = Duration::from_secs(7);
 const KNOWN_ISSUES_URL: &str =
     "https://docs.warp.dev/support-and-community/troubleshooting-and-support/known-issues";
 
@@ -3451,11 +3447,7 @@ impl TerminalView {
             ModelEvent::PreInteractiveSSHSession => {}
             ModelEvent::SSH(remote_shell) => {
                 if let Some(shell) = ShellType::from_name(remote_shell) {
-                    if shell.is_fully_supported_remotely() {
-                        // Start a bootstrap timer for the SSH session, so we can log when the session
-                        // takes too long to initialize
-                        self.start_bootstrap_timer(BOOTSTRAP_FAILED_DURATION, ctx);
-                    }
+                    if shell.is_fully_supported_remotely() {}
                 }
             }
             ModelEvent::SSHControlMasterError => {
@@ -3990,11 +3982,6 @@ impl TerminalView {
         }
     }
 
-    #[cfg(not(target_family = "wasm"))]
-    pub(super) fn on_shell_determined(&self, ctx: &mut ViewContext<Self>) {
-        self.start_bootstrap_timer(BOOTSTRAP_FAILED_DURATION, ctx);
-    }
-
     pub fn is_login_shell_bootstrapped(&self) -> bool {
         self.is_login_shell_bootstrapped
     }
@@ -4014,11 +4001,6 @@ impl TerminalView {
         self.pty_spawn_failed = true;
         let _ = pty_spawn_error;
         ctx.notify();
-    }
-
-    /// Start a timer so that we can detect when a session does not bootstrap in a timely manner
-    fn start_bootstrap_timer(&self, duration: Duration, ctx: &mut ViewContext<Self>) {
-        let _ = (duration, ctx);
     }
 
     /// Called once the bootstrap timer completes
@@ -8918,15 +8900,6 @@ impl TerminalView {
             .block_list()
             .active_block()
             .is_active_and_long_running();
-
-        let image_filepaths = get_image_filepaths_from_paths(paths);
-
-        if !is_in_long_running_command {
-            // Check for image file paths to be auto-attached
-            let num_images = image_filepaths.len();
-
-            let _ = (num_images, image_filepaths);
-        }
 
         let Some(session) = self
             .active_block_session_id()

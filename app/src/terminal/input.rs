@@ -88,7 +88,6 @@ use warp_editor::editor::NavigationKey;
 use warp_util::path::ShellFamily;
 use warpui::{
     accessibility::{AccessibilityContent, ActionAccessibilityContent, WarpA11yRole},
-    clipboard::ClipboardContent,
     elements::{
         resizable_state_handle, AnchorPair, Clipped, ConstrainedBox, Container,
         DispatchEventResult, DropTargetData, Element, EventHandler, MouseStateHandle, OffsetType,
@@ -2362,30 +2361,6 @@ impl Input {
         }
     }
 
-    /// Process paste event by checking clipboard for images and handling appropriately.
-    fn process_paste_event(&mut self, ctx: &mut ViewContext<Self>) {
-        let content = ctx.clipboard().read();
-        self.insert_clipboard_text_content(ctx, content);
-    }
-
-    /// Insert clipboard text content (paths / plaintext)
-    fn insert_clipboard_text_content(
-        &self,
-        ctx: &mut ViewContext<Self>,
-        content: ClipboardContent,
-    ) {
-        let clipboard_content_str = self
-            .editor
-            .read(ctx, |editor, _| editor.clipboard_text_content(content));
-        self.editor.update(ctx, |editor, ctx| {
-            editor.user_initiated_insert(
-                &clipboard_content_str,
-                PlainTextEditorViewAction::Paste,
-                ctx,
-            );
-        });
-    }
-
     /// Check if we can attach on filepaths paste or drag-drop
     fn update_tab_completion_menu(
         &self,
@@ -2511,29 +2486,6 @@ impl Input {
         });
 
         ctx.notify();
-    }
-
-    fn update_last_word_insertion_state(&mut self) {
-        // If an `InsertLastWordPrevCommand` action is received, its handler method will set
-        // `is_latest_editor_event` on `self.last_word_insertion` to true, marking the following
-        // EditorEvent (buffer edited) received is from this insertion.
-        //
-        // Any other editor event means the following "last word" insert is not consecutive, so
-        // index is reset - the following insert will insert last word from most recent command
-        // in history, index 0 (After that, a consecutive insertion would increment to index 1,
-        // last word of second last command in history).
-        //
-        // If the last event was a last word insertion, we increment the
-        // `insert_command_from_history_index` on `self.last_word_insertion` to indicate
-        // consecutive inserts may be made (if so, insert from next earlier command in history).
-        // We then set `is_latest_editor_event` to false for the following editor event; if another
-        // last word insertion occurs, it is responsible for re-setting this boolean to true.
-        if self.last_word_insertion.is_latest_editor_event {
-            self.last_word_insertion.insert_command_from_history_index += 1;
-            self.last_word_insertion.is_latest_editor_event = false;
-        } else {
-            self.last_word_insertion.insert_command_from_history_index = 0;
-        }
     }
 
     fn history_commands<'b>(&self, ctx: &'b ViewContext<Input>) -> Vec<&'b HistoryEntry> {

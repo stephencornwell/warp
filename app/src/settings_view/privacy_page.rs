@@ -74,21 +74,8 @@ const USER_SECRET_REGEX_DESCRIPTION: &str =
     "Use regex to define additional secrets or data you'd like to redact. This will take effect \
     when the next command runs. You can use the inline (?i) flag as a prefix to your regex \
     to make it case-insensitive.";
-const DATA_MANAGEMENT_LINK_TEXT: &str = "Visit the data management page";
-
 const PRIVACY_POLICY_TITLE: &str = "Privacy policy";
 const PRIVACY_POLICY_LINK_TEXT: &str = "Read Warp's privacy policy";
-
-pub fn data_management_url(custom_token: Option<&str>) -> String {
-    match custom_token {
-        Some(token) => format!(
-            "{}/data_management?customToken={}",
-            ChannelState::server_root_url(),
-            token
-        ),
-        None => format!("{}/data_management", ChannelState::server_root_url(),),
-    }
-}
 
 pub struct PrivacyPageView {
     page: PageType<Self>,

@@ -20,7 +20,7 @@ use warpui::{
     },
     fonts::Weight,
     ui_components::components::{UiComponent, UiComponentStyles},
-    AppContext, SingletonEntity,
+    AppContext,
 };
 
 /// Renders vim status bar

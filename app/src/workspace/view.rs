@@ -446,7 +446,6 @@ type SerializedBlockListItem = crate::terminal::model::block::SerializedBlock;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 enum NewSessionSidecarSelection {
-    OpenWorktreeRepo { repo_path: String },
 }
 
 /// Controls the color palette used for a workspace banner.
@@ -3681,13 +3680,9 @@ impl Workspace {
     fn execute_new_session_sidecar_selection(
         &mut self,
         selection: NewSessionSidecarSelection,
-        ctx: &mut ViewContext<Self>,
+        _ctx: &mut ViewContext<Self>,
     ) {
-        match selection {
-            NewSessionSidecarSelection::OpenWorktreeRepo { repo_path } => {
-                self.open_worktree_in_repo(repo_path, ctx);
-            }
-        }
+        match selection {}
     }
 
     fn toggle_user_menu(&mut self, ctx: &mut ViewContext<Self>) {

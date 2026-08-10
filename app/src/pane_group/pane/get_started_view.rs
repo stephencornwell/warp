@@ -347,22 +347,3 @@ impl BackingView for GetStartedView {
         self.focus_handle = Some(focus_handle);
     }
 }
-
-fn update_active_terminal<F, S>(ctx: &mut ViewContext<GetStartedView>, func: F)
-where
-    F: FnOnce(&mut TerminalView, &mut ViewContext<TerminalView>) -> S,
-{
-    let window_id = ctx.window_id();
-    if let Some(workspaces) = ctx.views_of_type::<Workspace>(window_id) {
-        if let Some(workspace) = workspaces.into_iter().next() {
-            workspace.update(ctx, |workspace, ctx| {
-                let pane_group = workspace.active_tab_pane_group();
-                pane_group.update(ctx, |pane_group, ctx| {
-                    if let Some(active_terminal) = pane_group.active_session_view(ctx) {
-                        active_terminal.update(ctx, func);
-                    }
-                });
-            });
-        }
-    }
-}

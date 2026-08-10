@@ -112,17 +112,6 @@ impl Input {
         let _ = (completion_context, ctx);
     }
 
-    /// Applies background highlighting to slash command and skill command prefixes that should be
-    /// syntax highlighted.
-    fn apply_slash_command_prefix_highlighting(
-        &mut self,
-        buffer_text: &str,
-        ctx: &mut ViewContext<Self>,
-    ) -> bool {
-        let _ = (buffer_text, ctx);
-        false
-    }
-
     /// Computes information about the currently-entered command in a background
     /// task and then uses it to decorate the input, specifically applying
     /// styles for syntax highlighting and error underlining.
@@ -135,10 +124,6 @@ impl Input {
         if mode.no_jobs_to_run() {
             return;
         }
-
-        // We don't show input command decorations in AI mode, but we keep slash command prefix highlighting.
-        let buffer_text = self.editor.as_ref(ctx).buffer_text(ctx);
-        let _ = buffer_text;
 
         match self.completion_session_context_or_empty_context(ctx) {
             CompletionSessionContext::Session(completion_context) => {

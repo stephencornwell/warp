@@ -58,7 +58,6 @@ use {
 
 type PtyController = writeable_pty::PtyController<mio_channel::Sender<Message>>;
 
-
 /// The TerminalManager is responsible for
 /// - creating the terminal model
 /// - starting the local PTY

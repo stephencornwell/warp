@@ -615,8 +615,6 @@ pub struct CompleterData {
     pub sessions: ModelHandle<Sessions>,
     pub active_block_metadata: Option<BlockMetadata>,
     command_registry: Arc<CommandRegistry>,
-    #[cfg_attr(not(feature = "local_fs"), allow(dead_code))]
-    last_user_block_completed: Option<UserBlockCompleted>,
 }
 
 impl CompleterData {
@@ -624,13 +622,11 @@ impl CompleterData {
         sessions: ModelHandle<Sessions>,
         active_block_metadata: Option<BlockMetadata>,
         command_registry: Arc<CommandRegistry>,
-        last_user_block_completed: Option<UserBlockCompleted>,
     ) -> Self {
         Self {
             sessions,
             active_block_metadata,
             command_registry,
-            last_user_block_completed,
         }
     }
 
@@ -1154,7 +1150,6 @@ impl Input {
                 sessions.clone(),
                 None, // active_block_metadata will be set later when blocks are available
                 CommandRegistry::global_instance(),
-                None, // last_user_block_completed will be set later
             );
             completer_data.completion_session_context(ctx)
         };
@@ -1405,7 +1400,6 @@ impl Input {
             self.sessions.clone(),
             self.active_block_metadata.clone(),
             CommandRegistry::global_instance(),
-            self.last_user_block_completed.clone(),
         )
     }
 

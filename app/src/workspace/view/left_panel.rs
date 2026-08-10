@@ -2,7 +2,6 @@ use std::collections::HashSet;
 use std::path::PathBuf;
 
 use warp_core::ui::theme::color::internal_colors;
-use warp_util::path::LineAndColumnArg;
 use warpui::{
     elements::{
         resizable_state_handle, ChildView, ConstrainedBox, Container, CrossAxisAlignment,
@@ -20,7 +19,6 @@ use crate::pane_group::working_directories::WorkingDirectory;
 use crate::pane_group::{PaneGroup, WorkingDirectoriesEvent, WorkingDirectoriesModel};
 #[cfg(feature = "local_fs")]
 use crate::settings_view::keybindings::{KeybindingChangedEvent, KeybindingChangedNotifier};
-use crate::util::openable_file_type::FileTarget;
 use crate::workspace::view::global_search::view::{
     GlobalSearchEntryFocus, GlobalSearchView,
 };
@@ -31,7 +29,6 @@ use crate::workspace::view::{
 use crate::{
     appearance::Appearance,
     pane_group::pane::view::header::{components::HEADER_EDGE_PADDING, PANE_HEADER_HEIGHT},
-    pane_group::{self},
     terminal::resizable_data::{ModalType, ResizableData},
     ui_components::{
         buttons::{icon_button, icon_button_with_color},
@@ -57,14 +54,6 @@ pub enum LeftPanelAction {
 }
 
 pub enum LeftPanelEvent {
-    #[cfg_attr(not(feature = "local_fs"), allow(dead_code))]
-    FileTree(pane_group::Event),
-    #[cfg_attr(not(feature = "local_fs"), allow(dead_code))]
-    OpenFileWithTarget {
-        path: PathBuf,
-        target: FileTarget,
-        line_col: Option<LineAndColumnArg>,
-    },
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

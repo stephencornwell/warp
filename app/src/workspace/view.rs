@@ -20,7 +20,7 @@ use crate::terminal::session_settings::SessionSettings;
 use crate::workspace::toast_stack::ToastStack;
 use crate::workspace::view::global_search::view::GlobalSearchEntryFocus;
 use crate::workspace::view::left_panel::{
-    LeftPanelAction, LeftPanelEvent, LeftPanelView, ToolPanelView,
+    LeftPanelAction, LeftPanelView, ToolPanelView,
 };
 
 use crate::ui_components::window_focus_dimming::WindowFocusDimming;
@@ -1456,10 +1456,6 @@ impl Workspace {
                 left_panel_views.clone(),
                 ctx,
             )
-        });
-
-        ctx.subscribe_to_view(&left_panel_view, |me, _, event, ctx| {
-            me.handle_left_panel_event(event, ctx);
         });
 
         ctx.observe(&tips_completed, Workspace::on_tips_model_changed);
@@ -2932,28 +2928,6 @@ impl Workspace {
             }
             FileTarget::SystemGeneric => {
                 ctx.open_file_path(&path);
-            }
-        }
-    }
-
-    fn handle_left_panel_event(&mut self, event: &LeftPanelEvent, ctx: &mut ViewContext<Self>) {
-        match event {
-            LeftPanelEvent::FileTree(pane_group_event) => {
-                let pane_group = self.active_tab_pane_group().clone();
-                self.handle_file_tree_event(pane_group, pane_group_event, ctx);
-            }
-            LeftPanelEvent::OpenFileWithTarget {
-                path,
-                target,
-                line_col,
-            } => {
-                self.open_file_with_target(
-                    path.clone(),
-                    target.clone(),
-                    *line_col,
-                    CodeSource::FileTree { path: path.clone() },
-                    ctx,
-                );
             }
         }
     }

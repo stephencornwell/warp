@@ -2138,8 +2138,6 @@ impl FeaturesPageView {
             ));
         }
 
-        if FeatureFlag::AgentView.is_enabled() {
-        }
 
         editor_widgets.push(Box::new(TabKeyBehaviorWidget::default()));
 

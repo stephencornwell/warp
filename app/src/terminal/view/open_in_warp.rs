@@ -2,7 +2,6 @@ use crate::report_if_error;
 use std::{
     collections::HashSet,
     path::{Path, PathBuf},
-    sync::Arc,
 };
 
 use itertools::Itertools;
@@ -17,10 +16,8 @@ use warpui::{
 use crate::code::editor_management::CodeSource;
 use crate::{
     terminal::{
-        event::UserBlockCompleted,
         general_settings::GeneralSettings,
-        model::session::Session,
-        view::inline_banner::{OpenInWarpBannerAction, OpenInWarpBannerState},
+        view::inline_banner::OpenInWarpBannerAction,
     },
     util::openable_file_type::{is_file_openable_in_warp, OpenableFileType},
 };
@@ -35,7 +32,7 @@ use warp_completer::{
     signatures::CommandRegistry,
 };
 
-use super::{Event, InlineBannerItem, InlineBannerType, TerminalView};
+use super::{Event, TerminalView};
 
 #[cfg(test)]
 #[path = "open_in_warp_tests.rs"]
@@ -53,52 +50,6 @@ pub struct OpenablePath {
 }
 
 impl TerminalView {
-    pub(super) fn maybe_suggest_open_in_warp(
-        &mut self,
-        block_completed: &UserBlockCompleted,
-        ctx: &mut ViewContext<TerminalView>,
-    ) {
-        if let Some(active_block_metadata) = self.active_block_metadata.as_ref() {
-            let Some(session) = active_block_metadata
-                .session_id()
-                .and_then(|id| self.sessions.as_ref(ctx).get(id))
-            else {
-                return;
-            };
-            if !session.is_local() {
-                return;
-            }
-
-            let command = block_completed.command.clone();
-            let working_directory = active_block_metadata
-                .current_working_directory()
-                .map(Into::into);
-            let command_case_sensitivity = session.command_case_sensitivity();
-            let escape_char = session.shell_family().escape_char();
-            ctx.spawn(
-                async move {
-                    check_openable_in_warp(
-                        command,
-                        working_directory,
-                        command_case_sensitivity,
-                        escape_char,
-                    )
-                    .await
-                },
-                move |view, maybe_match, ctx| {
-                    if let Some(openable_path) = maybe_match {
-                        if matches!(
-                            openable_path.file_type,
-                            OpenableFileType::Markdown | OpenableFileType::Code
-                        ) {
-                            view.suggest_open_in_warp(openable_path, session, ctx);
-                        }
-                    }
-                },
-            );
-        }
-    }
-
     /// Whether or not the "Open in Warp" banner is open.
     #[cfg(feature = "integration_tests")]
     pub fn is_open_in_warp_banner_open(&self) -> bool {
@@ -110,55 +61,6 @@ impl TerminalView {
             .lock()
             .block_list_mut()
             .remove_inline_banner(banner_id);
-    }
-
-    fn open_in_warp_banner_type_dismissed(
-        &self,
-        file_type: OpenableFileType,
-        ctx: &ViewContext<Self>,
-    ) -> bool {
-        let general_settings = GeneralSettings::as_ref(ctx);
-        match file_type {
-            OpenableFileType::Markdown => {
-                *general_settings.open_in_warp_banner_dismissed_for_markdown
-            }
-            OpenableFileType::Code | OpenableFileType::Text => {
-                *general_settings.open_in_warp_banner_dismissed_for_code_and_text
-            }
-        }
-    }
-
-    /// Insert a suggestion banner for opening the file `openable_path`, originating from
-    /// `session`, in a Warp pane.
-    fn suggest_open_in_warp(
-        &mut self,
-        openable_path: OpenablePath,
-        session: Arc<Session>,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        if self.open_in_warp_banner_type_dismissed(openable_path.file_type, ctx) {
-            return;
-        }
-
-        // We only show a banner for the most recent command.
-        if let Some(prev_state) = &self.inline_banners_state.open_in_warp_banner {
-            self.close_open_in_warp_banner(prev_state.id);
-        }
-
-        let banner_id = self.inline_banners_state.next_banner_id();
-        self.inline_banners_state.open_in_warp_banner = Some(OpenInWarpBannerState::new(
-            banner_id,
-            openable_path,
-            session,
-        ));
-        self.model
-            .lock()
-            .block_list_mut()
-            .append_inline_banner(InlineBannerItem::new(
-                banner_id,
-                InlineBannerType::OpenInWarp,
-            ));
-        ctx.notify();
     }
 
     pub fn handle_open_in_warp_banner_action(

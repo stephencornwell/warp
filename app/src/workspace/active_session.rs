@@ -111,9 +111,6 @@ impl ActiveSession {
         }
     }
 
-    pub(super) fn close_workspace(&mut self, window_id: WindowId) {
-        self.window_sessions.remove(&window_id);
-    }
 }
 
 impl Entity for ActiveSession {

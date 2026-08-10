@@ -770,16 +770,12 @@ fn open_shared_session_as_viewer(session_id: &SessionId, ctx: &mut AppContext) {
 fn open_settings_page_in_new_window(section: &SettingsSection, ctx: &mut AppContext) {
     let root_handle = open_new_window_get_handles(None, ctx).1;
     root_handle.update(ctx, |root_view, ctx| {
-        if let AuthOnboardingState::Terminal(workspace_view_handle) =
-            &root_view.auth_onboarding_state
-        {
-            let window_id = ctx.window_id();
-            ctx.dispatch_typed_action_for_view(
-                window_id,
-                workspace_view_handle.id(),
-                &WorkspaceAction::ShowSettingsPage(*section),
-            );
-        }
+        let window_id = ctx.window_id();
+        ctx.dispatch_typed_action_for_view(
+            window_id,
+            root_view.workspace.id(),
+            &WorkspaceAction::ShowSettingsPage(*section),
+        );
     });
 }
 
@@ -834,13 +830,9 @@ fn open_new_tab_insert_subshell_command_and_bootstrap_if_supported(
     let root_view_handle = match root_view_handle {
         Some(root_view_handle) => {
             root_view_handle.update(ctx, |root_view, ctx| {
-                if let AuthOnboardingState::Terminal(workspace_view_handle) =
-                    &root_view.auth_onboarding_state
-                {
-                    workspace_view_handle.update(ctx, |workspace, ctx| {
-                        workspace.add_terminal_tab(false /* hide_homepage */, ctx);
-                    });
-                }
+                root_view.workspace.update(ctx, |workspace, ctx| {
+                    workspace.add_terminal_tab(false /* hide_homepage */, ctx);
+                });
             });
             root_view_handle
         }
@@ -1209,12 +1201,8 @@ struct WorkspaceArgs {
     workspace_setting: NewWorkspaceSource,
 }
 
-enum AuthOnboardingState {
-    Terminal(ViewHandle<Workspace>),
-}
-
 pub struct RootView {
-    auth_onboarding_state: AuthOnboardingState,
+    workspace: ViewHandle<Workspace>,
     #[cfg(target_family = "wasm")]
     web_handoff_view: ViewHandle<WebHandoffView>,
     pub model_event_sender: Option<SyncSender<ModelEvent>>,
@@ -1238,8 +1226,7 @@ impl RootView {
             workspace_setting,
         };
 
-        let auth_onboarding_state =
-            AuthOnboardingState::Terminal(workspace_args.create_workspace(ctx));
+        let workspace = workspace_args.create_workspace(ctx);
 
         #[cfg(target_family = "wasm")]
         let web_handoff_view = {
@@ -1249,7 +1236,7 @@ impl RootView {
         };
 
         let root_view = Self {
-            auth_onboarding_state,
+            workspace,
             #[cfg(target_family = "wasm")]
             web_handoff_view,
             model_event_sender,
@@ -1262,17 +1249,13 @@ impl RootView {
 
     /// Used for integration tests.
     pub fn workspace_view(&self) -> Option<&ViewHandle<Workspace>> {
-        match &self.auth_onboarding_state {
-            AuthOnboardingState::Terminal(workspace) => Some(workspace),
-            _ => None,
-        }
+        Some(&self.workspace)
     }
 
     // Switch to Auth Screen while destroying Workspace.
     fn log_out(&mut self, _: &(), ctx: &mut ViewContext<Self>) -> bool {
-        if let AuthOnboardingState::Terminal(workspace) = &self.auth_onboarding_state {
-            workspace.update(ctx, |workspace, ctx| workspace.on_log_out(ctx));
-        }
+        self.workspace
+            .update(ctx, |workspace, ctx| workspace.on_log_out(ctx));
         ctx.focus_self();
         ctx.notify();
         true
@@ -1322,11 +1305,9 @@ impl RootView {
         ctx.windows().show_window_and_focus_app(window_id);
 
         // Focus the appropriate tab/pane.
-        if let AuthOnboardingState::Terminal(workspace) = &self.auth_onboarding_state {
-            workspace.update(ctx, |view, ctx| {
-                view.focus_pane(*pane_view_locator, ctx);
-            });
-        }
+        self.workspace.update(ctx, |view, ctx| {
+            view.focus_pane(*pane_view_locator, ctx);
+        });
         true
     }
 
@@ -1343,32 +1324,24 @@ impl RootView {
     #[allow(clippy::ptr_arg)]
     fn add_session_at_path(&mut self, path: &PathBuf, ctx: &mut ViewContext<Self>) -> bool {
         let window_id = ctx.window_id();
-        if let AuthOnboardingState::Terminal(handle) = &self.auth_onboarding_state {
-            handle.update(ctx, |view, ctx| {
-                view.add_tab_with_pane_layout(
-                    PanesLayout::SingleTerminal(Box::new(
-                        NewTerminalOptions::default()
-                            .with_initial_directory_opt(path_if_directory(path).map(Into::into)),
-                    )),
-                    Arc::new(HashMap::new()),
-                    None,
-                    ctx,
-                );
-                ctx.windows().show_window_and_focus_app(window_id);
-                ctx.notify();
-            })
-        } else {
-            log::warn!("Auth not complete before trying to add new session at path");
-        }
+        self.workspace.update(ctx, |view, ctx| {
+            view.add_tab_with_pane_layout(
+                PanesLayout::SingleTerminal(Box::new(
+                    NewTerminalOptions::default()
+                        .with_initial_directory_opt(path_if_directory(path).map(Into::into)),
+                )),
+                Arc::new(HashMap::new()),
+                None,
+                ctx,
+            );
+            ctx.windows().show_window_and_focus_app(window_id);
+            ctx.notify();
+        });
         true
     }
 
     pub fn add_file_pane(&mut self, path: &PathBuf, ctx: &mut ViewContext<Self>) -> bool {
-        if let AuthOnboardingState::Terminal(handle) = &self.auth_onboarding_state {
-            let _ = (handle, path, ctx);
-        } else {
-            log::warn!("Auth not complete before trying to open file pane");
-        }
+        let _ = (path, ctx);
         true
     }
 
@@ -1381,18 +1354,14 @@ impl RootView {
         ctx: &mut ViewContext<Self>,
     ) -> bool {
         let window_id = ctx.window_id();
-        if let AuthOnboardingState::Terminal(handle) = &self.auth_onboarding_state {
-            handle.update(ctx, |workspace, ctx| {
-                workspace.insert_subshell_command_and_bootstrap_if_supported(
-                    &arg.command,
-                    arg.shell_type,
-                    ctx,
-                );
-                ctx.windows().show_window_and_focus_app(window_id);
-            })
-        } else {
-            log::warn!("Auth not complete before trying to fill input");
-        }
+        self.workspace.update(ctx, |workspace, ctx| {
+            workspace.insert_subshell_command_and_bootstrap_if_supported(
+                &arg.command,
+                arg.shell_type,
+                ctx,
+            );
+            ctx.windows().show_window_and_focus_app(window_id);
+        });
         true
     }
 
@@ -1400,16 +1369,12 @@ impl RootView {
     /// within the app.
     pub fn open_team_settings_page(&mut self, _: &(), ctx: &mut ViewContext<Self>) -> bool {
         let window_id = ctx.window_id();
-        if let AuthOnboardingState::Terminal(handle) = &self.auth_onboarding_state {
-            ctx.dispatch_typed_action_for_view(
-                window_id,
-                handle.id(),
-                &WorkspaceAction::ShowSettingsPage(SettingsSection::Teams),
-            );
-            ctx.windows().show_window_and_focus_app(window_id);
-        } else {
-            log::error!("Auth not complete before trying to open team settings page");
-        }
+        ctx.dispatch_typed_action_for_view(
+            window_id,
+            self.workspace.id(),
+            &WorkspaceAction::ShowSettingsPage(SettingsSection::Teams),
+        );
+        ctx.windows().show_window_and_focus_app(window_id);
         true
     }
 
@@ -1419,24 +1384,18 @@ impl RootView {
         ctx: &mut ViewContext<Self>,
     ) -> bool {
         let window_id = ctx.window_id();
-        if let AuthOnboardingState::Terminal(handle) = &self.auth_onboarding_state {
-            ctx.dispatch_typed_action_for_view(
-                window_id,
-                handle.id(),
-                &WorkspaceAction::ShowSettingsPage(*section),
-            );
-            ctx.windows().show_window_and_focus_app(window_id);
-        } else {
-            log::error!("Auth not complete before trying to open settings page {section:?}");
-        }
+        ctx.dispatch_typed_action_for_view(
+            window_id,
+            self.workspace.id(),
+            &WorkspaceAction::ShowSettingsPage(*section),
+        );
+        ctx.windows().show_window_and_focus_app(window_id);
         true
     }
 
     /// Opens a new tab with agent view for a Linear issue work deeplink.
     pub fn focus(&mut self, ctx: &mut ViewContext<Self>) -> bool {
-        if let AuthOnboardingState::Terminal(workspace) = &self.auth_onboarding_state {
-            ctx.focus(workspace);
-        }
+        ctx.focus(&self.workspace);
         ctx.notify();
         true
     }
@@ -1453,11 +1412,8 @@ impl RootView {
     fn traffic_light_data(&self, ctx: &AppContext) -> Option<TrafficLightData> {
         // The workspace view will handle rendering of the traffic lights (so
         // that they can be hidden when the tab bar is hidden).
-        if matches!(self.auth_onboarding_state, AuthOnboardingState::Terminal(_)) {
-            return None;
-        }
-
-        traffic_light_data(ctx, self.window_id)
+        let _ = ctx;
+        None
     }
 }
 
@@ -1482,9 +1438,7 @@ impl View for RootView {
     }
 
     fn render(&self, app: &AppContext) -> Box<dyn Element> {
-        let child = match &self.auth_onboarding_state {
-            AuthOnboardingState::Terminal(workspace) => ChildView::new(workspace).finish(),
-        };
+        let child = ChildView::new(&self.workspace).finish();
 
         let mut stack = Stack::new();
         stack.add_child(child);

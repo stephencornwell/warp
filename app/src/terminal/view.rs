@@ -9207,7 +9207,6 @@ impl TypedActionView for TerminalView {
             | NotificationsDiscoveryBanner(_)
             | NotificationsErrorBanner(_)
             | ToggleSnackbarInActivePane
-            | SetInputModeAgent
             | SetInputModeTerminal
             | HyperlinkClick { .. }
             | AttemptLoginGatedFeature
@@ -9514,9 +9513,6 @@ impl TypedActionView for TerminalView {
                     buffer_text: buffer_text.clone(),
                     results_tx: results_tx.clone(),
                 });
-            }
-            OpenTeamSettingsPage => {
-                ctx.emit(Event::OpenSettings(SettingsSection::Teams));
             }
             SetMarkedText {
                 marked_text,

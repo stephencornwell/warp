@@ -23,7 +23,7 @@ use features_page::{FeaturesPageView, FeaturesSettingsPageEvent};
 use itertools::Itertools as _;
 use keybindings::KeybindingsView;
 use main_page::{MainPageAction, MainSettingsPageEvent, MainSettingsPageView};
-use nav::{SettingsNavItem, SettingsUmbrella};
+use nav::SettingsNavItem;
 use pathfinder_geometry::vector::Vector2F;
 use privacy_page::{PrivacyPageView, PrivacyPageViewEvent};
 use settings_file_footer::{render_footer, SettingsFooterKind, SettingsFooterMouseStates};
@@ -138,9 +138,6 @@ pub enum SettingsSection {
     Features,
     Keybindings,
     Privacy,
-    Referrals,
-    Teams,
-    Warpify,
     /// Internal backing-page identifier for AISettingsPageView. Multiple subpages
     /// (WarpAgent, AgentProfiles, Knowledge, ThirdPartyCLIAgents) share this single
     /// backing page, so this variant is needed as the key in `settings_pages`.
@@ -157,10 +154,6 @@ pub enum SettingsSection {
     /// External callers should navigate to a specific subpage instead.
     Code,
     // ── Code umbrella subpages ──
-    CodeIndexing,
-    EditorAndCodeReview,
-    // ── Cloud platform umbrella subpages ──
-    CloudEnvironments,
 }
 
 use crate::util::bindings::custom_tag_to_keystroke;
@@ -175,9 +168,6 @@ impl Display for SettingsSection {
             SettingsSection::AgentProfiles => write!(f, "Profiles"),
             SettingsSection::Knowledge => write!(f, "Knowledge"),
             SettingsSection::ThirdPartyCLIAgents => write!(f, "Third party CLI agents"),
-            SettingsSection::CodeIndexing => write!(f, "Indexing and projects"),
-            SettingsSection::EditorAndCodeReview => write!(f, "Editor and Code Review"),
-            SettingsSection::CloudEnvironments => write!(f, "Environments"),
             _ => write!(f, "{self:?}"),
         }
     }
@@ -186,7 +176,7 @@ impl Display for SettingsSection {
 impl SettingsSection {
     /// Returns true if this section is a subpage under any umbrella.
     pub fn is_subpage(&self) -> bool {
-        self.is_ai_subpage() || self.is_code_subpage() || self.is_cloud_platform_subpage()
+        self.is_ai_subpage()
     }
 
     /// Returns true if this section is a subpage under the "Agents" umbrella.
@@ -197,16 +187,6 @@ impl SettingsSection {
         )
     }
 
-    /// Returns true if this section is a subpage under the "Code" umbrella.
-    pub fn is_code_subpage(&self) -> bool {
-        matches!(self, Self::CodeIndexing | Self::EditorAndCodeReview)
-    }
-
-    /// Returns true if this section is a subpage under the "Cloud platform" umbrella.
-    pub fn is_cloud_platform_subpage(&self) -> bool {
-        matches!(self, Self::CloudEnvironments)
-    }
-
     /// Maps subpage sections back to their parent page section for page lookup.
     /// Non-subpage sections return themselves.
     pub fn parent_page_section(&self) -> Self {
@@ -214,10 +194,6 @@ impl SettingsSection {
             // AgentMCPServers renders the standalone MCPServers page directly.
             // All other AI subpages render within the AI page.
             s if s.is_ai_subpage() => Self::AI,
-            // Code subpages render within the Code page.
-            s if s.is_code_subpage() => Self::Code,
-            // CloudEnvironments is its own backing page
-            // (1:1 mapping), so they return themselves.
             other => *other,
         }
     }
@@ -230,16 +206,6 @@ impl SettingsSection {
             Self::Knowledge,
             Self::ThirdPartyCLIAgents,
         ]
-    }
-
-    /// The ordered list of Code subpage sections shown under the Code umbrella.
-    pub fn code_subpages() -> &'static [Self] {
-        &[Self::CodeIndexing, Self::EditorAndCodeReview]
-    }
-
-    /// The ordered list of Cloud platform subpage sections.
-    pub fn cloud_platform_subpages() -> &'static [Self] {
-        &[Self::CloudEnvironments]
     }
 }
 
@@ -257,17 +223,11 @@ impl FromStr for SettingsSection {
             "Features" => Ok(Self::Features),
             "Keyboard shortcuts" => Ok(Self::Keybindings),
             "Privacy" => Ok(Self::Privacy),
-            "Referrals" => Ok(Self::Referrals),
-            "Teams" => Ok(Self::Teams),
-            "Warpify" => Ok(Self::Warpify),
             // This page was called "Oz" at one point, keep for backward compatibility.
             "Oz" | "Warp Agent" => Ok(Self::WarpAgent),
             "Profiles" | "AgentProfiles" => Ok(Self::AgentProfiles),
             "Knowledge" => Ok(Self::Knowledge),
             "Third party CLI agents" | "ThirdPartyCLIAgents" => Ok(Self::ThirdPartyCLIAgents),
-            "Indexing and projects" | "CodeIndexing" => Ok(Self::CodeIndexing),
-            "Editor and Code Review" | "EditorAndCodeReview" => Ok(Self::EditorAndCodeReview),
-            "CloudEnvironments" => Ok(Self::CloudEnvironments),
             _ => Err(()),
         }
     }
@@ -989,23 +949,9 @@ impl SettingsView {
         // Build sidebar nav items.
         let mut nav_items = vec![
             SettingsNavItem::Page(SettingsSection::BillingAndUsage),
-            SettingsNavItem::Umbrella(SettingsUmbrella::new(
-                "Code",
-                vec![
-                    SettingsSection::CodeIndexing,
-                    SettingsSection::EditorAndCodeReview,
-                ],
-            )),
-            SettingsNavItem::Umbrella(SettingsUmbrella::new(
-                "Cloud platform",
-                vec![SettingsSection::CloudEnvironments],
-            )),
-            SettingsNavItem::Page(SettingsSection::Teams),
             SettingsNavItem::Page(SettingsSection::Appearance),
             SettingsNavItem::Page(SettingsSection::Features),
             SettingsNavItem::Page(SettingsSection::Keybindings),
-            SettingsNavItem::Page(SettingsSection::Warpify),
-            SettingsNavItem::Page(SettingsSection::Referrals),
             SettingsNavItem::Page(SettingsSection::Privacy),
             SettingsNavItem::Page(SettingsSection::About),
         ];
@@ -1013,7 +959,6 @@ impl SettingsView {
         // Resolve the initial page: map internal backing-page sections to their default subpage.
         let initial_page = match page {
             Some(SettingsSection::AI) => SettingsSection::Account,
-            Some(SettingsSection::Code) => SettingsSection::CodeIndexing,
             Some(section) if section.is_subpage() => section,
             other => other.unwrap_or_default(),
         };
@@ -1415,7 +1360,6 @@ impl SettingsView {
         // External callers should use subpage variants directly.
         let section = match section {
             SettingsSection::AI => SettingsSection::WarpAgent,
-            SettingsSection::Code => SettingsSection::CodeIndexing,
             other => other,
         };
 

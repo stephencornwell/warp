@@ -168,9 +168,6 @@ pub const INPUT_A11Y_LABEL: &str = "Command Input.";
 pub const INPUT_A11Y_HELPER: &str = "Input your shell command, press enter to execute. Press cmd-up to navigate to output of previously executed commands. Press cmd-l to re-focus command input.";
 pub const AI_COMMAND_SEARCH_HINT_TEXT: &str = "Type '#' for AI command suggestions";
 
-/// Action name for setting input mode to agent mode
-pub const SET_INPUT_MODE_AGENT_ACTION_NAME: &str = "input:set_mode_agent";
-
 /// Action name for setting input mode to terminal mode
 pub const SET_INPUT_MODE_TERMINAL_ACTION_NAME: &str = "input:set_mode_terminal";
 

@@ -1,7 +1,6 @@
 use std::fmt::Display;
 use warpui::ui_components::button::ButtonVariant;
 
-use super::teams_page::TeamsPageAction;
 use crate::cloud_object::model::persistence::CloudModel;
 use crate::workspaces::team::Team;
 use crate::Appearance;

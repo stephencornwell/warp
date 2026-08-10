@@ -153,12 +153,6 @@ pub fn init(app: &mut AppContext) {
                 )
                 .with_context_predicate(id!("Workspace")),
                 EditableBinding::new(
-                    "workspace:reset_openwarp_launch_modal_state",
-                    "[Debug] Reset OpenWarp Launch Modal State",
-                    WorkspaceAction::ResetOpenWarpLaunchModalState,
-                )
-                .with_context_predicate(id!("Workspace")),
-                EditableBinding::new(
                     "workspace:install_opencode_warp_plugin",
                     "[Debug] Install OpenCode Warp plugin",
                     WorkspaceAction::InstallOpenCodeWarpPlugin,
@@ -527,16 +521,6 @@ pub fn init(app: &mut AppContext) {
         .with_group(bindings::BindingGroup::Settings.as_str())
         .with_context_predicate(id!("Workspace")),
         EditableBinding::new(
-            "workspace:create_team_folder",
-            BindingDescription::new("Create a new team folder")
-                .with_custom_description(bindings::MAC_MENUS_CONTEXT, "New Team Folder"),
-            WorkspaceAction::CreateTeamFolder,
-        )
-        .with_context_predicate(
-            id!("Workspace") & id!("Workspace") & id!("IsOnline") & id!("WarpDrive_BelongsToTeam"),
-        )
-        .with_group(bindings::BindingGroup::Folders.as_str()),
-        EditableBinding::new(
             "workspace:create_personal_folder",
             BindingDescription::new("Create a new personal folder")
                 .with_custom_description(bindings::MAC_MENUS_CONTEXT, "New Personal Folder"),
@@ -889,33 +873,6 @@ pub fn init(app: &mut AppContext) {
 
     app.register_editable_bindings([
         EditableBinding::new(
-            "workspace:create_personal_ai_prompt",
-            BindingDescription::new("Create a new personal prompt")
-                .with_custom_description(bindings::MAC_MENUS_CONTEXT, "New Personal Prompt"),
-            WorkspaceAction::CreatePersonalAIPrompt,
-        )
-        .with_group(bindings::BindingGroup::WarpAi.as_str())
-        .with_custom_action(CustomAction::NewPersonalAIPrompt)
-        .with_context_predicate(id!("Workspace") & id!(flags::IS_ANY_AI_ENABLED)),
-        EditableBinding::new(
-            "workspace:create_team_ai_prompt",
-            BindingDescription::new("Create a new team prompt")
-                .with_custom_description(bindings::MAC_MENUS_CONTEXT, "New Team Prompt"),
-            WorkspaceAction::CreateTeamAIPrompt,
-        )
-        .with_group(bindings::BindingGroup::WarpAi.as_str())
-        .with_custom_action(CustomAction::NewTeamAIPrompt)
-        .with_context_predicate(
-            id!("Workspace")
-                & id!("Workspace")
-                & id!("WarpDrive_BelongsToTeam")
-                & id!("IsOnline")
-                & id!(flags::IS_ANY_AI_ENABLED),
-        ),
-    ]);
-
-    app.register_editable_bindings([
-        EditableBinding::new(
             "workspace:shift_focus_left",
             "Switch Focus to Left Panel",
             WorkspaceAction::FocusLeftPanel,
@@ -1041,26 +998,9 @@ fn add_open_setting_pages_as_editable_binding(app: &mut AppContext) {
         .with_context_predicate(id!("Workspace"))
         .with_custom_action(CustomAction::ShowAboutWarp),
         EditableBinding::new(
-            "workspace:show_settings_teams_page",
-            BindingDescription::new("Open Settings: Teams")
-                .with_custom_description(bindings::MAC_MENUS_CONTEXT, "Open Team Settings"),
-            WorkspaceAction::ShowSettingsPage(SettingsSection::Teams),
-        )
-        .with_group(bindings::BindingGroup::Settings.as_str())
-        .with_custom_action(CustomAction::OpenTeamSettings)
-        .with_context_predicate(id!("Workspace")),
-        EditableBinding::new(
             "workspace:show_settings_privacy_page",
             BindingDescription::new("Open Settings: Privacy"),
             WorkspaceAction::ShowSettingsPage(SettingsSection::Privacy),
-        )
-        .with_group(bindings::BindingGroup::Settings.as_str())
-        .with_context_predicate(id!("Workspace")),
-        EditableBinding::new(
-            "workspace:show_settings_warpify_page",
-            BindingDescription::new("Open Settings: Warpify")
-                .with_custom_description(bindings::MAC_MENUS_CONTEXT, "Configure Warpify..."),
-            WorkspaceAction::ShowSettingsPage(SettingsSection::Warpify),
         )
         .with_group(bindings::BindingGroup::Settings.as_str())
         .with_context_predicate(id!("Workspace")),
@@ -1080,27 +1020,6 @@ fn add_open_setting_pages_as_editable_binding(app: &mut AppContext) {
         .with_group(bindings::BindingGroup::Settings.as_str())
         .with_context_predicate(id!("Workspace")),
         EditableBinding::new(
-            "workspace:show_settings_code_page",
-            BindingDescription::new("Open Settings: Code"),
-            WorkspaceAction::ShowSettingsPage(SettingsSection::CodeIndexing),
-        )
-        .with_group(bindings::BindingGroup::Settings.as_str())
-        .with_context_predicate(id!("Workspace")),
-        EditableBinding::new(
-            "workspace:show_settings_referrals_page",
-            BindingDescription::new("Open Settings: Referrals"),
-            WorkspaceAction::ShowSettingsPage(SettingsSection::Referrals),
-        )
-        .with_group(bindings::BindingGroup::Settings.as_str())
-        .with_context_predicate(id!("Workspace")),
-        EditableBinding::new(
-            "workspace:show_settings_environments_page",
-            BindingDescription::new("Open Settings: Environments"),
-            WorkspaceAction::ShowSettingsPage(SettingsSection::CloudEnvironments),
-        )
-        .with_group(bindings::BindingGroup::Settings.as_str())
-        .with_context_predicate(id!("Workspace")),
-        EditableBinding::new(
             "workspace:open_settings_file",
             "Open settings file",
             WorkspaceAction::OpenSettingsFile,
@@ -1116,13 +1035,6 @@ fn add_overflow_menu_items_as_editable_binding(app: &mut AppContext) {
 
     // Add the ability to open all overflow menu items to the command palette.
     app.register_editable_bindings([
-        EditableBinding::new(
-            "workspace:show_invite_modal",
-            "Invite People...",
-            WorkspaceAction::ShowReferralSettingsPage,
-        )
-        .with_context_predicate(id!("Workspace"))
-        .with_custom_action(CustomAction::ReferAFriend),
         EditableBinding::new(
             "workspace:link_to_slack",
             "Join our Slack community (opens external link)",

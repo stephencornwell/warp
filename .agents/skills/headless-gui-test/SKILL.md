@@ -136,6 +136,13 @@ code before blaming the environment:
   (note the label casing differs from the palette's title-cased rendering, e.g.
   "Toggle team workflows modal" in source vs "Toggle Team Workflows Modal" in the UI —
   grep case-insensitively or you will wrongly conclude the string is already gone).
+- `Open Settings: <Section>` palette deep-links surviving for deleted settings pages.
+  These come from the `SettingsNavItem::Page(SettingsSection::...)` list in
+  `app/src/settings_view/mod.rs` (~line 999), which is separate from the
+  `settings_pages` vec that builds the visible sidebar — so a section can be removed
+  from the sidebar yet still be deep-linkable, opening a blank content pane. Sweep by
+  typing `open settings` in the palette and comparing the results against the sidebar;
+  a working deep-link highlights its sidebar row, a dead one renders an empty pane.
 Confirm each by pairing a screenshot with the dispatched-action log line.
 
 ## Devin Secrets Needed

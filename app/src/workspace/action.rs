@@ -168,7 +168,6 @@ pub enum WorkspaceAction {
         source: PaletteSource,
     },
     ShowUpgrade,
-    ShowReferralSettingsPage,
     JoinSlack,
     ViewUserDocs,
     ViewLatestChangelog,
@@ -199,9 +198,6 @@ pub enum WorkspaceAction {
     ToggleKeybindingsPage,
     ShowCommandSearch(CommandSearchOptions),
     CreatePersonalFolder,
-    CreateTeamFolder,
-    CreatePersonalAIPrompt,
-    CreateTeamAIPrompt,
     ToggleMouseReporting,
     ToggleScrollReporting,
     ToggleFocusReporting,
@@ -402,7 +398,6 @@ pub enum WorkspaceAction {
     OpenOpenWarpLaunchModal,
     /// Reset the OpenWarp launch modal dismissed state (for debugging)
     #[cfg(debug_assertions)]
-    ResetOpenWarpLaunchModalState,
     /// Install the opencode-warp plugin from GitHub into the global opencode config.
     #[cfg(debug_assertions)]
     InstallOpenCodeWarpPlugin,
@@ -531,7 +526,6 @@ impl WorkspaceAction {
             | OpenPalette { .. }
             | TogglePalette { mode: _, source: _ }
             | ShowUpgrade
-            | ShowReferralSettingsPage
             | JoinSlack
             | ViewUserDocs
             | ViewLatestChangelog
@@ -563,9 +557,6 @@ impl WorkspaceAction {
             | ToggleScrollReporting
             | ToggleFocusReporting
             | CreatePersonalFolder
-            | CreateTeamFolder
-            | CreatePersonalAIPrompt
-            | CreateTeamAIPrompt
             | OpenInExplorer { .. }
             | DragTab { .. }
             | HandoffPendingTransfer { .. }
@@ -654,7 +645,6 @@ impl WorkspaceAction {
             | ResetBuildPlanMigrationModalState
             | DebugResetAwsBedrockLoginBannerDismissed
             | OpenOpenWarpLaunchModal
-            | ResetOpenWarpLaunchModalState
             | InstallOpenCodeWarpPlugin
             | UseLocalOpenCodeWarpPlugin => false,
             #[cfg(not(target_family = "wasm"))]

@@ -1363,19 +1363,6 @@ impl RootView {
         true
     }
 
-    /// Shows the user the settings view of their newly joined team
-    /// within the app.
-    pub fn open_team_settings_page(&mut self, _: &(), ctx: &mut ViewContext<Self>) -> bool {
-        let window_id = ctx.window_id();
-        ctx.dispatch_typed_action_for_view(
-            window_id,
-            self.workspace.id(),
-            &WorkspaceAction::ShowSettingsPage(SettingsSection::Teams),
-        );
-        ctx.windows().show_window_and_focus_app(window_id);
-        true
-    }
-
     pub fn open_settings_page_in_existing_window(
         &mut self,
         section: &SettingsSection,

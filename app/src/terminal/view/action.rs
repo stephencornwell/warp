@@ -227,9 +227,6 @@ pub enum TerminalAction {
     /// User selected a block inside an AI block's attached block menu so we jump to it and select
     /// it if possible.
     DragAndDropFiles(Vec<String>),
-    /// Triggers an ssh session to warpify, even if there is no Warpify Block.
-    /// Sets the input mode to Agent Mode
-    SetInputModeAgent,
     /// Sets the input mode to Terminal Mode
     SetInputModeTerminal,
     HyperlinkClick(HyperlinkUrl),
@@ -421,7 +418,6 @@ impl fmt::Debug for TerminalAction {
             }
             MiddleClickOnInput => write!(f, "MiddleClickOnInput"),
             DragAndDropFiles(_) => write!(f, "DragAndDropFiles"),
-            SetInputModeAgent => write!(f, "SetInputModeAgent"),
             SetInputModeTerminal => write!(f, "SetInputModeTerminal"),
             HyperlinkClick(hyperlink_url) => write!(f, "HyperlinkClick({hyperlink_url:?})"),
             AttemptLoginGatedFeature => write!(f, "AttemptLoginGatedFeature"),

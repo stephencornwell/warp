@@ -3473,12 +3473,6 @@ impl Workspace {
             MenuItem::Separator,
         ]);
 
-        items.push(
-            MenuItemFields::new("Invite a friend")
-                .with_on_select_action(WorkspaceAction::ShowReferralSettingsPage)
-                .into_item(),
-        );
-
         items
     }
 
@@ -6006,20 +6000,6 @@ impl Workspace {
         self.open_settings_pane(section, Some(search_query), ctx);
     }
 
-    /// Opens the team settings page and fills the invite field with the given email. This is used when linking directing to
-    /// settings with the intent of inviting a user.
-    pub fn show_team_settings_page_with_email_invite(
-        &mut self,
-        email_invite: Option<&String>,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        self.show_settings_with_section(Some(SettingsSection::Teams), ctx);
-
-        self.settings_pane.update(ctx, |view, ctx| {
-            view.open_teams_page_email_invite(email_invite, ctx);
-        });
-    }
-
     /// Shows the theme chooser so the user can change the active theme.
     pub fn show_theme_chooser_for_active_theme(&mut self, ctx: &mut ViewContext<Self>) {
         self.show_theme_chooser(Some(ThemeChooserMode::for_active_theme(ctx)), ctx)
@@ -8037,9 +8017,6 @@ impl TypedActionView for Workspace {
                 mode: palette_mode,
                 source,
             } => self.toggle_palette(*palette_mode, source.clone(), ctx),
-            ShowReferralSettingsPage => {
-                self.show_settings_with_section(Some(SettingsSection::Referrals), ctx);
-            }
             JoinSlack => self.join_slack(ctx),
             ViewUserDocs => self.view_user_docs(ctx),
             DispatchToSettingsTab(action) => {
@@ -8296,30 +8273,6 @@ impl TypedActionView for Workspace {
                     model.force_open_openwarp_launch_modal(ctx);
                 });
                 ctx.notify();
-            }
-            #[cfg(debug_assertions)]
-            ResetOpenWarpLaunchModalState => {
-                // Reset the OpenWarp launch modal dismissed state for debugging
-                let old_value = *GeneralSettings::as_ref(ctx)
-                    .did_check_to_trigger_openwarp_launch_modal
-                    .value();
-                GeneralSettings::handle(ctx).update(ctx, |settings, ctx| {
-                    if let Err(e) = settings
-                        .did_check_to_trigger_openwarp_launch_modal
-                        .set_value(false, ctx)
-                    {
-                        log::warn!("Failed to reset OpenWarp launch modal dismissed setting: {e}");
-                    }
-                });
-                let new_value = *GeneralSettings::as_ref(ctx)
-                    .did_check_to_trigger_openwarp_launch_modal
-                    .value();
-                log::info!(
-                    "OpenWarp launch modal state: old={}, new={}, feature_flag_enabled={}",
-                    old_value,
-                    new_value,
-                    FeatureFlag::OpenWarpLaunchModal.is_enabled()
-                );
             }
             #[cfg(debug_assertions)]
             InstallOpenCodeWarpPlugin => {

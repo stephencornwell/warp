@@ -1,13 +1,8 @@
 use super::TerminalAction;
 
 use crate::settings_view::flags;
-use crate::terminal::input::{
-    SET_INPUT_MODE_AGENT_ACTION_NAME, SET_INPUT_MODE_TERMINAL_ACTION_NAME,
-};
-use crate::terminal::view::{
-    LONG_RUNNING_AGENT_REQUESTED_COMMAND_CONTEXT_KEY,
-    LONG_RUNNING_AGENT_REQUESTED_COMMAND_USER_TOOK_OVER_CONTEXT_KEY,
-};
+use crate::terminal::input::SET_INPUT_MODE_TERMINAL_ACTION_NAME;
+use crate::terminal::view::LONG_RUNNING_AGENT_REQUESTED_COMMAND_CONTEXT_KEY;
 use crate::util::bindings;
 use crate::util::bindings::{cmd_or_ctrl_shift, is_binding_pty_compliant};
 use crate::{
@@ -20,7 +15,6 @@ use crate::{
     terminal::TerminalView,
     util::bindings::CustomAction,
 };
-use warpui::keymap::ContextPredicate;
 use warpui::keymap::PerPlatformKeystroke;
 use warpui::platform::OperatingSystem;
 use warpui::{
@@ -190,15 +184,6 @@ pub fn init(app: &mut AppContext) {
                 cmd_or_ctrl_shift("c"),
                 TerminalAction::Copy,
                 id!("Terminal") & !id!("IMEOpen"),
-            ),
-            FixedBinding::new(
-                cmd_or_ctrl_shift("i"),
-                TerminalAction::SetInputModeAgent,
-                id!("Terminal")
-                    & !id!("IMEOpen")
-                    & (!id!(flags::AGENT_VIEW_ENABLED)
-                        | id!(flags::ACTIVE_AGENT_VIEW)
-                        | id!(flags::ACTIVE_INLINE_AGENT_VIEW)),
             ),
         ]);
     }
@@ -616,19 +601,6 @@ fn register_input_mode_bindings(app: &mut AppContext) {
         & !id!("SubshellBanner")
         & !id!(CLI_AGENT_SESSION_ACTIVE_KEY);
 
-    // A context predicate that is active when the user can switch input to agent mode.
-    let agent_mode_predicate = base_context.clone()
-        & ContextPredicate::Or(
-            Box::new(id!(flags::TERMINAL_MODE_INPUT)),
-            Box::new(ContextPredicate::Or(
-                Box::new(
-                    !id!(flags::TERMINAL_MODE_INPUT)
-                        & id!(LONG_RUNNING_AGENT_REQUESTED_COMMAND_USER_TOOK_OVER_CONTEXT_KEY),
-                ),
-                Box::new(id!("LongRunningCommand") | id!("AltScreen")),
-            )),
-        );
-
     // A context predicate that is active when the user could switch input to shell mode.
     // This matches when in AI mode AND either:
     // - AgentView feature is disabled, OR
@@ -641,29 +613,7 @@ fn register_input_mode_bindings(app: &mut AppContext) {
             | id!(flags::ACTIVE_INLINE_AGENT_VIEW)
             | !id!(flags::LOCKED_INPUT));
 
-    app.register_fixed_bindings([FixedBinding::new_per_platform(
-        PerPlatformKeystroke {
-            mac: "cmd-enter",
-            linux_and_windows: "ctrl-shift-enter",
-        },
-        TerminalAction::SetInputModeAgent,
-        agent_mode_predicate.clone()
-            & !id!("Input")
-            & !id!(ROOT_CLOUD_MODE_PANE_KEY)
-            & !id!(flags::HAS_PENDING_PROMPT_SUGGESTION),
-    )
-    .with_enabled(|| FeatureFlag::AgentView.is_enabled())]);
-
     app.register_editable_bindings([
-        EditableBinding::new(
-            SET_INPUT_MODE_AGENT_ACTION_NAME,
-            "Set Input Mode to Agent Mode",
-            TerminalAction::SetInputModeAgent,
-        )
-        .with_group(bindings::BindingGroup::WarpAi.as_str())
-        .with_context_predicate(agent_mode_predicate)
-        .with_mac_key_binding("cmd-i")
-        .with_linux_or_windows_key_binding("ctrl-i"),
         EditableBinding::new(
             SET_INPUT_MODE_TERMINAL_ACTION_NAME,
             "Set Input Mode to Terminal Mode",

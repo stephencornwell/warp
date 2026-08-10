@@ -1334,24 +1334,6 @@ impl SettingsView {
     ) {
         match event {
             SettingsPageEvent::FocusModal => ctx.focus(&self.search_editor),
-            SettingsPageEvent::Pane(_) => {
-                // These events are not handled in standalone settings - only used
-                // when the view is hosted inside a pane.
-            }
-            _ => {}
-        }
-    }
-
-    fn handle_environments_page_event(
-        &mut self,
-        event: &SettingsPageEvent,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        match event {
-            SettingsPageEvent::FocusModal => ctx.focus(&self.search_editor),
-            SettingsPageEvent::Pane(_) => {
-                // Not applicable in standalone settings view.
-            }
             _ => {}
         }
     }
@@ -1366,19 +1348,6 @@ impl SettingsView {
                 self.search_for_keybinding(query, ctx);
             }
             FeaturesSettingsPageEvent::FocusModal => ctx.focus(&self.search_editor),
-        }
-    }
-
-    fn handle_warpify_page_event(
-        &mut self,
-        event: &SettingsPageEvent,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        match event {
-            SettingsPageEvent::FocusModal => ctx.focus(&self.search_editor),
-            SettingsPageEvent::Pane(_) => {}
-            SettingsPageEvent::EnvironmentSetupModeSelectorToggled { .. } => {}
-            SettingsPageEvent::AgentAssistedEnvironmentModalToggled { .. } => {}
         }
     }
 

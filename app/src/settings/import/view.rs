@@ -861,11 +861,6 @@ impl SettingsImportView {
         );
     }
 
-    pub(crate) fn interrupt_block(&mut self, ctx: &mut warpui::ViewContext<Self>) {
-        self.state = State::Completed { imported_idx: None };
-        ctx.notify();
-    }
-
     fn send_completed_import_telemetry_event(
         &self,
         terminal_type_and_profile: &TerminalTypeAndProfile,

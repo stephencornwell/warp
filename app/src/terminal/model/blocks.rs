@@ -15,7 +15,6 @@ use crate::terminal::model::bootstrap::BootstrapStage;
 use crate::terminal::model::index::{Point, VisibleRow};
 use crate::terminal::model::iterm_image::ITermImage;
 use crate::terminal::view::SeparatorId;
-use crate::terminal::view::WithinBlockBanner;
 use crate::terminal::{
     event::{
         BlockType, Event as TerminalEvent,
@@ -1290,36 +1289,6 @@ impl BlockList {
         Some(block)
     }
 
-    fn remove_block_at_index(&mut self, block_index: BlockIndex) -> Option<Block> {
-        debug_assert!(block_index != self.active_block_index());
-
-        let block = self.blocks.remove(block_index.0);
-        self.block_id_to_block_index.remove(block.id());
-
-        // Shift down the index of any blocks after the removed one.
-        for index in BlockIndex::range_as_iter(block_index..BlockIndex(self.blocks.len())) {
-            self.reset_internal_block_index(index);
-        }
-
-        let (new_heights, removed_index) = {
-            let mut cursor = self.block_heights.cursor::<BlockIndex, TotalIndex>();
-            let mut tree_before_block =
-                cursor.slice(&(block_index + BlockIndex(1)), SeekBias::Left);
-            let removed_index = *cursor.start();
-            // Skip past the block being removed.
-            cursor.next();
-            tree_before_block.push_tree(cursor.suffix());
-            (tree_before_block, removed_index)
-        };
-        self.block_heights = new_heights;
-
-        // It's unlikely that they exist, but if there are any non-block items
-        // after the removed block, we must update tracking information for them.
-        self.update_block_height_indices(BlockHeightUpdate::Removal(removed_index), true);
-
-        Some(block)
-    }
-
     /// Gets the active background block, if one exists.
     pub(super) fn background_block_mut(&mut self) -> Option<&mut Block> {
         // The active background block will be the one immediately before
@@ -1337,16 +1306,6 @@ impl BlockList {
         } else {
             None
         }
-    }
-
-    /// The setter for Block::block_banner needs to update the block_heights SumTree in order to
-    /// keep that data structure in sync.
-    pub(in crate::terminal) fn set_active_block_banner(
-        &mut self,
-        block_banner: Option<WithinBlockBanner>,
-    ) {
-        self.active_block_mut().block_banner = block_banner;
-        self.update_active_block_height();
     }
 
     pub fn active_block_mut(&mut self) -> &mut Block {
@@ -2775,53 +2734,6 @@ impl BlockList {
         self.maintain_pinned_to_bottom();
     }
 
-    /// Insert a rich content item immediately after the given removable item.
-    /// Returns true if insertion succeeded.
-    pub(in crate::terminal) fn insert_rich_content_after_item(
-        &mut self,
-        after_item: RemovableBlocklistItem,
-        item: RichContentItem,
-    ) -> bool {
-        let Some(current_index) = self
-            .removable_blocklist_item_positions
-            .get(&after_item)
-            .copied()
-        else {
-            return false;
-        };
-
-        let view_id = item.view_id;
-
-        // Recreate block heights tree with new item inserted.
-        let (new_tree, inserted_index) = {
-            let mut cursor = self.block_heights.cursor::<TotalIndex, ()>();
-            let mut prefix = cursor.slice(&(current_index + 1), SeekBias::Right);
-            let inserted_index = TotalIndex(prefix.summary().total_count);
-            prefix.push(BlockHeightItem::RichContent(item));
-            prefix.push_tree(cursor.suffix());
-            (prefix, inserted_index)
-        };
-
-        self.block_heights = new_tree;
-        self.update_block_height_indices(BlockHeightUpdate::Insertion(inserted_index), true);
-
-        // If there is an item at the index that we are inserting into,
-        // we should shift that item forward by one.
-        self.removable_blocklist_item_positions
-            .values_mut()
-            .for_each(|pos| {
-                if *pos == inserted_index {
-                    pos.0 += 1;
-                }
-            });
-
-        self.removable_blocklist_item_positions
-            .insert(RemovableBlocklistItem::RichContent(view_id), inserted_index);
-        self.event_proxy.send_wakeup_event();
-
-        true
-    }
-
     pub(in crate::terminal) fn set_marked_text(
         &mut self,
         marked_text: &str,
@@ -2860,13 +2772,6 @@ impl BlockList {
         }
 
         contents.trim().to_string()
-    }
-
-    pub(crate) fn removable_blocklist_item_position(
-        &self,
-        item: &RemovableBlocklistItem,
-    ) -> Option<&TotalIndex> {
-        self.removable_blocklist_item_positions.get(item)
     }
 
     pub fn get_previous_block_height_item(

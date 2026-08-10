@@ -111,10 +111,6 @@ impl InputSuggestionsModeModel {
         false
     }
 
-    pub fn is_slash_commands(&self) -> bool {
-        matches!(self.mode, InputSuggestionsMode::SlashCommands)
-    }
-
     pub fn is_conversation_menu(&self) -> bool {
         false
     }

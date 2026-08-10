@@ -89,10 +89,6 @@ lazy_static! {
         primary_text: "rules:",
         aliases: vec!["r:"]
     };
-    static ref STATIC_SLASH_COMMANDS_FILTER_ATOM: FilterAtom = FilterAtom {
-        primary_text: "slash:",
-        aliases: vec![]
-    };
     static ref REPOS_FILTER_ATOM: FilterAtom = FilterAtom {
         primary_text: "repos:",
         aliases: vec![]
@@ -206,8 +202,6 @@ pub enum QueryFilter {
     /// Filter results for diff sets.
     DiffSets,
 
-    StaticSlashCommands,
-
     /// Filter results for skills (used for browsing skills).
     Skills,
 
@@ -252,7 +246,6 @@ impl QueryFilter {
             QueryFilter::Rules => "Search AI rules",
             QueryFilter::Repos => "Search code repos",
             QueryFilter::DiffSets => "Search diff sets",
-            QueryFilter::StaticSlashCommands => "Search static slash commands",
             QueryFilter::Skills => "Search skills",
             QueryFilter::BaseModels => "Search base models",
             QueryFilter::FullTerminalUseModels => "Search full terminal use models",
@@ -285,7 +278,6 @@ impl QueryFilter {
             QueryFilter::Rules => &RULES_FILTER_ATOM,
             QueryFilter::Repos => &REPOS_FILTER_ATOM,
             QueryFilter::DiffSets => &DIFFSETS_FILTER_ATOM,
-            QueryFilter::StaticSlashCommands => &STATIC_SLASH_COMMANDS_FILTER_ATOM,
             QueryFilter::HistoricalConversations => &NO_FILTER_ATOM,
             QueryFilter::Skills => &NO_FILTER_ATOM,
             QueryFilter::BaseModels => &NO_FILTER_ATOM,
@@ -317,7 +309,6 @@ impl QueryFilter {
             QueryFilter::Rules => "rules",
             QueryFilter::Repos => "repos",
             QueryFilter::DiffSets => "diff sets",
-            QueryFilter::StaticSlashCommands => "slash commands",
             QueryFilter::HistoricalConversations => "historical conversations",
             QueryFilter::Skills => "skills",
             QueryFilter::BaseModels => "base models",
@@ -358,7 +349,6 @@ impl QueryFilter {
             QueryFilter::Rules => Some("bundled/svg/book-open.svg"),
             QueryFilter::Repos => Some("bundled/svg/folder.svg"),
             QueryFilter::DiffSets => Some("bundled/svg/diff.svg"),
-            QueryFilter::StaticSlashCommands => None,
             QueryFilter::Skills => None,
             QueryFilter::BaseModels => None,
             QueryFilter::FullTerminalUseModels => None,

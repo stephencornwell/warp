@@ -109,7 +109,6 @@ impl FilterChipRenderer for QueryFilter {
             | QueryFilter::Rules
             | QueryFilter::Repos
             | QueryFilter::DiffSets
-            | QueryFilter::StaticSlashCommands
             | QueryFilter::Skills
             | QueryFilter::BaseModels
             | QueryFilter::FullTerminalUseModels

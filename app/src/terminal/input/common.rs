@@ -183,8 +183,6 @@ pub(super) fn add_input_suggestions_overlays(
                 ),
             );
         }
-        // SlashCommandsMenu is rendered separately via inline_slash_commands_menu_view
-        InputSuggestionsMode::SlashCommands => {}
         // Conversation menu is rendered separately via inline_conversation_menu_view
         // Model selector is rendered separately via inline_model_selector_view
         // Profile selector is rendered separately via inline_profile_selector_view

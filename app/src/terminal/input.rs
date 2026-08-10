@@ -8,8 +8,6 @@ mod suggestions_mode_menu;
 pub mod suggestions_mode_model;
 
 use crate::pane_group::focus_state::PaneFocusHandle;
-use crate::search::slash_command_menu::static_commands::commands::COMMAND_REGISTRY;
-
 use crate::terminal::input::buffer_model::InputBufferModel;
 use crate::terminal::input::suggestions_mode_model::InputSuggestionsModeModel;
 use crate::terminal::model::session::active_session::ActiveSession;
@@ -201,7 +199,6 @@ pub enum TelemetryInputSuggestionsMode {
     StaticWorkflowEnumSuggestions,
     DynamicWorkflowEnumSuggestions,
     AIContextMenu,
-    SlashCommands,
     ConversationMenu,
     ModelSelector,
     ProfileSelector,
@@ -305,7 +302,6 @@ pub enum InputSuggestionsMode {
         menu_position: TabCompletionsMenuPosition,
     },
 
-    SlashCommands,
 
     /// Mode indicating that no suggestion UI is being shown.
     Closed,
@@ -322,7 +318,7 @@ impl InputSuggestionsMode {
     }
 
     pub fn is_inline_menu(&self) -> bool {
-        matches!(self, Self::SlashCommands)
+        false
     }
 
     /// Whether this mode should snapshot the input buffer on open and restore it on dismiss.
@@ -338,12 +334,7 @@ impl InputSuggestionsMode {
 
     /// Returns the placeholder text for this mode, if it has a custom one.
     pub fn placeholder_text(&self) -> Option<&'static str> {
-        match self {
-            InputSuggestionsMode::SlashCommands if FeatureFlag::AgentView.is_enabled() => {
-                Some("Search commands")
-            }
-            _ => None,
-        }
+        None
     }
 }
 
@@ -504,19 +495,11 @@ pub enum InputAction {
     /// Toggles the '?' shortcuts UI in the agent view.
     ToggleAgentViewShortcuts,
 
-    /// Toggles the '/' slash commands menu in the agent view.
-    ToggleSlashCommandsMenu,
-
     /// Opens the inline history menu for cycling through past commands and conversations.
     OpenInlineHistoryMenu,
 
-    DismissCloudModeV2SlashCommandsMenu,
-
     /// Opens the model selector menu.
     OpenModelSelector,
-
-    /// Triggers a slash command from a custom keybinding. The string is the command name.
-    TriggerSlashCommandFromKeybinding(&'static str),
 
     /// Clears attached blocks and text selection context.
     ClearAttachedContext,
@@ -983,40 +966,6 @@ pub fn init(app: &mut AppContext) {
         .with_context_predicate(id!("Input"))
         .with_key_binding("tab"),
     ]);
-
-    let slash_command_bindings = COMMAND_REGISTRY
-        .all_commands()
-        .map(|command| {
-            use crate::search::slash_command_menu::static_commands::{
-                bindings as slash_command_bindings, bindings::DefaultSlashCommandBinding,
-            };
-
-            let context_predicate = id!("Input")
-                & !id!("IMEOpen")
-                & id!(command.name)
-                & !id!(flags::ACTIVE_INLINE_AGENT_VIEW)
-                & (id!(flags::ACTIVE_AGENT_VIEW) | id!(flags::SLASH_COMMANDS_IN_TERMINAL_FLAG));
-
-            let mut binding = EditableBinding::new(
-                command.name,
-                slash_command_bindings::binding_description(command),
-                InputAction::TriggerSlashCommandFromKeybinding(command.name),
-            )
-            .with_context_predicate(context_predicate);
-
-            binding = match slash_command_bindings::default_binding_for_command(command.name) {
-                DefaultSlashCommandBinding::None => binding,
-                DefaultSlashCommandBinding::Single(keys) => binding.with_key_binding(keys),
-                DefaultSlashCommandBinding::PerPlatform(keys) => binding
-                    .with_mac_key_binding(keys.mac)
-                    .with_linux_or_windows_key_binding(keys.linux_and_windows),
-            };
-
-            binding
-        })
-        .collect::<Vec<_>>();
-
-    app.register_editable_bindings(slash_command_bindings);
 
     // Fixed bindings for passive code diffs
     app.register_fixed_bindings([FixedBinding::new(
@@ -1778,11 +1727,6 @@ impl Input {
                     ctx,
                 );
                 true
-            }
-            InputSuggestionsMode::SlashCommands => {
-                // Slash commands selection is handled separately
-                // For now, just close the menu
-                false
             }
         }
     }
@@ -3828,12 +3772,6 @@ impl View for Input {
         }
         if let Some(VimMode::Normal) = self.editor.as_ref(app).vim_mode(app) {
             ctx.set.insert("VimNormalMode");
-        }
-        if *InputSettings::as_ref(app)
-            .enable_slash_commands_in_terminal
-            .value()
-        {
-            ctx.set.insert(flags::SLASH_COMMANDS_IN_TERMINAL_FLAG);
         }
         ctx
     }

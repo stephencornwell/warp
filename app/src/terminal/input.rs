@@ -111,7 +111,7 @@ use self::decorations::InputBackgroundJobOptions;
 use super::{
     alias::is_expandable_alias,
     block_list_viewport::InputMode,
-    event::{BlockCompletedEvent, BlockType, UserBlockCompleted},
+    event::{BlockCompletedEvent, BlockType},
     ligature_settings::LigatureSettings,
     model::{
         block::{BlockId, BlockMetadata},
@@ -839,7 +839,6 @@ pub struct Input {
 
     /// The last block that the user ran. This is used for generating autosuggestions.
     #[cfg_attr(not(feature = "local_fs"), allow(dead_code))]
-    last_user_block_completed: Option<UserBlockCompleted>,
 
     hoverable_handle: MouseStateHandle,
 
@@ -1284,7 +1283,6 @@ impl Input {
                 .enable_autosuggestions,
             latest_buffer_operations: Vec::new(),
             deferred_remote_operations,
-            last_user_block_completed: None,
             prompt_render_helper,
             hoverable_handle: Default::default(),
             #[cfg(feature = "local_fs")]

@@ -289,6 +289,33 @@ pub enum TabCompletionsPreselectOption {
 }
 
 impl InputSuggestions {
+    pub(crate) fn history_prefix_search<'a, I>(
+        prefix: &str,
+        options: I,
+    ) -> Vec<Item>
+    where
+        I: IntoIterator<Item = &'a crate::terminal::HistoryEntry>,
+    {
+        let trimmed_prefix = prefix.trim();
+        options
+            .into_iter()
+            .filter_map(|entry| {
+                entry.command.strip_prefix(trimmed_prefix).map(|_| Item {
+                    text: entry.command.trim().to_owned(),
+                    display: None,
+                    details: None,
+                    matches: Some((0..trimmed_prefix.len()).collect()),
+                    icon_type: None,
+                    match_type: MatchType::Prefix {
+                        is_case_sensitive: true,
+                    },
+                    is_ai_query: false,
+                    is_history_item: true,
+                })
+            })
+            .collect()
+    }
+
     pub fn new(ctx: &mut ViewContext<Self>) -> Self {
         let (visible_items_tx, visible_items_rx) = async_channel::unbounded();
 

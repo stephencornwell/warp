@@ -16,7 +16,8 @@ pub fn initialize_settings_for_tests_with_mode(
     use crate::{
         settings::{
             init_and_register_user_preferences, manager::SettingsManager, AccessibilitySettings,
-            AliasExpansionSettings, AppEditorSettings, BlockVisibilitySettings, ChangelogSettings,
+            app_icon::AppIconSettings, AliasExpansionSettings, AppEditorSettings,
+            BlockVisibilitySettings, ChangelogSettings,
             CodeSettings, DebugSettings, EmacsBindingsSettings, FontSettings, GPUSettings,
             InputModeSettings, InputSettings, NativePreferenceSettings, PaneSettings,
             SameLinePromptBlockSettings, ScrollSettings, SelectionSettings, SshSettings,
@@ -27,6 +28,7 @@ pub fn initialize_settings_for_tests_with_mode(
             ligature_settings::LigatureSettings, safe_mode_settings::SafeModeSettings,
             session_settings::SessionSettings, settings::TerminalSettings, BlockListSettings,
         },
+        search::command_search::settings::CommandSearchSettings,
         undo_close::UndoCloseSettings,
         user_config::WarpConfig,
         window_settings::WindowSettings,
@@ -38,11 +40,13 @@ pub fn initialize_settings_for_tests_with_mode(
     app.add_singleton_model(|_ctx| SettingsManager::default());
     app.add_singleton_model(WarpConfig::mock);
     AccessibilitySettings::register(app);
+    AppIconSettings::register(app);
     AliasExpansionSettings::register(app);
     AppEditorSettings::register(app);
     BlockVisibilitySettings::register(app);
     BlockListSettings::register(app);
     ChangelogSettings::register(app);
+    CommandSearchSettings::register(app);
     CodeSettings::register(app);
     DebugSettings::register(app);
     EmacsBindingsSettings::register(app);
@@ -69,4 +73,7 @@ pub fn initialize_settings_for_tests_with_mode(
     UndoCloseSettings::register(app);
     VimBannerSettings::register(app);
     WindowSettings::register(app);
+    warp_core::semantic_selection::SemanticSelection::register(app);
+    #[cfg(feature = "local_fs")]
+    crate::util::file::external_editor::EditorSettings::register(app);
 }

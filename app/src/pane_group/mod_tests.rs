@@ -1,5 +1,6 @@
 use crate::{
     appearance::Appearance,
+    context_chips::prompt::Prompt,
     network::NetworkStatus,
     resource_center::TipsCompleted,
     system::SystemStats,
@@ -12,8 +13,11 @@ use crate::{
     undo_close::UndoCloseStack,
     warp_managed_paths_watcher::WarpManagedPathsWatcher,
     workspace::{ActiveSession, OneTimeModalModel, WorkspaceRegistry},
+    workspace::sync_inputs::SyncedInputState,
     GlobalResourceHandles, GlobalResourceHandlesProvider,
 };
+use crate::settings::PrivacySettings;
+use crate::settings_view::keybindings::KeybindingChangedNotifier;
 use repo_metadata::{repositories::DetectedRepositories, watcher::DirectoryWatcher};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -33,6 +37,10 @@ fn initialize_app(app: &mut App) {
     app.add_singleton_model(|_ctx| PtySpawner::new_for_test());
     app.add_singleton_model(|_| NetworkStatus::new());
     app.add_singleton_model(|_| SystemStats::new());
+    app.add_singleton_model(PrivacySettings::mock);
+    app.add_singleton_model(|_| SyncedInputState::new());
+    app.add_singleton_model(|_| KeybindingChangedNotifier::new());
+    app.add_singleton_model(Prompt::new);
     app.add_singleton_model(|_| DetectedRepositories::default());
     app.add_singleton_model(HomeDirectoryWatcher::new_for_test);
     app.add_singleton_model(DirectoryWatcher::new);

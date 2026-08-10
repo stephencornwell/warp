@@ -1,5 +1,7 @@
 use chrono::{DateTime, Local, TimeZone as _};
 use futures::Future;
+#[cfg(test)]
+use futures::future::join_all;
 use serde::{Deserialize, Serialize};
 use std::{
     collections::{HashMap, HashSet},
@@ -8,6 +10,8 @@ use std::{
 
 use warp_core::command::ExitCode;
 use warpui::{Entity, ModelContext, SingletonEntity};
+#[cfg(test)]
+use warpui::ModelHandle;
 
 use super::{
     model::block::{Block, SerializedBlock},
@@ -333,6 +337,33 @@ impl Entity for History {
 impl SingletonEntity for History {}
 
 impl History {
+    #[cfg(test)]
+    pub async fn initialized_sessions(
+        history_handle: &mut ModelHandle<History>,
+        app: &mut warpui::App,
+        session_ids: Vec<SessionId>,
+    ) {
+        let mut receivers = vec![];
+        for session_id in session_ids {
+            if !history_handle.read(app, |history, _| {
+                history.is_session_initialized(&session_id)
+            }) {
+                let (tx, rx) = async_channel::unbounded();
+                let handle = history_handle.clone();
+                history_handle.update(app, move |_, ctx| {
+                    ctx.subscribe_to_model(&handle, move |_, event, _| {
+                        let HistoryEvent::Initialized(event_id) = event;
+                        if session_id == *event_id {
+                            let _ = tx.try_send(());
+                        }
+                    });
+                });
+                receivers.push(rx);
+            }
+        }
+        join_all(receivers.into_iter().map(|rx| async move { rx.recv().await })).await;
+    }
+
     pub fn new(persisted_commands: Vec<PersistedCommand>) -> Self {
         log::debug!("Creating new History model with persisted commands {persisted_commands:?}");
         let mut persisted_commands_summary =

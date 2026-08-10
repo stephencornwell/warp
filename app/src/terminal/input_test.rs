@@ -7,9 +7,12 @@ use repo_metadata::watcher::DirectoryWatcher;
 use watcher::HomeDirectoryWatcher;
 
 use crate::editor::EditorAction;
+use crate::context_chips::prompt::Prompt;
 use crate::input_suggestions::Item;
 use crate::network::NetworkStatus;
 use crate::settings::{AliasExpansionSettings, AppEditorSettings};
+use crate::settings::PrivacySettings;
+use crate::settings_view::keybindings::KeybindingChangedNotifier;
 #[cfg(windows)]
 use crate::system::SystemInfo;
 use crate::system::SystemStats;
@@ -59,6 +62,9 @@ pub fn initialize_app(app: &mut App) {
     app.update(init);
     app.add_singleton_model(|_| NetworkStatus::new());
     app.add_singleton_model(|_| SystemStats::new());
+    app.add_singleton_model(PrivacySettings::mock);
+    app.add_singleton_model(|_| KeybindingChangedNotifier::new());
+    app.add_singleton_model(Prompt::new);
     app.add_singleton_model(|_| Appearance::mock());
     app.add_singleton_model(|_| ResizableData::default());
     app.add_singleton_model(|_| History::default());
@@ -179,6 +185,9 @@ pub async fn add_window_with_bootstrapped_terminal(
         spawning_command: "test command".to_string(),
     };
     bootstrap_terminal(&terminal, bootstrapped_event, app);
+
+    let mut history_handle = History::handle(app);
+    History::initialized_sessions(&mut history_handle, app, vec![session_id]).await;
 
     let input = terminal.read(app, |terminal, _| terminal.input().clone());
     // Notify the input that the session has bootstrapped

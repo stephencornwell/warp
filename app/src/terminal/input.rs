@@ -2010,9 +2010,39 @@ impl Input {
         if self.suggestions_mode_model.as_ref(ctx).is_visible() {
             self.input_suggestions
                 .update(ctx, |suggestions, ctx| suggestions.select_prev(ctx));
-        } else {
-            self.editor.update(ctx, |editor, ctx| editor.move_up(ctx));
+            return;
         }
+
+        let (on_first_row, original_buffer, original_cursor_point) = self.editor.read(ctx, |editor, ctx| {
+            (
+                editor.single_cursor_on_first_row(ctx),
+                editor.buffer_text(ctx),
+                editor.single_cursor_to_point(ctx),
+            )
+        });
+        if on_first_row && self.can_query_history(ctx) {
+            let matches =
+                InputSuggestions::history_prefix_search(&original_buffer, self.history_commands(ctx));
+            self.input_suggestions.update(ctx, |suggestions, ctx| {
+                suggestions.set_history_matches(matches, ctx);
+            });
+            self.suggestions_mode_model.update(ctx, |model, ctx| {
+                model.set_mode(
+                    InputSuggestionsMode::HistoryUp {
+                        original_buffer,
+                        original_cursor_point,
+                        search_mode: HistorySearchMode::Prefix,
+                        original_input_type: InputType::Shell,
+                        original_input_was_locked: false,
+                    },
+                    ctx,
+                );
+            });
+            ctx.notify();
+            return;
+        }
+
+        self.editor.update(ctx, |editor, ctx| editor.move_up(ctx));
     }
 
     fn editor_page_up(&mut self, ctx: &mut ViewContext<Self>) {
@@ -2079,8 +2109,12 @@ impl Input {
     /// in either direction.
     fn editor_down(&mut self, ctx: &mut ViewContext<Self>) {
         if self.suggestions_mode_model.as_ref(ctx).is_visible() {
-            self.input_suggestions
-                .update(ctx, |suggestions, ctx| suggestions.select_next(ctx));
+            if self.input_suggestions.as_ref(ctx).is_empty() {
+                self.close_input_suggestions_and_restore_buffer(true, true, ctx);
+            } else {
+                self.input_suggestions
+                    .update(ctx, |suggestions, ctx| suggestions.select_next(ctx));
+            }
         } else {
             self.editor.update(ctx, |editor, ctx| editor.move_down(ctx));
         }
@@ -2299,6 +2333,13 @@ impl Input {
         self.hide_x_ray(ctx);
         match event {
             EditorEvent::Edited(edit_origin) => {
+                if *edit_origin == EditOrigin::UserTyped
+                    && self.suggestions_mode_model.as_ref(ctx).is_history_up()
+                {
+                    self.suggestions_mode_model.update(ctx, |model, ctx| {
+                        model.set_mode(InputSuggestionsMode::Closed, ctx);
+                    });
+                }
                 if matches!(
                     edit_origin,
                     EditOrigin::UserTyped | EditOrigin::UserInitiated

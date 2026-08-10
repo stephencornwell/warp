@@ -207,7 +207,6 @@ pub enum TerminalAction {
         layout: crate::util::file::external_editor::settings::EditorLayout,
         line_col: Option<warp_util::path::LineAndColumnArg>,
     },
-    OpenWorkflowModal,
     /// Starts a subshell in the active session.
     TriggerSubshellBootstrap,
     /// If the user says "no" to Warpification, possibly requesting not to be asked again
@@ -403,7 +402,6 @@ impl fmt::Debug for TerminalAction {
             OpenFileInWarp(_) => f.write_str("OpenFileInWarp"),
             #[cfg(feature = "local_fs")]
             OpenCodeInWarp { .. } => f.write_str("OpenCodeInWarp"),
-            OpenWorkflowModal => f.write_str("OpenWorkflowModal"),
             OpenBlockListContextMenu => f.write_str("OpenBlockListContextMenu"),
             TriggerSubshellBootstrap => f.write_str("TriggerSubshellBootstrap"),
             DismissWarpifyBanner(remember) => write!(f, "DismissWarpifyBanner({remember:?})"),

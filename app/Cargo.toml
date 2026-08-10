@@ -569,7 +569,6 @@ prompt_suggestions_via_maa = []
 system_theme = []
 tab_close_button_on_left = []
 team_features_override = []
-team_workflows = ["team_features_override"]
 toggle_bootstrap_block = []
 # Retained for compatibility with cfg-gated code in downstream crates.
 integration_tests = []

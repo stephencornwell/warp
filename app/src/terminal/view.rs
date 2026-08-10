@@ -9206,7 +9206,6 @@ impl TypedActionView for TerminalView {
             | InputContextMenuItem(_)
             | NotificationsDiscoveryBanner(_)
             | NotificationsErrorBanner(_)
-            | OpenWorkflowModal
             | ToggleSnackbarInActivePane
             | SetInputModeAgent
             | SetInputModeTerminal

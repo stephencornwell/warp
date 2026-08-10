@@ -1,9 +1,9 @@
 use std::{collections::HashMap, sync::LazyLock};
 
-use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 use crate::search::slash_command_menu::{static_commands::Argument, StaticCommand};
 use crate::ui_components::color_dot;
+use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 use super::Availability;
 

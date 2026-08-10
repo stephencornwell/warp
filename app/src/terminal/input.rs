@@ -1773,11 +1773,10 @@ impl Input {
                 ctx,
             ),
             InputSuggestionsEvent::Select(selected_item) => {
-                if let InputSuggestionsMode::CompletionSuggestions { .. } =
-                    self.suggestions_mode_model.as_ref(ctx).mode()
-                {
-                    return;
-                } else if matches!(
+                if !matches!(
+                    self.suggestions_mode_model.as_ref(ctx).mode(),
+                    InputSuggestionsMode::CompletionSuggestions { .. }
+                ) && matches!(
                     self.suggestions_mode_model.as_ref(ctx).mode(),
                     InputSuggestionsMode::HistoryUp { .. }
                 ) {

@@ -70,7 +70,6 @@ impl Argument {
         self.hint_text = Some(text);
         self
     }
-
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

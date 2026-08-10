@@ -130,6 +130,12 @@ code before blaming the environment:
 - Command palette still listing surfaces that were supposedly deleted (notebooks, team
   workflows, Sentry panic triggers). Search the palette for `notebook`, `workflow`,
   `drive`, `ai`, `account`, `sentry` and invoke any hit to see whether it no-ops.
+  Palette entries and the Settings → Keyboard shortcuts list are both fed by the
+  `EditableBinding::new(...)` registry in `app/src/terminal/view/init.rs`, so when a
+  removed surface still shows up there, grep that file for the human-readable label
+  (note the label casing differs from the palette's title-cased rendering, e.g.
+  "Toggle team workflows modal" in source vs "Toggle Team Workflows Modal" in the UI —
+  grep case-insensitively or you will wrongly conclude the string is already gone).
 Confirm each by pairing a screenshot with the dispatched-action log line.
 
 ## Devin Secrets Needed

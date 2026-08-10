@@ -743,6 +743,13 @@ type InitialLayoutCallback = Box<
     ) -> (PaneData, InitialFocus),
 >;
 
+struct InitialTerminalPaneContext {
+    resources: TerminalViewResources,
+    unsupported_banner_model_handle: ModelHandle<BannerState>,
+    view_bounds: RectF,
+    model_event_sender: Option<SyncSender<ModelEvent>>,
+}
+
 impl PaneGroup {
     /// Executes the provided callback for each TerminalView contained within
     /// this pane group.
@@ -1654,14 +1661,17 @@ impl PaneGroup {
     /// process each pane as its task data arrives.
     fn initial_single_terminal_pane(
         options: NewTerminalOptions,
-        resources: TerminalViewResources,
-        unsupported_banner_model_handle: ModelHandle<BannerState>,
-        view_bounds: RectF,
-        model_event_sender: Option<SyncSender<ModelEvent>>,
+        initial_context: InitialTerminalPaneContext,
         pane_contents: &mut HashMap<PaneId, Box<dyn AnyPaneContent>>,
         pane_history: &mut Vec<PaneId>,
         ctx: &mut ViewContext<Self>,
     ) -> (PaneData, InitialFocus) {
+        let InitialTerminalPaneContext {
+            resources,
+            unsupported_banner_model_handle,
+            view_bounds,
+            model_event_sender,
+        } = initial_context;
         let (view, terminal_manager) = PaneGroup::create_session(
             options.initial_directory,
             options.env_vars,
@@ -1741,10 +1751,12 @@ impl PaneGroup {
                         log::warn!("Error restoring pane tree: {err:#}");
                         Self::initial_single_terminal_pane(
                             NewTerminalOptions::default(),
-                            resources,
-                            unsupported_banner_model_handle,
-                            view_bounds,
-                            model_event_sender_clone,
+                            InitialTerminalPaneContext {
+                                resources,
+                                unsupported_banner_model_handle,
+                                view_bounds,
+                                model_event_sender: model_event_sender_clone,
+                            },
                             pane_contents,
                             pane_history,
                             ctx,
@@ -1755,10 +1767,12 @@ impl PaneGroup {
                 }
                 PanesLayout::SingleTerminal(options) => Self::initial_single_terminal_pane(
                     *options,
-                    resources,
-                    unsupported_banner_model_handle,
-                    view_bounds,
-                    model_event_sender_clone,
+                    InitialTerminalPaneContext {
+                        resources,
+                        unsupported_banner_model_handle,
+                        view_bounds,
+                        model_event_sender: model_event_sender_clone,
+                    },
                     pane_contents,
                     pane_history,
                     ctx,

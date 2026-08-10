@@ -8,7 +8,6 @@ use pathfinder_geometry::vector::vec2f;
 use serde::{Deserialize, Serialize};
 use std::cmp::max;
 mod package_installers;
-pub(crate) use history::UpArrowHistoryConfig;
 pub use view::Event;
 pub use view::TerminalView;
 pub use warp_terminal::shell::{self, ShellLaunchData};

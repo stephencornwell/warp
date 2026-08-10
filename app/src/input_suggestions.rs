@@ -433,36 +433,6 @@ impl InputSuggestions {
         ctx.notify();
     }
 
-    /// Filters down the set of options to those that have the given prefix. If prefix is only
-    /// whitespace, then the input suggestions are simply all the options.
-    pub(crate) fn history_prefix_search<'a, I: IntoIterator<Item = HistoryInputSuggestion<'a>>>(
-        prefix: &str,
-        options: I,
-    ) -> Vec<Item> {
-        let trimmed_prefix = prefix.trim();
-        options
-            .into_iter()
-            .filter_map(|entry| {
-                if entry.text().starts_with(trimmed_prefix) {
-                    Some(Item {
-                        text: entry.text().trim().to_string(),
-                        display: None,
-                        details: entry.details(),
-                        matches: Some((0..trimmed_prefix.len()).collect()),
-                        icon_type: entry.icon_type(),
-                        match_type: MatchType::Prefix {
-                            is_case_sensitive: true,
-                        },
-                        is_ai_query: entry.is_ai_query(),
-                        is_history_item: true,
-                    })
-                } else {
-                    None
-                }
-            })
-            .collect()
-    }
-
     /// Given a filtered list of matched items, set the items and ensure the last one is selected.
     pub fn set_history_matches(&mut self, matches: Vec<Item>, ctx: &mut ViewContext<Self>) {
         self.set_items(matches);
@@ -1085,91 +1055,5 @@ impl Ord for HistoryOrder {
 impl PartialOrd for HistoryOrder {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         Some(self.cmp(other))
-    }
-}
-
-/// Types of input that can be suggested.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) enum HistoryInputSuggestion<'a> {
-    Command { entry: &'a HistoryEntry },
-}
-
-impl HistoryInputSuggestion<'_> {
-    /// The timestamp this history entry was created. Useful for sorting.
-    pub fn start_time(&self) -> DateTime<Local> {
-        match self {
-            HistoryInputSuggestion::Command { entry } => {
-                entry.start_ts.unwrap_or(DateTime::default())
-            }
-        }
-    }
-
-    /// Text to display for the suggestion.
-    pub fn text(&self) -> &str {
-        match self {
-            HistoryInputSuggestion::Command { entry } => entry.command.as_str(),
-        }
-    }
-
-    /// Which type of detail panel to show for this suggestion, if any.
-    fn details(&self) -> Option<DetailContent> {
-        match self {
-            HistoryInputSuggestion::Command { entry } => {
-                entry.has_metadata().then(|| ((*entry).clone()).into())
-            }
-        }
-    }
-
-    /// Which input suggestion icon to use for this suggestion, if any.
-    fn icon_type(&self) -> Option<ItemIconType> {
-        match self {
-            HistoryInputSuggestion::Command { .. } => None,
-        }
-    }
-
-    /// True if this history item is for an AI query.
-    pub(crate) fn is_ai_query(&self) -> bool {
-        false
-    }
-
-    pub fn cmp(
-        &self,
-        other: &Self,
-        current_session_id: Option<SessionId>,
-        all_live_session_ids: &HashSet<SessionId>,
-    ) -> Ordering {
-        let ordering = self
-            .history_order(current_session_id, all_live_session_ids)
-            .cmp(&other.history_order(current_session_id, all_live_session_ids));
-        if ordering == Ordering::Equal {
-            self.start_time().cmp(&other.start_time())
-        } else {
-            ordering
-        }
-    }
-
-    pub fn history_order(
-        &self,
-        current_session_id: Option<SessionId>,
-        _all_live_session_ids: &HashSet<SessionId>,
-    ) -> HistoryOrder {
-        match self {
-            HistoryInputSuggestion::Command { entry } => {
-                // Restored blocks are always treated as CurrentSession
-                if entry.is_for_restored_block {
-                    return HistoryOrder::CurrentSession;
-                }
-                // Check if this entry belongs to the current session
-                if let (Some(entry_session_id), Some(current_session_id)) =
-                    (entry.session_id, current_session_id)
-                {
-                    if entry_session_id == current_session_id {
-                        return HistoryOrder::CurrentSession;
-                    }
-                }
-                // Other live session, or past session
-                HistoryOrder::DifferentSession
-            }
-        }
     }
 }

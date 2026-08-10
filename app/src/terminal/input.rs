@@ -50,8 +50,7 @@ use crate::{
     },
     features::FeatureFlag,
     input_suggestions::{
-        Event as InputSuggestionsEvent, HistoryInputSuggestion, InputSuggestions,
-        TabCompletionsPreselectOption,
+        Event as InputSuggestionsEvent, InputSuggestions, TabCompletionsPreselectOption,
     },
     pane_group::PaneGroupAction,
     prefix::longest_common_prefix,
@@ -143,7 +142,7 @@ use super::{
         ExecuteCommandEvent, SyncInputType, TerminalAction,
         PADDING_LEFT as TERMINAL_VIEW_PADDING_LEFT,
     },
-    History, HistoryEntry, SizeInfo, TerminalModel, UpArrowHistoryConfig,
+    History, HistoryEntry, SizeInfo, TerminalModel,
 };
 use async_channel::Sender;
 use futures::stream::AbortHandle;
@@ -2724,20 +2723,6 @@ impl Input {
         });
 
         ctx.notify();
-    }
-
-    fn collate_ai_and_command_history<'a>(
-        &'a self,
-        ctx: &'a ViewContext<Self>,
-    ) -> Vec<HistoryInputSuggestion<'a>> {
-        let config = UpArrowHistoryConfig::for_input_config();
-
-        History::as_ref(ctx).up_arrow_suggestions_for_terminal_view(
-            self.terminal_view_id,
-            self.active_block_session_id(),
-            config,
-            ctx,
-        )
     }
 
     fn update_last_word_insertion_state(&mut self) {

@@ -154,7 +154,6 @@ use warpui::event::ModifiersState;
 use warpui::keymap::Keystroke;
 use warpui::notification::{NotificationSendError, RequestPermissionsOutcome, UserNotification};
 use warpui::platform::{Cursor, OperatingSystem};
-use warpui::r#async::Timer;
 use warpui::windowing::WindowManager;
 
 use warpui::assets::asset_cache::{AssetCache, AssetCacheEvent};
@@ -364,10 +363,6 @@ const KNOWN_ISSUES_URL: &str =
 /// Link to supported custom prompts.
 const PROMPT_COMPATIBILITY_URL: &str =
     "https://docs.warp.dev/terminal/appearance/prompt#custom-prompt-compatibility-table";
-
-/// Link to troubleshooting steps for ControlMaster errors.
-const CONTROLMASTER_ISSUES_URL: &str =
-    "https://docs.warp.dev/terminal/warpify/ssh-legacy#troubleshooting";
 
 /// Link to instructions on how to update p10k.
 const P10K_UPDATE_INSTRUCTIONS_URL: &str =
@@ -2764,50 +2759,6 @@ impl TerminalView {
         ctx: &mut ViewContext<Self>,
     ) {
         ctx.emit(Event::WriteBytesToPty { bytes: data.into() });
-    }
-
-    /// Ends the current line before writing 1000 byte chunks to the pty with a small delay in
-    /// between to work around a macos pty bug.
-    fn clear_line_editor_and_write_to_pty_with_mac_workaround_hack<B: Into<Cow<'static, [u8]>>>(
-        &mut self,
-        data: B,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        // Ctrl-u + ctrl-k clears everything before the cursor, then everything after the cursor.
-        // Ctrl-c is dangerous because it could cancel an ongoing command. We add an arbitrary space
-        // first so that the ctrl-u always clears at least one character, avoiding the audible bell.
-        let mut to_write = vec![
-            b' ',
-            escape_sequences::C0::VT,  // ctrl-k to clear forward
-            escape_sequences::C0::NAK, // ctrl-u to clear backward
-        ];
-        to_write.extend_from_slice(&data.into());
-
-        for (i, chunk) in to_write.chunks(1000).enumerate() {
-            let chunk = chunk.to_vec();
-            ctx.spawn(
-                Timer::after(Duration::from_millis(i as u64 * 10)),
-                move |me, _, ctx| me.write_to_pty(chunk, ctx),
-            );
-        }
-    }
-
-    /// Ends the current line before writing the given bytes to the PTY.
-    fn clear_line_editor_and_write_to_pty<B: Into<Cow<'static, [u8]>>>(
-        &mut self,
-        data: B,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        // Ctrl-u + ctrl-k clears everything before the cursor, then everything after the cursor.
-        // Ctrl-c is dangerous because it could cancel an ongoing command. We add an arbitrary space
-        // first so that the ctrl-u always clears at least one character, avoiding the audible bell.
-        let mut to_write = vec![
-            b' ',
-            escape_sequences::C0::VT,  // ctrl-k to clear forward
-            escape_sequences::C0::NAK, // ctrl-u to clear backward
-        ];
-        to_write.extend_from_slice(&data.into());
-        self.write_to_pty(to_write, ctx);
     }
 
     /// Writes to the PTY, resets selected blocks and updates scroll position.

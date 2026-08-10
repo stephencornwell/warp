@@ -5,7 +5,7 @@ pub mod web_intent_parser;
 pub mod browser_url_handler;
 
 use crate::launch_configs::launch_config::LaunchConfig;
-use crate::linear::{LinearAction, LinearIssueWork};
+use crate::linear::LinearAction;
 use crate::root_view::open_new_window_get_handles;
 use crate::util::openable_file_type::{
     is_file_openable_in_warp, is_markdown_file, is_runnable_shell_script, starts_with_shebang,
@@ -141,12 +141,11 @@ impl UriHost {
             }
             UriHost::Linear => match LinearAction::parse(url) {
                 Ok(LinearAction::WorkOnIssue) => {
-                    let args = LinearIssueWork::from_url(url);
                     dispatch_action_in_new_or_existing_window(
                         primary_window_id,
                         "root_view:open_linear_issue_work_in_existing_window",
                         "root_view:open_linear_issue_work_in_new_window",
-                        &args,
+                        &(),
                         ctx,
                     );
                 }

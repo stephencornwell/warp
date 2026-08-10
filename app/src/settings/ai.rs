@@ -1536,24 +1536,6 @@ impl AISettings {
         &self.default_tab_config_path
     }
 
-    /// Looks up the `TabConfig` matching the stored `default_tab_config_path`.
-    /// Returns `None` if the path is empty or no loaded config matches.
-    pub fn resolved_default_tab_config(
-        &self,
-        app: &AppContext,
-    ) -> Option<crate::tab_configs::TabConfig> {
-        let path_str = self.default_tab_config_path.as_str();
-        if path_str.is_empty() {
-            return None;
-        }
-        let path = std::path::Path::new(path_str);
-        crate::user_config::WarpConfig::as_ref(app)
-            .tab_configs()
-            .iter()
-            .find(|config| config.source_path.as_deref().is_some_and(|p| p == path))
-            .cloned()
-    }
-
     pub fn is_active_ai_enabled(&self, app: &warpui::AppContext) -> bool {
         self.is_any_ai_enabled(app)
             && *self.is_active_ai_enabled_internal

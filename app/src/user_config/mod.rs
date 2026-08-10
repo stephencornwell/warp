@@ -99,10 +99,6 @@ impl WarpConfig {
         &self.launch_configs
     }
 
-    pub fn tab_configs(&self) -> &Vec<TabConfig> {
-        &self.tab_configs
-    }
-
     pub fn theme_config(&self) -> &WarpThemeConfig {
         &self.theme_config
     }
@@ -137,19 +133,6 @@ impl WarpConfig {
     ) {
         self.theme_config.add_new_theme(theme_name, theme);
         ctx.emit(WarpConfigUpdateEvent::Themes);
-    }
-
-    /// Eagerly removes a tab config by its source path and emits a `TabConfigs` event.
-    /// (Used after deleting the file on disk so the menu updates immediately
-    /// rather than waiting for the filesystem watcher.)
-    #[cfg(feature = "local_fs")]
-    pub fn remove_tab_config_by_path(&mut self, path: &Path, ctx: &mut ModelContext<Self>) {
-        let before = self.tab_configs.len();
-        self.tab_configs
-            .retain(|c| c.source_path.as_deref() != Some(path));
-        if self.tab_configs.len() != before {
-            ctx.emit(WarpConfigUpdateEvent::TabConfigs);
-        }
     }
 }
 

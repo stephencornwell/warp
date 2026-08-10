@@ -8,7 +8,7 @@ use lazy_static::lazy_static;
 use parking_lot::RwLock;
 use warp_cli::RecoveryMechanism;
 use warp_core::channel::{Channel, ChannelState};
-use warpui::{Entity, ModelContext, SingletonEntity, WindowId};
+use warpui::{Entity, SingletonEntity, WindowId};
 use warpui_extras::user_preferences::UserPreferences;
 
 use crate::settings;

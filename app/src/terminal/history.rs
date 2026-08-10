@@ -1,7 +1,7 @@
 use chrono::{DateTime, Local, TimeZone as _};
-use futures::Future;
 #[cfg(test)]
 use futures::future::join_all;
+use futures::Future;
 use serde::{Deserialize, Serialize};
 use std::{
     collections::{HashMap, HashSet},
@@ -9,9 +9,9 @@ use std::{
 };
 
 use warp_core::command::ExitCode;
-use warpui::{Entity, ModelContext, SingletonEntity};
 #[cfg(test)]
 use warpui::ModelHandle;
+use warpui::{Entity, ModelContext, SingletonEntity};
 
 use super::{
     model::block::{Block, SerializedBlock},
@@ -361,7 +361,12 @@ impl History {
                 receivers.push(rx);
             }
         }
-        join_all(receivers.into_iter().map(|rx| async move { rx.recv().await })).await;
+        join_all(
+            receivers
+                .into_iter()
+                .map(|rx| async move { rx.recv().await }),
+        )
+        .await;
     }
 
     pub fn new(persisted_commands: Vec<PersistedCommand>) -> Self {

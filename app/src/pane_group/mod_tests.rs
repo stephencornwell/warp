@@ -1,3 +1,5 @@
+use crate::settings::PrivacySettings;
+use crate::settings_view::keybindings::KeybindingChangedNotifier;
 use crate::{
     appearance::Appearance,
     context_chips::prompt::Prompt,
@@ -12,12 +14,10 @@ use crate::{
     test_util::settings::initialize_settings_for_tests,
     undo_close::UndoCloseStack,
     warp_managed_paths_watcher::WarpManagedPathsWatcher,
-    workspace::{ActiveSession, OneTimeModalModel, WorkspaceRegistry},
     workspace::sync_inputs::SyncedInputState,
+    workspace::{ActiveSession, OneTimeModalModel, WorkspaceRegistry},
     GlobalResourceHandles, GlobalResourceHandlesProvider,
 };
-use crate::settings::PrivacySettings;
-use crate::settings_view::keybindings::KeybindingChangedNotifier;
 use repo_metadata::{repositories::DetectedRepositories, watcher::DirectoryWatcher};
 use std::collections::HashMap;
 use std::sync::Arc;

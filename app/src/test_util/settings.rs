@@ -14,21 +14,20 @@ pub fn initialize_settings_for_tests_with_mode(
     is_sandboxed: bool,
 ) {
     use crate::{
+        search::command_search::settings::CommandSearchSettings,
         settings::{
-            init_and_register_user_preferences, manager::SettingsManager, AccessibilitySettings,
-            app_icon::AppIconSettings, AliasExpansionSettings, AppEditorSettings,
-            BlockVisibilitySettings, ChangelogSettings,
-            CodeSettings, DebugSettings, EmacsBindingsSettings, FontSettings, GPUSettings,
-            InputModeSettings, InputSettings, NativePreferenceSettings, PaneSettings,
-            SameLinePromptBlockSettings, ScrollSettings, SelectionSettings, SshSettings,
-            ThemeSettings, VimBannerSettings,
+            app_icon::AppIconSettings, init_and_register_user_preferences,
+            manager::SettingsManager, AccessibilitySettings, AliasExpansionSettings,
+            AppEditorSettings, BlockVisibilitySettings, ChangelogSettings, CodeSettings,
+            DebugSettings, EmacsBindingsSettings, FontSettings, GPUSettings, InputModeSettings,
+            InputSettings, NativePreferenceSettings, PaneSettings, SameLinePromptBlockSettings,
+            ScrollSettings, SelectionSettings, SshSettings, ThemeSettings, VimBannerSettings,
         },
         terminal::{
             general_settings::GeneralSettings, keys_settings::KeysSettings,
             ligature_settings::LigatureSettings, safe_mode_settings::SafeModeSettings,
             session_settings::SessionSettings, settings::TerminalSettings, BlockListSettings,
         },
-        search::command_search::settings::CommandSearchSettings,
         undo_close::UndoCloseSettings,
         user_config::WarpConfig,
         window_settings::WindowSettings,

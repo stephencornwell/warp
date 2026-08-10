@@ -1,16 +1,16 @@
 use warpui::{platform::WindowStyle, App, ViewHandle, WindowId};
 
+use crate::appearance::Appearance;
 use crate::context_chips::prompt::Prompt;
-use crate::terminal::model::block::SerializedBlock;
-use crate::terminal::history::History;
 use crate::settings_view::keybindings::KeybindingChangedNotifier;
 use crate::settings_view::DisplayCount;
-use crate::appearance::Appearance;
 use crate::terminal::alt_screen_reporting::AltScreenReporting;
-use crate::{settings::PrivacySettings, test_util::settings::initialize_settings_for_tests};
-use crate::{resource_center::TipsCompleted, terminal::TerminalView};
-use crate::workspace::{ActiveSession, OneTimeModalModel};
+use crate::terminal::history::History;
+use crate::terminal::model::block::SerializedBlock;
 use crate::workspace::sync_inputs::SyncedInputState;
+use crate::workspace::{ActiveSession, OneTimeModalModel};
+use crate::{resource_center::TipsCompleted, terminal::TerminalView};
+use crate::{settings::PrivacySettings, test_util::settings::initialize_settings_for_tests};
 
 type SerializedBlockListItem = SerializedBlock;
 

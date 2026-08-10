@@ -6,12 +6,12 @@ use repo_metadata::repositories::DetectedRepositories;
 use repo_metadata::watcher::DirectoryWatcher;
 use watcher::HomeDirectoryWatcher;
 
-use crate::editor::EditorAction;
 use crate::context_chips::prompt::Prompt;
+use crate::editor::EditorAction;
 use crate::input_suggestions::Item;
 use crate::network::NetworkStatus;
-use crate::settings::{AliasExpansionSettings, AppEditorSettings};
 use crate::settings::PrivacySettings;
+use crate::settings::{AliasExpansionSettings, AppEditorSettings};
 use crate::settings_view::keybindings::KeybindingChangedNotifier;
 #[cfg(windows)]
 use crate::system::SystemInfo;

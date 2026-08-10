@@ -289,10 +289,7 @@ pub enum TabCompletionsPreselectOption {
 }
 
 impl InputSuggestions {
-    pub(crate) fn history_prefix_search<'a, I>(
-        prefix: &str,
-        options: I,
-    ) -> Vec<Item>
+    pub(crate) fn history_prefix_search<'a, I>(prefix: &str, options: I) -> Vec<Item>
     where
         I: IntoIterator<Item = &'a crate::terminal::HistoryEntry>,
     {

@@ -12,10 +12,10 @@ use std::collections::HashMap;
 #[cfg(feature = "local_fs")]
 use watcher::HomeDirectoryWatcher;
 
-use crate::settings_view::keybindings::KeybindingChangedNotifier;
-use crate::settings_view::DisplayCount;
 use crate::context_chips::prompt::Prompt;
 use crate::settings::PrivacySettings;
+use crate::settings_view::keybindings::KeybindingChangedNotifier;
+use crate::settings_view::DisplayCount;
 use crate::system::SystemStats;
 use crate::terminal::history::History;
 use crate::terminal::keys::TerminalKeybindings;

@@ -2013,16 +2013,19 @@ impl Input {
             return;
         }
 
-        let (on_first_row, original_buffer, original_cursor_point) = self.editor.read(ctx, |editor, ctx| {
-            (
-                editor.single_cursor_on_first_row(ctx),
-                editor.buffer_text(ctx),
-                editor.single_cursor_to_point(ctx),
-            )
-        });
+        let (on_first_row, original_buffer, original_cursor_point) =
+            self.editor.read(ctx, |editor, ctx| {
+                (
+                    editor.single_cursor_on_first_row(ctx),
+                    editor.buffer_text(ctx),
+                    editor.single_cursor_to_point(ctx),
+                )
+            });
         if on_first_row && self.can_query_history(ctx) {
-            let matches =
-                InputSuggestions::history_prefix_search(&original_buffer, self.history_commands(ctx));
+            let matches = InputSuggestions::history_prefix_search(
+                &original_buffer,
+                self.history_commands(ctx),
+            );
             self.input_suggestions.update(ctx, |suggestions, ctx| {
                 suggestions.set_history_matches(matches, ctx);
             });

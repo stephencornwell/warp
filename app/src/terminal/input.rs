@@ -1773,20 +1773,10 @@ impl Input {
                 ctx,
             ),
             InputSuggestionsEvent::Select(selected_item) => {
-                if let InputSuggestionsMode::CompletionSuggestions {
-                    replacement_start, ..
-                } = self.suggestions_mode_model.as_ref(ctx).mode()
+                if let InputSuggestionsMode::CompletionSuggestions { .. } =
+                    self.suggestions_mode_model.as_ref(ctx).mode()
                 {
-                    let replacement_start = *replacement_start;
-                    self.editor.update(ctx, |editor, ctx| {
-                        let cursor_end_offset = editor.end_byte_index_of_last_selection(ctx);
-                        editor.select_and_replace(
-                            selected_item.text(),
-                            [ByteOffset::from(replacement_start)..cursor_end_offset],
-                            PlainTextEditorViewAction::CycleCompletionSuggestion,
-                            ctx,
-                        );
-                    });
+                    return;
                 } else if matches!(
                     self.suggestions_mode_model.as_ref(ctx).mode(),
                     InputSuggestionsMode::HistoryUp { .. }
@@ -1811,7 +1801,7 @@ impl Input {
         suggestion: &str,
         ctx: &mut ViewContext<Input>,
     ) -> bool {
-        self.confirm_suggestion_internal(suggestion, Executing::Yes, ctx)
+        self.confirm_suggestion_internal(suggestion, Executing::No, ctx)
     }
 
     /// Handles suggestion confirmation behaviour in editor and returns true if suggestions menu should be closed
@@ -2383,7 +2373,26 @@ impl Input {
                 }
                 self.maybe_generate_autosuggestion(ctx);
             }
-            EditorEvent::BufferReplaced | EditorEvent::SelectionChanged => ctx.notify(),
+            EditorEvent::BufferReplaced => ctx.notify(),
+            EditorEvent::SelectionChanged => {
+                if let InputSuggestionsMode::CompletionSuggestions {
+                    replacement_start,
+                    buffer_text_original,
+                    completion_results,
+                    ..
+                } = self.suggestions_mode_model.as_ref(ctx).mode().clone()
+                {
+                    if self.update_tab_completion_menu(
+                        replacement_start,
+                        &buffer_text_original,
+                        &completion_results,
+                        ctx,
+                    ) {
+                        self.close_input_suggestions(true, ctx);
+                    }
+                }
+                ctx.notify();
+            }
             EditorEvent::Navigate(NavigationKey::Up) => self.editor_up(ctx),
             EditorEvent::Navigate(NavigationKey::Down) => self.editor_down(ctx),
             EditorEvent::Navigate(NavigationKey::PageUp) => self.editor_page_up(ctx),
@@ -2844,6 +2853,8 @@ impl Input {
                         let buffer_text_original = buffer_text
                             [0..self.start_byte_index_of_last_selection(ctx).as_usize()]
                             .to_string();
+                        let mut replacement_query =
+                            results.replacement_span.slice(&buffer_text).to_string();
 
                         if completions_trigger == CompletionsTrigger::Keybinding {
                             if let Some(common_prefix) = longest_common_prefix(
@@ -2886,6 +2897,7 @@ impl Input {
                                         common_prefix,
                                         results.replacement_span.start(),
                                     );
+                                    replacement_query = common_prefix.to_string();
                                 }
                             }
                         }
@@ -2946,7 +2958,7 @@ impl Input {
                         self.input_suggestions
                             .update(ctx, |input_suggestions, ctx| {
                                 input_suggestions.prefix_search_for_tab_completion(
-                                    results.replacement_span.slice(&buffer_text),
+                                    &replacement_query,
                                     &results,
                                     preselect_option,
                                     ctx,

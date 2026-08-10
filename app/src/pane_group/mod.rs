@@ -32,7 +32,6 @@ use pathfinder_geometry::rect::RectF;
 use pathfinder_geometry::vector::{vec2f, Vector2F};
 use serde::{Deserialize, Serialize};
 use typed_path::TypedPath;
-use url::Url;
 use uuid::Uuid;
 use warp_core::context_flag::ContextFlag;
 use warp_core::HostId;

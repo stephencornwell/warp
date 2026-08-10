@@ -580,23 +580,6 @@ pub struct TerminalModel {
     pub next_kitty_image_id: u32,
 }
 
-#[derive(Clone, Debug)]
-pub struct SshLogin {
-    /// The block id of the ssh session we're tracking
-    block_id: BlockId,
-    notification_state: SshLoginNotificationState,
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub enum SshLoginNotificationState {
-    /// Read all pty output to see if ssh login is complete.
-    Monitoring,
-    /// Read all pty output but don't send another initial notification.
-    SentInitialNotification,
-    /// The final notification has been sent. No need to monitor anymore.
-    Completed,
-}
-
 /// This struct contains metadata for a subshell, and its precence in the SessionInfo indicates
 /// that a session is in a bootstrapped subshell.
 #[derive(Clone, Debug)]

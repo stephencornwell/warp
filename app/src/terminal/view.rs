@@ -361,11 +361,6 @@ const BRACKETED_PASTE_SUFFIX: &str = "\x1b[201~";
 
 /// Duration before we consider a session to have failed bootstrapping.
 const BOOTSTRAP_FAILED_DURATION: Duration = Duration::from_secs(7);
-/// Duration before we consider a session invoked from an env vars object to
-/// have failed bootstrapping. The longer duration is meant to account for
-/// a user needing to type in one or many secret manager passwords
-/// during the bootstrap period.
-const ENV_VAR_BOOTSTRAP_FAILED_DURATION: Duration = Duration::from_secs(60);
 const KNOWN_ISSUES_URL: &str =
     "https://docs.warp.dev/support-and-community/troubleshooting-and-support/known-issues";
 
@@ -400,19 +395,12 @@ const DEBOUNCE_PERIOD: Duration = Duration::from_millis(40);
 /// Key used in user defaults to save whether the user has seen the banner.
 pub const ALIAS_EXPANSION_BANNER_SEEN_KEY: &str = "AliasExpansionBannerSeen";
 
-/// Delay between receiving preexec hook for a command we want to auto-warpify
-/// and triggering the warpification (subshell bootstrapping).
-/// Reached this number after experimenting with different values to find a reliable delay.
-const AUTO_WARPIFY_DELAY: u64 = 1000;
-
 /// Binding names to be customized if the user indicates they prefer
 /// Emacs-style keybindings instead of IDE-style keybindings.
 /// These are specific to non-MacOS desktop platforms.
 const SELECT_ALL_BINDING_NAME: &str = "editor_view:select_all";
 const MOVE_LINE_START_BINDING_NAME: &str = "editor_view:move_to_line_start";
 const MOVE_LINE_END_BINDING_NAME: &str = "editor_view:move_to_line_end";
-
-const DEFAULT_AI_BLOCK_HEIGHT: f32 = 96.;
 
 pub const DEFAULT_ASK_AI_AUTOSUGGESTION_TEXT: &str = "What happened here?";
 

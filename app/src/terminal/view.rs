@@ -2637,7 +2637,6 @@ impl TerminalView {
 
     /// Give the agent control of the active long running command
     /// (which was started outside of a conversation).
-
     /// Shuts down the pty and event loop, terminating the shell process.
     /// Also marks this view as manually shut down for telemetry attribution.
     pub fn shutdown_pty(&mut self, ctx: &mut ViewContext<Self>) {
@@ -3740,7 +3739,6 @@ impl TerminalView {
     ///
     /// For some organizations, we accept a regex list that we run against commands to
     /// further make the determination.
-
     /// Cleans up and removes the conversation associated with the given AI block.
     ///
     /// This removes the AI block from the blocklist (and cached `rich_content_views` list) and

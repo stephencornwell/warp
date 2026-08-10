@@ -11,7 +11,7 @@ use crate::terminal::general_settings::GeneralSettings;
 use crate::terminal::keys_settings::KeysSettings;
 use crate::terminal::shell::ShellType;
 use crate::terminal::view::cell_size_and_padding;
-use crate::themes::theme::{AnsiColorIdentifier, Blend, Fill};
+use crate::themes::theme::{AnsiColorIdentifier, Blend};
 use crate::util::bindings::{self, is_binding_pty_compliant};
 use crate::util::traffic_lights::{traffic_light_data, TrafficLightData, TrafficLightMouseStates};
 use crate::window_settings::WindowSettings;
@@ -62,21 +62,6 @@ const WINDOW_TITLE: &str = "Warp";
 lazy_static! {
     static ref FALLBACK_WINDOW_SIZE: Vector2F = vec2f(800.0, 600.0);
     static ref QUAKE_STATE: Arc<Mutex<Option<QuakeModeState>>> = Arc::new(Mutex::new(None));
-}
-
-/// This is the color of the border wrapping the whole window.
-///
-/// On MacOS, this is drawn for us by the OS. On other platforms, we must draw it ourselves. Note
-/// that this is hard-coded for the default Dark theme. This is because it is only used by the
-/// AuthView and OnboardingSurveyModal which do not respect the chosen theme. So, do not use this for Views
-/// which respect themes.
-pub(crate) fn unthemed_window_border() -> Border {
-    if cfg!(all(not(target_os = "macos"), not(target_family = "wasm"))) {
-        // The 15% blend of fg into bg is the "ui surface" color.
-        Border::all(1.).with_border_fill(Fill::black().blend(&Fill::white().with_opacity(15)))
-    } else {
-        Border::all(1.).with_border_fill(Fill::black().with_opacity(0))
-    }
 }
 
 #[derive(Debug, Clone)]
@@ -782,66 +767,6 @@ fn open_shared_session_as_viewer(session_id: &SessionId, ctx: &mut AppContext) {
 
 /// Opens a new window to view a persisted view-only cloud conversation.
 /// The conversation data is loaded via GraphQL API.
-fn create_environment(arg: &CreateEnvironmentArg, ctx: &mut AppContext) {
-    let repos = arg.repos.clone();
-    let (window_id, root_handle) = open_new_with_workspace_source(
-        NewWorkspaceSource::Session {
-            options: Box::default(),
-        },
-        ctx,
-    );
-
-    root_handle.update(ctx, |root_view, ctx| {
-        if let AuthOnboardingState::Terminal(workspace_handle) = &root_view.auth_onboarding_state {
-            workspace_handle.update(ctx, |workspace, ctx| {
-                workspace
-                    .active_tab_pane_group()
-                    .update(ctx, |pane_group, ctx| {
-                        pane_group.set_title("Create Environment", ctx);
-
-                        if let Some(terminal_view) = pane_group.active_session_view(ctx) {
-                            terminal_view.update(ctx, |_, ctx| {
-                                let _ = (&repos, ctx);
-                            });
-                        }
-                    });
-            });
-        }
-    });
-
-    ctx.windows().show_window_and_focus_app(window_id);
-}
-
-/// Opens a new window and starts the guided `/create-environment` setup flow immediately.
-fn create_environment_and_run(arg: &CreateEnvironmentArg, ctx: &mut AppContext) {
-    let repos = arg.repos.clone();
-    let (window_id, root_handle) = open_new_with_workspace_source(
-        NewWorkspaceSource::Session {
-            options: Box::default(),
-        },
-        ctx,
-    );
-
-    root_handle.update(ctx, |root_view, ctx| {
-        if let AuthOnboardingState::Terminal(workspace_handle) = &root_view.auth_onboarding_state {
-            workspace_handle.update(ctx, |workspace, ctx| {
-                workspace
-                    .active_tab_pane_group()
-                    .update(ctx, |pane_group, ctx| {
-                        pane_group.set_title("Create Environment", ctx);
-
-                        if let Some(terminal_view) = pane_group.active_session_view(ctx) {
-                            terminal_view.update(ctx, |_, ctx| {
-                                let _ = (&repos, ctx);
-                            });
-                        }
-                    });
-            });
-        }
-    });
-
-    ctx.windows().show_window_and_focus_app(window_id);
-}
 fn open_settings_page_in_new_window(section: &SettingsSection, ctx: &mut AppContext) {
     let root_handle = open_new_window_get_handles(None, ctx).1;
     root_handle.update(ctx, |root_view, ctx| {
@@ -1285,7 +1210,6 @@ struct WorkspaceArgs {
 }
 
 enum AuthOnboardingState {
-    ConfirmIncomingAuth(Box<WorkspaceArgs>),
     Terminal(ViewHandle<Workspace>),
 }
 
@@ -1352,10 +1276,6 @@ impl RootView {
         ctx.focus_self();
         ctx.notify();
         true
-    }
-
-    fn web_handoff(&mut self, ctx: &mut ViewContext<Self>) {
-        let _ = ctx;
     }
 
     fn close_window(&mut self, _: &(), ctx: &mut ViewContext<Self>) -> bool {
@@ -1564,7 +1484,6 @@ impl View for RootView {
     fn render(&self, app: &AppContext) -> Box<dyn Element> {
         let child = match &self.auth_onboarding_state {
             AuthOnboardingState::Terminal(workspace) => ChildView::new(workspace).finish(),
-            AuthOnboardingState::ConfirmIncomingAuth(_) => Stack::new().finish(),
         };
 
         let mut stack = Stack::new();

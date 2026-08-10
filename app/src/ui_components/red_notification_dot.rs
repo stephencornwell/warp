@@ -1,8 +1,8 @@
 use pathfinder_geometry::vector::vec2f;
 use warpui::{
     elements::{
-        ChildAnchor, ConstrainedBox, Container, CornerRadius, Empty, Fill, OffsetPositioning,
-        ParentAnchor, ParentElement as _, ParentOffsetBounds, Radius, Stack,
+        ChildAnchor, ConstrainedBox, Container, Empty, OffsetPositioning, ParentAnchor,
+        ParentElement as _, ParentOffsetBounds, Stack,
     },
     ui_components::components::UiComponentStyles,
     Element,

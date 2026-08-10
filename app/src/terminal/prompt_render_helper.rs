@@ -1,4 +1,3 @@
-use crate::context_chips::spacing;
 use crate::features::FeatureFlag;
 use crate::settings::InputSettings;
 use crate::terminal::grid_size_util::grid_compute_baseline_position_fn;
@@ -151,14 +150,6 @@ pub(super) struct PromptElements {
     pub(super) rprompt: Option<Box<dyn Element>>,
 }
 
-/// Struct used for storing prompt elements when same-line prompt is toggled on.
-pub(super) struct SameLinePromptElements {
-    // Top n-1 lines of lprompt.
-    pub(super) lprompt_top: Option<Box<dyn Element>>,
-    // Bottom (nth) line of lprompt.
-    pub(super) lprompt_bottom: Option<Box<dyn Element>>,
-    pub(super) rprompt: Option<Box<dyn Element>>,
-}
 #[derive(Clone)]
 pub struct PromptRenderHelper {
     sessions: ModelHandle<Sessions>,
@@ -621,69 +612,6 @@ impl PromptRenderHelper {
         )
     }
 
-    pub(in crate::terminal) fn render_universal_developer_input_prompt(
-        &self,
-        model: &TerminalModel,
-        appearance: &Appearance,
-        app: &AppContext,
-    ) -> Box<dyn Element> {
-        let element = {
-            if model.block_list().is_bootstrapped() {
-                let block = self
-                    .prompt_block(model)
-                    .unwrap_or(model.block_list().active_block());
-                let mut size_info = app.model(&self.input_render_state_model_handle).size_info();
-                size_info.padding_x_px = Pixels::zero();
-                Self::prompt_block_grid_to_prompt_and_padding(
-                    block.prompt_grid().clone(),
-                    0.,
-                    0.,
-                    appearance,
-                    get_secret_obfuscation_mode(app),
-                    size_info,
-                    app,
-                )
-                .element
-            } else {
-                PromptAndPaddingElement::Text(Box::new(
-                    self.bootstrapping_shell_text(model, appearance, app),
-                ))
-            }
-        };
-
-        let view_id = self.prompt_parent_view_id;
-        let position_id = format!("{}_{}", PromptSide::Left, view_id);
-        let size_info = app.model(&self.input_render_state_model_handle).size_info();
-        let terminal_spacing = TerminalSettings::as_ref(app)
-            .terminal_input_spacing(appearance.line_height_ratio(), app);
-
-        let prompt_with_padding_container = Container::new(element.render())
-            .with_padding_top({
-                (terminal_spacing.block_padding.padding_top * size_info.cell_height_px().as_f32()
-                    - get_input_box_top_border_width())
-                    * spacing::UDI_PROMPT_TOP_PADDING_FACTOR
-            })
-            .finish();
-
-        SavePosition::new(
-            EventHandler::new(prompt_with_padding_container)
-                .on_right_mouse_down(move |ctx, _, position| {
-                    let position_id = format!("prompt_area_{view_id}");
-                    let Some(prompt_rect) = ctx.element_position_by_id(position_id) else {
-                        return DispatchEventResult::PropagateToParent;
-                    };
-                    let offset_position = position - prompt_rect.origin();
-                    ctx.dispatch_typed_action(TerminalAction::PromptContextMenu {
-                        position_offset_from_prompt: offset_position,
-                    });
-                    DispatchEventResult::StopPropagation
-                })
-                .finish(),
-            &position_id,
-        )
-        .finish()
-    }
-
     pub(in crate::terminal) fn render_prompt_areas(
         &self,
         model: &TerminalModel,
@@ -711,51 +639,5 @@ impl PromptRenderHelper {
             )
         });
         PromptElements { lprompt, rprompt }
-    }
-
-    pub(in crate::terminal) fn render_same_line_prompt_areas(
-        &self,
-        model: &TerminalModel,
-        appearance: &Appearance,
-        app: &AppContext,
-    ) -> SameLinePromptElements {
-        let (
-            lprompt_top_and_padding_option,
-            lprompt_bottom_and_padding_option,
-            rprompt_and_padding_option,
-        ) = self.render_prompt(model, appearance, app);
-        let lprompt_top = lprompt_top_and_padding_option.and_then(|lprompt_top_and_padding| {
-            self.render_prompt_area_helper(
-                model,
-                lprompt_top_and_padding,
-                appearance,
-                PromptSide::Left,
-                app,
-            )
-        });
-        let lprompt_bottom =
-            lprompt_bottom_and_padding_option.and_then(|lprompt_bottom_and_padding| {
-                self.render_prompt_area_helper(
-                    model,
-                    lprompt_bottom_and_padding,
-                    appearance,
-                    PromptSide::Left,
-                    app,
-                )
-            });
-        let rprompt = rprompt_and_padding_option.and_then(|rprompt_and_padding| {
-            self.render_prompt_area_helper(
-                model,
-                rprompt_and_padding,
-                appearance,
-                PromptSide::Right,
-                app,
-            )
-        });
-        SameLinePromptElements {
-            lprompt_top,
-            lprompt_bottom,
-            rprompt,
-        }
     }
 }

@@ -1907,6 +1907,9 @@ impl Input {
     }
 
     pub fn clear_buffer_and_reset_undo_stack(&mut self, ctx: &mut ViewContext<Self>) {
+        if self.suggestions_mode_model.as_ref(ctx).is_visible() {
+            self.close_input_suggestions(false, ctx);
+        }
         self.editor.update(ctx, |view, ctx| {
             view.clear_buffer_and_reset_undo_stack(ctx);
         });
@@ -2339,6 +2342,27 @@ impl Input {
         }
         match event {
             EditorEvent::Edited(edit_origin) => {
+                let last_action = self
+                    .editor
+                    .read(ctx, |editor, editor_ctx| editor.get_last_action(editor_ctx));
+                if last_action != Some(PlainTextEditorViewAction::AcceptCompletionSuggestion) {
+                    if let InputSuggestionsMode::CompletionSuggestions {
+                        replacement_start,
+                        buffer_text_original,
+                        completion_results,
+                        ..
+                    } = self.suggestions_mode_model.as_ref(ctx).mode().clone()
+                    {
+                        if self.update_tab_completion_menu(
+                            replacement_start,
+                            &buffer_text_original,
+                            &completion_results,
+                            ctx,
+                        ) {
+                            self.close_input_suggestions(true, ctx);
+                        }
+                    }
+                }
                 if *edit_origin == EditOrigin::UserTyped
                     && self.suggestions_mode_model.as_ref(ctx).is_history_up()
                 {
@@ -2352,9 +2376,6 @@ impl Input {
                 ) {
                     self.model.lock().set_is_input_dirty(true);
                 }
-                let last_action = self
-                    .editor
-                    .read(ctx, |editor, editor_ctx| editor.get_last_action(editor_ctx));
                 if *edit_origin == EditOrigin::UserTyped
                     && last_action == Some(PlainTextEditorViewAction::Space)
                 {
@@ -2776,6 +2797,9 @@ impl Input {
         editor_snapshot_when_completer_was_ran: EditorSnapshot,
         ctx: &mut ViewContext<Self>,
     ) {
+        if let Some(abort_handle) = self.completions_abort_handle.take() {
+            abort_handle.abort();
+        }
         let current_editor_model = self
             .editor
             .read(ctx, |editor, ctx| editor.snapshot_model(ctx));
@@ -2933,6 +2957,48 @@ impl Input {
             }
         }
         ctx.notify();
+    }
+
+    fn update_tab_completion_menu(
+        &self,
+        replacement_start: usize,
+        buffer_text_original: &str,
+        completion_results: &SuggestionResults,
+        ctx: &mut ViewContext<Input>,
+    ) -> bool {
+        let editor_text = self.editor.as_ref(ctx).buffer_text(ctx);
+        let cursor_position = self.start_byte_index_of_last_selection(ctx);
+        let text_up_to_cursor = &editor_text[..cursor_position.as_usize()];
+
+        if cursor_position.as_usize() < replacement_start
+            || (!text_up_to_cursor.starts_with(buffer_text_original)
+                && !self.is_classic_completions_enabled(ctx))
+        {
+            return true;
+        }
+
+        let current_word = &editor_text[replacement_start..cursor_position.as_usize()];
+        if self.is_classic_completions_enabled(ctx)
+            && self
+                .input_suggestions
+                .as_ref(ctx)
+                .get_selected_item_text()
+                .is_some_and(|selected| selected == current_word)
+        {
+            return false;
+        }
+
+        let should_close = self.input_suggestions.update(ctx, |suggestions, ctx| {
+            suggestions.prefix_search_for_tab_completion(
+                current_word,
+                completion_results,
+                TabCompletionsPreselectOption::Unchanged,
+                ctx,
+            );
+            suggestions.items().is_empty()
+        });
+        ctx.notify();
+        should_close
     }
 
     /// Replace the replacement with the common completion prefix. Note that completion prefix

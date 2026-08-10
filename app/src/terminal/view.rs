@@ -5382,7 +5382,7 @@ impl TerminalView {
             }
         }
 
-        if should_redetermine_focus {
+        if should_redetermine_focus && matches!(block_action, BlockSelectAction::ClearAllBlocks) {
             self.redetermine_global_focus(ctx);
         }
     }

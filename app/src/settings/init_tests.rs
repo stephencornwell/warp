@@ -10,6 +10,7 @@ use warp_core::user_preferences::GetUserPreferences as _;
 use warpui::SingletonEntity;
 use warpui_extras::user_preferences;
 
+use crate::settings::user_preferences_toml_file_path;
 use crate::terminal::session_settings::{NotificationsMode, NotificationsSettings};
 
 use super::{
@@ -71,6 +72,32 @@ impl SettingsFileEnabledGuard {
 impl Drop for SettingsFileEnabledGuard {
     fn drop(&mut self) {
         set_settings_file_enabled(self.0);
+    }
+}
+
+struct SettingsFileBackup {
+    path: std::path::PathBuf,
+    contents: Option<Vec<u8>>,
+}
+
+impl SettingsFileBackup {
+    fn new(path: std::path::PathBuf) -> Self {
+        let contents = std::fs::read(&path).ok();
+        let _ = std::fs::remove_file(&path);
+        Self { path, contents }
+    }
+}
+
+impl Drop for SettingsFileBackup {
+    fn drop(&mut self) {
+        match &self.contents {
+            Some(contents) => {
+                let _ = std::fs::write(&self.path, contents);
+            }
+            None => {
+                let _ = std::fs::remove_file(&self.path);
+            }
+        }
     }
 }
 
@@ -244,9 +271,11 @@ fn test_migration_handles_string_setting() {
 }
 
 #[test]
+#[serial_test::serial]
 fn test_migration_does_not_rerun_when_marker_present() {
     warpui::App::test((), |mut app| async move {
         let _guard = FeatureFlag::SettingsFile.override_enabled(true);
+        let _settings_file_guard = SettingsFileBackup::new(user_preferences_toml_file_path());
 
         app.update(init_test_app);
 

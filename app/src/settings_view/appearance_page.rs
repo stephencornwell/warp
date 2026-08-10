@@ -1673,10 +1673,9 @@ impl AppearanceSettingsPageView {
     fn set_opacity(
         &mut self,
         opacity_value: f32,
-        should_set_defaults: bool,
+        _should_set_defaults: bool,
         ctx: &mut ViewContext<Self>,
     ) {
-        if should_set_defaults {}
         WindowSettings::handle(ctx).update(ctx, |window_settings, ctx| {
             report_if_error!(window_settings
                 .background_opacity
@@ -1688,11 +1687,9 @@ impl AppearanceSettingsPageView {
     fn set_blur(
         &mut self,
         blur_value: f32,
-        should_set_defaults: bool,
+        _should_set_defaults: bool,
         ctx: &mut ViewContext<Self>,
     ) {
-        if should_set_defaults {}
-
         ctx.windows()
             .set_all_windows_background_blur_radius(blur_value as u8);
 

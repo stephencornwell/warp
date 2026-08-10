@@ -1802,8 +1802,6 @@ impl Input {
                 ctx.notify();
             });
 
-            if !command.is_empty() {}
-
             self.start_block_and_write_command_to_pty(command, source, ctx);
             did_execute = true;
         } else {

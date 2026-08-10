@@ -23,7 +23,6 @@ use warpui::{AppContext, ModelContext, ModelHandle, SingletonEntity, ViewHandle,
 use crate::banner::BannerState;
 use crate::context_chips::current_prompt::CurrentPrompt;
 use crate::context_chips::prompt_type::PromptType;
-use crate::features::FeatureFlag;
 use crate::pane_group::TerminalViewResources;
 use crate::persistence::ModelEvent;
 use crate::settings::DebugSettings;
@@ -201,7 +200,6 @@ impl TerminalManager {
         let model = Arc::new(FairMutex::new(model));
 
         // This is purely for measuring throughput on WarpDev.
-        if FeatureFlag::RecordPtyThroughput.is_enabled() {}
 
         // Initialize the PtyController.
         let pty_controller = init_pty_controller_model(

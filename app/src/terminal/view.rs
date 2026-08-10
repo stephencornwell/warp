@@ -7598,15 +7598,6 @@ impl TerminalView {
             return;
         };
 
-        let model = self.model.lock();
-        let previous_filter = model.get_filter_on_block(active_filter_editor_block_index);
-        if (previous_filter.is_none()
-            || previous_filter
-                .is_some_and(|previous_filter| !previous_filter.is_active_and_nonempty()))
-            && block_filter_query.is_active_and_nonempty()
-        {}
-        drop(model);
-
         self.update_block_filter_for_block(
             active_filter_editor_block_index,
             block_filter_query,

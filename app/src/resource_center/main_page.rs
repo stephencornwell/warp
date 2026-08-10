@@ -1,28 +1,23 @@
-use pathfinder_geometry::vector::vec2f;
 use warpui::{
     elements::{
-        Align, ClippedScrollStateHandle, ClippedScrollable, Container, CornerRadius, Element,
-        Empty, Fill, Flex, Hoverable, Icon, MainAxisAlignment, MainAxisSize, MouseStateHandle,
-        ParentElement, Radius, Shrinkable,
+        Align, ClippedScrollStateHandle, ClippedScrollable, Container, Element,
+        Empty, Fill, Flex, Hoverable, MouseStateHandle,
+        ParentElement, Shrinkable,
     },
     platform::Cursor,
     presenter::ChildView,
-    ui_components::{
-        button::{ButtonVariant, TextAndIcon, TextAndIconAlignment},
-        components::{Coords, UiComponent, UiComponentStyles},
-    },
+    ui_components::components::{UiComponent, UiComponentStyles},
     AppContext, Entity, EntityId, ModelHandle, SingletonEntity, TypedActionView, View, ViewContext,
     ViewHandle, WindowId,
 };
 
 use crate::settings::Settings;
-use crate::{appearance::Appearance, workspace::WorkspaceAction};
+use crate::appearance::Appearance;
 use warp_core::{channel::ChannelState, features::FeatureFlag};
 
 use super::{
     section_views::{
-        feature_section::FeatureSectionEvent, SectionViewHandle, DETAIL_FONT_SIZE,
-        FOOTER_ICON_SIZE, SCROLLBAR_OFFSET, SCROLLBAR_WIDTH, SECTION_SPACING,
+        feature_section::FeatureSectionEvent, SectionViewHandle, DETAIL_FONT_SIZE, SCROLLBAR_OFFSET, SCROLLBAR_WIDTH, SECTION_SPACING,
     },
     sections::sections,
     ContentSectionData, ContentSectionView, FeatureSection, FeatureSectionData, FeatureSectionView,

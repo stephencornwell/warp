@@ -94,17 +94,6 @@ fn get_newly_created_pane_id(panes: &PaneGroup, existing_ids: &[PaneId]) -> Pane
         .unwrap()
 }
 
-fn split_pane_state(panes: &PaneGroup, pane_id: PaneId, ctx: &AppContext) -> SplitPaneState {
-    panes
-        .focus_state_handle()
-        .as_ref(ctx)
-        .split_pane_state_for(pane_id)
-}
-
-fn is_active_session(panes: &PaneGroup, pane_id: PaneId, ctx: &AppContext) -> bool {
-    panes.active_session_id(ctx).map(Into::into) == Some(pane_id)
-}
-
 struct PreAttachReturnsFalsePane {
     pane_id: PaneId,
     pane_configuration: ModelHandle<PaneConfiguration>,

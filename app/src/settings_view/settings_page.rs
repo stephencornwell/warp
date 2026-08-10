@@ -410,26 +410,6 @@ pub fn render_body_item_label<T: Clone + Action>(
     )
 }
 
-pub fn render_body_item_label_with_icon<T: Clone + Action>(
-    label_text: String,
-    icon: Icon,
-    label_color_override: Option<Fill>,
-    additional_info: Option<AdditionalInfo<T>>,
-    local_only_icon_state: LocalOnlyIconState,
-    toggle_state: ToggleState,
-    appearance: &Appearance,
-) -> Box<dyn Element> {
-    render_body_item_label_internal(
-        label_text,
-        Some(icon),
-        label_color_override,
-        additional_info,
-        local_only_icon_state,
-        toggle_state,
-        appearance,
-    )
-}
-
 pub fn render_body_item_label_internal<T: Clone + Action>(
     label_text: String,
     label_icon: Option<Icon>,
@@ -732,72 +712,6 @@ pub(crate) fn render_dropdown_item<T: Clone + Action>(
     .finish()
 }
 
-pub(crate) fn render_settings_info_banner(
-    text: &str,
-    subtext: Option<&str>,
-    appearance: &Appearance,
-) -> Box<dyn Element> {
-    let icon = Container::new(
-        ConstrainedBox::new(
-            Icon::AlertCircle
-                .to_warpui_icon(appearance.theme().active_ui_text_color())
-                .finish(),
-        )
-        .with_width(16.)
-        .with_height(16.)
-        .finish(),
-    )
-    .with_margin_right(8.)
-    .finish();
-
-    let text = {
-        let mut children = vec![Container::new(
-            Text::new(
-                text.to_string(),
-                appearance.ui_font_family(),
-                appearance.ui_font_size(),
-            )
-            .with_color(appearance.theme().active_ui_text_color().into())
-            .finish(),
-        )
-        .finish()];
-
-        if let Some(subtext) = subtext {
-            children.push(
-                Container::new(
-                    Text::new(
-                        subtext.to_string(),
-                        appearance.ui_font_family(),
-                        appearance.ui_font_size() - 1.,
-                    )
-                    .with_color(
-                        appearance
-                            .theme()
-                            .sub_text_color(appearance.theme().background())
-                            .into(),
-                    )
-                    .finish(),
-                )
-                .with_margin_top(4.)
-                .finish(),
-            );
-        }
-
-        Shrinkable::new(1.0, Flex::column().with_children(children).finish()).finish()
-    };
-
-    Container::new(
-        Flex::row()
-            .with_children(vec![icon, text])
-            .with_main_axis_size(MainAxisSize::Max)
-            .finish(),
-    )
-    .with_background_color(appearance.theme().accent_overlay().into())
-    .with_uniform_padding(12.)
-    .with_corner_radius(CornerRadius::with_all(Radius::Pixels(4.)))
-    .finish()
-}
-
 pub struct InputListItem<SettingsPageAction: Action + Clone> {
     pub item: String,
     pub mouse_state_handle: MouseStateHandle,
@@ -851,41 +765,6 @@ pub fn render_input_list<SettingsPageAction: Action + Clone>(
     }
 
     column.finish()
-}
-
-pub fn render_alternating_color_list<
-    ListItem: Display,
-    SettingsPageAction: Action + Clone,
-    F: Fn(usize) -> SettingsPageAction,
->(
-    body: &mut Flex,
-    patterns: &[ListItem],
-    mouse_states: &[MouseStateHandle],
-    create_action: F,
-    appearance: &Appearance,
-) {
-    debug_assert!(
-        mouse_states.len() >= patterns.len(),
-        "mouse_states length ({}) is less than patterns length ({})",
-        mouse_states.len(),
-        patterns.len()
-    );
-    for (i, pattern) in patterns.iter().enumerate() {
-        let background = if i % 2 == 0 {
-            internal_colors::fg_overlay_1(appearance.theme())
-        } else {
-            Fill::Solid(ColorU::transparent_black())
-        };
-
-        body.add_child(render_alternating_color_list_item::<SettingsPageAction>(
-            background,
-            pattern.to_string(),
-            mouse_states[i].clone(),
-            create_action(i),
-            false,
-            appearance,
-        ));
-    }
 }
 
 fn render_alternating_color_list_item<SettingsPageAction: Action + Clone>(
@@ -1232,17 +1111,6 @@ impl<V: warpui::View> PageType<V> {
                 ..
             } => {
                 *highlighted_widget_id = None;
-            }
-        }
-    }
-
-    /// Set the minimum page width for narrow panes.
-    pub fn set_min_page_width(&mut self, width: f32) {
-        match self {
-            Self::Monolith { min_page_width, .. }
-            | Self::Uncategorized { min_page_width, .. }
-            | Self::Categorized { min_page_width, .. } => {
-                *min_page_width = width;
             }
         }
     }

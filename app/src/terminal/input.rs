@@ -217,22 +217,7 @@ const MIN_BUFFER_LEN_TO_SHOW_COMPLETIONS_WHILE_TYPING: usize = 2;
 
 const AI_COMMAND_SEARCH_TRIGGER: &str = "#";
 
-/// If the editor buffer matches this prefix, AI input is enabled.
-const AI_INPUT_PREFIX: &str = "* ";
-
-/// If the editor buffer matches this prefix, terminal input is enabled and locked.
-const TERMINAL_INPUT_PREFIX: &str = "!";
-
 const VIM_STATUS_BAR_BOTTOM_PADDING: f32 = 20.;
-
-cfg_if::cfg_if! {
-    if #[cfg(target_os = "macos")] {
-        const CMD_ENTER_KEYBINDING: &str = "cmd-enter";
-    } else {
-        // On linux and windows, the CmdEnter EditorAction is bound to ctrl-shift-enter.
-        const CMD_ENTER_KEYBINDING: &str =  "ctrl-shift-enter";
-    }
-}
 
 lazy_static! {
     static ref RUN_DYNAMIC_ENUM_COMMAND_KEYSTROKE: Keystroke = if OperatingSystem::get().is_mac() {
@@ -312,12 +297,6 @@ pub struct BufferState {
 pub enum InputType {
     #[default]
     Shell,
-}
-
-impl InputType {
-    fn is_ai(self) -> bool {
-        false
-    }
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -420,24 +399,6 @@ impl InputSuggestionsMode {
                 Some("Search commands")
             }
             _ => None,
-        }
-    }
-
-    fn to_telemetry_mode(&self) -> TelemetryInputSuggestionsMode {
-        match *self {
-            InputSuggestionsMode::HistoryUp {
-                search_mode: HistorySearchMode::Prefix,
-                ..
-            } => TelemetryInputSuggestionsMode::HistoryUp,
-            InputSuggestionsMode::HistoryUp {
-                search_mode: HistorySearchMode::Fuzzy,
-                ..
-            } => TelemetryInputSuggestionsMode::HistoryFuzzySearch,
-            InputSuggestionsMode::CompletionSuggestions { .. } => {
-                TelemetryInputSuggestionsMode::CompletionSuggestions
-            }
-            InputSuggestionsMode::SlashCommands => TelemetryInputSuggestionsMode::SlashCommands,
-            InputSuggestionsMode::Closed => unreachable!(),
         }
     }
 }
@@ -652,10 +613,6 @@ impl MenuPositioning {
     }
 
     fn command_xray_y_anchor(&self) -> AnchorPair<YAxisAnchor> {
-        self.y_anchor()
-    }
-
-    fn workflows_info_y_anchor(&self) -> AnchorPair<YAxisAnchor> {
         self.y_anchor()
     }
 

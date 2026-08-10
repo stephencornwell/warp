@@ -3,7 +3,6 @@ use crate::default_terminal::DefaultTerminal;
 use crate::editor::Event;
 use crate::gpu_state::GPUState;
 use crate::network::NetworkStatus;
-use crate::pane_group::PaneId;
 use crate::report_if_error;
 #[cfg(feature = "local_fs")]
 use repo_metadata::repositories::DetectedRepositories;
@@ -25,8 +24,6 @@ use crate::test_util::settings::initialize_settings_for_tests;
 use crate::undo_close::UndoCloseSettings;
 use crate::warp_managed_paths_watcher::WarpManagedPathsWatcher;
 use crate::{workspace, GlobalResourceHandlesProvider};
-use pane_group::{SplitPaneState, TerminalPaneId};
-use terminal::view::ActiveSessionState;
 use warpui::AddSingletonModel;
 use warpui::{platform::WindowStyle, App, ViewHandle};
 
@@ -80,77 +77,6 @@ fn mock_workspace(app: &mut App) -> ViewHandle<Workspace> {
         )
     });
     workspace
-}
-
-#[cfg(feature = "local_fs")]
-/// Disable the warn-before-quit setting. Because we don't fully bootstrap the shell in tests, this
-/// is generally needed in tests that close tabs.
-fn disable_quit_warning(app: &mut AppContext) {
-    GeneralSettings::handle(app).update(app, |settings, ctx| {
-        settings
-            .show_warning_before_quitting
-            .set_value(false, ctx)
-            .expect("Failed to disable quit warning");
-    });
-}
-
-fn get_newly_created_pane_id(panes: &PaneGroup, existing_ids: &[PaneId]) -> PaneId {
-    panes
-        .pane_ids()
-        .find(|id| !existing_ids.contains(id))
-        .unwrap()
-}
-
-fn split_pane_state(
-    panes: &PaneGroup,
-    pane_id: impl Into<PaneId>,
-    ctx: &AppContext,
-) -> SplitPaneState {
-    // Split pane state is now inferred from the pane group's focus state
-    panes
-        .focus_state_handle()
-        .as_ref(ctx)
-        .split_pane_state_for(pane_id.into())
-}
-
-fn active_session_state(
-    panes: &PaneGroup,
-    pane_id: TerminalPaneId,
-    ctx: &AppContext,
-) -> ActiveSessionState {
-    if panes
-        .terminal_view_from_pane_id(pane_id, ctx)
-        .expect("Not a terminal pane")
-        .as_ref(ctx)
-        .is_active_session(ctx)
-    {
-        ActiveSessionState::Active
-    } else {
-        ActiveSessionState::Inactive
-    }
-}
-
-fn new_session_menu_label(item: &MenuItem<WorkspaceAction>) -> String {
-    match item {
-        MenuItem::Item(fields) => fields.label().to_string(),
-        MenuItem::Separator => "---".to_string(),
-        MenuItem::ItemsRow { items } => items
-            .iter()
-            .map(|fields| fields.label().to_string())
-            .collect::<Vec<_>>()
-            .join(" | "),
-        MenuItem::Submenu { fields, .. } => fields.label().to_string(),
-        MenuItem::Header { fields, .. } => fields.label().to_string(),
-    }
-}
-
-fn reopen_closed_session_menu_item(
-    menu_items: &[MenuItem<WorkspaceAction>],
-) -> &MenuItemFields<WorkspaceAction> {
-    match menu_items.last() {
-        Some(MenuItem::Item(fields)) if fields.label() == "Reopen closed session" => fields,
-        _ => panic!("expected Reopen closed session to be the last new-session menu item"),
-    }
 }
 
 #[test]

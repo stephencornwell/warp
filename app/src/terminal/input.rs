@@ -66,7 +66,7 @@ use std::{
     borrow::Cow,
     collections::HashMap,
     ops::Range,
-    path::{Path, PathBuf},
+    path::PathBuf,
     rc::Rc,
     time::Duration,
 };
@@ -2251,30 +2251,6 @@ impl Input {
         None
     }
 
-    fn run_expansion_on_space(&mut self, ctx: &mut ViewContext<Self>) {
-        if let Some(expansion_info) = self.run_expansion_internal(Executing::No, ctx) {
-            self.expand_alias(expansion_info.byte_range, &expansion_info.alias_value, ctx);
-        }
-    }
-
-    fn expand_alias(
-        &mut self,
-        replacement_range: Range<usize>,
-        alias_value: &str,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        let alias_value_with_space = format!("{alias_value} ");
-        self.editor.update(ctx, |input, ctx| {
-            input.select_and_replace(
-                &alias_value_with_space,
-                [ByteOffset::from(replacement_range.start)
-                    ..ByteOffset::from(replacement_range.end)],
-                PlainTextEditorViewAction::ExpandAlias,
-                ctx,
-            );
-        });
-    }
-
     /// Function that checks whether the current token was a valid command abbreviation
     /// or alias, and returns a String representing the input buffer with the expanded
     /// text. This should be called after the user has pressed Enter to execute the
@@ -2335,6 +2311,14 @@ impl Input {
                 ) {
                     self.model.lock().set_is_input_dirty(true);
                 }
+                let last_action = self.editor.read(ctx, |editor, editor_ctx| {
+                    editor.get_last_action(editor_ctx)
+                });
+                if *edit_origin == EditOrigin::UserTyped
+                    && last_action == Some(PlainTextEditorViewAction::Space)
+                {
+                    self.run_expansion_on_space(ctx);
+                }
                 self.maybe_generate_autosuggestion(ctx);
             }
             EditorEvent::BufferReplaced | EditorEvent::SelectionChanged => ctx.notify(),
@@ -2360,74 +2344,28 @@ impl Input {
         }
     }
 
-    /// Check if we can attach on filepaths paste or drag-drop
-    fn update_tab_completion_menu(
-        &self,
-        replacement_start: usize,
-        buffer_text_original: &str,
-        completion_results: &SuggestionResults,
-        ctx: &mut ViewContext<Input>,
-    ) -> bool {
-        let editor_text = self.editor.as_ref(ctx).buffer_text(ctx);
-        let cursor_position = self.start_byte_index_of_last_selection(ctx);
-        let text_up_to_cursor = &editor_text[0..cursor_position.as_usize()];
-
-        // If the cursor position is before the start of the replacement span,
-        // then we should definitely close the menu.
-        if cursor_position.as_usize() < replacement_start {
-            return true;
+    fn run_expansion_on_space(&mut self, ctx: &mut ViewContext<Self>) {
+        if let Some(expansion_info) = self.run_expansion_internal(Executing::No, ctx) {
+            self.expand_alias(expansion_info.byte_range, &expansion_info.alias_value, ctx);
         }
+    }
 
-        // If the buffer no longer starts with the original buffer text,
-        // then we should close the completion menu because the result set
-        // was based on a different query.
-        //
-        // For classic completions, this is a poor heuristic: when you cycle
-        // through fuzzy matches, the text up to the cursor might not start
-        // with the original buffer text anymore.
-        // TODO: there's a bug here where if you hit tab and backspace,
-        // the result set won't go away (stale).
-        if !text_up_to_cursor.starts_with(buffer_text_original)
-            && !self.is_classic_completions_enabled(ctx)
-        {
-            // Close the input suggestions since the buffer was edited to no longer
-            // contain the text that triggered tab completion.
-            true
-        } else {
-            // The current word is everything from the start of the replacement to the
-            // cursor
-            let current_word = &editor_text[replacement_start..cursor_position.as_usize()];
-
-            if self.is_classic_completions_enabled(ctx) {
-                let current_selected_item =
-                    self.input_suggestions.as_ref(ctx).get_selected_item_text();
-                if current_selected_item.is_some_and(|selected| selected == current_word) {
-                    // If we're in classic completion mode and the selected item is equal
-                    // to the current word, then we should keep the menu open; the user is cycling.
-                    // We early-return because we don't want to filter the menu based on the
-                    // selected item.
-                    return false;
-                }
-            }
-
-            // If the user continues to type with the tab suggestions open, we perform a
-            // prefix search on the original results to filter the suggestions.
-            let should_close = self.input_suggestions.update(ctx, |suggestions, ctx| {
-                suggestions.prefix_search_for_tab_completion(
-                    current_word,
-                    completion_results,
-                    TabCompletionsPreselectOption::Unchanged,
-                    ctx,
-                );
-
-                // We should close the menu if there aren't any results
-                // after filtering.
-                suggestions.items().is_empty()
-            });
-
-            ctx.notify();
-            should_close
-        }
+    fn expand_alias(
+        &mut self,
+        replacement_range: Range<usize>,
+        alias_value: &str,
+        ctx: &mut ViewContext<Self>,
+    ) {
+        let alias_value_with_space = format!("{alias_value} ");
+        self.editor.update(ctx, |input, ctx| {
+            input.select_and_replace(
+                &alias_value_with_space,
+                [ByteOffset::from(replacement_range.start)
+                    ..ByteOffset::from(replacement_range.end)],
+                PlainTextEditorViewAction::ExpandAlias,
+                ctx,
+            );
+        });
     }
 
     fn clear_screen(&mut self, ctx: &mut ViewContext<Self>) {
@@ -2529,21 +2467,6 @@ impl Input {
             .unwrap_or(&view_command.command);
 
         Some(last_word.to_string())
-    }
-
-    /// We only want to show the completions while typing menu when the cursor is
-    /// positioned at the end of the buffer text
-    fn is_cursor_in_valid_position_for_completions_while_typing(
-        &self,
-        ctx: &mut ViewContext<Self>,
-    ) -> bool {
-        let editor = self.editor.as_ref(ctx);
-        editor.single_cursor_at_buffer_end(false /* respect_line_cap */, ctx)
-    }
-
-    fn should_show_completions_while_typing(&self, ctx: &mut ViewContext<Self>) -> bool {
-        self.is_completions_while_typing_turned_on(ctx)
-            && self.is_cursor_in_valid_position_for_completions_while_typing(ctx)
     }
 
     fn is_completions_while_typing_turned_on(&self, app: &AppContext) -> bool {
@@ -3252,50 +3175,6 @@ impl Input {
         self.system_insert(exec, ctx);
     }
 
-    fn should_enter_accept_completion_suggestion(&self, app: &AppContext) -> bool {
-        let InputSuggestionsMode::CompletionSuggestions {
-            replacement_start, ..
-        } = self.suggestions_mode_model.as_ref(app).mode()
-        else {
-            return false;
-        };
-        let completions_while_typing = self.is_completions_while_typing_turned_on(app);
-        let selected_item = self.input_suggestions.as_ref(app).get_selected_item_text();
-
-        // If classic completions is enabled, accept the suggestion if an item is selected.
-        if self.is_classic_completions_enabled(app) {
-            return self
-                .input_suggestions
-                .as_ref(app)
-                .get_selected_item()
-                .is_some();
-        }
-        // If completions as you type is disabled, accept the suggestion if an item is selected.
-        if !completions_while_typing {
-            return selected_item.is_some();
-        }
-
-        let path_separators = self.path_separators(app).all;
-
-        // At this point, we know completions as you type is enabled and classic completions
-        // is disabled. Accept the completion unless the buffer already matches the selected item
-        // (in which case, just execute the command).
-        let current_buffer_text = self.editor.as_ref(app).buffer_text(app);
-        selected_item.is_none_or(|selected_item| {
-            let Some(replacement) = &current_buffer_text.get(*replacement_start..) else {
-                log::error!("Failed to get replacement range in current buffer text");
-                return true;
-            };
-            if replacement == &selected_item {
-                return false;
-            }
-            let Some(no_slash) = selected_item.strip_suffix(path_separators) else {
-                return true;
-            };
-            replacement != &no_slash
-        })
-    }
-
     /// Determines whether to insert a newline in the buffer instead of executing a command
     /// when enter is pressed.
     fn should_insert_newline_on_enter(&self, ctx: &AppContext) -> bool {
@@ -3403,12 +3282,6 @@ impl Input {
         ctx: &mut ViewContext<Self>,
     ) {
         let _ = (config, ctx);
-    }
-
-    /// Returns true if the input is locked in shell mode
-    fn is_locked_in_shell_mode(&self, ctx: &ViewContext<Self>) -> bool {
-        let _ = ctx;
-        true
     }
 
     /// Exits `!` shell mode by switching back to AI mode. For CLI agent input
@@ -3678,54 +3551,6 @@ impl Input {
         let _ = (repo_path, ctx);
     }
 
-    fn active_session_path_if_local(&self, ctx: &ViewContext<Self>) -> Option<&Path> {
-        self.active_block_session_id().and_then(|session_id| {
-            let current_session = self.sessions.as_ref(ctx).get(session_id)?;
-            if current_session.is_local() {
-                self.active_block_metadata
-                    .as_ref()
-                    .and_then(BlockMetadata::current_working_directory)
-                    .map(Path::new)
-            } else {
-                None
-            }
-        })
-    }
-
-    fn apply_input_banner_padding(
-        &self,
-        banner: Box<dyn Element>,
-        is_compact_mode: bool,
-        input_mode: InputMode,
-        appearance: &Appearance,
-        app: &AppContext,
-    ) -> Box<dyn Element> {
-        let constrained_banner = ConstrainedBox::new(banner)
-            .with_height(2. * appearance.line_height_ratio() * appearance.monospace_font_size())
-            .finish();
-        let should_use_udi_spacing = self.should_show_universal_developer_input(app);
-        let mut container: Container = Container::new(constrained_banner);
-        let (suggestion_to_prompt_padding, suggestion_to_input_border_padding) =
-            if should_use_udi_spacing {
-                (0., 0.)
-            } else if is_compact_mode {
-                (0., 8.)
-            } else {
-                (-12., 8.)
-            };
-
-        container = match input_mode {
-            InputMode::PinnedToTop => container
-                .with_padding_top(suggestion_to_prompt_padding)
-                .with_padding_bottom(suggestion_to_input_border_padding),
-            InputMode::PinnedToBottom | InputMode::Waterfall => container
-                .with_padding_bottom(suggestion_to_prompt_padding)
-                .with_padding_top(suggestion_to_input_border_padding),
-        };
-
-        container.finish()
-    }
-
     /// Renders a banner that should stay next to the input box.
     fn render_input_banner(
         &self,
@@ -3832,13 +3657,6 @@ impl Input {
         InputSettings::as_ref(app).is_universal_developer_input_enabled(app)
     }
 
-    fn is_input_at_top(&self, model: &TerminalModel, ctx: &AppContext) -> bool {
-        match InputModeSettings::as_ref(ctx).input_mode.value() {
-            InputMode::PinnedToBottom => false,
-            InputMode::PinnedToTop => true,
-            InputMode::Waterfall => model.is_block_list_empty(),
-        }
-    }
 }
 
 impl Entity for Input {

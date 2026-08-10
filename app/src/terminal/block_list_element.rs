@@ -157,14 +157,6 @@ const SNACKBAR_TOGGLE_BUTTON_HOVER_LINES: f32 = 4.;
 const SNACKBAR_TOGGLE_BUTTON_WIDTH: f32 = 30.;
 const SNACKBAR_TOGGLE_BUTTON_HEIGHT: f32 = 16.;
 
-/// How far away from the right edge of the blocklist the selected block avatar should be
-const SELECTED_BLOCK_AVATAR_EDGE_OFFSET: f32 = 25.;
-/// Space between multiple avatars on a selected block.
-const SPACE_BETWEEN_SELECTED_BLOCK_AVATARS: f32 = 2.;
-
-const CLI_SUBAGENT_HORIZONTAL_MARGIN: f32 = 8.;
-const CLI_SUBAGENT_VERTICAL_MARGIN: f32 = 8.;
-
 pub type LabelBuilderFn = dyn Fn(
     Vec<BlockIndex>,
     &HashMap<BlockIndex, MouseStateHandle>,

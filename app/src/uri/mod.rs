@@ -268,56 +268,6 @@ impl WindowActivationFallbackBehavior {
     }
 }
 
-/// Turn the launch config URL into a filename.
-/// "/hello%20world" --> "hello world"
-/// Remove file extension, which consists of the last '.' in the filename
-/// and whatever characters follow it.
-fn remove_extension(full_path: &str) -> Option<&str> {
-    let (no_extension, _) = full_path.rsplit_once('.')?;
-    Some(no_extension)
-}
-
-/// Ensure that a path is relative and doesn't contain '/../',
-/// to prevent launch config links from escaping the launch config directory.
-fn validate_launch_config_path(path: &str) -> Option<&str> {
-    if path.starts_with('/')
-        || path.starts_with("../")
-        || path.contains("/../")
-        || path.ends_with("/..")
-    {
-        None
-    } else {
-        Some(path)
-    }
-}
-
-/// Given a config path, find a matching launch config file
-fn find_matching_config<'a>(
-    target_path: &str,
-    configs: &'a [LaunchConfig],
-) -> Option<&'a LaunchConfig> {
-    // first, try to match the exact filename.
-    if let Some(matched_config) = find_matching_config_name(target_path, configs) {
-        return Some(matched_config);
-    }
-
-    // next, try to match the filename without the extension
-    let no_extension = remove_extension(target_path)?;
-    find_matching_config_name(no_extension, configs)
-}
-
-/// Case-insensitive matching on the config's name
-/// (field in the YAML file).
-fn find_matching_config_name<'a>(
-    target_name: &str,
-    configs: &'a [LaunchConfig],
-) -> Option<&'a LaunchConfig> {
-    let target_name_lower = target_name.to_lowercase();
-    configs
-        .iter()
-        .find(|&config| config.name.to_lowercase() == target_name_lower)
-}
-
 /// Extract the `path` query parameter, expanding a leading `~` to the
 /// user's home directory.
 fn parse_tab_path(url: &Url) -> Option<PathBuf> {

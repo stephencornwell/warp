@@ -52,7 +52,6 @@ const WARP_2_TAB_COLOR_OPACITY: Opacity = 25;
 const WARP_2_HOVERED_TAB_COLOR_OPACITY: Opacity = 50;
 const TAB_CLOSE_BUTTON_OPACITY: Opacity = 60;
 const TAB_CLOSE_BUTTON_WIDTH: f32 = 20.0;
-const MAX_TOOLTIP_LENGTH: usize = 80;
 
 const TAB_INDICATOR_SYNCED_COLOR: u32 = 0x4A93FFFF;
 
@@ -88,15 +87,6 @@ impl SelectedTabColor {
     }
 }
 
-#[derive(Clone, Serialize, Deserialize)]
-#[allow(clippy::enum_variant_names)]
-pub enum TabTelemetryAction {
-    CloseTab,
-    CloseOtherTabs,
-    CloseTabsToRight,
-    SetColor,
-    ResetColor,
-}
 #[derive(Debug, Clone)]
 pub enum NewSessionMenuItem {
     OpenLaunchConfig(LaunchConfig),

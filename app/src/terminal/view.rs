@@ -2153,17 +2153,17 @@ impl TerminalView {
                     BannerTextButton::new(
                         String::from("Yes, use Emacs-style bindings"),
                         Rc::new(|event_ctx, _app_ctx, _| {
-                            event_ctx.dispatch_typed_action(
-                                BannerAction::<TerminalAction>::Dismiss(DismissalType::Temporary),
-                            );
+                            event_ctx.dispatch_typed_action(BannerAction::Dismiss(
+                                DismissalType::Temporary,
+                            ));
                         }),
                     ),
                     BannerTextButton::new(
                         String::from("No, keep IDE bindings"),
                         Rc::new(|event_ctx, _app_ctx, _| {
-                            event_ctx.dispatch_typed_action(
-                                BannerAction::<TerminalAction>::Dismiss(DismissalType::Permanent),
-                            );
+                            event_ctx.dispatch_typed_action(BannerAction::Dismiss(
+                                DismissalType::Permanent,
+                            ));
                         }),
                     ),
                 ],

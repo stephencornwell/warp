@@ -37,7 +37,6 @@ pub enum FilterableDropdownEvent {
 
 #[derive(Default, Debug, PartialEq)]
 pub enum FilterableDropdownOrientation {
-    Up,
     #[default]
     Down,
 }
@@ -128,13 +127,6 @@ where
         }
     }
 
-    pub fn set_menu_header_text_override<F>(&mut self, formatter: F)
-    where
-        F: Fn(&str) -> String + 'static,
-    {
-        self.menu_header_text_override = Some(Box::new(formatter));
-    }
-
     pub fn set_footer<F>(&mut self, builder: F, ctx: &mut ViewContext<Self>)
     where
         F: Fn(&AppContext) -> Box<dyn Element> + 'static,
@@ -146,38 +138,6 @@ where
         self.dropdown.update(ctx, |menu, _| {
             menu.set_pinned_footer_builder(builder);
         });
-    }
-
-    pub fn clear_footer(&mut self, ctx: &mut ViewContext<Self>) {
-        self.has_pinned_footer = false;
-        self.dropdown.update(ctx, |menu, _| {
-            menu.clear_pinned_footer_builder();
-        });
-    }
-
-    /// Set the main_axis_size behavior for the dropdown header button.
-    ///
-    /// Default is MainAxisSize::Max, set to MainAxisSize::Min if you want to wrap the dropdown to
-    /// the text that's filling it.
-    pub fn set_main_axis_size(
-        &mut self,
-        main_axis_size: MainAxisSize,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        self.main_axis_size = main_axis_size;
-        ctx.notify();
-    }
-
-    pub fn set_style(&mut self, style: UiComponentStyles) {
-        self.style_override = Some(style);
-    }
-
-    pub fn set_button_variant(&mut self, button_variant: ButtonVariant) {
-        self.button_variant = button_variant;
-    }
-
-    pub fn set_orientation(&mut self, orientation: FilterableDropdownOrientation) {
-        self.orientation = orientation;
     }
 
     pub fn add_items(&mut self, items: Vec<DropdownItem<A>>, ctx: &mut ViewContext<Self>) {
@@ -201,43 +161,6 @@ where
             self.selected_item = None;
             ctx.notify();
         }
-    }
-
-    /// Set items from rich menu items (MenuItem). This passes the rich menu items to the
-    /// internal dropdown but also extracts searchable DropdownItem objects for filtering.
-    pub fn set_rich_items(
-        &mut self,
-        items: Vec<MenuItem<DropdownAction<A>>>,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        // Extract simple DropdownItem objects from MenuItem for filtering
-        self.items = items
-            .iter()
-            .filter_map(|item| match item {
-                MenuItem::Item(fields) => {
-                    let label = fields.label().to_string();
-                    fields.on_select_action().and_then(|action| {
-                        if let DropdownAction::SelectActionAndClose(a) = action {
-                            Some(DropdownItem::new(label, a.clone()))
-                        } else {
-                            None
-                        }
-                    })
-                }
-                _ => None, // Skip headers and separators
-            })
-            .collect();
-
-        // Set the full rich items on the internal dropdown
-        self.dropdown.update(ctx, |dropdown, ctx| {
-            dropdown.set_items(items, ctx);
-        });
-        ctx.notify();
-    }
-
-    /// The number of items in the dropdown.
-    pub fn len(&self) -> usize {
-        self.items.len()
     }
 
     #[expect(dead_code)]
@@ -281,21 +204,6 @@ where
         ctx.notify();
     }
 
-    /// Select the dropdown item whose on-select action equals the given action. If no such item exists,
-    /// this clears the selection.
-    ///
-    /// This is primarily useful when items are dynamically generated and correspond to some backing data that's captured by the action.
-    pub fn set_selected_by_action(&mut self, action: A, ctx: &mut ViewContext<Self>)
-    where
-        A: PartialEq,
-    {
-        self.dropdown.update(ctx, |dropdown, ctx| {
-            dropdown.set_selected_by_action(&DropdownAction::SelectActionAndClose(action), ctx);
-        });
-        self.selected_item = self.selected_item_in_dropdown(ctx);
-        ctx.notify();
-    }
-
     pub fn set_top_bar_max_width(&mut self, max_width: f32) {
         self.top_bar_max_width = max_width;
     }
@@ -306,16 +214,6 @@ where
             menu.set_width(width);
             ctx.notify();
         })
-    }
-
-    pub fn set_disabled(&mut self, ctx: &mut ViewContext<Self>) {
-        self.disabled = true;
-        ctx.notify();
-    }
-
-    pub fn set_enabled(&mut self, ctx: &mut ViewContext<Self>) {
-        self.disabled = false;
-        ctx.notify();
     }
 
     fn selected_item_in_dropdown(
@@ -331,13 +229,6 @@ where
             fields.label()
         } else {
             ""
-        }
-    }
-
-    pub fn selected_item_label(&self) -> Option<String> {
-        match self.selected_item.as_ref() {
-            Some(MenuItem::Item(fields)) => Some(fields.label().to_string()),
-            _ => None,
         }
     }
 
@@ -380,10 +271,6 @@ where
             ctx.emit(FilterableDropdownEvent::ToggleExpanded);
         }
         ctx.notify();
-    }
-
-    pub(crate) fn is_expanded(&self) -> bool {
-        self.is_expanded
     }
 
     fn render_closed_top_bar(&self, appearance: &Appearance) -> Box<dyn Element> {

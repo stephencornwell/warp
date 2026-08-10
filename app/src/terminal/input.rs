@@ -1,11 +1,3 @@
-const DYNAMIC_ENUM_GENERATE_MESSAGE: &str = "Run the following command to generate variants:";
-const DYNAMIC_ENUM_RUN_MESSAGE: &str = "Run command";
-const DYNAMIC_ENUM_PENDING_MESSAGE: &str = "Command pending...";
-const DYNAMIC_ENUM_FAILURE_MESSAGE: &str = "Command failed";
-const DYNAMIC_ENUM_NO_RESULTS_MESSAGE: &str = "Command returned no results";
-const DYNAMIC_ENUM_MENU_PADDING: f32 = 10.;
-const DYNAMIC_ENUM_MENU_HEIGHT_OFFSET: f32 = 25.;
-const DYNAMIC_ENUM_HORIZONTAL_TEXT_PADDING: f32 = 5.;
 use crate::report_if_error;
 pub mod buffer_model;
 mod classic;
@@ -15,8 +7,6 @@ pub mod message_bar;
 pub mod prompts;
 mod suggestions_mode_menu;
 pub mod suggestions_mode_model;
-mod terminal;
-mod universal;
 
 use crate::pane_group::focus_state::PaneFocusHandle;
 use crate::search::slash_command_menu::static_commands::commands::COMMAND_REGISTRY;
@@ -107,8 +97,7 @@ use warpui::{
         DispatchEventResult, DropTargetData, Element, EventHandler, MouseStateHandle, OffsetType,
         ResizableStateHandle, SavePosition, SelectionHandle, YAxisAnchor,
     },
-    keymap::{EditableBinding, FixedBinding, Keystroke},
-    platform::OperatingSystem,
+    keymap::{EditableBinding, FixedBinding},
     presenter::ChildView,
     r#async::SpawnedFutureHandle,
     units::IntoPixels,
@@ -218,23 +207,6 @@ const MIN_BUFFER_LEN_TO_SHOW_COMPLETIONS_WHILE_TYPING: usize = 2;
 const AI_COMMAND_SEARCH_TRIGGER: &str = "#";
 
 const VIM_STATUS_BAR_BOTTOM_PADDING: f32 = 20.;
-
-lazy_static! {
-    static ref RUN_DYNAMIC_ENUM_COMMAND_KEYSTROKE: Keystroke = if OperatingSystem::get().is_mac() {
-        Keystroke {
-            cmd: true,
-            key: "enter".to_owned(),
-            ..Default::default()
-        }
-    } else {
-        Keystroke {
-            ctrl: true,
-            shift: true,
-            key: "enter".to_owned(),
-            ..Default::default()
-        }
-    };
-}
 
 #[derive(PartialEq, Eq, Copy, Clone, Serialize)]
 pub enum TelemetryInputSuggestionsMode {
@@ -358,18 +330,6 @@ pub enum InputSuggestionsMode {
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum UserQueryMenuAction {
     ForkFrom,
-}
-
-#[derive(Debug, PartialEq, Eq, Clone)]
-pub enum DynamicEnumSuggestionStatus {
-    /// When the command has not yet been approved to run on the users laptop
-    Unapproved,
-    /// The command is running asynchronously, but has not yet finished so we do not have suggestions to display
-    Pending,
-    /// The command succeeded; display suggested variants
-    Success,
-    /// The command failed
-    Failure,
 }
 
 impl InputSuggestionsMode {
@@ -2950,79 +2910,6 @@ impl Input {
             .abort_handle();
 
         self.completions_abort_handle = Some(abort_handle);
-    }
-
-    /// Asynchronously generates dynamic enum suggestions.
-    fn get_enum_suggestions_async(
-        &mut self,
-        command: String,
-        editor_snapshot: EditorSnapshot,
-        ctx: &mut ViewContext<'_, Input>,
-    ) {
-        if let Some(completion_context) = self.completion_session_context(ctx) {
-            self.suggestions_mode_model.update(ctx, |m, ctx| {
-                m.set_dynamic_enum_status(DynamicEnumSuggestionStatus::Pending, ctx);
-            });
-            let abort_handle = ctx
-                .spawn(
-                    async move {
-                        let variants = super::dynamic_enum_suggestions::run_dynamic_enum_command(
-                            command.as_str(),
-                            &completion_context,
-                        )
-                        .await;
-
-                        (variants, editor_snapshot)
-                    },
-                    move |input, (variants, editor_model), ctx| {
-                        input.handle_enum_completion_results(variants, editor_model, ctx);
-                    },
-                )
-                .abort_handle();
-
-            self.completions_abort_handle = Some(abort_handle);
-            ctx.notify();
-        }
-    }
-
-    /// When the command finishes running, update the input suggestions menu with the suggestions.
-    fn handle_enum_completion_results(
-        &mut self,
-        results: anyhow::Result<Vec<String>>,
-        editor_snapshot_when_completer_was_ran: EditorSnapshot,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        let current_editor_model = self
-            .editor
-            .read(ctx, |editor, ctx| editor.snapshot_model(ctx));
-
-        let buffer_text = self.editor.as_ref(ctx).buffer_text(ctx);
-        // If the editor has changed since the completions trigger was hit-- noop since the
-        // suggestions are no longer valid. Note that we purposely ignore attributes such as text
-        // styles for the purposes of this check (we only care about the buffer text content and
-        // the cursor selections state).
-        if buffer_text != editor_snapshot_when_completer_was_ran.text()
-            || current_editor_model.selections()
-                != editor_snapshot_when_completer_was_ran.selections()
-        {
-            return;
-        }
-
-        let (variants, status) = match results {
-            Ok(variants) => (variants, DynamicEnumSuggestionStatus::Success),
-            Err(e) => {
-                log::warn!("Failed to generate dynamic enum suggestions: {e:?}");
-                (vec![], DynamicEnumSuggestionStatus::Failure)
-            }
-        };
-
-        self.input_suggestions.update(ctx, |input, ctx| {
-            input.set_enum_variants(variants.clone(), ctx);
-        });
-
-        let _ = status;
-
-        ctx.notify();
     }
 
     fn path_separators(&self, ctx: &AppContext) -> PathSeparators {

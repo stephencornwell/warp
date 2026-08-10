@@ -2,7 +2,7 @@ use warpui::{Entity, ModelContext, ModelHandle};
 
 use crate::terminal::input::buffer_model::InputBufferModel;
 
-use super::{BufferState, DynamicEnumSuggestionStatus, InputConfig, InputSuggestionsMode};
+use super::{BufferState, InputConfig, InputSuggestionsMode};
 
 /// Model responsible for managing the input suggestions mode state.
 pub struct InputSuggestionsModeModel {
@@ -78,14 +78,6 @@ impl InputSuggestionsModeModel {
             buffer_to_restore,
             input_config_to_restore,
         });
-    }
-
-    pub fn set_dynamic_enum_status(
-        &mut self,
-        status: DynamicEnumSuggestionStatus,
-        ctx: &mut ModelContext<Self>,
-    ) {
-        let _ = (status, ctx);
     }
 
     pub fn is_visible(&self) -> bool {

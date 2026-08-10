@@ -69,19 +69,6 @@ impl SystemInfo {
     /// Unlike [`used_memory`] (RSS), this includes memory that has been
     /// swapped out or compressed by the OS.  On macOS this matches the value
     /// shown by Activity Monitor.
-    /// Returns the average CPU usage over the refresh interval.
-    ///
-    /// If one CPU core is utilized at 100%, this will return 1.  It may return
-    /// a value >1 on multi-core machines.
-    pub fn cpu_usage(&self) -> f32 {
-        let total_usage = self
-            .system
-            .process(Self::current_pid())
-            .expect("current process should exist")
-            .cpu_usage();
-        total_usage / 100.
-    }
-
     fn schedule_refresh(ctx: &mut ModelContext<Self>) {
         ctx.spawn(
             async {

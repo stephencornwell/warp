@@ -144,7 +144,7 @@ use crate::util::traffic_lights::{traffic_light_data, TrafficLightMouseStates, T
 use crate::util::truncation::truncate_from_end;
 #[cfg(target_family = "wasm")]
 use crate::view_components::action_button::ActionButton;
-use crate::view_components::{AgentToastStack, DismissibleToast, DismissibleToastStack, ToastLink};
+use crate::view_components::{DismissibleToast, DismissibleToastStack, ToastLink};
 use crate::window_settings::{WindowSettings, ZoomLevel};
 use crate::workspace::action::{AddTabWithShellSource, CommandSearchOptions, PaletteSource};
 use crate::workspace::one_time_modal_model::OneTimeModalModel;
@@ -621,7 +621,6 @@ pub struct Workspace {
     theme_deletion_modal: ViewHandle<ThemeDeletionModal>,
     openwarp_launch_modal: ViewHandle<OpenWarpLaunchModal>,
     toast_stack: ViewHandle<DismissibleToastStack<WorkspaceAction>>,
-    agent_toast_stack: ViewHandle<AgentToastStack>,
     update_toast_stack: ViewHandle<DismissibleToastStack<WorkspaceAction>>,
     /// We need to render some dynamic keybindings for our tooltips. These cannot be looked up in the
     /// render method, so look them up when the view is constructed and cache them here. Note that they
@@ -1557,9 +1556,6 @@ impl Workspace {
         let toast_stack =
             ctx.add_typed_action_view(|_| DismissibleToastStack::new(Duration::from_secs(4)));
 
-        let agent_toast_stack =
-            ctx.add_typed_action_view(|ctx| AgentToastStack::new(Duration::from_secs(4), ctx));
-
         let update_toast_stack =
             ctx.add_typed_action_view(|_| DismissibleToastStack::new(Duration::from_secs(4)));
 
@@ -1665,7 +1661,6 @@ impl Workspace {
             theme_deletion_modal,
             window_id: ctx.window_id(),
             toast_stack,
-            agent_toast_stack,
             update_toast_stack,
             cached_keybindings,
             header_toolbar_context_menu: Self::build_header_toolbar_context_menu(ctx),
@@ -8144,18 +8139,6 @@ impl Workspace {
     ) -> Option<Box<dyn Element>> {
         let _ = (pane_group, app);
         None
-    }
-
-    /// Offset positioning for agent toasts.
-    /// TODO: update positioning based on input mode.
-    fn agent_toast_positioning(&self) -> OffsetPositioning {
-        OffsetPositioning::offset_from_save_position_element(
-            TAB_CONTENT_POSITION_ID,
-            vec2f(0., 16.),
-            PositionedElementOffsetBounds::WindowByPosition,
-            PositionedElementAnchor::TopRight,
-            ChildAnchor::TopRight,
-        )
     }
 
     /// Offset positioning for global toasts.

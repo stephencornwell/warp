@@ -20,13 +20,9 @@ use crate::pane_group::working_directories::WorkingDirectory;
 use crate::pane_group::{PaneGroup, WorkingDirectoriesEvent, WorkingDirectoriesModel};
 #[cfg(feature = "local_fs")]
 use crate::settings_view::keybindings::{KeybindingChangedEvent, KeybindingChangedNotifier};
-#[cfg(feature = "local_fs")]
-use crate::util::file::external_editor::EditorSettings;
-#[cfg(feature = "local_fs")]
-use crate::util::openable_file_type::resolve_file_target_with_editor_choice;
 use crate::util::openable_file_type::FileTarget;
 use crate::workspace::view::global_search::view::{
-    Event as GlobalSearchViewEvent, GlobalSearchEntryFocus, GlobalSearchView,
+    GlobalSearchEntryFocus, GlobalSearchView,
 };
 use crate::workspace::view::{
     LEFT_PANEL_GLOBAL_SEARCH_BINDING_NAME, LEFT_PANEL_PROJECT_EXPLORER_BINDING_NAME,
@@ -238,15 +234,6 @@ impl LeftPanelView {
         view
     }
 
-    pub fn set_panel_position(
-        &mut self,
-        position: super::PanelPosition,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        self.panel_position = position;
-        ctx.notify();
-    }
-
     /// Updates the available tool panel views.
     /// If the currently active view is no longer available, switches to the first available view.
     pub fn update_available_views(
@@ -322,20 +309,6 @@ impl LeftPanelView {
                 }
             }
         }
-    }
-
-    fn get_or_create_global_search_view_for_pane_group(
-        &mut self,
-        _pane_group_id: warpui::EntityId,
-        ctx: &mut ViewContext<Self>,
-    ) -> ViewHandle<GlobalSearchView> {
-        let global_search_view = ctx.add_typed_action_view(GlobalSearchView::new);
-
-        ctx.subscribe_to_view(&global_search_view, |me, _, event, ctx| {
-            me.handle_global_search_event(event, ctx);
-        });
-
-        global_search_view
     }
 
     pub fn active_global_search_view(
@@ -441,48 +414,6 @@ impl LeftPanelView {
         }
     }
 
-    #[cfg(not(feature = "local_fs"))]
-    fn handle_global_search_event(
-        &mut self,
-        _event: &GlobalSearchViewEvent,
-        _ctx: &mut ViewContext<Self>,
-    ) {
-    }
-
-    #[cfg(feature = "local_fs")]
-    fn handle_global_search_event(
-        &mut self,
-        event: &GlobalSearchViewEvent,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        match event {
-            GlobalSearchViewEvent::OpenMatch {
-                path,
-                line_number,
-                column_num,
-            } => {
-                let line_col = LineAndColumnArg {
-                    line_num: *line_number as usize,
-                    column_num: *column_num,
-                };
-
-                let settings = EditorSettings::as_ref(ctx);
-                let target = resolve_file_target_with_editor_choice(
-                    path,
-                    *settings.open_code_panels_file_editor,
-                    *settings.prefer_markdown_viewer,
-                    *settings.open_file_layout,
-                    None,
-                );
-
-                ctx.emit(LeftPanelEvent::OpenFileWithTarget {
-                    path: path.clone(),
-                    target,
-                    line_col: Some(line_col),
-                });
-            }
-        }
-    }
 }
 
 impl Entity for LeftPanelView {

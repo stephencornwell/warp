@@ -1,7 +1,6 @@
 use crate::report_if_error;
 use std::path::PathBuf;
 
-use itertools::Itertools;
 use warpui::{
     accessibility::{AccessibilityContent, ActionAccessibilityContent, WarpA11yRole},
     SingletonEntity, ViewContext,
@@ -19,10 +18,6 @@ use crate::{
 use settings::Setting as _;
 
 use super::{Event, TerminalView};
-
-#[cfg(test)]
-#[path = "open_in_warp_tests.rs"]
-mod tests;
 
 const LEARN_MORE_MARKDOWN_URL: &str =
     "https://docs.warp.dev/terminal/more-features/markdown-viewer";

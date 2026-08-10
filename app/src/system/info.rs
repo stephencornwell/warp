@@ -1,10 +1,8 @@
-use std::collections::VecDeque;
 use std::ffi::OsStr;
 
 use byte_unit::Byte;
-use chrono::{DateTime, Local, Utc};
 use sysinfo::ProcessesToUpdate;
-use warpui::{AppContext, Entity, ModelContext, SingletonEntity};
+use warpui::{Entity, ModelContext, SingletonEntity};
 /// The threshold at which we emit a memory usage warning.
 const MEMORY_USAGE_WARNING_THRESHOLD: Option<Byte> = byte_unit::Byte::GIGABYTE.multiply(10);
 
@@ -13,15 +11,6 @@ const REFRESH_INTERVAL_S: usize = 5;
 /// The refresh interval for system information.
 const REFRESH_INTERVAL: std::time::Duration =
     std::time::Duration::from_secs(REFRESH_INTERVAL_S as u64);
-
-/// The time window that a resource usage report covers, in seconds.
-const REPORT_WINDOW_S: usize = 300;
-/// The number of data points aggregated into a resource usage report.
-const REPORT_SAMPLE_COUNT: usize = REPORT_WINDOW_S / REFRESH_INTERVAL_S;
-
-// Make sure the refresh interval cleanly divides the report window into an
-// integral number of samples.
-static_assertions::const_assert_eq!(REPORT_WINDOW_S % REFRESH_INTERVAL_S, 0);
 
 pub enum SystemInfoEvent {
     /// There is new system info available for consumers to query.
@@ -35,8 +24,6 @@ pub struct SystemInfo {
     system: sysinfo::System,
     /// Whether or not we've already emitted an event due to high memory usage.
     has_emitted_memory_warning_event: bool,
-    /// A circular buffer storing resource usage data.
-    stats: StatsBuffer,
 }
 
 impl SystemInfo {
@@ -49,7 +36,6 @@ impl SystemInfo {
         let mut me = Self {
             system: sysinfo::System::new(),
             has_emitted_memory_warning_event: false,
-            stats: Default::default(),
         };
 
         // Initialize the underlying system info.  This is necessary in order
@@ -115,11 +101,6 @@ impl SystemInfo {
             Self::refresh_kind(),
         );
         ctx.emit(SystemInfoEvent::Refreshed);
-
-        // Add resource usage information to our circular buffer.
-        self.stats.push(Sample {
-            cpu: self.cpu_usage(),
-        });
 
         let rss = self.used_memory();
         let footprint = rss;
@@ -195,56 +176,3 @@ impl Entity for SystemInfo {
 }
 
 impl SingletonEntity for SystemInfo {}
-
-/// A single resource usage sample point.
-struct Sample {
-    /// The CPU usage since the last sample, represented as a value in the
-    /// range [0, num_cpus].
-    cpu: f32,
-}
-
-/// A simple fixed-size circular buffer for storing resource usage sample
-/// points.
-struct StatsBuffer {
-    stats: VecDeque<Sample>,
-}
-
-impl StatsBuffer {
-    /// Constructs a new [`StatsBuffer`].
-    fn new() -> Self {
-        Self {
-            stats: VecDeque::with_capacity(REPORT_SAMPLE_COUNT),
-        }
-    }
-
-    /// Returns whether or not the buffer is full of samples.
-    ///
-    /// If true, adding a sample will replace the oldest sample in the buffer.
-    fn is_full(&self) -> bool {
-        self.stats.len() == self.stats.capacity()
-    }
-
-    /// Pushes a new sample into the buffer.  If the buffer is at capacity,
-    /// the oldest sample will be removed to make room for the new one.
-    fn push(&mut self, sample: Sample) {
-        if self.is_full() {
-            self.stats.pop_front();
-        }
-        self.stats.push_back(sample);
-    }
-
-    /// Returns an iterator over all samples in the buffer.
-    fn iter(&self) -> impl Iterator<Item = &Sample> {
-        self.stats.iter()
-    }
-}
-
-impl Default for StatsBuffer {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-#[cfg(test)]
-#[path = "info_tests.rs"]
-mod tests;

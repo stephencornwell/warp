@@ -110,7 +110,6 @@ impl ActiveSession {
             ctx.notify();
         }
     }
-
 }
 
 impl Entity for ActiveSession {

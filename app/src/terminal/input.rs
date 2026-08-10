@@ -839,7 +839,6 @@ pub struct Input {
 
     /// The last block that the user ran. This is used for generating autosuggestions.
     #[cfg_attr(not(feature = "local_fs"), allow(dead_code))]
-
     hoverable_handle: MouseStateHandle,
 
     #[cfg(feature = "local_fs")]

@@ -1336,7 +1336,6 @@ struct TerminalViewMouseStates {
     #[cfg_attr(not(feature = "local_fs"), allow(dead_code))]
     show_in_file_explorer_tooltip: MouseStateHandle,
     jump_to_bottom_of_block_button: MouseStateHandle,
-
 }
 
 /// Where content was routed when sent to a CLI agent.

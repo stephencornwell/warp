@@ -29,7 +29,6 @@ pub(super) struct WorkspaceMouseStates {
     pub(super) settings_icon: MouseStateHandle,
     pub(super) dismiss_banner_button: MouseStateHandle,
     pub(super) offline_icon: MouseStateHandle,
-    pub(super) avatar_icon: MouseStateHandle,
     pub(super) header_dimming: MouseStateHandle,
     #[allow(dead_code)]
     pub(super) tools_panel_icon: MouseStateHandle,

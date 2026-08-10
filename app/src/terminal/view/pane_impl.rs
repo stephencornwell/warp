@@ -17,7 +17,8 @@ use crate::ui_components::blended_colors;
 use crate::ui_components::buttons::icon_button_with_color;
 use crate::ui_components::icons;
 use warpui::elements::{
-    ConstrainedBox, CrossAxisAlignment, Flex, MainAxisAlignment, MainAxisSize, ParentElement, Shrinkable,
+    ConstrainedBox, CrossAxisAlignment, Flex, MainAxisAlignment, MainAxisSize, ParentElement,
+    Shrinkable,
 };
 use warpui::prelude::Container;
 use warpui::text_layout::ClipConfig;

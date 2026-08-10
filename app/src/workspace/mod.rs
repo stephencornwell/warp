@@ -78,7 +78,6 @@ pub fn init(app: &mut AppContext) {
     lightbox_view::init(app);
     crate::tab_configs::remove_confirmation_dialog::init(app);
     tab_configs::session_config_modal::init(app);
-    view::openwarp_launch_modal::init(app);
     view::global_search::view::GlobalSearchView::init(app);
 
     settings_view::init_actions_from_parent_view(app, &id!("Workspace"), |settings_action| {

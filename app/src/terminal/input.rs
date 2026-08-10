@@ -2331,6 +2331,9 @@ impl Input {
 
     fn handle_editor_event(&mut self, event: &EditorEvent, ctx: &mut ViewContext<Self>) {
         self.hide_x_ray(ctx);
+        if !matches!(event, EditorEvent::InsertLastWordPrevCommand) {
+            self.update_last_word_insertion_state();
+        }
         match event {
             EditorEvent::Edited(edit_origin) => {
                 if *edit_origin == EditOrigin::UserTyped
@@ -2401,6 +2404,15 @@ impl Input {
                 ctx,
             );
         });
+    }
+
+    fn update_last_word_insertion_state(&mut self) {
+        if self.last_word_insertion.is_latest_editor_event {
+            self.last_word_insertion.insert_command_from_history_index += 1;
+            self.last_word_insertion.is_latest_editor_event = false;
+        } else {
+            self.last_word_insertion.insert_command_from_history_index = 0;
+        }
     }
 
     fn clear_screen(&mut self, ctx: &mut ViewContext<Self>) {

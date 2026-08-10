@@ -544,7 +544,6 @@ enum DefaultSessionModeBehavior {
 enum NewPaneVisibility {
     Visible,
     HiddenForMove,
-    HiddenForChildAgent,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -1919,34 +1918,6 @@ impl PaneGroup {
             ctx,
         );
         ctx.emit(Event::AppStateChanged);
-        new_pane_id
-    }
-
-    fn insert_terminal_pane_hidden_for_child_agent(
-        &mut self,
-        base_pane_id: PaneId,
-        env_vars: HashMap<OsString, OsString>,
-        ctx: &mut ViewContext<Self>,
-    ) -> TerminalPaneId {
-        let base_session_id = base_pane_id
-            .as_terminal_pane_id()
-            .or(self.active_session_id(ctx));
-        let startup_directory = self.startup_path_for_new_session(base_session_id, ctx);
-        let (pane_data, _view) =
-            self.create_terminal_pane_data(startup_directory, env_vars, None, ctx);
-        let new_pane_id = pane_data.terminal_pane_id();
-        let _ = self.add_pane_with_options(
-            Box::new(pane_data),
-            AddPaneOptions {
-                direction: Direction::Right,
-                base_pane_id: Some(base_pane_id),
-                focus_new_pane: false,
-                visibility: NewPaneVisibility::HiddenForChildAgent,
-                emit_app_state_changed: false,
-            },
-            ctx,
-        );
-
         new_pane_id
     }
 
@@ -3411,7 +3382,6 @@ impl PaneGroup {
         match options.visibility {
             NewPaneVisibility::Visible => {}
             NewPaneVisibility::HiddenForMove => self.panes.hide_pane_for_move(pane_id),
-            NewPaneVisibility::HiddenForChildAgent => self.panes.hide_pane_for_child_agent(pane_id),
         }
 
         let pane_id = self.init_pane(new_pane, ctx)?;

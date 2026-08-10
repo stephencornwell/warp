@@ -208,14 +208,6 @@ impl PaneId {
         Self::new(IPaneType::Welcome, welcome_pane_view)
     }
 
-    #[cfg_attr(not(feature = "local_fs"), allow(dead_code))]
-    pub(super) fn deferred_placeholder_pane_id() -> Self {
-        Self(IPaneId {
-            pane_type: IPaneType::DeferredPlaceholder,
-            pane_view_id: warpui::EntityId::new(),
-        })
-    }
-
     /// Creates a [`PaneId`] for a dummy pane.
     #[cfg(test)]
     pub fn dummy_pane_id() -> Self {
@@ -232,10 +224,6 @@ impl PaneId {
         } else {
             None
         }
-    }
-
-    pub(crate) fn pane_type(&self) -> IPaneType {
-        self.0.pane_type
     }
 
     #[allow(dead_code)]

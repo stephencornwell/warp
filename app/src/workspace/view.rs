@@ -131,9 +131,8 @@ use crate::ui_components::buttons::{combo_inner_button, icon_button_with_color};
 use crate::undo_close::UndoCloseStack;
 #[cfg(feature = "local_fs")]
 use crate::user_config::{
-    ensure_default_worktree_config, find_unused_tab_config_path, find_unused_toml_path,
-    find_unused_worktree_config_path, materialize_default_worktree_config, sanitize_toml_base_name,
-    tab_configs_dir,
+    ensure_default_worktree_config, find_unused_toml_path, materialize_default_worktree_config,
+    sanitize_toml_base_name, tab_configs_dir,
 };
 use crate::user_config::{WarpConfig, WarpConfigUpdateEvent};
 use crate::util::bindings::{keybinding_name_to_display_string, keybinding_name_to_keystroke};
@@ -3239,7 +3238,7 @@ impl Workspace {
             log::warn!("Failed to create tab_configs dir: {e:?}");
             return;
         }
-        let path = find_unused_tab_config_path(&dir);
+        let path = find_unused_toml_path(&dir, "my_tab_config");
         const TEMPLATE: &str =
             include_str!("../../resources/tab_configs/new_tab_config_template.toml");
         if let Err(e) = std::fs::write(&path, TEMPLATE) {
@@ -4057,7 +4056,19 @@ impl Workspace {
             return;
         }
 
-        let path = find_unused_worktree_config_path(&dir, &filename_hint);
+        let base = dir.join(format!("worktree_{filename_hint}.toml"));
+        let path = if !base.exists() {
+            base
+        } else {
+            let mut n = 1u32;
+            loop {
+                let candidate = dir.join(format!("worktree_{filename_hint}_{n}.toml"));
+                if !candidate.exists() {
+                    break candidate;
+                }
+                n = n.saturating_add(1);
+            }
+        };
         if let Err(e) = std::fs::write(&path, &toml_content) {
             log::warn!("Failed to write worktree tab config: {e:?}");
             return;

@@ -265,13 +265,6 @@ fn replace_default_worktree_placeholders(
     }
 }
 
-/// Returns a path for a new tab config file that does not yet exist in `dir`.
-/// Tries `my_tab_config.toml`, then `my_tab_config_1.toml`, `my_tab_config_2.toml`, etc.
-#[cfg(feature = "local_fs")]
-pub(crate) fn find_unused_tab_config_path(dir: &Path) -> PathBuf {
-    find_unused_toml_path(dir, "my_tab_config")
-}
-
 /// Returns a `.toml` path in `dir` that does not yet exist.
 ///
 /// Tries `{base_name}.toml`, then `{base_name}_1.toml`, `{base_name}_2.toml`, etc.
@@ -316,27 +309,6 @@ pub(crate) fn sanitize_toml_base_name(base_name: &str) -> String {
         "worktree".to_string()
     } else {
         sanitized
-    }
-}
-
-/// Returns a path for a new worktree tab config that does not yet exist in `dir`.
-/// Uses the branch name to create a descriptive filename like `worktree_my-branch.toml`.
-///
-/// The caller is expected to pass a branch name that has already been validated
-/// (alphanumeric, hyphens, underscores only) so no sanitization is performed here.
-#[cfg(feature = "local_fs")]
-pub(crate) fn find_unused_worktree_config_path(dir: &Path, branch_name: &str) -> PathBuf {
-    let base = dir.join(format!("worktree_{branch_name}.toml"));
-    if !base.exists() {
-        return base;
-    }
-    let mut n = 1u32;
-    loop {
-        let candidate = dir.join(format!("worktree_{branch_name}_{n}.toml"));
-        if !candidate.exists() {
-            return candidate;
-        }
-        n = n.saturating_add(1);
     }
 }
 

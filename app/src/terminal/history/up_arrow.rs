@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use warpui::{AppContext, EntityId, SingletonEntity};
+use warpui::{AppContext, EntityId};
 
 use crate::input_suggestions::HistoryInputSuggestion;
 use crate::terminal::model::session::SessionId;
@@ -66,7 +66,7 @@ impl History {
         terminal_view_id: EntityId,
         session_id: Option<SessionId>,
         config: UpArrowHistoryConfig,
-        app: &'a AppContext,
+        _app: &'a AppContext,
     ) -> Vec<HistoryInputSuggestion<'a>> {
         let commands = session_id
             .and_then(|session_id| self.commands(session_id))

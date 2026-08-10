@@ -1300,15 +1300,6 @@ impl Input {
 
         input
     }
-    fn handle_theme_change(&mut self, ctx: &mut ViewContext<Self>) {
-        if self.should_apply_decorations(ctx) {
-            self.run_input_background_jobs(
-                InputBackgroundJobOptions::default().with_command_decoration(),
-                ctx,
-            );
-        }
-    }
-
     pub fn sessions<'a, A: ModelAsRef>(&self, ctx: &'a A) -> &'a Sessions {
         self.sessions.as_ref(ctx)
     }

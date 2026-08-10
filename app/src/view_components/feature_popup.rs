@@ -12,15 +12,11 @@ use crate::{appearance::Appearance, ui_components::icons::Icon};
 pub enum NewFeaturePopupLabel {
     /// A static label.
     FromString(String),
-    /// A label that is computed on demand.
-    FromCallable(Box<dyn Fn(&AppContext) -> String>),
 }
 
 pub enum FeaturePopupBadge {
     // Displays "NEW" badge prior to the label
     New,
-    // Displays an alert icon prior to the label
-    AlertIcon,
 }
 
 /// A dismissable popup that displays a label indicating that a new feature is available.
@@ -41,14 +37,6 @@ impl FeaturePopup {
             dismiss_mouse_state: Default::default(),
             label,
             badge: FeaturePopupBadge::New,
-        }
-    }
-
-    pub fn alert_icon(label: NewFeaturePopupLabel) -> Self {
-        Self {
-            dismiss_mouse_state: Default::default(),
-            label,
-            badge: FeaturePopupBadge::AlertIcon,
         }
     }
 
@@ -73,19 +61,6 @@ impl FeaturePopup {
             )
             .with_corner_radius(CornerRadius::with_all(Radius::Pixels(2.)))
             .finish(),
-            FeaturePopupBadge::AlertIcon => Container::new(
-                ConstrainedBox::new(
-                    Icon::AlertCircle
-                        .to_warpui_icon(appearance.theme().main_text_color(
-                            appearance.theme().terminal_colors().normal.green.into(),
-                        ))
-                        .finish(),
-                )
-                .with_height(16.)
-                .with_width(16.)
-                .finish(),
-            )
-            .finish(),
         }
     }
 }
@@ -102,7 +77,6 @@ impl View for FeaturePopup {
 
         let label = match &self.label {
             NewFeaturePopupLabel::FromString(label) => label.clone(),
-            NewFeaturePopupLabel::FromCallable(callable) => callable(app),
         };
         ConstrainedBox::new(
             Container::new(

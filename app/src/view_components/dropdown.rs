@@ -72,7 +72,6 @@ pub struct Dropdown<A: Action + Clone> {
     selected_item: Option<MenuItem<DropdownAction<A>>>,
     // Function for overriding the default closed-state text (the selected item)
     menu_header_text_override: Option<MenuHeaderTextFormatter>,
-    self_handle: WeakViewHandle<Self>,
     style: DropdownStyle,
     use_drop_shadow: bool,
     font_color: Option<ColorU>,
@@ -179,7 +178,6 @@ where
             top_bar_max_width: TOP_MENU_BAR_MAX_WIDTH,
             selected_item: None,
             menu_header_text_override: None,
-            self_handle: ctx.handle(),
             style: Default::default(),
             element_anchor: PositionedElementAnchor::BottomLeft,
             child_anchor: ChildAnchor::TopLeft,
@@ -265,22 +263,6 @@ where
             ctx.notify();
         });
         ctx.notify();
-    }
-
-    pub fn is_focused(&self, ctx: &AppContext) -> bool {
-        let Some(handle) = self.self_handle.upgrade(ctx) else {
-            return false;
-        };
-
-        if handle.is_focused(ctx) {
-            return true;
-        }
-
-        if self.dropdown.is_focused(ctx) {
-            return true;
-        }
-
-        false
     }
 
     pub fn set_items(&mut self, items: Vec<DropdownItem<A>>, ctx: &mut ViewContext<Self>) {

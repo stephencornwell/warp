@@ -382,6 +382,7 @@ pub enum Event {
         count: usize,
     },
     Copy,
+    Paste,
     UnhandledModifierKeyOnEditor(Arc<String>),
     ClearSelectionsWhenShellMode,
     InputStateChanged(InputState),
@@ -2299,6 +2300,7 @@ impl Input {
             EditorEvent::Escape => self.editor_escape(ctx),
             EditorEvent::DeleteAllLeft => self.clear_buffer_and_reset_undo_stack(ctx),
             EditorEvent::Copy => ctx.emit(Event::Copy),
+            EditorEvent::Paste => ctx.emit(Event::Paste),
             EditorEvent::InsertLastWordPrevCommand => self.insert_last_word_previous_command(ctx),
             EditorEvent::Search { term, .. } => {
                 let _ = term;

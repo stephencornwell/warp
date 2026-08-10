@@ -198,12 +198,6 @@ pub enum WorkspaceAction {
     ClickedAIAssistantIcon,
     ToggleKeybindingsPage,
     ShowCommandSearch(CommandSearchOptions),
-    CreatePersonalNotebook,
-    ImportToPersonalDrive,
-    ImportToTeamDrive,
-    CreateTeamNotebook,
-    CreatePersonalWorkflow,
-    CreateTeamWorkflow,
     CreatePersonalFolder,
     CreateTeamFolder,
     CreatePersonalAIPrompt,
@@ -249,10 +243,8 @@ pub enum WorkspaceAction {
     DismissWorkspaceBanner(WorkspaceBanner),
     /// An action only registered in dev and local builds, which crashes the
     /// app (via a Sentry helper method) immediately when called.
-    Crash,
     /// An action only registered in dev and local builds, which triggers a
     /// panic immediately when called.
-    Panic,
     /// Stops the heap profiler (if one is running) and writes the profiling
     /// data to disk.
     DumpHeapProfile,
@@ -570,12 +562,6 @@ impl WorkspaceAction {
             | ToggleMouseReporting
             | ToggleScrollReporting
             | ToggleFocusReporting
-            | ImportToPersonalDrive
-            | ImportToTeamDrive
-            | CreatePersonalNotebook
-            | CreateTeamNotebook
-            | CreatePersonalWorkflow
-            | CreateTeamWorkflow
             | CreatePersonalFolder
             | CreateTeamFolder
             | CreatePersonalAIPrompt
@@ -595,8 +581,6 @@ impl WorkspaceAction {
             | ToggleWelcomeTips
             | CopyTextToClipboard(_)
             | CopyAccessTokenToClipboard
-            | Crash
-            | Panic
             | DumpHeapProfile
             | OpenViewTreeDebugWindow
             | ShowAIAssistantWarmWelcome

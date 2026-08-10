@@ -8120,13 +8120,6 @@ impl TypedActionView for Workspace {
                     .write(ClipboardContent::plain_text(text.to_string()));
             }
             DismissWorkspaceBanner(banner_type) => self.dismiss_workspace_banner(ctx, banner_type),
-            Crash => {
-                #[cfg(feature = "crash_reporting")]
-                crate::crash_reporting::crash();
-            }
-            Panic => {
-                panic!("WorkspaceAction::Panic triggered from command palette");
-            }
             DumpHeapProfile => {
                 #[cfg(feature = "dhat_heap_profiling")]
                 crate::profiling::dump_dhat_heap_profile();

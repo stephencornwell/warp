@@ -18,10 +18,8 @@ impl GPUState {
     }
 }
 
-pub enum GPUStateEvent {}
-
 impl SingletonEntity for GPUState {}
 
 impl Entity for GPUState {
-    type Event = GPUStateEvent;
+    type Event = ();
 }

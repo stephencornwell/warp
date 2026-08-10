@@ -620,68 +620,6 @@ fn execute_file(window_id: WindowId, path_str: &str, ctx: &mut AppContext) {
     });
 }
 
-fn open_window_with_action(active_window_id: Option<WindowId>, action: &str, ctx: &mut AppContext) {
-    if let Some(primary_window_id) = active_window_id {
-        // Dispatch action to primary window
-        if let Some(root_view_id) = ctx.root_view_id(primary_window_id) {
-            ctx.dispatch_action(
-                primary_window_id,
-                &[root_view_id],
-                action,
-                &(),
-                log::Level::Info,
-            );
-        }
-    } else {
-        log::warn!("no primary window id to dispatch action to");
-
-        // Open a new window and dispatch action there
-        ctx.dispatch_global_action("root_view:open_new", &());
-        // TODO: Note we cannot just dispatch here as it will be a no-op.
-        // Need to send a callback once window is fully open.
-    }
-}
-
-fn find_workspace_for_terminal_view(
-    terminal_view_id: EntityId,
-    ctx: &mut AppContext,
-) -> Option<(WindowId, ViewHandle<Workspace>)> {
-    for window_id in ctx.window_ids() {
-        let Some(workspaces) = ctx.views_of_type::<Workspace>(window_id) else {
-            continue;
-        };
-        for workspace in workspaces {
-            let contains_terminal = workspace
-                .as_ref(ctx)
-                .list_tab_pane_groups(ctx)
-                .iter()
-                .any(|group| group.terminal_ids.contains(&terminal_view_id));
-            if contains_terminal {
-                return Some((window_id, workspace));
-            }
-        }
-    }
-
-    None
-}
-
-fn active_terminal_view_id_in_window(window_id: WindowId, ctx: &AppContext) -> Option<EntityId> {
-    let workspaces = ctx.views_of_type::<Workspace>(window_id)?;
-    let workspace = workspaces.first()?;
-    workspace.read(ctx, |workspace, w_ctx| {
-        let pane_group = workspace.active_tab_pane_group().as_ref(w_ctx);
-        pane_group
-            .active_session_view(w_ctx)
-            .map(|terminal_view| terminal_view.id())
-            .or_else(|| {
-                pane_group
-                    .terminal_views(w_ctx)
-                    .first()
-                    .map(|view| view.id())
-            })
-    })
-}
-
 /// Helper function to dispatch an action to an existing window
 /// or create new window if none exist.
 fn dispatch_action_in_new_or_existing_window<T: 'static>(

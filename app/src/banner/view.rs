@@ -37,9 +37,8 @@ pub enum DismissalType {
     Permanent,
 }
 
-pub enum BannerEvent<T> {
+pub enum BannerEvent {
     Dismiss(DismissalType),
-    Action(T),
 }
 
 pub struct BannerTextContent<T: Action + Clone> {
@@ -259,7 +258,7 @@ impl<T: Action + Clone> Banner<T> {
 }
 
 impl<T: Action + Clone> Entity for Banner<T> {
-    type Event = BannerEvent<T>;
+    type Event = BannerEvent;
 }
 
 impl<T: Action + Clone> TypedActionView for Banner<T> {

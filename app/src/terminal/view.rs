@@ -7841,30 +7841,23 @@ impl TerminalView {
 
     fn handle_slow_bootstrap_banner_event(
         &mut self,
-        event: &BannerEvent<TerminalAction>,
+        event: &BannerEvent,
         ctx: &mut ViewContext<Self>,
     ) {
         match event {
             BannerEvent::Dismiss { .. } => self.hide_slow_bootstrap_banner(ctx),
-            BannerEvent::Action(terminal_action) => {
-                self.handle_action(terminal_action, ctx);
-            }
         }
     }
 
     fn handle_incompatible_configuration_banner_event(
         &mut self,
-        event: &BannerEvent<TerminalAction>,
+        event: &BannerEvent,
         ctx: &mut ViewContext<Self>,
     ) {
         match event {
             BannerEvent::Dismiss { .. } => {
                 self.is_incompatible_configuration_banner_open = false;
                 ctx.notify();
-            }
-            BannerEvent::Action(_) => {
-                #[cfg(debug_assertions)]
-                log::warn!("Incomptabile configuration banner does not support handling actions");
             }
         }
     }
@@ -7876,7 +7869,7 @@ impl TerminalView {
 
     fn handle_emacs_bindings_banner_clicked(
         &mut self,
-        event: &BannerEvent<TerminalAction>,
+        event: &BannerEvent,
         ctx: &mut ViewContext<Self>,
     ) {
         if matches!(event, BannerEvent::Dismiss(DismissalType::Temporary)) {
@@ -7970,19 +7963,13 @@ impl TerminalView {
 
     fn handle_controlmaster_error_banner_event(
         &mut self,
-        event: &BannerEvent<TerminalAction>,
+        event: &BannerEvent,
         ctx: &mut ViewContext<Self>,
     ) {
         match event {
             BannerEvent::Dismiss { .. } => {
                 self.control_master_error_banner_state.is_open = false;
                 ctx.notify();
-            }
-            BannerEvent::Action(_) => {
-                #[cfg(debug_assertions)]
-                unimplemented!(
-                    "Control master error banner does not yet support handling terminal actions"
-                );
             }
         }
     }

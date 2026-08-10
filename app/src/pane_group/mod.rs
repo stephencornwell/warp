@@ -3143,7 +3143,7 @@ impl PaneGroup {
 
     fn handle_user_default_shell_changed_banner_event(
         &mut self,
-        event: &BannerEvent<PaneGroupAction>,
+        event: &BannerEvent,
         ctx: &mut ViewContext<Self>,
     ) {
         match event {
@@ -3166,10 +3166,6 @@ impl PaneGroup {
                         .user_default_shell_unsupported_banner_state
                         .set_value(BannerState::Dismissed, ctx));
                 });
-            }
-            BannerEvent::Action(_) => {
-                #[cfg(debug_assertions)]
-                unimplemented!("User default shell change banner doesn't support actions");
             }
         }
         ctx.notify();

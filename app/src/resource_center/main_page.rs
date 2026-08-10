@@ -21,21 +21,16 @@ use warp_core::{channel::ChannelState, features::FeatureFlag};
 
 use super::{
     section_views::{
-        feature_section::FeatureSectionEvent, SectionViewHandle, BUTTON_PADDING, DETAIL_FONT_SIZE,
+        feature_section::FeatureSectionEvent, SectionViewHandle, DETAIL_FONT_SIZE,
         FOOTER_ICON_SIZE, SCROLLBAR_OFFSET, SCROLLBAR_WIDTH, SECTION_SPACING,
-        SECTION_SPACING_BOTTOM,
     },
     sections::sections,
     ContentSectionData, ContentSectionView, FeatureSection, FeatureSectionData, FeatureSectionView,
     Section, TipsCompleted,
 };
 
-const SEND_SVG_PATH: &str = "bundled/svg/send.svg";
-
 #[derive(Default)]
 struct MouseStateHandles {
-    copy_version: MouseStateHandle,
-    invite_people: MouseStateHandle,
     skip_tips: MouseStateHandle,
 }
 
@@ -260,116 +255,6 @@ impl ResourceCenterMainView {
             theme.main_text_color(theme.background()).into(),
             Fill::None,
         )
-        .finish()
-    }
-
-    fn render_current_version(&self, appearance: &Appearance) -> Box<dyn Element> {
-        // Use a dummy string for git release tag which is not available on local env
-        let version = ChannelState::app_version().unwrap_or("v0.local.testing.string_00");
-
-        let style = UiComponentStyles {
-            font_color: Some(appearance.theme().nonactive_ui_text_color().into()),
-            ..Default::default()
-        };
-
-        let text = appearance
-            .ui_builder()
-            .wrappable_text(version, true)
-            .with_style(style)
-            .build()
-            .finish();
-
-        let copy_icon = appearance
-            .ui_builder()
-            .copy_button(
-                FOOTER_ICON_SIZE,
-                self.button_mouse_states.copy_version.clone(),
-            )
-            .build()
-            .on_click(move |ctx, _, _| {
-                ctx.dispatch_typed_action(WorkspaceAction::CopyVersion(version))
-            })
-            .finish();
-
-        Container::new(
-            Flex::row()
-                .with_child(Shrinkable::new(1., Align::new(text).left().finish()).finish())
-                .with_child(Shrinkable::new(0.2, Align::new(copy_icon).finish()).finish())
-                .with_main_axis_size(MainAxisSize::Max)
-                .finish(),
-        )
-        .with_margin_left(SECTION_SPACING)
-        .with_margin_bottom(BUTTON_PADDING)
-        .with_uniform_padding(BUTTON_PADDING)
-        .finish()
-    }
-
-    fn render_invite_button(&self, appearance: &Appearance) -> Box<dyn Element> {
-        let default_styles = UiComponentStyles {
-            font_size: Some(DETAIL_FONT_SIZE),
-            font_family_id: Some(appearance.ui_font_family()),
-            font_color: Some(appearance.theme().accent().into()),
-            border_radius: Some(CornerRadius::with_all(Radius::Percentage(20.))),
-            border_width: Some(1.),
-            border_color: Some(appearance.theme().accent().into()),
-            padding: Some(Coords {
-                top: BUTTON_PADDING,
-                bottom: BUTTON_PADDING,
-                ..Default::default()
-            }),
-            ..Default::default()
-        };
-
-        let hovered_styles = UiComponentStyles {
-            background: Some(appearance.theme().accent().into()),
-            font_color: Some(
-                appearance
-                    .theme()
-                    .main_text_color(appearance.theme().accent())
-                    .into_solid(),
-            ),
-            ..default_styles
-        };
-
-        let clicked_color = appearance.theme().accent();
-        let clicked_styles = UiComponentStyles {
-            background: Some(clicked_color.into()),
-            border_color: Some(clicked_color.into()),
-            ..hovered_styles
-        };
-
-        Container::new(
-            appearance
-                .ui_builder()
-                .button_with_custom_styles(
-                    ButtonVariant::Outlined,
-                    self.button_mouse_states.invite_people.clone(),
-                    default_styles,
-                    Some(hovered_styles),
-                    Some(clicked_styles),
-                    None,
-                )
-                .with_text_and_icon_label(
-                    TextAndIcon::new(
-                        TextAndIconAlignment::IconFirst,
-                        "Invite a friend to Warp",
-                        Icon::new(SEND_SVG_PATH, appearance.theme().accent()),
-                        MainAxisSize::Max,
-                        MainAxisAlignment::Center,
-                        vec2f(FOOTER_ICON_SIZE, FOOTER_ICON_SIZE),
-                    )
-                    .with_inner_padding(BUTTON_PADDING),
-                )
-                .build()
-                .on_click(|ctx, _, _| {
-                    ctx.dispatch_typed_action(WorkspaceAction::ShowReferralSettingsPage)
-                })
-                .finish(),
-        )
-        .with_margin_top(SECTION_SPACING)
-        .with_margin_bottom(SECTION_SPACING_BOTTOM)
-        .with_margin_left(SECTION_SPACING + SCROLLBAR_OFFSET)
-        .with_margin_right(SECTION_SPACING + SCROLLBAR_OFFSET)
         .finish()
     }
 

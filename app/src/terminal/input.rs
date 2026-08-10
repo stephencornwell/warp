@@ -21,9 +21,6 @@ mod universal;
 use crate::pane_group::focus_state::PaneFocusHandle;
 use crate::search::slash_command_menu::static_commands::commands::COMMAND_REGISTRY;
 
-use crate::suggestions::ignored_suggestions_model::{
-    IgnoredSuggestionsModel, IgnoredSuggestionsModelEvent, SuggestionType,
-};
 use crate::terminal::input::buffer_model::InputBufferModel;
 use crate::terminal::input::suggestions_mode_model::InputSuggestionsModeModel;
 use crate::terminal::model::session::active_session::ActiveSession;
@@ -1617,23 +1614,6 @@ impl Input {
         }
     }
 
-    fn handle_ignored_suggestions_event(
-        &mut self,
-        event: &IgnoredSuggestionsModelEvent,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        match event {
-            IgnoredSuggestionsModelEvent::SuggestionIgnored => {
-                // We may need to regenerate the autosuggestion if the suggestion just ignored
-                // was the one suggested in the input.
-                self.editor.update(ctx, |editor, ctx| {
-                    editor.clear_autosuggestion(ctx);
-                });
-                self.maybe_generate_autosuggestion(ctx);
-            }
-        }
-    }
-
     /// Returns `true` if we can query the [`History`] model for the active session.
     fn can_query_history(&self, ctx: &AppContext) -> bool {
         let model = self.model.lock();
@@ -1823,15 +1803,7 @@ impl Input {
                 ctx.notify();
             });
 
-            if !command.is_empty() {
-                IgnoredSuggestionsModel::handle(ctx).update(ctx, |model, ctx| {
-                    model.remove_ignored_suggestion(
-                        command.to_string(),
-                        SuggestionType::ShellCommand,
-                        ctx,
-                    );
-                });
-            }
+            if !command.is_empty() {}
 
             self.start_block_and_write_command_to_pty(command, source, ctx);
             did_execute = true;
@@ -2346,8 +2318,6 @@ impl Input {
         let session_env_vars = self.sessions.read(ctx, |sessions, _| {
             sessions.get_env_vars_for_session(session_id)
         });
-        let ignored_suggestions = IgnoredSuggestionsModel::as_ref(ctx)
-            .get_ignored_suggestions_for_type(SuggestionType::ShellCommand);
         let abort_handle = ctx
             .spawn_abortable(
                 async move {
@@ -2386,7 +2356,7 @@ impl Input {
                                     s.replacement()
                                 )
                             })
-                            .find(|suggestion| !ignored_suggestions.contains(suggestion))
+                            .next()
                     });
 
                     AutoSuggestionResult {

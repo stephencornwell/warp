@@ -3,7 +3,6 @@ use std::collections::HashSet;
 use warpui::{AppContext, EntityId, SingletonEntity};
 
 use crate::input_suggestions::HistoryInputSuggestion;
-use crate::suggestions::ignored_suggestions_model::{IgnoredSuggestionsModel, SuggestionType};
 use crate::terminal::model::session::SessionId;
 
 use super::History;
@@ -69,15 +68,10 @@ impl History {
         config: UpArrowHistoryConfig,
         app: &'a AppContext,
     ) -> Vec<HistoryInputSuggestion<'a>> {
-        let ignored_suggestions = IgnoredSuggestionsModel::handle(app).as_ref(app);
-
         let commands = session_id
             .and_then(|session_id| self.commands(session_id))
             .unwrap_or_default()
             .into_iter()
-            .filter(|entry| {
-                !ignored_suggestions.is_ignored(&entry.command, SuggestionType::ShellCommand)
-            })
             .filter(|entry| !entry.is_agent_executed)
             .map(|entry| HistoryInputSuggestion::Command { entry });
 

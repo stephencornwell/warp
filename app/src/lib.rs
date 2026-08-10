@@ -2,7 +2,6 @@
 #![allow(clippy::doc_lazy_continuation)]
 
 mod alloc;
-mod antivirus;
 #[cfg(target_os = "macos")]
 mod app_menus;
 mod app_services;
@@ -200,7 +199,6 @@ macro_rules! safe_error {
 // Re-export the safe logging macros at the crate root level for backwards compatibility
 pub use warp_core::{safe_debug, safe_info, safe_warn};
 
-use crate::antivirus::AntivirusInfo;
 #[cfg(feature = "local_fs")]
 use warp_files::FileModel;
 use warpui::platform::TerminationMode;
@@ -1016,8 +1014,6 @@ fn initialize_app(
             )
         })
         .unwrap_or_else(|| (Default::default(), Default::default(), Default::default()));
-
-    ctx.add_singleton_model(AntivirusInfo::new);
 
     cfg_if::cfg_if! {
         if #[cfg(feature = "crash_reporting")] {

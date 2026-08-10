@@ -9,7 +9,6 @@ mod link_detection;
 mod open_in_warp;
 mod pane_impl;
 pub mod rich_content;
-mod shell_terminated_banner;
 mod tab_metadata;
 #[cfg(any(test, feature = "integration_tests"))]
 mod testing;
@@ -3569,85 +3568,6 @@ impl TerminalView {
                 .vim_keybindings_banner_state
                 .set_value(BannerState::Dismissed, model_ctx));
         });
-    }
-
-    #[cfg(feature = "local_fs")]
-    #[cfg(feature = "local_fs")]
-    #[cfg(feature = "local_fs")]
-    #[cfg(feature = "local_fs")]
-    #[cfg(not(feature = "local_fs"))]
-    /// Runs the AWS login command configured in settings to refresh Bedrock credentials.
-    /// Doing this in PTY vs just a subprocess allows the user to see any output/errors
-    /// from the command directly in the terminal. Also, `aws login` commands may require
-    /// user interaction (e.g. "do you want to override X profile? y/n" is common)
-    /// Checks if the current model request could be served via AWS Bedrock and the user
-    /// isn't already using it. If so, inserts a banner prompting the user to log in.
-    ///
-    /// The banner is shown when the user could be using AWS Bedrock to save on warp AI spend, but isn't.
-    /// Checks if the user tried to run an AWS login command and the AWS CLI wasn't installed.
-    /// If so, shows a helpful banner explaining the issue.
-    /// Inserts a banner notifying the user that the shell process has terminated.
-    fn insert_shell_process_terminated_banner(
-        &mut self,
-        termination_type: shell_terminated_banner::TerminationType,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        // If we successfully bootstrapped, show a simple "Shell exited" banner.
-        if self.is_login_shell_bootstrapped {
-            let banner_id = self.inline_banners_state.next_banner_id();
-            self.inline_banners_state.shell_process_terminated_banner =
-                Some(ShellProcessTerminatedBanner {
-                    banner_id,
-                    was_premature_termination: !self.is_login_shell_bootstrapped,
-                });
-            // In this case, the active block is actually the last block that was run
-            // before exiting; it's not a special hidden block. In other words, the "active" block
-            // is read-only and no additional blocks will be added to the block list. That's why
-            // we need to explicitly insert _after_ the active block.
-            let active_block_index = self.model.lock().block_list().active_block_index();
-            self.model
-                .lock()
-                .block_list_mut()
-                .insert_inline_banner_after_block(
-                    active_block_index,
-                    InlineBannerItem::new(banner_id, InlineBannerType::ShellProcessTerminated),
-                );
-        } else {
-            let (termination_reason, termination_details, exit_reason) = match &termination_type {
-                shell_terminated_banner::TerminationType::PtySpawnFailure { .. } => {
-                    (Some("PtySpawnFailure".to_string()), None, None)
-                }
-                shell_terminated_banner::TerminationType::Premature {
-                    shell_detail,
-                    reason,
-                } => (
-                    Some("Premature".to_string()),
-                    Some(shell_detail.into()),
-                    Some(reason),
-                ),
-                _ => (None, None, None),
-            };
-
-            if let Some(termination_reason) = termination_reason {
-                let (shell_path, shell_type) = self.get_shell_starter_local(ctx).unzip();
-            };
-
-            let banner = ctx.add_typed_action_view(|ctx| {
-                shell_terminated_banner::ShellTerminatedBanner::new(termination_type, ctx)
-            });
-
-            self.insert_rich_content(
-                None,
-                banner,
-                None,
-                RichContentInsertionPosition::Append {
-                    insert_below_long_running_block: true,
-                },
-                ctx,
-            );
-        }
-
-        ctx.notify();
     }
 
     /// Inserts telemetry policy banner into the blocklist.

@@ -184,10 +184,6 @@ impl CrashRecovery {
         });
     }
 
-    pub fn should_notify_user_about_crash(&self) -> Option<RecoveryMechanism> {
-        self.should_notify_user_about_crash
-    }
-
     pub fn handle_user_acknowledged_crash(&mut self, ctx: &mut ModelContext<Self>) {
         self.should_notify_user_about_crash = None;
         ctx.emit(Event::UserAcknowledgedCrash);

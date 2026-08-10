@@ -1,6 +1,4 @@
 use crate::report_if_error;
-#[cfg(enable_crash_recovery)]
-mod crash_recovery;
 pub mod global_search;
 pub(crate) mod launch_modal;
 pub(crate) mod left_panel;
@@ -398,10 +396,6 @@ pub enum WorkspaceBanner {
     Reauth,
     // to display an anonymous user has X days left to sign in
     AnonymousUserAuth,
-    /// to display when recovering from a crash that may have been due to use
-    /// of Wayland
-    #[cfg(target_os = "linux")]
-    WaylandCrashRecovery,
     /// to display when settings.toml has errors (parse failure or invalid values)
     InvalidSettings,
 }
@@ -417,8 +411,6 @@ impl WorkspaceBanner {
             Self::VersionDeprecated => false,
             Self::AnonymousUserAuth => false,
             Self::Reauth => true,
-            #[cfg(target_os = "linux")]
-            Self::WaylandCrashRecovery => true,
             Self::InvalidSettings => true,
         }
     }
@@ -8005,10 +7997,6 @@ impl Workspace {
             WorkspaceBanner::Reauth => {
                 self.reauth_banner_dismissed = true;
             }
-            #[cfg(all(enable_crash_recovery, target_os = "linux"))]
-            WorkspaceBanner::WaylandCrashRecovery => {
-                crash_recovery::dismiss_workspace_banner(ctx);
-            }
             WorkspaceBanner::InvalidSettings => {
                 self.settings_error_banner_dismissed = true;
                 self.sync_settings_error_state_into_settings_pane(ctx);
@@ -8764,11 +8752,6 @@ impl TypedActionView for Workspace {
             } => {
                 self.insert_in_input(content, *replace_buffer, false, *ensure_agent_mode, ctx);
                 ctx.notify();
-            }
-            #[cfg(all(enable_crash_recovery, target_os = "linux"))]
-            DismissWaylandCrashRecoveryBannerAndOpenLink => {
-                self.dismiss_workspace_banner(ctx, &WorkspaceBanner::WaylandCrashRecovery);
-                ctx.open_url("https://docs.warp.dev/terminal/more-features/linux#native-wayland");
             }
             TabHoverWidthStart { width } => {
                 // Store the fixed width value for the tab to maintain consistent size during hover

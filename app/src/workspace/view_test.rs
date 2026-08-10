@@ -62,9 +62,6 @@ fn initialize_app(app: &mut App) {
     terminal::available_shells::register(app);
     AltScreenReporting::register(app);
 
-    #[cfg(enable_crash_recovery)]
-    crate::crash_recovery::CrashRecovery::register_for_test(app);
-
     app.add_singleton_model(|_| History::new(vec![]));
     app.update(workspace::init);
 }

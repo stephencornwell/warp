@@ -329,10 +329,6 @@ pub enum WorkspaceAction {
     },
     OpenCloudAgentSetupGuide,
     AttemptLoginGatedAIUpgrade,
-    /// Dismisses the Wayland crash recovery banner and opens a link to our docs page with more
-    /// information.
-    #[cfg(target_os = "linux")]
-    DismissWaylandCrashRecoveryBannerAndOpenLink,
     /// Open a new pane with its input in AI mode
     /// with query "Fix this" with error name and details from AI summary.
     FixInAgentMode {
@@ -687,8 +683,6 @@ impl WorkspaceAction {
             FileRenamed { .. } => false, // File rename doesn't change workspace state
             #[cfg(feature = "local_fs")]
             FileDeleted { .. } => false, // File deletion doesn't change workspace state
-            #[cfg(target_os = "linux")]
-            DismissWaylandCrashRecoveryBannerAndOpenLink => false,
             #[cfg(target_family = "wasm")]
             OpenLinkOnDesktop(_) => false,
             // actions that are related to updating user settings or

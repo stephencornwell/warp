@@ -1,8 +1,7 @@
 use warpui::{
     elements::{
-        Align, ClippedScrollStateHandle, ClippedScrollable, Container, Element,
-        Empty, Fill, Flex, Hoverable, MouseStateHandle,
-        ParentElement, Shrinkable,
+        Align, ClippedScrollStateHandle, ClippedScrollable, Container, Element, Empty, Fill, Flex,
+        Hoverable, MouseStateHandle, ParentElement, Shrinkable,
     },
     platform::Cursor,
     presenter::ChildView,
@@ -11,13 +10,14 @@ use warpui::{
     ViewHandle, WindowId,
 };
 
-use crate::settings::Settings;
 use crate::appearance::Appearance;
+use crate::settings::Settings;
 use warp_core::{channel::ChannelState, features::FeatureFlag};
 
 use super::{
     section_views::{
-        feature_section::FeatureSectionEvent, SectionViewHandle, DETAIL_FONT_SIZE, SCROLLBAR_OFFSET, SCROLLBAR_WIDTH, SECTION_SPACING,
+        feature_section::FeatureSectionEvent, SectionViewHandle, DETAIL_FONT_SIZE,
+        SCROLLBAR_OFFSET, SCROLLBAR_WIDTH, SECTION_SPACING,
     },
     sections::sections,
     ContentSectionData, ContentSectionView, FeatureSection, FeatureSectionData, FeatureSectionView,

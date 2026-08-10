@@ -13,7 +13,7 @@ use crate::terminal::shell::ShellType;
 use crate::terminal::view::cell_size_and_padding;
 use crate::themes::theme::AnsiColorIdentifier;
 use crate::util::bindings::{self, is_binding_pty_compliant};
-use crate::util::traffic_lights::{traffic_light_data, TrafficLightData, TrafficLightMouseStates};
+use crate::util::traffic_lights::{TrafficLightData, TrafficLightMouseStates};
 use crate::window_settings::WindowSettings;
 use crate::workspace::WorkspaceAction;
 use crate::workspace::{PaneViewLocator, Workspace};

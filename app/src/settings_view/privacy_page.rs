@@ -74,22 +74,6 @@ const USER_SECRET_REGEX_DESCRIPTION: &str =
     "Use regex to define additional secrets or data you'd like to redact. This will take effect \
     when the next command runs. You can use the inline (?i) flag as a prefix to your regex \
     to make it case-insensitive.";
-const TELEMETRY_DESCRIPTION_OLD: &str =
-    "App analytics help us make the product better for you. We only collect \
-    app usage metadata, never console input or output.";
-const TELEMETRY_TITLE: &str = "Help improve Warp";
-const TELEMETRY_DESCRIPTION: &str =
-    "App analytics help us make the product better for you. We may collect \
-    certain console interactions to improve Warp's AI capabilities.";
-const TELEMETRY_FREE_TIER_NOTE: &str =
-    "On the free tier, analytics must be enabled to use AI features.";
-const TELEMETRY_DOCS_URL: &str =
-    "https://docs.warp.dev/support-and-community/privacy-and-security/privacy#what-telemetry-data-does-warp-collect-and-why";
-
-const DATA_MANAGEMENT_TITLE: &str = "Manage your data";
-const DATA_MANAGEMENT_DESCRIPTION: &str =
-    "At any time, you may choose to delete your Warp account permanently. \
-    You will no longer be able to use Warp.";
 const DATA_MANAGEMENT_LINK_TEXT: &str = "Visit the data management page";
 
 const PRIVACY_POLICY_TITLE: &str = "Privacy policy";

@@ -698,14 +698,9 @@ fn block_maximum_rows_description() -> String {
     )
 }
 
-fn to_string(b: bool) -> String {
-    format!("{b}")
-}
-
 #[derive(Default)]
 struct MouseStateHandles {
     local_only_icon_tooltip_states: RefCell<HashMap<String, MouseStateHandle>>,
-    tab_behavior_local_only_icon: MouseStateHandle,
     activation_hotkey_keybinding_editor: MouseStateHandle,
     activation_hotkey_save: MouseStateHandle,
     activation_hotkey_cancel: MouseStateHandle,
@@ -717,7 +712,6 @@ struct MouseStateHandles {
     long_running_notifications_checkbox: MouseStateHandle,
     agent_task_completed_notifications_checkbox: MouseStateHandle,
     agent_needs_attention_notifications_checkbox: MouseStateHandle,
-    agent_in_app_notifications_switch: SwitchStateHandle,
     #[cfg(target_os = "macos")]
     notification_sound_checkbox: MouseStateHandle,
     change_keybinding: MouseStateHandle,

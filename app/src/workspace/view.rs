@@ -194,7 +194,6 @@ use super::tab_settings::{
 };
 use super::util::{PaneViewLocator, TabMovement, WorkspaceMouseStates, WorkspaceState};
 use crate::launch_configs::save_modal::{LaunchConfigModalEvent, LaunchConfigSaveModal};
-use crate::tab_configs::action_sidecar::SidecarItemKind;
 use crate::tab_configs::remove_confirmation_dialog::RemoveTabConfigConfirmationDialog;
 use crate::tab_configs::session_config_modal::{SessionConfigModal, SessionConfigModalEvent};
 use crate::tab_configs::{TabConfigParamsModal, TabConfigParamsModalEvent};
@@ -667,8 +666,6 @@ pub struct Workspace {
     worktree_sidecar_search_editor: ViewHandle<EditorView>,
     worktree_sidecar_search_query: String,
     new_session_sidecar_add_repo_mouse_state: MouseStateHandle,
-    tab_config_action_sidecar_item: Option<SidecarItemKind>,
-    tab_config_action_sidecar_mouse_states: crate::tab_configs::action_sidecar::SidecarMouseStates,
     remove_tab_config_confirmation_dialog: ViewHandle<RemoveTabConfigConfirmationDialog>,
 }
 
@@ -700,7 +697,6 @@ impl Workspace {
 
     fn close_new_session_dropdown_menu(&mut self, ctx: &mut ViewContext<Self>) {
         self.show_new_session_dropdown_menu = None;
-        self.tab_config_action_sidecar_item = None;
         self.clear_worktree_sidecar_state(ctx);
         self.new_session_dropdown_menu.update(ctx, |menu, _| {
             menu.set_safe_zone_target(None);
@@ -1707,8 +1703,6 @@ impl Workspace {
             worktree_sidecar_search_editor: Self::build_worktree_sidecar_search_input(ctx),
             worktree_sidecar_search_query: String::new(),
             new_session_sidecar_add_repo_mouse_state: Default::default(),
-            tab_config_action_sidecar_item: None,
-            tab_config_action_sidecar_mouse_states: Default::default(),
             remove_tab_config_confirmation_dialog:
                 Self::build_remove_tab_config_confirmation_dialog(ctx),
         };

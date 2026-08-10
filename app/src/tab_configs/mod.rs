@@ -1,4 +1,3 @@
-pub(crate) mod action_sidecar;
 pub mod params_modal;
 pub(crate) mod remove_confirmation_dialog;
 pub mod session_config;

@@ -1642,11 +1642,6 @@ impl<V: warpui::View> Category<V> {
             widgets,
         }
     }
-
-    pub(super) fn with_subtitle(mut self, subtitle: &'static str) -> Self {
-        self.subtitle = Some(subtitle);
-        self
-    }
 }
 
 /// A [`Category`] with only the results which match a search query.

@@ -226,17 +226,6 @@ impl TabConfigParamsModal {
         ctx.notify();
     }
 
-    /// Restores focus to the modal itself (dropdown-only) or the first text
-    /// field after a picker interaction closes its dropdown.
-    fn reclaim_focus(&self, ctx: &mut ViewContext<Self>) {
-        if self.has_text_fields() {
-            self.focus_field(0, ctx);
-        } else {
-            ctx.focus_self();
-        }
-        ctx.notify();
-    }
-
     fn has_text_fields(&self) -> bool {
         self.param_fields
             .iter()

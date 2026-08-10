@@ -1,11 +1,7 @@
-use crate::terminal::model::session::SessionId;
 use async_channel::Sender;
-use chrono::{DateTime, Local};
 use fuzzy_match::match_indices;
 use itertools::Itertools;
 use pathfinder_geometry::vector::vec2f;
-use std::cmp::Ordering;
-use std::collections::HashSet;
 use std::{cmp, ops::Range, vec};
 use warp_command_signatures::IconType;
 use warp_completer::completer::{

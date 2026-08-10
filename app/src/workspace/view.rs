@@ -1,6 +1,5 @@
 use crate::report_if_error;
 pub mod global_search;
-pub(crate) mod launch_modal;
 pub(crate) mod left_panel;
 pub(crate) mod openwarp_launch_modal;
 mod startup_directory;

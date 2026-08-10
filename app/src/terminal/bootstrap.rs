@@ -3,7 +3,7 @@ use std::borrow::Cow;
 use itertools::Itertools;
 use lazy_static::lazy_static;
 use memo_map::MemoMap;
-use warpui::{AssetProvider, SingletonEntity};
+use warpui::AssetProvider;
 
 use crate::terminal::shell::ShellType;
 

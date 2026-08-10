@@ -25,6 +25,7 @@ use crate::terminal::model::index::Side;
 use crate::terminal::model::session::{BootstrapSessionType, SessionInfo};
 use crate::terminal::model::terminal_model::BlockIndex;
 use chrono::Local;
+use warpui::keymap::Keystroke;
 use warpui::text::SelectionType;
 
 use crate::terminal::shell::ShellType;

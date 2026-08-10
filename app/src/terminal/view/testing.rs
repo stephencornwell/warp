@@ -10,7 +10,7 @@ cfg_if::cfg_if! {
         use warpui::{ViewContext};
 
         use crate::{
-            ai::blocklist::SerializedBlockListItem, pane_group::TerminalViewResources,
+            terminal::model::block::SerializedBlock, pane_group::TerminalViewResources,
             resource_center::TipsCompleted,
         };
         use crate::terminal::model::session::Sessions;
@@ -29,7 +29,7 @@ impl TerminalView {
     #[cfg(test)]
     pub fn new_for_test(
         tips_model: ModelHandle<TipsCompleted>,
-        restored_blocks: Option<&[SerializedBlockListItem]>,
+        restored_blocks: Option<&[SerializedBlock]>,
         ctx: &mut ViewContext<Self>,
     ) -> Self {
         Self::new_for_test_with_cloud_mode(tips_model, restored_blocks, false, ctx)
@@ -38,7 +38,7 @@ impl TerminalView {
     #[cfg(test)]
     pub fn new_for_test_with_cloud_mode(
         tips_model: ModelHandle<TipsCompleted>,
-        restored_blocks: Option<&[SerializedBlockListItem]>,
+        restored_blocks: Option<&[SerializedBlock]>,
         is_cloud_mode: bool,
         ctx: &mut ViewContext<Self>,
     ) -> Self {
@@ -46,7 +46,6 @@ impl TerminalView {
         use warpui::units::{IntoPixels as _, Pixels};
 
         use crate::{
-            server::server_api::ServerApiProvider,
             terminal::{
                 event_listener::ChannelEventListener, model::block::BlockSize, BlockPadding,
             },
@@ -82,10 +81,8 @@ impl TerminalView {
             warp_prompt_height_lines: WARP_PROMPT_HEIGHT_LINES,
         };
 
-        let server_api = ServerApiProvider::new_for_test().get();
         let terminal_view_resources = TerminalViewResources {
             tips_completed: tips_model,
-            server_api: server_api.clone(),
             model_event_sender: None,
         };
 
@@ -118,8 +115,6 @@ impl TerminalView {
             None,
             prompt_type,
             None,
-            None, // conversation_restoration - not used for test
-            None, // inactive_pty_reads_rx - not used for test
             is_cloud_mode,
             ctx,
         )

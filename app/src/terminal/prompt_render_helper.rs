@@ -1,6 +1,3 @@
-use crate::ai::blocklist::BlocklistAIInputModel;
-use crate::context_chips::display::PromptDisplay;
-use crate::context_chips::spacing;
 use crate::features::FeatureFlag;
 use crate::settings::InputSettings;
 use crate::terminal::grid_size_util::grid_compute_baseline_position_fn;
@@ -18,8 +15,7 @@ use warpui::ModelAsRef;
 use warpui::{
     elements::{Container, Element, EventHandler, SavePosition, SelectableArea, Text},
     fonts::{Properties, Weight},
-    presenter::ChildView,
-    AppContext, EntityId, ModelHandle, SingletonEntity, ViewHandle,
+    AppContext, EntityId, ModelHandle, SingletonEntity,
 };
 
 use super::input::InputRenderStateModel;
@@ -106,19 +102,14 @@ pub fn should_render_prompt_on_same_line(
     }
 }
 
-/// Returns `true` if the shell or AI prompt should be rendered using the editors
+/// Returns `true` if the shell prompt should be rendered using the editor's
 /// `EditorDecoratorElements` API.
-///
-/// The AI prompt is unconditionally rendered above the input.
 pub fn should_render_prompt_using_editor_decorator_elements(
     is_universal_developer_input: bool,
-    ai_input_model: &ModelHandle<BlocklistAIInputModel>,
     model: &TerminalModel,
     app: &AppContext,
 ) -> bool {
     should_render_prompt_on_same_line(is_universal_developer_input, model, app)
-        && (!ai_input_model.as_ref(app).is_ai_input_enabled()
-            || FeatureFlag::AgentView.is_enabled())
 }
 
 pub(in crate::terminal) struct PromptAndPadding {
@@ -134,15 +125,13 @@ pub(in crate::terminal) enum PromptAndPaddingElement {
     // This is boxed because `BlockGridElement` is large, and without boxing, it
     // bloats the size of the `PromptAndPaddingElement` enum.
     BlockGrid(Box<BlockGridElement>),
-    ContextChips(ViewHandle<PromptDisplay>),
 }
 
 impl PromptAndPaddingElement {
-    pub(in crate::terminal) fn text(&self, ctx: &AppContext) -> String {
+    pub(in crate::terminal) fn text(&self, _ctx: &AppContext) -> String {
         match self {
             Self::Text(text_element) => text_element.text().to_owned(),
             Self::BlockGrid(block_grid_element) => block_grid_element.text(),
-            Self::ContextChips(view) => view.as_ref(ctx).text(ctx),
         }
     }
 
@@ -150,7 +139,6 @@ impl PromptAndPaddingElement {
         match self {
             Self::Text(text_element) => text_element.finish(),
             Self::BlockGrid(block_grid_element) => block_grid_element.finish(),
-            Self::ContextChips(view) => ChildView::new(&view).finish(),
         }
     }
 }
@@ -162,24 +150,13 @@ pub(super) struct PromptElements {
     pub(super) rprompt: Option<Box<dyn Element>>,
 }
 
-/// Struct used for storing prompt elements when same-line prompt is toggled on.
-pub(super) struct SameLinePromptElements {
-    // Top n-1 lines of lprompt.
-    pub(super) lprompt_top: Option<Box<dyn Element>>,
-    // Bottom (nth) line of lprompt.
-    pub(super) lprompt_bottom: Option<Box<dyn Element>>,
-    pub(super) rprompt: Option<Box<dyn Element>>,
-}
 #[derive(Clone)]
 pub struct PromptRenderHelper {
     sessions: ModelHandle<Sessions>,
     prompt_parent_view_id: EntityId,
 
-    prompt_view: ViewHandle<PromptDisplay>,
     prompt_selection_state_handle: SelectionHandle,
     input_render_state_model_handle: ModelHandle<InputRenderStateModel>,
-
-    ai_input_model: ModelHandle<BlocklistAIInputModel>,
 }
 
 #[derive(Clone, Copy)]
@@ -200,24 +177,16 @@ impl fmt::Display for PromptSide {
 impl PromptRenderHelper {
     pub(in crate::terminal) fn new(
         sessions: ModelHandle<Sessions>,
-        prompt_view_handle: ViewHandle<PromptDisplay>,
         prompt_selection_state_handle: SelectionHandle,
         parent_view_id: EntityId,
         input_render_state_model_handle: ModelHandle<InputRenderStateModel>,
-        ai_input_model: ModelHandle<BlocklistAIInputModel>,
     ) -> Self {
         Self {
             sessions,
-            prompt_view: prompt_view_handle,
             prompt_selection_state_handle,
             prompt_parent_view_id: parent_view_id,
             input_render_state_model_handle,
-            ai_input_model,
         }
-    }
-
-    pub fn prompt_view(&self) -> &ViewHandle<PromptDisplay> {
-        &self.prompt_view
     }
 
     /// Returns the block from which we should be retrieving prompt-related data.
@@ -241,35 +210,7 @@ impl PromptRenderHelper {
         }
     }
 
-    pub fn has_open_chip_menu(&self, app: &AppContext) -> bool {
-        self.prompt_view.as_ref(app).has_open_chip_menu(app)
-    }
-
     fn bootstrapping_shell_message(&self, model: &TerminalModel, sessions: &Sessions) -> String {
-        use crate::terminal::event::RemoteServerSetupState;
-
-        // If a remote server setup is in progress for the pending session,
-        // show a stage-specific message instead of the generic "Starting shell...".
-        if let Some(pending_session_id) = model.pending_session_id() {
-            if let Some(state) = sessions.remote_server_setup_state(pending_session_id) {
-                return match state {
-                    RemoteServerSetupState::Checking => "Starting shell...".to_string(),
-                    RemoteServerSetupState::Installing {
-                        progress_percent: Some(p),
-                    } => format!("Installing Warp SSH Extension... ({p}%)"),
-                    RemoteServerSetupState::Installing {
-                        progress_percent: None,
-                    } => "Installing Warp SSH Extension...".to_string(),
-                    RemoteServerSetupState::Updating => {
-                        "Updating Warp SSH Extension...".to_string()
-                    }
-                    RemoteServerSetupState::Initializing => "Initializing...".to_string(),
-                    RemoteServerSetupState::Ready => "Starting shell...".to_string(),
-                    RemoteServerSetupState::Failed { .. } => "Starting shell...".to_string(),
-                };
-            }
-        }
-
         if !sessions.is_empty() {
             "Starting shell...".to_string()
         } else {
@@ -411,16 +352,13 @@ impl PromptRenderHelper {
             InputSettings::as_ref(app).is_universal_developer_input_enabled(app);
         let render_prompt_on_same_line =
             should_render_prompt_on_same_line(is_universal_input, model, app);
-        let padding_right = if should_render_prompt_using_editor_decorator_elements(
-            is_universal_input,
-            &self.ai_input_model,
-            model,
-            app,
-        ) {
-            LPROMPT_RIGHT_PADDING_SAME_LINE_PROMPT
-        } else {
-            *TERMINAL_VIEW_PADDING_LEFT
-        };
+        let padding_right =
+            if should_render_prompt_using_editor_decorator_elements(is_universal_input, model, app)
+            {
+                LPROMPT_RIGHT_PADDING_SAME_LINE_PROMPT
+            } else {
+                *TERMINAL_VIEW_PADDING_LEFT
+            };
         // If the active block hasn't received the precmd message, we're waiting for the next
         // prompt. However, we don't want the UI to flicker so we show the previous prompt
         // until the user changes the editor.
@@ -561,7 +499,20 @@ impl PromptRenderHelper {
         } else {
             let element = {
                 if model.block_list().is_bootstrapped() {
-                    PromptAndPaddingElement::ContextChips(self.prompt_view.clone())
+                    let block = self.prompt_block(model).unwrap_or(active_block);
+                    let mut size_info =
+                        app.model(&self.input_render_state_model_handle).size_info();
+                    size_info.padding_x_px = Pixels::zero();
+                    Self::prompt_block_grid_to_prompt_and_padding(
+                        block.prompt_grid().clone(),
+                        0.,
+                        padding_right,
+                        appearance,
+                        get_secret_obfuscation_mode(app),
+                        size_info,
+                        app,
+                    )
+                    .element
                 } else {
                     PromptAndPaddingElement::Text(Box::new(
                         self.bootstrapping_shell_text(model, appearance, app),
@@ -596,7 +547,6 @@ impl PromptRenderHelper {
         let should_render_prompt_using_editor_decorator_elements =
             should_render_prompt_using_editor_decorator_elements(
                 is_universal_input,
-                &self.ai_input_model,
                 terminal_model,
                 app,
             );
@@ -662,55 +612,6 @@ impl PromptRenderHelper {
         )
     }
 
-    pub(in crate::terminal) fn render_universal_developer_input_prompt(
-        &self,
-        model: &TerminalModel,
-        appearance: &Appearance,
-        app: &AppContext,
-    ) -> Box<dyn Element> {
-        let element = {
-            if model.block_list().is_bootstrapped() {
-                PromptAndPaddingElement::ContextChips(self.prompt_view.clone())
-            } else {
-                PromptAndPaddingElement::Text(Box::new(
-                    self.bootstrapping_shell_text(model, appearance, app),
-                ))
-            }
-        };
-
-        let view_id = self.prompt_parent_view_id;
-        let position_id = format!("{}_{}", PromptSide::Left, view_id);
-        let size_info = app.model(&self.input_render_state_model_handle).size_info();
-        let terminal_spacing = TerminalSettings::as_ref(app)
-            .terminal_input_spacing(appearance.line_height_ratio(), app);
-
-        let prompt_with_padding_container = Container::new(element.render())
-            .with_padding_top({
-                (terminal_spacing.block_padding.padding_top * size_info.cell_height_px().as_f32()
-                    - get_input_box_top_border_width())
-                    * spacing::UDI_PROMPT_TOP_PADDING_FACTOR
-            })
-            .finish();
-
-        SavePosition::new(
-            EventHandler::new(prompt_with_padding_container)
-                .on_right_mouse_down(move |ctx, _, position| {
-                    let position_id = format!("prompt_area_{view_id}");
-                    let Some(prompt_rect) = ctx.element_position_by_id(position_id) else {
-                        return DispatchEventResult::PropagateToParent;
-                    };
-                    let offset_position = position - prompt_rect.origin();
-                    ctx.dispatch_typed_action(TerminalAction::PromptContextMenu {
-                        position_offset_from_prompt: offset_position,
-                    });
-                    DispatchEventResult::StopPropagation
-                })
-                .finish(),
-            &position_id,
-        )
-        .finish()
-    }
-
     pub(in crate::terminal) fn render_prompt_areas(
         &self,
         model: &TerminalModel,
@@ -738,57 +639,5 @@ impl PromptRenderHelper {
             )
         });
         PromptElements { lprompt, rprompt }
-    }
-
-    pub(in crate::terminal) fn render_same_line_prompt_areas(
-        &self,
-        model: &TerminalModel,
-        appearance: &Appearance,
-        app: &AppContext,
-    ) -> SameLinePromptElements {
-        let (
-            lprompt_top_and_padding_option,
-            lprompt_bottom_and_padding_option,
-            rprompt_and_padding_option,
-        ) = self.render_prompt(model, appearance, app);
-        let lprompt_top = lprompt_top_and_padding_option.and_then(|lprompt_top_and_padding| {
-            self.render_prompt_area_helper(
-                model,
-                lprompt_top_and_padding,
-                appearance,
-                PromptSide::Left,
-                app,
-            )
-        });
-        let lprompt_bottom =
-            lprompt_bottom_and_padding_option.and_then(|lprompt_bottom_and_padding| {
-                self.render_prompt_area_helper(
-                    model,
-                    lprompt_bottom_and_padding,
-                    appearance,
-                    PromptSide::Left,
-                    app,
-                )
-            });
-        let rprompt = rprompt_and_padding_option.and_then(|rprompt_and_padding| {
-            self.render_prompt_area_helper(
-                model,
-                rprompt_and_padding,
-                appearance,
-                PromptSide::Right,
-                app,
-            )
-        });
-        SameLinePromptElements {
-            lprompt_top,
-            lprompt_bottom,
-            rprompt,
-        }
-    }
-
-    #[cfg(feature = "integration_tests")]
-    pub fn git_branch(&self, ctx: &AppContext) -> Option<String> {
-        self.prompt_view
-            .read(ctx, |prompt_display, ctx| prompt_display.git_branch(ctx))
     }
 }

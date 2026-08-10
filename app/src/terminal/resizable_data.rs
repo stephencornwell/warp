@@ -54,9 +54,7 @@ impl ModalSizes {
         let voltron_width = window_snapshot
             .voltron_width
             .unwrap_or(DEFAULT_VOLTRON_WIDTH);
-        let warp_drive_index_width = window_snapshot
-            .warp_drive_index_width
-            .unwrap_or(DEFAULT_WARP_DRIVE_INDEX_WIDTH);
+        let warp_drive_index_width = DEFAULT_WARP_DRIVE_INDEX_WIDTH;
         let settings_panel_width = DEFAULT_SETTINGS_PANEL_WIDTH;
         let left_panel_width = window_snapshot.left_panel_width.unwrap_or(left_panel_size);
         let right_panel_width = window_snapshot

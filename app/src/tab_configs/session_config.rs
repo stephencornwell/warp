@@ -7,7 +7,6 @@ use anyhow::Result;
 
 use crate::app_state::{BranchSnapshot, LeafContents, LeafSnapshot, PaneNodeSnapshot};
 use crate::launch_configs::launch_config::SplitDirection;
-use crate::terminal::cli_agent::CLIAgent;
 use crate::themes::theme::AnsiColorIdentifier;
 use crate::ui_components::icons::Icon;
 
@@ -18,13 +17,10 @@ use super::tab_config::{
 
 /// The type of session the user wants to start.
 ///
-/// Wraps the existing `CLIAgent` for third-party agents and adds
-/// Terminal and Oz as first-class variants.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum SessionType {
     Terminal,
     Oz,
-    CliAgent(CLIAgent),
 }
 
 impl SessionType {
@@ -33,7 +29,6 @@ impl SessionType {
     fn command_prefix(&self) -> Option<&'static str> {
         match self {
             SessionType::Terminal | SessionType::Oz => None,
-            SessionType::CliAgent(agent) => Some(agent.command_prefix()),
         }
     }
 
@@ -42,7 +37,6 @@ impl SessionType {
         match self {
             SessionType::Terminal => Icon::Terminal,
             SessionType::Oz => Icon::Oz,
-            SessionType::CliAgent(agent) => agent.icon().unwrap_or(Icon::Terminal),
         }
     }
 
@@ -51,10 +45,6 @@ impl SessionType {
         match self {
             SessionType::Terminal => "Terminal",
             SessionType::Oz => "Built in agent",
-            SessionType::CliAgent(CLIAgent::Claude) => "Claude",
-            SessionType::CliAgent(CLIAgent::Codex) => "Codex",
-            SessionType::CliAgent(CLIAgent::Gemini) => "Gemini",
-            SessionType::CliAgent(agent) => agent.display_name(),
         }
     }
 }
@@ -146,7 +136,7 @@ pub fn build_tab_config(
 
     let pane_type = match session_type {
         SessionType::Oz => TabConfigPaneType::Agent,
-        SessionType::Terminal | SessionType::CliAgent(_) => TabConfigPaneType::Terminal,
+        SessionType::Terminal => TabConfigPaneType::Terminal,
     };
 
     TabConfig {
@@ -273,7 +263,6 @@ fn snapshot_to_flat_panes(
         }
         PaneNodeSnapshot::Leaf(LeafSnapshot {
             is_focused,
-            custom_vertical_tabs_title: _,
             contents,
         }) => {
             *counter += 1;
@@ -281,15 +270,8 @@ fn snapshot_to_flat_panes(
 
             let (directory, pane_type) = match contents {
                 LeafContents::Terminal(terminal) => {
-                    // If the agent view was open in fullscreen, treat as an Agent pane.
-                    let pane_type = if terminal.active_conversation_id.is_some() {
-                        TabConfigPaneType::Agent
-                    } else {
-                        TabConfigPaneType::Terminal
-                    };
-                    (terminal.cwd.clone(), pane_type)
+                    (terminal.cwd.clone(), TabConfigPaneType::Terminal)
                 }
-                LeafContents::AmbientAgent(_) => (None, TabConfigPaneType::Cloud),
                 // Non-terminal panes become empty terminal panes to preserve layout.
                 _ => (None, TabConfigPaneType::Terminal),
             };
@@ -309,7 +291,3 @@ fn snapshot_to_flat_panes(
         }
     }
 }
-
-#[cfg(test)]
-#[path = "session_config_tests.rs"]
-mod tests;

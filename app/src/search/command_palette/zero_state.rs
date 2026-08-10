@@ -6,10 +6,7 @@ use warp_core::features::FeatureFlag;
 use crate::appearance::Appearance;
 use crate::search::command_palette::FilterChipRenderer;
 
-use crate::drive::settings::WarpDriveSettings;
 use crate::search::QueryFilter;
-use crate::settings::AISettings;
-use crate::workspace::Workspace;
 use std::collections::HashMap;
 use warpui::elements::{Container, Flex, MouseStateHandle, ParentElement, Shrinkable, Wrap};
 use warpui::{
@@ -78,48 +75,19 @@ impl ZeroState {
 
     /// Returns the set of valid query filters for this zero state view.
     fn valid_query_filters(
-        app: &AppContext,
-        window_id: WindowId,
+        _app: &AppContext,
+        _window_id: WindowId,
     ) -> impl Iterator<Item = QueryFilter> {
-        let show_warp_drive = WarpDriveSettings::is_warp_drive_enabled(app);
-
         let mut valid_filters = vec![];
-        if show_warp_drive {
-            valid_filters.push(QueryFilter::Workflows);
-            if FeatureFlag::AgentModeWorkflows.is_enabled()
-                && AISettings::as_ref(app).is_any_ai_enabled(app)
-            {
-                valid_filters.push(QueryFilter::AgentModeWorkflows);
-            }
-            valid_filters.push(QueryFilter::Notebooks);
-
-            valid_filters.push(QueryFilter::EnvironmentVariables);
-        }
 
         // Don't show Files filter if the user is a viewer of a shared session
         if FeatureFlag::CommandPaletteFileSearch.is_enabled() {
-            let is_shared_session_viewer_focused = app
-                .views_of_type::<Workspace>(window_id)
-                .and_then(|workspaces| workspaces.first().cloned())
-                .is_some_and(|workspace| {
-                    workspace.as_ref(app).is_shared_session_viewer_focused(app)
-                });
-            if !is_shared_session_viewer_focused {
-                valid_filters.push(QueryFilter::Files);
-            }
-        }
-
-        if show_warp_drive {
-            valid_filters.push(QueryFilter::Drive);
+            valid_filters.push(QueryFilter::Files);
         }
         valid_filters.extend([QueryFilter::Actions, QueryFilter::Sessions]);
 
         if ContextFlag::LaunchConfigurations.is_enabled() {
             valid_filters.push(QueryFilter::LaunchConfigurations);
-        }
-
-        if AISettings::as_ref(app).is_any_ai_enabled(app) {
-            valid_filters.push(QueryFilter::Conversations);
         }
 
         valid_filters.into_iter()

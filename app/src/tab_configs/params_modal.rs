@@ -1,4 +1,4 @@
-use std::{collections::HashMap, path::PathBuf};
+use std::collections::HashMap;
 
 use warp_core::ui::theme::color::internal_colors;
 use warp_core::ui::Icon;
@@ -25,11 +25,7 @@ use crate::{
         TextOptions,
     },
     modal::ModalAction,
-    tab_configs::{
-        branch_picker::BranchPicker,
-        repo_picker::{RepoPicker, RepoPickerEvent},
-        PickerStyle, TabConfig, TabConfigParam, TabConfigParamType,
-    },
+    tab_configs::{TabConfig, TabConfigParam, TabConfigParamType},
     view_components::action_button::{
         ActionButton, DisabledTheme, KeystrokeSource, NakedTheme, PrimaryTheme,
     },
@@ -79,35 +75,12 @@ fn resolve_param_value(raw_value: String, param: &TabConfigParam) -> Option<Stri
 enum ParamField {
     /// Plain single-line text input.
     Text(ViewHandle<EditorView>),
-    /// Git branch picker; stores the last selection so submit can read it.
-    Branch {
-        picker: ViewHandle<BranchPicker>,
-        selected: Option<String>,
-    },
-    /// Known-repo picker; stores the last selection.
-    Repo {
-        picker: ViewHandle<RepoPicker>,
-        selected: Option<String>,
-    },
 }
 
 impl ParamField {
     fn current_value(&self, app: &AppContext) -> String {
         match self {
             ParamField::Text(editor) => editor.as_ref(app).buffer_text(app),
-            ParamField::Branch { picker, selected } => picker
-                .as_ref(app)
-                .selected_value(app)
-                .or_else(|| selected.clone())
-                .unwrap_or_default(),
-            // Check the stored `selected` first: it is always kept up-to-date by the
-            // `RepoPickerEvent::Selected` subscription and by `on_new_repo_selected`.
-            // `picker.selected_value()` is a fallback for the initial default-value
-            // case before any explicit selection has been made.
-            ParamField::Repo { picker, selected } => selected
-                .clone()
-                .or_else(|| picker.as_ref(app).selected_value(app))
-                .unwrap_or_default(),
         }
     }
 }
@@ -136,11 +109,6 @@ pub enum TabConfigParamsModalEvent {
     Submit {
         config: Box<TabConfig>,
         params: HashMap<String, String>,
-    },
-    /// The user clicked "Add new repo..." in a repo picker; the workspace should
-    /// open a folder picker and call [`TabConfigParamsModal::on_new_repo_selected`].
-    PickNewRepo {
-        param_index: usize,
     },
 }
 
@@ -189,134 +157,49 @@ impl TabConfigParamsModal {
 
     /// Called by the workspace before making the modal visible.
     ///
-    /// Builds one field per param in `config`. `cwd` is the active terminal's
-    /// working directory, used to seed the branch picker's git lookup.
-    pub fn on_open(
-        &mut self,
-        config: TabConfig,
-        cwd: Option<PathBuf>,
-        ctx: &mut ViewContext<Self>,
-    ) {
+    /// Builds one plain text field per parameter in `config`.
+    pub fn on_open(&mut self, config: TabConfig, ctx: &mut ViewContext<Self>) {
         self.param_fields.clear();
 
-        // Sort params by type priority (Repo first, Branch second, Text last),
-        // then alphabetically by name within each type for stable ordering.
         let mut params: Vec<(String, TabConfigParam)> = config
             .params
             .iter()
             .map(|(k, v)| (k.clone(), v.clone()))
             .collect();
-        let type_priority = |t: &TabConfigParamType| match t {
-            TabConfigParamType::Repo => 0,
-            TabConfigParamType::Branch => 1,
-            TabConfigParamType::Text => 2,
-        };
-        params.sort_by(|a, b| {
-            type_priority(&a.1.param_type)
-                .cmp(&type_priority(&b.1.param_type))
-                .then(a.0.cmp(&b.0))
-        });
-
-        // If there's a Repo param with a default value, seed branch pickers with that repo
-        // path so branches are populated on initial open. Without this, branch pickers would
-        // use the terminal cwd, which may differ from the configured repo.
-        let branch_initial_cwd = params
-            .iter()
-            .find(|(_, p)| matches!(p.param_type, TabConfigParamType::Repo))
-            .and_then(|(_, p)| p.default.as_deref())
-            .map(PathBuf::from)
-            .or_else(|| cwd.clone());
-
-        let picker_style = PickerStyle {
-            width: 412.,
-            background: Some(Appearance::as_ref(ctx).theme().background()),
-        };
+        params.sort_by(|a, b| a.0.cmp(&b.0));
 
         for (i, (name, param)) in params.iter().enumerate() {
-            let field = match param.param_type {
-                TabConfigParamType::Branch => {
-                    let default_value = param.default.clone();
-                    let branch_cwd = branch_initial_cwd.clone();
-                    let style = PickerStyle {
-                        width: picker_style.width,
-                        background: picker_style.background,
+            let field = {
+                let default_text = param.default.clone().unwrap_or_default();
+                let placeholder = if default_text.is_empty() {
+                    format!("Enter {name}")
+                } else {
+                    default_text.clone()
+                };
+                let text_options = TextOptions::ui_font_size(Appearance::as_ref(ctx));
+                let editor = ctx.add_typed_action_view(|ctx| {
+                    let options = SingleLineEditorOptions {
+                        text: text_options,
+                        propagate_and_no_op_vertical_navigation_keys:
+                            PropagateAndNoOpNavigationKeys::Always,
+                        ..Default::default()
                     };
-                    let picker = ctx.add_typed_action_view(move |ctx| {
-                        BranchPicker::new_with_style(branch_cwd, default_value, Some(style), ctx)
-                    });
-                    ctx.subscribe_to_view(&picker, move |me, _, value, ctx| {
-                        if let Some((_, _, ParamField::Branch { selected, .. })) =
-                            me.param_fields.get_mut(i)
-                        {
-                            *selected = Some(value.clone());
-                        }
-                        me.reclaim_focus(ctx);
-                    });
-                    ParamField::Branch {
-                        picker,
-                        selected: param.default.clone(),
-                    }
-                }
-                TabConfigParamType::Repo => {
-                    let default_value = param.default.clone();
-                    let style = PickerStyle {
-                        width: picker_style.width,
-                        background: picker_style.background,
-                    };
-                    let picker = ctx.add_typed_action_view(move |ctx| {
-                        RepoPicker::new_with_style(default_value, Some(style), ctx)
-                    });
-                    ctx.subscribe_to_view(&picker, move |me, _, event, ctx| match event {
-                        RepoPickerEvent::Selected(value) => {
-                            if let Some((_, _, ParamField::Repo { selected, .. })) =
-                                me.param_fields.get_mut(i)
-                            {
-                                *selected = Some(value.clone());
-                            }
-                            me.sync_branch_pickers_for_repo(PathBuf::from(value.as_str()), ctx);
-                            me.reclaim_focus(ctx);
-                        }
-                        RepoPickerEvent::RequestAddRepo => {
-                            ctx.emit(TabConfigParamsModalEvent::PickNewRepo { param_index: i });
-                        }
-                    });
-                    ParamField::Repo {
-                        picker,
-                        selected: param.default.clone(),
-                    }
-                }
-                TabConfigParamType::Text => {
-                    let default_text = param.default.clone().unwrap_or_default();
-                    let placeholder = if default_text.is_empty() {
-                        format!("Enter {name}")
-                    } else {
-                        default_text.clone()
-                    };
-                    let text_options = TextOptions::ui_font_size(Appearance::as_ref(ctx));
-                    let editor = ctx.add_typed_action_view(|ctx| {
-                        let options = SingleLineEditorOptions {
-                            text: text_options,
-                            propagate_and_no_op_vertical_navigation_keys:
-                                PropagateAndNoOpNavigationKeys::Always,
-                            ..Default::default()
-                        };
-                        let mut editor = EditorView::single_line(options, ctx);
-                        editor.set_placeholder_text(placeholder.as_str(), ctx);
-                        editor
-                    });
+                    let mut editor = EditorView::single_line(options, ctx);
+                    editor.set_placeholder_text(placeholder.as_str(), ctx);
+                    editor
+                });
 
-                    if !default_text.is_empty() {
-                        editor.update(ctx, |e, ctx| {
-                            e.system_reset_buffer_text(&default_text, ctx);
-                        });
-                    }
-
-                    ctx.subscribe_to_view(&editor, move |me, _, event, ctx| {
-                        me.handle_editor_event(i, event, ctx);
+                if !default_text.is_empty() {
+                    editor.update(ctx, |e, ctx| {
+                        e.system_reset_buffer_text(&default_text, ctx);
                     });
-
-                    ParamField::Text(editor)
                 }
+
+                ctx.subscribe_to_view(&editor, move |me, _, event, ctx| {
+                    me.handle_editor_event(i, event, ctx);
+                });
+
+                ParamField::Text(editor)
             };
 
             self.param_fields.push((name.clone(), param.clone(), field));
@@ -343,103 +226,20 @@ impl TabConfigParamsModal {
         ctx.notify();
     }
 
-    /// Called by the workspace after the user adds a new repo via the folder picker.
-    /// Refreshes the repo picker at `param_index` and pre-selects the new path.
-    pub fn on_new_repo_selected(
-        &mut self,
-        path: PathBuf,
-        param_index: usize,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        if let Some((_, _, ParamField::Repo { picker, selected })) =
-            self.param_fields.get_mut(param_index)
-        {
-            let path_str = path.to_string_lossy().to_string();
-            *selected = Some(path_str);
-            picker.update(ctx, |repo_picker, ctx| {
-                repo_picker.refresh_and_select(path.clone(), ctx);
-            });
-        }
-        self.sync_branch_pickers_for_repo(path, ctx);
-    }
-
-    fn sync_branch_pickers_for_repo(&mut self, path: PathBuf, ctx: &mut ViewContext<Self>) {
-        // Clear stale branch selections and collect picker handles.
-        // Collecting handles first avoids borrow conflicts when calling
-        // picker.update() below.
-        let branch_pickers: Vec<_> = self
-            .param_fields
-            .iter_mut()
-            .filter_map(|(_, _, field)| {
-                if let ParamField::Branch { picker, selected } = field {
-                    *selected = None;
-                    Some(picker.clone())
-                } else {
-                    None
-                }
-            })
-            .collect();
-
-        for branch_picker in branch_pickers {
-            branch_picker.update(ctx, |picker, ctx| {
-                picker.refetch_branches(path.clone(), ctx);
-            });
-        }
-        ctx.notify();
-    }
-
-    /// Restores focus to the modal itself (dropdown-only) or the first text
-    /// field after a picker interaction closes its dropdown.
-    fn reclaim_focus(&self, ctx: &mut ViewContext<Self>) {
-        if self.has_text_fields() {
-            self.focus_field(0, ctx);
-        } else {
-            ctx.focus_self();
-        }
-        ctx.notify();
-    }
-
     fn has_text_fields(&self) -> bool {
         self.param_fields
             .iter()
             .any(|(_, _, field)| matches!(field, ParamField::Text(_)))
     }
 
-    fn dropdown_count(&self) -> usize {
-        self.param_fields
-            .iter()
-            .filter(|(_, _, field)| !matches!(field, ParamField::Text(_)))
-            .count()
-    }
-
     fn toggle_single_dropdown(&mut self, ctx: &mut ViewContext<Self>) {
-        let mut opened = false;
-        for (_, _, field) in &self.param_fields {
-            match field {
-                ParamField::Branch { picker, .. } => {
-                    opened = picker.update(ctx, |p, ctx| p.toggle_dropdown(ctx));
-                    break;
-                }
-                ParamField::Repo { picker, .. } => {
-                    opened = picker.update(ctx, |p, ctx| p.toggle_dropdown(ctx));
-                    break;
-                }
-                ParamField::Text(_) => {}
-            }
-        }
-        // When the dropdown just closed, reclaim focus so Enter/Space
-        // fixed bindings continue to work.
-        if !opened && !self.has_text_fields() {
-            ctx.focus_self();
-        }
+        ctx.focus_self();
     }
 
     fn focus_field(&self, index: usize, ctx: &mut ViewContext<Self>) {
         if let Some((_, _, field)) = self.param_fields.get(index) {
             match field {
                 ParamField::Text(editor) => ctx.focus(editor),
-                ParamField::Branch { picker, .. } => ctx.focus(picker),
-                ParamField::Repo { picker, .. } => ctx.focus(picker),
             }
             self.scroll_state.scroll_to_position(ScrollTarget {
                 position_id: param_field_position_id(index),
@@ -654,8 +454,6 @@ impl View for TabConfigParamsModal {
                     .text_input(editor.clone())
                     .build()
                     .finish(),
-                ParamField::Branch { picker, .. } => ChildView::new(picker).finish(),
-                ParamField::Repo { picker, .. } => ChildView::new(picker).finish(),
             };
 
             form.add_child(SavePosition::new(field_element, &param_field_position_id(i)).finish());
@@ -729,11 +527,7 @@ impl TypedActionView for TabConfigParamsModal {
                 ctx.emit(TabConfigParamsModalEvent::Close);
             }
             TabConfigParamsModalAction::Submit => self.try_submit(ctx),
-            TabConfigParamsModalAction::ToggleDropdown => {
-                if self.dropdown_count() <= 1 {
-                    self.toggle_single_dropdown(ctx);
-                }
-            }
+            TabConfigParamsModalAction::ToggleDropdown => self.toggle_single_dropdown(ctx),
         }
     }
 }

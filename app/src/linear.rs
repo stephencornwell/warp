@@ -18,22 +18,3 @@ impl LinearAction {
         }
     }
 }
-
-/// Arguments for the `WorkOnIssue` Linear deeplink action.
-/// We may extend this with a branch, path, or other metadata.
-#[derive(Debug, Clone)]
-pub struct LinearIssueWork {
-    /// Prompt provided by Linear for the issue to work on.
-    pub prompt: Option<String>,
-}
-
-impl LinearIssueWork {
-    pub fn from_url(url: &Url) -> Self {
-        let prompt = url
-            .query_pairs()
-            .find(|(key, _)| key == "prompt")
-            .map(|(_, value)| value.into_owned())
-            .filter(|s| !s.is_empty());
-        Self { prompt }
-    }
-}

@@ -1,6 +1,5 @@
 use alias_bar::{AliasBar, AliasBarEvent};
 use argument_editor::{ArgumentEditorRow, DEFAULT_ARGUMENT_PREFIX};
-use env_var_selector::{EnvVarSelector, EnvVarSelectorEvent};
 use itertools::Itertools;
 use pathfinder_color::ColorU;
 use pathfinder_geometry::vector::vec2f;
@@ -13,9 +12,7 @@ use syntax_highlightable::SyntaxHighlightable;
 use url::Url;
 
 use crate::{
-    ai::{blocklist::secret_redaction::find_secrets_in_text, AIRequestUsageModel},
     appearance::Appearance,
-    auth::{auth_state::AuthState, AuthStateProvider, UserUid},
     cloud_object::{
         breadcrumbs::ContainingObject,
         model::{
@@ -30,7 +27,6 @@ use crate::{
         items::WarpDriveItemId,
         sharing::{ContentEditability, ShareableObject, SharingAccessLevel},
         workflows::{
-            ai_assist::GeneratedCommandMetadataError,
             arguments::ArgumentsState,
             enum_creation_dialog::{EnumCreationDialog, EnumCreationDialogEvent, WorkflowEnumData},
             workflow_arg_selector::{WorkflowArgSelector, WorkflowArgSelectorEvent},
@@ -55,7 +51,6 @@ use crate::{
             UpdateManagerEvent,
         },
         ids::{ClientId, ServerId, SyncId},
-        server_api::{ai::AIClient, ServerApiProvider},
         telemetry::{
             CloudObjectTelemetryMetadata, SharingDialogSource, TelemetryCloudObjectType,
             TelemetryEvent,
@@ -63,9 +58,7 @@ use crate::{
     },
     settings::{
         app_installation_detection::{UserAppInstallDetectionSettings, UserAppInstallStatus},
-        AISettings,
     },
-    terminal::safe_mode_settings::get_secret_obfuscation_mode,
     ui_components::{
         breadcrumb::{render_breadcrumbs, BreadcrumbState},
         buttons::{accent_icon_button, icon_button},
@@ -73,13 +66,13 @@ use crate::{
         icons::Icon,
     },
     util::bindings::CustomAction,
-    view_components::{DismissibleToast, ToastLink, ToastType},
+    view_components::{DismissibleToast, ToastType},
     workflows::{
         workflow::{Argument, Workflow},
         CloudWorkflow,
     },
-    workspace::{ToastStack, WorkspaceAction},
-    FeatureFlag, UserWorkspaces,
+    workspace::ToastStack,
+    FeatureFlag,
 };
 
 use warp_core::{context_flag::ContextFlag, settings::Setting, ui::theme::AnsiColorIdentifier};
@@ -116,7 +109,6 @@ use crate::uri::web_intent_parser::open_url_on_desktop;
 mod alias_argument_selector;
 mod alias_bar;
 mod argument_editor;
-pub mod env_var_selector;
 mod syntax_highlightable;
 
 pub fn init(app: &mut AppContext) {
@@ -178,10 +170,6 @@ const BUTTON_FONT_SIZE: f32 = 14.;
 const BUTTON_BORDER_RADIUS: f32 = 4.;
 const BUTTON_HEIGHT: f32 = 32.;
 
-const AI_ASSIST_BUTTON_SIZE: f32 = 92.;
-const AI_ASSIST_BUTTON_TEXT: &str = "Autofill";
-const AI_ASSIST_LOADING_TEXT: &str = "Loading";
-
 const ALIAS_HELP_TEXT: &str = "Aliases allow you to create short strings to execute workflows. Each alias can have different argument values and environment variables, and aliases are personal to you.";
 
 const RUN_ON_DESKTOP_BUTTON_TEXT: &str = "Run in Warp";
@@ -192,12 +180,6 @@ const KEEP_EDITING_TEXT: &str = "Keep editing";
 const DISCARD_CHANGES_TEXT: &str = "Discard changes";
 const DIALOG_WIDTH: f32 = 460.;
 const MODAL_HORIZONTAL_MARGIN: f32 = 28.;
-
-pub(super) enum AiAssistState {
-    PreRequest,
-    RequestInFlight,
-    Generated,
-}
 
 /// A grouping of various error states the modal can be in. Any of these being
 /// `true` prevents the save button from being clickable.
@@ -236,7 +218,6 @@ pub enum WorkflowAction {
     ForceClose,
     Save,
     Cancel,
-    AiAssist,
     Duplicate,
     CopyLink(String),
     OpenLinkOnDesktop(Url),
@@ -287,8 +268,6 @@ struct UiStateHandles {
     restore_from_trash_button: MouseStateHandle,
     keep_editing_state: MouseStateHandle,
     discard_changes_state: MouseStateHandle,
-    ai_assist_state: MouseStateHandle,
-    ai_assist_tool_tip: MouseStateHandle,
     edit_mode_button_mouse_state: MouseStateHandle,
     copy_content_button_mouse_state: MouseStateHandle,
     execute_command_mouse_state: MouseStateHandle,
@@ -322,10 +301,7 @@ pub struct WorkflowView {
     /// to append a number to the default argument name (argument_1, argument_2,
     /// etc.).
     default_argument_id: usize,
-    pub(super) ai_metadata_assist_state: AiAssistState,
     revision_ts: Option<Revision>,
-    pub(super) auth_state: Arc<AuthState>,
-    pub(super) ai_client: Arc<dyn AIClient>,
     owner: Option<Owner>,
     initial_folder_id: Option<SyncId>,
 
@@ -420,8 +396,6 @@ impl WorkflowView {
             me.handle_content_editor_event(event, ctx);
         });
 
-        let ai_client = ServerApiProvider::as_ref(ctx).get_ai_client();
-
         let enum_creation_dialog = ctx.add_typed_action_view(EnumCreationDialog::new);
         ctx.subscribe_to_view(&enum_creation_dialog, |me, _, event, ctx| {
             me.handle_enum_creation_dialog_event(event, ctx);
@@ -466,13 +440,10 @@ impl WorkflowView {
             ui_state_handles: Default::default(),
             show_unsaved_changes: None,
             default_argument_id: 0,
-            ai_metadata_assist_state: AiAssistState::PreRequest,
             owner: None,
             initial_folder_id: None,
             revision_ts: None,
             command_display_data: WorkflowCommandDisplayData::new_empty(),
-            auth_state: AuthStateProvider::as_ref(ctx).get().clone(),
-            ai_client,
             pending_argument_editor_row: None,
             show_enum_creation_dialog: false,
             enum_creation_dialog,
@@ -1673,66 +1644,6 @@ impl WorkflowView {
         }
     }
 
-    fn workflow_contains_secrets(&self, app: &AppContext) -> bool {
-        let secret_redaction = get_secret_obfuscation_mode(app);
-        if secret_redaction.should_redact_secret() {
-            let name_secrets = find_secrets_in_text(&self.name_editor.as_ref(app).buffer_text(app));
-            if !name_secrets.is_empty() {
-                return true;
-            }
-
-            let content_secrets =
-                find_secrets_in_text(&self.content_editor.as_ref(app).buffer_text(app));
-            if !content_secrets.is_empty() {
-                return true;
-            }
-
-            let description_secrets =
-                find_secrets_in_text(&self.description_editor.as_ref(app).buffer_text(app));
-            if !description_secrets.is_empty() {
-                return true;
-            }
-
-            for arg in self.arguments_rows.iter() {
-                if !find_secrets_in_text(&arg.name).is_empty() {
-                    return true;
-                }
-                if !find_secrets_in_text(&arg.description_editor.as_ref(app).buffer_text(app))
-                    .is_empty()
-                {
-                    return true;
-                }
-                if !find_secrets_in_text(&arg.default_value_editor.as_ref(app).buffer_text(app))
-                    .is_empty()
-                {
-                    return true;
-                }
-                if !find_secrets_in_text(&arg.argument_editor.as_ref(app).buffer_text(app))
-                    .is_empty()
-                {
-                    return true;
-                }
-                if !find_secrets_in_text(
-                    &arg.arg_type_editor
-                        .as_ref(app)
-                        .text_editor
-                        .as_ref(app)
-                        .buffer_text(app),
-                )
-                .is_empty()
-                {
-                    return true;
-                }
-            }
-            for value in self.alias_bar.as_ref(app).get_all_argument_values() {
-                if !find_secrets_in_text(&value).is_empty() {
-                    return true;
-                }
-            }
-        }
-        false
-    }
-
     fn copy_content(&mut self, ctx: &mut ViewContext<Self>) {
         // If we are in view mode copy the command or query from the view_only editor
         // otherwise copy it from the content editor
@@ -1761,13 +1672,6 @@ impl WorkflowView {
 
     fn is_editable(&self) -> bool {
         self.workflow_view_mode.is_editable()
-    }
-
-    fn is_ai_assist_button_disabled(&self, app: &AppContext) -> bool {
-        // Autofill button should be disabled when there is no content or when there are secrets in the workflow.
-        self.content_editor.as_ref(app).is_empty(app)
-            || self.show_enum_creation_dialog
-            || self.workflow_contains_secrets(app)
     }
 
     fn clear_content_formatting(&mut self, num_chars_content: usize, ctx: &mut ViewContext<Self>) {
@@ -2429,58 +2333,6 @@ impl WorkflowView {
 
         let mut button_row = Flex::row();
 
-        let label_and_icon = match self.ai_metadata_assist_state {
-            AiAssistState::PreRequest => Some((AI_ASSIST_BUTTON_TEXT, Icon::AiAssistant)),
-            AiAssistState::RequestInFlight => Some((AI_ASSIST_LOADING_TEXT, Icon::Refresh)),
-            AiAssistState::Generated => None,
-        };
-
-        if let Some((label, icon)) = label_and_icon {
-            // AI-generated workflow metadata is only supported for Command workflows currently.
-            if AISettings::as_ref(app).is_any_ai_enabled(app)
-                && self.is_editable()
-                && !self.is_for_agent_mode
-            {
-                let mut button = self
-                    .build_footer_button(
-                        ButtonVariant::Secondary,
-                        label.to_string(),
-                        Some((icon, TextAndIconAlignment::TextFirst)),
-                        self.ui_state_handles.ai_assist_state.clone(),
-                        appearance,
-                    )
-                    .with_style(UiComponentStyles {
-                        width: Some(AI_ASSIST_BUTTON_SIZE),
-                        ..Default::default()
-                    });
-
-                if self.is_ai_assist_button_disabled(app) {
-                    button = button.disabled();
-                }
-
-                let rendered_button = button
-                    .build()
-                    .with_cursor(Cursor::PointingHand)
-                    .on_click(move |ctx, _, _| ctx.dispatch_typed_action(WorkflowAction::AiAssist))
-                    .finish();
-
-                let button_with_tool_tip = appearance.ui_builder().tool_tip_on_element(
-                    "Generate a title, descriptions, or parameters with Warp AI".to_string(),
-                    self.ui_state_handles.ai_assist_tool_tip.clone(),
-                    rendered_button,
-                    ParentAnchor::TopMiddle,
-                    ChildAnchor::BottomMiddle,
-                    vec2f(0., 5.),
-                );
-
-                button_row.add_child(
-                    Container::new(button_with_tool_tip)
-                        .with_margin_right(8.)
-                        .finish(),
-                )
-            }
-        }
-
         if self.is_editable() {
             // If we are in a context where we can't run workflows and are in the edit mode, then
             // show the cancel button
@@ -2609,136 +2461,6 @@ impl WorkflowView {
 
     fn view_in_warp_drive(&mut self, id: WarpDriveItemId, ctx: &mut ViewContext<Self>) {
         ctx.emit(WorkflowViewEvent::ViewInWarpDrive(id));
-    }
-
-    fn issue_request(&mut self, ctx: &mut ViewContext<Self>) {
-        let ai_client = self.ai_client.clone();
-        let command = self.content_editor.as_ref(ctx).buffer_text(ctx);
-        let raw_request = command.trim().to_string();
-
-        ctx.spawn(
-            async move { ai_client.generate_metadata_for_command(raw_request).await },
-            move |pane, response, ctx| {
-                match response {
-                    Ok(metadata) => {
-                        pane.ai_metadata_assist_state = AiAssistState::Generated;
-                        pane.enable_editors(ctx);
-
-                        let arguments = metadata
-                            .arguments
-                            .into_iter()
-                            .map(|parameter| Argument {
-                                name: parameter.name,
-                                description: Some(parameter.description),
-                                default_value: Some(parameter.default_value),
-                                arg_type: Default::default(),
-                            })
-                            .collect_vec();
-
-                        let workflow = Workflow::Command {
-                            name: metadata.title,
-                            description: Some(metadata.description),
-                            command: metadata.command,
-                            arguments,
-                            tags: vec![],
-                            source_url: None,
-                            author: None,
-                            author_url: None,
-                            shells: vec![],
-                            environment_variables: None,
-                        };
-
-                        send_telemetry_from_ctx!(
-                            TelemetryEvent::AutoGenerateMetadataSuccess,
-                            ctx
-                        );
-
-                        pane.populate_missing_field_with_suggestion(workflow, ctx);
-                        ctx.notify();
-                    }
-                    Err(err) => {
-                        let message = err.user_facing_message();
-                        if let GeneratedCommandMetadataError::RateLimited = err {
-                            let current_user_id = pane.auth_state.user_id().unwrap_or_default();
-                            if let Some(team) = UserWorkspaces::as_ref(ctx).current_team() {
-                                let current_user_email =
-                                    pane.auth_state.user_email().unwrap_or_default();
-                                let has_admin_permissions = team.has_admin_permissions(&current_user_email);
-                                if team.billing_metadata.can_upgrade_to_higher_tier_plan() {
-                                    if has_admin_permissions {
-                                        pane.display_upgrade_error(Some(team.uid), current_user_id, ctx);
-                                    } else {
-                                        pane.display_error_toast(
-                                            "Looks like you're out of AI credits. Contact a team admin to upgrade for more credits.".to_string(),
-                                            ctx,
-                                        );
-                                    }
-                                } else {
-                                    pane.display_error_toast(
-                                        message.clone(),
-                                        ctx,
-                                    );
-                                }
-                            } else {
-                                pane.display_upgrade_error(None, current_user_id, ctx);
-                            }
-                        } else {
-                            pane.display_error_toast(
-                                message.clone(),
-                                ctx,
-                            );
-                        }
-
-                        send_telemetry_from_ctx!(
-                            TelemetryEvent::AutoGenerateMetadataError {
-                                error_payload: serde_json::json!(err)
-                            },
-                            ctx
-                        );
-
-                        pane.ai_metadata_assist_state = AiAssistState::PreRequest;
-                        pane.enable_editors(ctx);
-                        ctx.notify();
-                    }
-                }
-                AIRequestUsageModel::handle(ctx).update(ctx, |request_usage_model, ctx| {
-                    request_usage_model.refresh_request_usage_async(ctx);
-                });
-            }
-        );
-
-        self.ai_metadata_assist_state = AiAssistState::RequestInFlight;
-        self.disable_editors(ctx);
-        ctx.notify();
-    }
-
-    fn display_upgrade_error(
-        &mut self,
-        team_uid: Option<ServerId>,
-        user_id: UserUid,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        let upgrade_link = team_uid
-            .map(UserWorkspaces::upgrade_link_for_team)
-            .unwrap_or_else(|| UserWorkspaces::upgrade_link(user_id));
-
-        let window_id = ctx.window_id();
-        let toast_link = if self.auth_state.is_anonymous_or_logged_out() {
-            ToastLink::new("Upgrade for more credits.".into())
-                .with_onclick_action(WorkspaceAction::AttemptLoginGatedAIUpgrade)
-        } else {
-            ToastLink::new("Upgrade for more credits.".into()).with_href(upgrade_link)
-        };
-
-        crate::workspace::ToastStack::handle(ctx).update(ctx, |stack, ctx| {
-            stack.add_ephemeral_toast(
-                DismissibleToast::error("Looks like you're out of AI credits.".into())
-                    .with_link(toast_link),
-                window_id,
-                ctx,
-            );
-            ctx.notify();
-        });
     }
 
     // Populate only the missing field in the workflow editor with the generated suggestion from AI.
@@ -3151,24 +2873,13 @@ impl TypedActionView for WorkflowView {
             }
             WorkflowAction::RunWorkflow => self.copy_to_command_line(ctx),
             WorkflowAction::CopyContent => self.copy_content(ctx),
-            WorkflowAction::AiAssist => self.issue_request(ctx),
             WorkflowAction::Duplicate => self.duplicate_object(ctx),
             WorkflowAction::CopyLink(link) => {
-                send_telemetry_from_ctx!(
-                    TelemetryEvent::ObjectLinkCopied { link: link.clone() },
-                    ctx
-                );
                 ctx.clipboard()
                     .write(ClipboardContent::plain_text(link.to_owned()));
             }
             #[cfg(target_family = "wasm")]
             WorkflowAction::OpenLinkOnDesktop(url) => {
-                send_telemetry_from_ctx!(
-                    TelemetryEvent::WebCloudObjectOpenedOnDesktop {
-                        object_metadata: self.telemetry_metadata(ctx)
-                    },
-                    ctx
-                );
                 open_url_on_desktop(url);
             }
             #[cfg(not(target_family = "wasm"))]

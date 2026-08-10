@@ -15,7 +15,7 @@ use warpui::{
         components::{Coords, UiComponent, UiComponentStyles},
     },
     Action, AppContext, BlurContext, Entity, SingletonEntity, TypedActionView, View, ViewContext,
-    ViewHandle, WeakViewHandle,
+    ViewHandle,
 };
 
 use crate::{
@@ -36,16 +36,12 @@ pub enum DropdownStyle {
     /// No border, smaller text, smaller padding
     #[allow(dead_code)]
     Naked,
-    /// Similar to Secondary but with ActionButton-like hover behavior:
-    /// background fill on hover instead of border color change.
-    /// TODO this should probably replace the default `Secondary` theme
-    ActionButtonSecondary,
 }
 
 impl DropdownStyle {
     fn ui_component_styles(&self) -> UiComponentStyles {
         match self {
-            DropdownStyle::Secondary | DropdownStyle::ActionButtonSecondary => UiComponentStyles {
+            DropdownStyle::Secondary => UiComponentStyles {
                 padding: Some(Coords {
                     top: 5.,
                     bottom: 5.,
@@ -76,7 +72,6 @@ pub struct Dropdown<A: Action + Clone> {
     selected_item: Option<MenuItem<DropdownAction<A>>>,
     // Function for overriding the default closed-state text (the selected item)
     menu_header_text_override: Option<MenuHeaderTextFormatter>,
-    self_handle: WeakViewHandle<Self>,
     style: DropdownStyle,
     use_drop_shadow: bool,
     font_color: Option<ColorU>,
@@ -183,7 +178,6 @@ where
             top_bar_max_width: TOP_MENU_BAR_MAX_WIDTH,
             selected_item: None,
             menu_header_text_override: None,
-            self_handle: ctx.handle(),
             style: Default::default(),
             element_anchor: PositionedElementAnchor::BottomLeft,
             child_anchor: ChildAnchor::TopLeft,
@@ -196,36 +190,6 @@ where
         }
     }
 
-    pub fn with_drop_shadow(mut self) -> Self {
-        self.use_drop_shadow = true;
-        self
-    }
-
-    pub fn set_font_color(&mut self, color: ColorU, ctx: &mut ViewContext<Self>) {
-        self.font_color = Some(color);
-        ctx.notify();
-    }
-
-    pub fn set_font_size(&mut self, size: f32, ctx: &mut ViewContext<Self>) {
-        self.font_size = Some(size);
-        ctx.notify();
-    }
-
-    pub fn set_vertical_margin(&mut self, margin: f32, ctx: &mut ViewContext<Self>) {
-        self.vertical_margin = margin;
-        ctx.notify();
-    }
-
-    pub fn set_top_bar_height(&mut self, height: f32, ctx: &mut ViewContext<Self>) {
-        self.top_bar_height = height;
-        ctx.notify();
-    }
-
-    pub fn set_padding(&mut self, padding: Coords, ctx: &mut ViewContext<Self>) {
-        self.padding = Some(padding);
-        ctx.notify();
-    }
-
     #[allow(dead_code)]
     pub fn set_style(&mut self, style: DropdownStyle, ctx: &mut ViewContext<Self>) {
         self.style = style;
@@ -236,55 +200,12 @@ where
     ///
     /// Default is MainAxisSize::Max, set to MainAxisSize::Min if you want to wrap the dropdown to
     /// the text that's filling it.
-    pub fn set_main_axis_size(
-        &mut self,
-        main_axis_size: MainAxisSize,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        self.main_axis_size = main_axis_size;
-        ctx.notify();
-    }
-
-    pub fn set_menu_header_text_override<F>(&mut self, formatter: F)
-    where
-        F: Fn(&str) -> String + 'static,
-    {
-        self.menu_header_text_override = Some(Box::new(formatter));
-    }
-
-    pub fn set_menu_position(
-        &mut self,
-        element_anchor: PositionedElementAnchor,
-        child_anchor: ChildAnchor,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        self.element_anchor = element_anchor;
-        self.child_anchor = child_anchor;
-        ctx.notify();
-    }
-
     pub fn add_items(&mut self, items: Vec<DropdownItem<A>>, ctx: &mut ViewContext<Self>) {
         self.dropdown.update(ctx, |dropdown, ctx| {
             dropdown.add_items(items.iter().map(|item| item.into()));
             ctx.notify();
         });
         ctx.notify();
-    }
-
-    pub fn is_focused(&self, ctx: &AppContext) -> bool {
-        let Some(handle) = self.self_handle.upgrade(ctx) else {
-            return false;
-        };
-
-        if handle.is_focused(ctx) {
-            return true;
-        }
-
-        if self.dropdown.is_focused(ctx) {
-            return true;
-        }
-
-        false
     }
 
     pub fn set_items(&mut self, items: Vec<DropdownItem<A>>, ctx: &mut ViewContext<Self>) {
@@ -296,27 +217,6 @@ where
 
     // Most dropdowns don't need to use rich menu features like separators, indents, and submenus.
     // But some do and, for those, we expose a "rich" item API.
-    pub fn set_rich_items(
-        &mut self,
-        items: impl IntoIterator<Item = MenuItem<DropdownAction<A>>>,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        self.dropdown.update(ctx, |dropdown, ctx| {
-            dropdown.set_items(items, ctx);
-        });
-        ctx.notify();
-    }
-
-    pub fn set_disabled(&mut self, ctx: &mut ViewContext<Self>) {
-        self.disabled = true;
-        ctx.notify();
-    }
-
-    pub fn set_enabled(&mut self, ctx: &mut ViewContext<Self>) {
-        self.disabled = false;
-        ctx.notify();
-    }
-
     /// Select the item with the given name. If no such item exists, this clears the selection.
     pub fn set_selected_by_name(
         &mut self,
@@ -357,11 +257,6 @@ where
         ctx.notify();
     }
 
-    pub fn set_selected_to_none(&mut self, ctx: &mut ViewContext<Self>) {
-        self.selected_item = None;
-        ctx.notify();
-    }
-
     pub fn set_top_bar_max_width(&mut self, max_width: f32) {
         self.top_bar_max_width = max_width;
     }
@@ -369,13 +264,6 @@ where
     pub fn set_menu_width(&mut self, width: f32, ctx: &mut ViewContext<Self>) {
         self.dropdown.update(ctx, |menu, ctx| {
             menu.set_width(width);
-            ctx.notify();
-        })
-    }
-
-    pub fn set_menu_max_height(&mut self, height: f32, ctx: &mut ViewContext<Self>) {
-        self.dropdown.update(ctx, |menu, ctx| {
-            menu.set_height(height);
             ctx.notify();
         })
     }
@@ -431,7 +319,6 @@ where
                 match self.style {
                     DropdownStyle::Secondary => ButtonVariant::Outlined,
                     DropdownStyle::Naked => ButtonVariant::Text,
-                    DropdownStyle::ActionButtonSecondary => ButtonVariant::Secondary,
                 },
                 self.top_bar_mouse_state.clone(),
             )
@@ -449,7 +336,7 @@ where
                     vec2f(15., 15.),
                 )
                 .with_inner_padding(match self.style {
-                    DropdownStyle::Secondary | DropdownStyle::ActionButtonSecondary => 10.,
+                    DropdownStyle::Secondary => 10.,
                     DropdownStyle::Naked => 6.,
                 }),
             )

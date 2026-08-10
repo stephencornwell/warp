@@ -3,6 +3,7 @@
 //! These settings are currently used to configure the underlying model/API used to power the AI
 //! UX, as well as small UX configurations.
 
+use crate::report_if_error;
 use std::collections::HashMap;
 use std::path::PathBuf;
 
@@ -10,7 +11,6 @@ use indexmap::IndexMap;
 
 use crate::ai::request_usage_model::RequestLimitInfo;
 use crate::auth::AuthStateProvider;
-use crate::report_if_error;
 use crate::terminal::CLIAgent;
 use crate::workspaces::user_workspaces::UserWorkspaces;
 use cfg_if::cfg_if;
@@ -811,7 +811,6 @@ define_settings_group!(AISettings, settings: [
         private: false,
         toml_path: "agents.warp_agent.active_ai.natural_language_autosuggestions_enabled",
         description: "Controls whether ghosted text autosuggestions are shown for AI input queries.",
-        feature_flag: FeatureFlag::PredictAMQueries,
     }
     // This field should not be referenced directly to lookup shared block title generations
     // enablement -- use the `is_shared_block_title_generation_enabled()` getter.
@@ -1535,24 +1534,6 @@ impl AISettings {
     /// Returns the stored default tab config path (only meaningful when mode is `TabConfig`).
     pub fn default_tab_config_path(&self) -> &str {
         &self.default_tab_config_path
-    }
-
-    /// Looks up the `TabConfig` matching the stored `default_tab_config_path`.
-    /// Returns `None` if the path is empty or no loaded config matches.
-    pub fn resolved_default_tab_config(
-        &self,
-        app: &AppContext,
-    ) -> Option<crate::tab_configs::TabConfig> {
-        let path_str = self.default_tab_config_path.as_str();
-        if path_str.is_empty() {
-            return None;
-        }
-        let path = std::path::Path::new(path_str);
-        crate::user_config::WarpConfig::as_ref(app)
-            .tab_configs()
-            .iter()
-            .find(|config| config.source_path.as_deref().is_some_and(|p| p == path))
-            .cloned()
     }
 
     pub fn is_active_ai_enabled(&self, app: &warpui::AppContext) -> bool {

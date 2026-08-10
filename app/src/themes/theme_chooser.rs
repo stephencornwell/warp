@@ -1,3 +1,4 @@
+use crate::report_if_error;
 use pathfinder_color::ColorU;
 use settings::Setting as _;
 use warp_editor::editor::NavigationKey;
@@ -23,26 +24,22 @@ use warpui::{
 
 use crate::resource_center::{mark_feature_used_and_write_to_user_defaults, Tip, TipAction};
 use crate::themes::theme::{RespectSystemTheme, ThemeKind, WarpTheme};
+use crate::ui_components::window_focus_dimming::WindowFocusDimming;
 use crate::util::traffic_lights::traffic_light_data;
 use crate::workspace::PANEL_HEADER_HEIGHT;
 use crate::{
-    appearance::Appearance,
+    appearance::{Appearance, AppearanceManager},
     editor::{
         Event as EditorEvent, PropagateAndNoOpNavigationKeys, SingleLineEditorOptions, TextOptions,
     },
     referral_theme_status::ReferralThemeStatus,
-    report_if_error,
     settings::{respect_system_theme, ThemeSettings},
     themes::theme::SelectedSystemThemes,
     user_config::{load_theme_configs, themes_dir, WarpConfig, WarpConfigUpdateEvent},
     util::traffic_lights::{TrafficLightData, TrafficLightSide},
     window_settings::WindowSettings,
 };
-use crate::{appearance::AppearanceManager, send_telemetry_from_ctx};
 use crate::{editor::EditorView, resource_center::TipsCompleted};
-use crate::{
-    server::telemetry::TelemetryEvent, ui_components::window_focus_dimming::WindowFocusDimming,
-};
 use crate::{
     themes::theme::WarpThemeConfig,
     ui_components::buttons::{close_button, icon_button},
@@ -360,13 +357,11 @@ impl ThemeChooser {
         }
     }
 
-    pub fn record_open_theme(&mut self, ctx: &mut ViewContext<Self>) -> bool {
-        send_telemetry_from_ctx!(TelemetryEvent::OpenThemeChooser, ctx);
+    pub fn record_open_theme(&mut self, _ctx: &mut ViewContext<Self>) -> bool {
         true
     }
 
     pub fn open_theme_creator_modal(&mut self, ctx: &mut ViewContext<Self>) {
-        send_telemetry_from_ctx!(TelemetryEvent::OpenThemeCreatorModal, ctx);
         ctx.emit(ThemeChooserEvent::OpenThemeCreatorModal);
     }
 
@@ -419,13 +414,6 @@ impl ThemeChooser {
         ctx: &mut ViewContext<Self>,
     ) {
         self.select_theme(selected_kind.clone(), ctx);
-        send_telemetry_from_ctx!(
-            TelemetryEvent::ThemeSelection {
-                theme: selected_kind.to_string(),
-                entrypoint: "theme_chooser".to_string()
-            },
-            ctx
-        );
         let theme_settings = ThemeSettings::handle(ctx);
 
         let selected_themes = respect_system_theme(theme_settings.as_ref(ctx))

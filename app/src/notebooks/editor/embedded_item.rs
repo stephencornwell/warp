@@ -36,7 +36,7 @@ use warpui::{
 use crate::{
     cloud_object::{model::persistence::CloudModel, CloudObject},
     drive::{cloud_object_styling::warp_drive_icon_color, DriveObjectType},
-    server::ids::{HashableId, ToServerId},
+    sync_ids::{HashableId, ToServerId},
     ui_components::icons::Icon,
     workflows::{workflow::Workflow, CloudWorkflow, WorkflowId},
 };

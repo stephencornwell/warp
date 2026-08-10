@@ -7,8 +7,6 @@ use ordered_float::Float;
 use pathfinder_geometry::vector::vec2f;
 use serde::{Deserialize, Serialize};
 use std::cmp::max;
-mod package_installers;
-pub(crate) use history::UpArrowHistoryConfig;
 pub use view::Event;
 pub use view::TerminalView;
 pub use warp_terminal::shell::{self, ShellLaunchData};
@@ -32,11 +30,8 @@ pub mod block_list_viewport;
 pub mod blockgrid_element;
 mod blockgrid_renderer;
 mod bootstrap;
-mod buy_credits_banner;
 pub mod color;
 mod command_corrections_denylist;
-pub mod dynamic_enum_suggestions;
-pub mod enable_auto_reload_modal;
 pub mod event;
 pub mod event_listener;
 pub mod find;
@@ -59,39 +54,27 @@ pub mod mock_terminal_manager;
 pub mod model;
 pub mod model_events;
 pub mod platform;
-pub mod profile_model_selector;
 pub mod prompt;
 pub mod prompt_render_helper;
 pub mod recorder;
-pub mod remote_tty;
 pub mod resizable_data;
 pub mod rich_history;
 pub mod safe_mode_settings;
 mod secret_regex_updater;
 pub mod session_settings;
 pub mod settings;
-mod share_block_modal;
-pub mod shared_session;
 mod shell_launch_state;
-pub mod universal_developer_input;
 
-pub mod ssh;
 pub mod terminal_manager;
 mod terminal_size_element;
 pub mod view;
-pub mod warpify;
 mod waterfall_gap_element;
 mod writeable_pty;
 #[cfg(windows)]
 pub mod wsl;
 
-pub mod cli_agent;
-pub use cli_agent::CLIAgent;
-pub(crate) mod cli_agent_sessions;
-
 pub use mock_terminal_manager::MockTerminalManager;
 use model_events::{ModelEvent, ModelEventDispatcher};
-pub use share_block_modal::{ShareBlockModal, ShareBlockModalEvent, ShareBlockType};
 pub use terminal_manager::TerminalManager;
 
 pub use block_list_settings::*;
@@ -122,7 +105,6 @@ const MIN_COLUMNS: usize = 2;
 pub const PTY_READS_BROADCAST_CHANNEL_SIZE: usize = 1024;
 
 pub fn init(app: &mut AppContext) {
-    share_block_modal::init(app);
     view::init(app);
 }
 

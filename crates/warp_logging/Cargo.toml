@@ -22,13 +22,6 @@ zip = "2.1"
 sentry = { workspace = true, optional = true }
 sentry-log = { workspace = true, optional = true }
 
-[target.'cfg(target_family = "wasm")'.dependencies]
-console_error_panic_hook = { version = "0.1.6" }
-js-sys = "0.3.63"
-wasm-bindgen.workspace = true
-web-sys.workspace = true
-warp_web_event_bus.workspace = true
-
 [features]
 crash_reporting = ["dep:sentry", "dep:sentry-log", "warp_core/crash_reporting"]
 agent_mode_evals = []

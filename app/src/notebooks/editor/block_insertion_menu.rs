@@ -26,7 +26,7 @@ use crate::{
         searcher::EmbeddingSearchItemAction,
         view::{EmbeddingSearchEvent, EmbeddingSearchMenu},
     },
-    server::ids::SyncId,
+    sync_ids::SyncId,
     themes::theme::Fill,
     ui_components::{buttons::icon_button, icons::Icon},
 };

@@ -41,7 +41,7 @@ const DIALOG_WIDTH: f32 = 460.;
 
 #[cfg_attr(target_family = "wasm", allow(dead_code))]
 pub(crate) enum RemoveTabConfigConfirmationEvent {
-    Confirm { path: PathBuf },
+    Confirm,
     Cancel,
 }
 
@@ -154,11 +154,11 @@ impl TypedActionView for RemoveTabConfigConfirmationDialog {
     ) {
         match action {
             RemoveTabConfigConfirmationAction::Confirm => {
-                let Some(path) = self.config_path.clone() else {
+                if self.config_path.is_none() {
                     log::error!("Remove confirm button pressed with no config path");
                     return;
-                };
-                ctx.emit(RemoveTabConfigConfirmationEvent::Confirm { path });
+                }
+                ctx.emit(RemoveTabConfigConfirmationEvent::Confirm);
             }
             RemoveTabConfigConfirmationAction::Cancel => {
                 ctx.emit(RemoveTabConfigConfirmationEvent::Cancel);

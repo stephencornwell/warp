@@ -1,20 +1,13 @@
-use crate::ai::blocklist::{render_ai_agent_mode_icon, AIQueryHistory, AIQueryHistoryOutputStatus};
-use crate::terminal::model::session::SessionId;
-use crate::ui_components::icons::Icon as UIComponentsIcon;
 use async_channel::Sender;
-use chrono::{DateTime, Local};
 use fuzzy_match::match_indices;
 use itertools::Itertools;
 use pathfinder_geometry::vector::vec2f;
-use std::cmp::Ordering;
-use std::collections::HashSet;
 use std::{cmp, ops::Range, vec};
 use warp_command_signatures::IconType;
 use warp_completer::completer::{
     MatchType, PathSeparators, Suggestion, SuggestionResults, SuggestionType,
 };
 use warp_core::features::FeatureFlag;
-use warp_core::ui::theme::AnsiColorIdentifier;
 use warpui::elements::{
     ChildAnchor, DispatchEventResult, Expanded, Hoverable, MouseStateHandle, ParentAnchor,
     ParentOffsetBounds, ScrollbarWidth,
@@ -35,8 +28,7 @@ use warpui::{
 };
 
 use crate::appearance::Appearance;
-use crate::terminal::history::LinkedWorkflowData;
-use crate::terminal::rich_history::{render_ai_query_rich_history, render_rich_history};
+use crate::terminal::rich_history::render_rich_history;
 use crate::terminal::HistoryEntry;
 use crate::util::time_format::format_approx_duration_from_now;
 
@@ -48,7 +40,6 @@ pub enum DetailContent {
     RichHistory(Box<HistoryEntry>),
     /// A details panel for a simple string.
     Description(String),
-    AIQueryHistory(Box<AIQueryHistoryEntryDetails>),
 }
 
 impl From<HistoryEntry> for DetailContent {
@@ -115,13 +106,6 @@ impl Item {
 
     /// Returns LinkedWorkflowData for this `Item`, if the `Item` is a history command that was
     /// created using a workflow.
-    pub fn linked_workflow_data(&self) -> Option<LinkedWorkflowData> {
-        match self.details.as_ref() {
-            Some(DetailContent::RichHistory(history_entry)) => history_entry.linked_workflow_data(),
-            _ => None,
-        }
-    }
-
     pub fn is_ai_query(&self) -> bool {
         self.is_ai_query
     }
@@ -135,7 +119,6 @@ pub enum ItemIconType {
     File,
     Folder,
     GitBranch,
-    AIQuery,
 }
 
 impl ItemIconType {
@@ -147,7 +130,6 @@ impl ItemIconType {
             ItemIconType::File => FILE_ICON_PATH,
             ItemIconType::Folder => FOLDER_ICON_PATH,
             ItemIconType::GitBranch => GIT_BRANCH_ICON_PATH,
-            ItemIconType::AIQuery => UIComponentsIcon::AgentMode.into(),
         }
     }
 
@@ -307,6 +289,30 @@ pub enum TabCompletionsPreselectOption {
 }
 
 impl InputSuggestions {
+    pub(crate) fn history_prefix_search<'a, I>(prefix: &str, options: I) -> Vec<Item>
+    where
+        I: IntoIterator<Item = &'a crate::terminal::HistoryEntry>,
+    {
+        let trimmed_prefix = prefix.trim();
+        options
+            .into_iter()
+            .filter_map(|entry| {
+                entry.command.strip_prefix(trimmed_prefix).map(|_| Item {
+                    text: entry.command.trim().to_owned(),
+                    display: None,
+                    details: None,
+                    matches: Some((0..trimmed_prefix.len()).collect()),
+                    icon_type: None,
+                    match_type: MatchType::Prefix {
+                        is_case_sensitive: true,
+                    },
+                    is_ai_query: false,
+                    is_history_item: true,
+                })
+            })
+            .collect()
+    }
+
     pub fn new(ctx: &mut ViewContext<Self>) -> Self {
         let (visible_items_tx, visible_items_rx) = async_channel::unbounded();
 
@@ -447,36 +453,6 @@ impl InputSuggestions {
         ctx.notify();
     }
 
-    /// Filters down the set of options to those that have the given prefix. If prefix is only
-    /// whitespace, then the input suggestions are simply all the options.
-    pub(crate) fn history_prefix_search<'a, I: IntoIterator<Item = HistoryInputSuggestion<'a>>>(
-        prefix: &str,
-        options: I,
-    ) -> Vec<Item> {
-        let trimmed_prefix = prefix.trim();
-        options
-            .into_iter()
-            .filter_map(|entry| {
-                if entry.text().starts_with(trimmed_prefix) {
-                    Some(Item {
-                        text: entry.text().trim().to_string(),
-                        display: None,
-                        details: entry.details(),
-                        matches: Some((0..trimmed_prefix.len()).collect()),
-                        icon_type: entry.icon_type(),
-                        match_type: MatchType::Prefix {
-                            is_case_sensitive: true,
-                        },
-                        is_ai_query: entry.is_ai_query(),
-                        is_history_item: true,
-                    })
-                } else {
-                    None
-                }
-            })
-            .collect()
-    }
-
     /// Given a filtered list of matched items, set the items and ensure the last one is selected.
     pub fn set_history_matches(&mut self, matches: Vec<Item>, ctx: &mut ViewContext<Self>) {
         self.set_items(matches);
@@ -542,10 +518,6 @@ impl InputSuggestions {
                     .start_ts
                     .map(|ts| format!("Last ran {}", format_approx_duration_from_now(ts))),
                 DetailContent::Description(desc) => Some(desc.clone()),
-                DetailContent::AIQueryHistory(entry) => Some(format!(
-                    "Last ran {}",
-                    format_approx_duration_from_now(entry.start_time)
-                )),
             })
     }
 
@@ -681,11 +653,6 @@ impl InputSuggestions {
             DetailContent::Description(description) => {
                 self.render_descriptions_box(item.text.clone(), description.clone(), appearance)
             }
-            DetailContent::AIQueryHistory(entry) => {
-                ConstrainedBox::new(render_ai_query_rich_history(entry, ctx))
-                    .with_max_width(HISTORY_DETAILS_PANEL_WIDTH)
-                    .finish()
-            }
         };
 
         Some(details)
@@ -723,7 +690,7 @@ impl InputSuggestions {
             .finish();
         }
         let handle = self.handle.clone();
-        let em_width = self.em_width(ctx.font_cache(), appearance);
+        let _em_width = self.em_width(ctx.font_cache(), appearance);
 
         let list = UniformList::new(
             self.list_state.clone(),
@@ -763,21 +730,7 @@ impl InputSuggestions {
                                 Flex::row().with_cross_axis_alignment(CrossAxisAlignment::End);
 
                             if let Some(icon_type) = item.icon_type.as_ref() {
-                                let icon_container = if let ItemIconType::AIQuery = icon_type {
-                                    Container::new(render_ai_agent_mode_icon(
-                                        app,
-                                        if is_selected {
-                                            theme.background()
-                                        } else {
-                                            AnsiColorIdentifier::Yellow
-                                                .to_ansi_color(&theme.terminal_colors().normal)
-                                                .into()
-                                        },
-                                    ))
-                                    .with_padding_right(6. * (em_width / 6.))
-                                    .with_padding_left(icon_type.left_padding())
-                                    .finish()
-                                } else {
+                                let icon_container = {
                                     let icon_width = font_size
                                         * icon_type.width_font_size_multiplication_factor();
                                     Container::new(
@@ -1124,126 +1077,3 @@ impl PartialOrd for HistoryOrder {
         Some(self.cmp(other))
     }
 }
-
-/// Types of input that can be suggested.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) enum HistoryInputSuggestion<'a> {
-    Command { entry: &'a HistoryEntry },
-    AIQuery { entry: AIQueryHistory },
-}
-
-impl HistoryInputSuggestion<'_> {
-    /// The timestamp this history entry was created. Useful for sorting.
-    pub fn start_time(&self) -> DateTime<Local> {
-        match self {
-            HistoryInputSuggestion::Command { entry } => {
-                entry.start_ts.unwrap_or(DateTime::default())
-            }
-            HistoryInputSuggestion::AIQuery { entry } => entry.start_time,
-        }
-    }
-
-    /// Text to display for the suggestion.
-    pub fn text(&self) -> &str {
-        match self {
-            HistoryInputSuggestion::Command { entry } => entry.command.as_str(),
-            HistoryInputSuggestion::AIQuery { entry } => &entry.query_text,
-        }
-    }
-
-    /// Which type of detail panel to show for this suggestion, if any.
-    fn details(&self) -> Option<DetailContent> {
-        match self {
-            HistoryInputSuggestion::Command { entry } => {
-                entry.has_metadata().then(|| ((*entry).clone()).into())
-            }
-            HistoryInputSuggestion::AIQuery { entry } => Some(DetailContent::AIQueryHistory(
-                Box::new(AIQueryHistoryEntryDetails::from(entry)),
-            )),
-        }
-    }
-
-    /// Which input suggestion icon to use for this suggestion, if any.
-    fn icon_type(&self) -> Option<ItemIconType> {
-        match self {
-            HistoryInputSuggestion::Command { .. } => None,
-            HistoryInputSuggestion::AIQuery { .. } => Some(ItemIconType::AIQuery),
-        }
-    }
-
-    /// True if this history item is for an AI query.
-    pub(crate) fn is_ai_query(&self) -> bool {
-        match self {
-            HistoryInputSuggestion::Command { .. } => false,
-            HistoryInputSuggestion::AIQuery { .. } => true,
-        }
-    }
-
-    pub fn cmp(
-        &self,
-        other: &Self,
-        current_session_id: Option<SessionId>,
-        all_live_session_ids: &HashSet<SessionId>,
-    ) -> Ordering {
-        let ordering = self
-            .history_order(current_session_id, all_live_session_ids)
-            .cmp(&other.history_order(current_session_id, all_live_session_ids));
-        if ordering == Ordering::Equal {
-            self.start_time().cmp(&other.start_time())
-        } else {
-            ordering
-        }
-    }
-
-    pub fn history_order(
-        &self,
-        current_session_id: Option<SessionId>,
-        _all_live_session_ids: &HashSet<SessionId>,
-    ) -> HistoryOrder {
-        match self {
-            HistoryInputSuggestion::Command { entry } => {
-                // Restored blocks are always treated as CurrentSession
-                if entry.is_for_restored_block {
-                    return HistoryOrder::CurrentSession;
-                }
-                // Check if this entry belongs to the current session
-                if let (Some(entry_session_id), Some(current_session_id)) =
-                    (entry.session_id, current_session_id)
-                {
-                    if entry_session_id == current_session_id {
-                        return HistoryOrder::CurrentSession;
-                    }
-                }
-                // Other live session, or past session
-                HistoryOrder::DifferentSession
-            }
-            HistoryInputSuggestion::AIQuery { entry } => entry.history_order,
-        }
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct AIQueryHistoryEntryDetails {
-    /// The time the input was sent.
-    pub(crate) start_time: DateTime<Local>,
-
-    /// The status of the output streaming from the AI API.
-    pub(crate) output_status: AIQueryHistoryOutputStatus,
-
-    /// The working directory when the AI query was submitted.
-    pub(crate) working_directory: Option<String>,
-}
-
-impl From<&AIQueryHistory> for AIQueryHistoryEntryDetails {
-    fn from(value: &AIQueryHistory) -> Self {
-        Self {
-            start_time: value.start_time,
-            output_status: value.output_status.clone(),
-            working_directory: value.working_directory.clone(),
-        }
-    }
-}
-
-#[cfg(test)]
-#[path = "input_suggestions_test.rs"]
-mod tests;

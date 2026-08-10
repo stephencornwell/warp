@@ -190,13 +190,6 @@ impl AliasBar {
 
             self.mark_dirty(true, ctx);
 
-            send_telemetry_from_ctx!(
-                TelemetryEvent::WorkflowAliasArgumentEdited {
-                    workflow_id: self.workflow_id.into_server().map(Into::into),
-                    workflow_space: self.workflow_space(ctx)
-                },
-                ctx
-            );
         }
     }
 
@@ -215,15 +208,6 @@ impl AliasBar {
                     .map(|env_vars| env_vars.space(ctx))
                     .map(Into::into);
 
-                send_telemetry_from_ctx!(
-                    TelemetryEvent::WorkflowAliasEnvVarsAttached {
-                        workflow_id: self.workflow_id.into_server().map(Into::into),
-                        workflow_space: self.workflow_space(ctx),
-                        env_vars_id: sync_id.and_then(|id| id.into_server()).map(Into::into),
-                        env_vars_space,
-                    },
-                    ctx
-                );
             }
         }
     }
@@ -304,13 +288,6 @@ impl AliasBar {
         ctx.emit(AliasBarEvent::AliasesUpdated);
         ctx.notify();
 
-        send_telemetry_from_ctx!(
-            TelemetryEvent::WorkflowAliasAdded {
-                workflow_id: self.workflow_id.into_server().map(Into::into),
-                workflow_space: self.workflow_space(ctx),
-            },
-            ctx
-        );
     }
 
     fn remove_alias(&mut self, index: usize, ctx: &mut ViewContext<Self>) {
@@ -335,13 +312,6 @@ impl AliasBar {
         ctx.emit(AliasBarEvent::AliasesUpdated);
         ctx.notify();
 
-        send_telemetry_from_ctx!(
-            TelemetryEvent::WorkflowAliasRemoved {
-                workflow_id: self.workflow_id.into_server().map(Into::into),
-                workflow_space: self.workflow_space(ctx),
-            },
-            ctx
-        );
     }
 
     fn rename_alias(&mut self, index: usize, ctx: &mut ViewContext<Self>) {

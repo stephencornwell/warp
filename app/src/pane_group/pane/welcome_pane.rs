@@ -22,7 +22,7 @@ impl WelcomePane {
         let welcome_view =
             ctx.add_typed_action_view(|ctx| WelcomeView::new(startup_directory, ctx));
         let pane_configuration = welcome_view.as_ref(ctx).pane_configuration();
-        let pane_view = ctx.add_typed_action_view(|ctx| {
+        let pane_view = ctx.add_view(|ctx| {
             let pane_id = PaneId::from_welcome_pane_ctx(ctx);
             PaneView::new(pane_id, welcome_view, (), pane_configuration.clone(), ctx)
         });

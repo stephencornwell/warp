@@ -2,7 +2,6 @@ use std::{collections::HashSet, ops::RangeInclusive};
 
 use itertools::Itertools as _;
 
-use crate::ai::blocklist::block::secret_redaction::find_secrets_in_text_with_levels;
 use crate::terminal::model::grid::{grapheme_cursor, Dimensions as _};
 use crate::terminal::model::terminal_model::RangeInModel;
 use crate::terminal::model::{
@@ -273,15 +272,8 @@ impl GridHandler {
     /// Determines the secret level by re-scanning the plaintext using the rich content detection
     /// which includes secret level information
     fn determine_secret_level(&self, plaintext: &str) -> SecretLevel {
-        let secrets_with_levels = find_secrets_in_text_with_levels(plaintext);
-
-        // Find the first match that corresponds to our plaintext
-        // In case of multiple matches, we return the highest priority level
-        secrets_with_levels
-            .into_iter()
-            .map(|(_, level)| level)
-            .max_by_key(|level| level.priority())
-            .unwrap_or(SecretLevel::User) // Default to User level if no matches found
+        let _ = plaintext;
+        SecretLevel::User
     }
 
     fn set_all_bytes_scanned_for_secrets(&mut self, value: bool) {

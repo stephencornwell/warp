@@ -1,5 +1,6 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
+use warp_core::report_if_error;
 
 use ::settings::Setting as _;
 use cfg_if::cfg_if;
@@ -7,10 +8,10 @@ use lazy_static::lazy_static;
 use parking_lot::RwLock;
 use warp_cli::RecoveryMechanism;
 use warp_core::channel::{Channel, ChannelState};
-use warpui::{Entity, ModelContext, SingletonEntity, WindowId};
+use warpui::{Entity, SingletonEntity, WindowId};
 use warpui_extras::user_preferences::UserPreferences;
 
-use crate::{report_if_error, settings};
+use crate::settings;
 
 /// Keep in sync with [`warp_cli::AppArgs`].
 pub const RECOVERY_MECHANISM_ARG: &str = "crash-recovery-mechanism";
@@ -24,13 +25,7 @@ pub fn is_crash_recovery_process_running() -> bool {
     *IS_CRASH_RECOVERY_PROCESS_RUNNING.read()
 }
 
-pub enum Event {
-    /// User has acknowledged the fact that the application crashed and
-    /// recovered from the crash.
-    UserAcknowledgedCrash,
-    /// The crash recovery process was successfully torn down.
-    CrashRecoveryProcessTornDown,
-}
+pub enum Event {}
 
 /// Returns true if this process is the crash recovery process.
 pub fn is_crash_recovery_process(args: &warp_cli::AppArgs) -> bool {
@@ -39,7 +34,6 @@ pub fn is_crash_recovery_process(args: &warp_cli::AppArgs) -> bool {
 
 #[derive(Debug)]
 enum DrawFrameResult {
-    Successful,
     Errored,
 }
 
@@ -49,8 +43,6 @@ struct CrashRecoveryProcess {
     process: std::process::Child,
     /// The number of consecutive errors seen per window.
     consecutive_errors_per_window: HashMap<WindowId, usize>,
-    /// The number of successful frames drawn per window.
-    successful_frames_per_window: HashMap<WindowId, usize>,
     /// The current sequence of successful and unsuccessful frames seen per window. We log this to
     /// Sentry before hard exiting if we have received too many consecutive frame drawn errors.
     sequence_of_renders_per_window: HashMap<WindowId, Vec<DrawFrameResult>>,
@@ -62,7 +54,6 @@ impl CrashRecoveryProcess {
         Self {
             process,
             consecutive_errors_per_window: Default::default(),
-            successful_frames_per_window: Default::default(),
             sequence_of_renders_per_window: Default::default(),
             is_alive: true,
         }
@@ -115,62 +106,14 @@ impl CrashRecoveryProcess {
             std::process::exit(1);
         }
     }
-
-    /// Returns whether the crash recovery process is alive.
-    fn is_alive(&self) -> bool {
-        self.is_alive
-    }
-
-    /// Handles the case where we were able to successfully draw a frame. Returns `true` if this
-    /// triggered the crash recovery process to be killed.
-    fn handle_frame_drawn(&mut self, window_id: WindowId) {
-        /// The number of successful frames of a given Window before we tear down the crash
-        /// reporting process. We don't tear down the crash recovery process on the first frame
-        /// because there are cases where a call to render returns `Ok` even though the render
-        /// wasn't actually successful. From the perspective of a user, we don't want to tear down
-        /// the crash recovery process until we feel confident the app won't crash from the
-        /// discrete --> integrated or Xwayland --> native Wayland change. This may require multiple
-        /// "successful" frames in the case where we _think_ a frame was successful but it failed to
-        /// present.
-        const NUM_SUCCESSFUL_DRAW_FRAMES_PER_WINDOW: usize = 10;
-
-        // Reset the number of errors now that we've seen a successful render for this window.
-        self.consecutive_errors_per_window.insert(window_id, 0);
-
-        self.sequence_of_renders_per_window
-            .entry(window_id)
-            .or_default()
-            .push(DrawFrameResult::Successful);
-
-        let num_successful_draws = self
-            .successful_frames_per_window
-            .entry(window_id)
-            .or_default();
-        *num_successful_draws += 1;
-
-        if *num_successful_draws >= NUM_SUCCESSFUL_DRAW_FRAMES_PER_WINDOW {
-            // Once we've managed to successfully draw frames, we can kill the
-            // crash recovery child process and collect its exit status.
-            self.kill();
-
-            log::info!("Successfully drew {NUM_SUCCESSFUL_DRAW_FRAMES_PER_WINDOW} frames; killing crash recovery child process");
-        }
-    }
 }
 
 pub struct CrashRecovery {
     child_process: RefCell<Option<CrashRecoveryProcess>>,
-
-    /// If the user should be notified that we recovered from a crash, this
-    /// stores the recovery mechanism that was used to successfully recover
-    /// from the crash.
-    should_notify_user_about_crash: Option<RecoveryMechanism>,
 }
 
 impl CrashRecovery {
     pub fn new(launch_mode: &crate::LaunchMode, user_preferences: &dyn UserPreferences) -> Self {
-        let mut should_notify_user_about_crash = None;
-
         let args = launch_mode.args();
         if let Some(recovery_mechanism) = args.as_ref().crash_recovery_mechanism {
             // If we're a crash recovery process, wait for the parent to crash
@@ -179,9 +122,7 @@ impl CrashRecovery {
 
             // If we get to this point, the parent crashed. Handle the crash and then continue
             // execution, allowing another crash recovery process to start if necessary.
-            should_notify_user_about_crash =
-                handle_parent_crash(recovery_mechanism, user_preferences)
-                    .then_some(recovery_mechanism);
+            handle_parent_crash(recovery_mechanism, user_preferences);
         }
 
         // If we want automated recovery from a crash in this process, spawn a
@@ -195,7 +136,6 @@ impl CrashRecovery {
                         log::error!("Failed to spawn crash recovery child process: {err:#}");
                         return Self {
                             child_process: Default::default(),
-                            should_notify_user_about_crash,
                         };
                     }
                 };
@@ -203,70 +143,18 @@ impl CrashRecovery {
                 *IS_CRASH_RECOVERY_PROCESS_RUNNING.write() = true;
                 return Self {
                     child_process: RefCell::new(Some(CrashRecoveryProcess::new(child_process))),
-                    should_notify_user_about_crash,
                 };
             }
         }
 
         Self {
             child_process: Default::default(),
-            should_notify_user_about_crash: None,
         }
-    }
-
-    #[cfg(test)]
-    pub fn register_for_test(app: &mut warpui::App) {
-        use warp_core::user_preferences::GetUserPreferences as _;
-
-        app.update(|ctx| {
-            ctx.add_singleton_model(|ctx| {
-                let user_preferences = ctx.private_user_preferences();
-                let launch_mode = crate::LaunchMode::App {
-                    args: warp_cli::AppArgs::default(),
-                    api_key: None,
-                };
-                crate::crash_recovery::CrashRecovery::new(&launch_mode, user_preferences)
-            })
-        });
-    }
-
-    pub fn should_notify_user_about_crash(&self) -> Option<RecoveryMechanism> {
-        self.should_notify_user_about_crash
-    }
-
-    pub fn handle_user_acknowledged_crash(&mut self, ctx: &mut ModelContext<Self>) {
-        self.should_notify_user_about_crash = None;
-        ctx.emit(Event::UserAcknowledgedCrash);
     }
 
     pub fn on_draw_frame_error(&mut self, window_id: WindowId) {
         if let Some(child_process) = self.child_process.borrow_mut().as_mut() {
             child_process.handle_draw_frame_error(window_id);
-        }
-    }
-
-    pub fn on_frame_drawn(&self, window_id: WindowId, ctx: &mut ModelContext<Self>) {
-        let mut child_process_borrow = self.child_process.borrow_mut();
-        let mut child_process = child_process_borrow.take();
-
-        if let Some(child_process) = child_process.as_mut() {
-            child_process.handle_frame_drawn(window_id);
-
-            // If the process is no longer alive, fire a `CrashRecoveryProcessTornDown` event. We
-            // do this here as opposed to below to ensure we only omit the event once as opposed to
-            // on every render.
-            if !child_process.is_alive {
-                ctx.emit(Event::CrashRecoveryProcessTornDown);
-            }
-        }
-
-        let is_child_process_alive = child_process
-            .as_ref()
-            .map(CrashRecoveryProcess::is_alive)
-            .unwrap_or_default();
-
-        if is_child_process_alive {
-            *child_process_borrow = child_process;
         }
     }
 

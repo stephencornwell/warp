@@ -16,8 +16,6 @@ use warpui::{
     ViewContext, WindowId,
 };
 
-use crate::code_review::diff_state::GitDeltaPreference;
-use crate::code_review::telemetry_event::CodeReviewPaneEntrypoint;
 use crate::pane_group::focus_state::PaneFocusHandle;
 use crate::pane_group::{
     pane::view, BackingView, NewTerminalOptions, PaneConfiguration, PaneEvent, PanesLayout,
@@ -184,28 +182,6 @@ impl WelcomeView {
                 ctx,
             );
 
-            // Start AI mode in the new terminal
-            workspace
-                .active_tab_pane_group()
-                .update(ctx, |pane_group, ctx| {
-                    pane_group.start_agent_mode_in_new_pane(None, None, ctx);
-                });
-
-            // Open code review pane
-            workspace.active_tab_pane_group().update(ctx, |tab, ctx| {
-                if let Some(active_terminal) = tab.active_session_view(ctx) {
-                    active_terminal.update(ctx, |terminal, ctx| {
-                        terminal.toggle_code_review_pane(
-                            GitDeltaPreference::OnlyDirty,
-                            CodeReviewPaneEntrypoint::Other,
-                            None,  // cli_agent
-                            false, /* focus_new_pane */
-                            ctx,
-                        );
-                    });
-                }
-            });
-
             // Update project accesstime
             ProjectManagementModel::handle(ctx).update(ctx, |projects, ctx| {
                 projects.upsert_project(path_buf, ctx);
@@ -331,13 +307,6 @@ fn save_and_open_project(path: String, window_id: WindowId, ctx: &mut AppContext
                 None,
                 ctx,
             );
-            workspace.active_tab_pane_group().update(ctx, |tab, ctx| {
-                if let Some(active_terminal) = tab.active_session_view(ctx) {
-                    active_terminal.update(ctx, |terminal, _ctx| {
-                        terminal.maybe_set_pending_repo_init_path(path_buf);
-                    });
-                }
-            });
         });
     });
 }

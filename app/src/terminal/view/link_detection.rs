@@ -2,22 +2,16 @@ use std::ops::Deref;
 
 use serde::{Serialize, Serializer};
 
-use warpui::{platform::Cursor, ViewContext};
-
-use crate::{
-    send_telemetry_from_ctx,
-    server::telemetry::{LinkOpenMethod, TelemetryEvent},
-    terminal::{
-        model::{
-            grid::grid_handler::Link,
-            index::Point,
-            terminal_model::{WithinBlock, WithinModel},
-            RespectObfuscatedSecrets,
-        },
-        TerminalModel,
+use crate::terminal::{
+    model::{
+        grid::grid_handler::Link,
+        index::Point,
+        terminal_model::{WithinBlock, WithinModel},
+        RespectObfuscatedSecrets,
     },
+    TerminalModel,
 };
-
+use warpui::{platform::Cursor, ViewContext};
 cfg_if::cfg_if! {
     if #[cfg(feature = "local_fs")] {
         use crate::{
@@ -373,13 +367,6 @@ impl super::TerminalView {
         ctx.focus(&self.input);
         ctx.notify();
 
-        send_telemetry_from_ctx!(
-            TelemetryEvent::OpenLink {
-                link: link.clone(),
-                open_with: LinkOpenMethod::ToolTip
-            },
-            ctx
-        );
         match link {
             #[cfg(feature = "local_fs")]
             GridHighlightedLink::File(link) => {
@@ -450,7 +437,6 @@ impl super::TerminalView {
                 .lock()
                 .block_list()
                 .block_at(inner.block_index)
-                .filter(|block| !self.is_block_considered_remote(block.session_id(), None, ctx)) // Don't scan for file links if the block is on remote sessions
                 .and_then(|block| block.pwd().map(String::from)),
         };
 

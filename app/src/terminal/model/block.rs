@@ -3,7 +3,6 @@ mod serialized_block;
 
 pub use interaction_mode::*;
 pub use serialized_block::*;
-use warp_core::features::FeatureFlag;
 
 use super::grid::grid_handler::{GridHandler, PerformResetGridChecks};
 use super::grid::{Cursor, RespectDisplayedOutput};
@@ -18,35 +17,28 @@ pub use super::BlockId;
 use super::{bootstrap::BootstrapStage, find::RegexDFAs};
 use warp_terminal::model::{KeyboardModes, KeyboardModesApplyBehavior};
 
-use crate::ai::agent::conversation::AIConversationId;
-use crate::ai::blocklist::agent_view::{AgentViewDisplayMode, AgentViewState};
-use crate::{
-    ai::agent::redaction::redact_secrets,
-    context_chips::prompt_snapshot::PromptSnapshot,
-    server::{block::DisplaySetting, ids::SyncId},
-    terminal::{
-        block_filter::BlockFilterQuery,
-        block_list_element::GridType,
-        event::{
-            BlockCompletedEvent, BlockLatencyData, BlockMetadataReceivedEvent, BlockType, Event,
-            UserBlockCompleted,
-        },
-        event_listener::ChannelEventListener,
-        model::{
-            ansi::{self, PrecmdValue, PreexecValue, Processor},
-            blockgrid::BlockGrid,
-            grid::grid_handler::TermMode,
-            index::{Point, VisibleRow},
-            iterm_image::ITermImage,
-            secrets::ObfuscateSecrets,
-            session::SessionId,
-            terminal_model::{BlockIndex, WithinBlock},
-            GridStorage,
-        },
-        shell::ShellType,
-        view::WithinBlockBanner,
-        BlockPadding, ShellHost, SizeInfo,
+use crate::terminal::{
+    block_filter::BlockFilterQuery,
+    block_list_element::GridType,
+    event::{
+        BlockCompletedEvent, BlockLatencyData, BlockMetadataReceivedEvent, BlockType, Event,
+        UserBlockCompleted,
     },
+    event_listener::ChannelEventListener,
+    model::{
+        ansi::{self, PrecmdValue, PreexecValue, Processor},
+        blockgrid::BlockGrid,
+        grid::grid_handler::TermMode,
+        index::{Point, VisibleRow},
+        iterm_image::ITermImage,
+        secrets::ObfuscateSecrets,
+        session::SessionId,
+        terminal_model::{BlockIndex, WithinBlock},
+        GridStorage,
+    },
+    shell::ShellType,
+    view::WithinBlockBanner,
+    BlockPadding, ShellHost, SizeInfo,
 };
 
 use chrono::{DateTime, Duration, FixedOffset, Local};
@@ -143,146 +135,6 @@ pub struct BlocklistEnvVarMetadata {
     pub should_hide_block: bool,
 }
 
-/// Tracks which views (terminal and/or agent conversations) a block should be visible in.
-#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
-pub enum AgentViewVisibility {
-    /// Block was created in terminal mode. It should always be visible in terminal view,
-    /// and may also be attached to conversations as context.
-    Terminal {
-        /// Conversation IDs where this block is in pending context.
-        pending_conversation_ids: HashSet<AIConversationId>,
-        /// Conversation IDs where this block was attached as context.
-        conversation_ids: HashSet<AIConversationId>,
-    },
-    /// Block was created inside an agent view conversation.
-    Agent {
-        /// The conversation where this block originally executed (the one where users saw this command run).
-        origin_conversation_id: AIConversationId,
-        /// Other conversations where users currently see this block as pending context before send.
-        pending_other_conversation_ids: HashSet<AIConversationId>,
-        /// Other conversations where users see this block as attached context after send.
-        other_conversation_ids: HashSet<AIConversationId>,
-    },
-}
-
-impl AgentViewVisibility {
-    /// Visibility for a block created in the top-level terminal (not in an agent view).
-    pub fn new_from_terminal() -> Self {
-        Self::Terminal {
-            pending_conversation_ids: HashSet::new(),
-            conversation_ids: HashSet::new(),
-        }
-    }
-
-    /// Visibility for a block created inside an agent view conversation.
-    pub fn new_from_conversation(conversation_id: AIConversationId) -> Self {
-        Self::Agent {
-            origin_conversation_id: conversation_id,
-            pending_other_conversation_ids: HashSet::new(),
-            other_conversation_ids: HashSet::new(),
-        }
-    }
-
-    pub fn agent_view_conversation_id(&self) -> Option<AIConversationId> {
-        match self {
-            Self::Terminal { .. } => None,
-            Self::Agent {
-                origin_conversation_id,
-                ..
-            } => Some(*origin_conversation_id),
-        }
-    }
-
-    /// Adds a conversation ID to the set of conversations where this block was attached as context in a request.
-    fn add_attached_conversation_id(&mut self, id: AIConversationId) {
-        match self {
-            Self::Terminal {
-                conversation_ids, ..
-            } => {
-                conversation_ids.insert(id);
-            }
-            Self::Agent {
-                origin_conversation_id,
-                other_conversation_ids,
-                ..
-            } => {
-                if id == *origin_conversation_id {
-                    return;
-                }
-                other_conversation_ids.insert(id);
-            }
-        }
-    }
-
-    /// Marks the block as pending context in the conversation with the given ID.
-    /// It maybe removed if the user removes the block attachment before sending the request, else if it is attached it will be 'promoted'.
-    fn add_pending_conversation_id(&mut self, id: AIConversationId) {
-        match self {
-            Self::Terminal {
-                pending_conversation_ids,
-                ..
-            } => {
-                pending_conversation_ids.insert(id);
-            }
-            Self::Agent {
-                origin_conversation_id,
-                pending_other_conversation_ids,
-                ..
-            } => {
-                if id == *origin_conversation_id {
-                    return;
-                }
-                pending_other_conversation_ids.insert(id);
-            }
-        }
-    }
-
-    /// Moves the block from pending context to attached context for the given conversation ID.
-    /// Returns true if the conversation was in pending and was promoted, false otherwise.
-    fn promote_pending_to_attached(&mut self, id: AIConversationId) -> bool {
-        match self {
-            Self::Terminal {
-                pending_conversation_ids,
-                conversation_ids,
-            } => {
-                if pending_conversation_ids.remove(&id) {
-                    conversation_ids.insert(id);
-                    true
-                } else {
-                    false
-                }
-            }
-            Self::Agent {
-                pending_other_conversation_ids,
-                other_conversation_ids,
-                ..
-            } => {
-                if pending_other_conversation_ids.remove(&id) {
-                    other_conversation_ids.insert(id);
-                    true
-                } else {
-                    false
-                }
-            }
-        }
-    }
-
-    /// Removes a pending conversation ID from the set of conversations where this block should be visible.
-    /// Returns true if the conversation ID was present and removed, false if it wasn't present.
-    fn remove_pending_conversation_id(&mut self, id: AIConversationId) -> bool {
-        match self {
-            Self::Terminal {
-                pending_conversation_ids,
-                ..
-            } => pending_conversation_ids.remove(&id),
-            Self::Agent {
-                pending_other_conversation_ids,
-                ..
-            } => pending_other_conversation_ids.remove(&id),
-        }
-    }
-}
-
 pub struct Block {
     id: BlockId,
     size: SizeInfo,
@@ -365,19 +217,10 @@ pub struct Block {
     /// printed by the shell).
     ignore_next_rprompt: bool,
 
-    prompt_snapshot: Option<PromptSnapshot>,
-
     /// The home directory the block was executed in.
     home_dir: Option<String>,
 
     filter_query: Option<BlockFilterQuery>,
-
-    /// If the command is a cloud workflow, this is set to its id. If the block was not a workflow,
-    /// this is None.
-    cloud_workflow_id: Option<SyncId>,
-
-    /// If the command inluded an env var invocation. If not this will be None.
-    cloud_env_var_collection_id: Option<SyncId>,
 
     /// The last time this block was painted (i.e.: visible in the window),
     /// if ever.
@@ -409,11 +252,6 @@ pub struct Block {
 
     /// Only set on restored blocks. Indicates whether the block was local or from a remote session.
     restored_block_was_local: Option<bool>,
-
-    /// Tracks which views (terminal and/or agent conversations) this block should be visible in.
-    ///
-    /// This is only used if `FeatureFlag::AgentView` is enabled.
-    agent_view_visibility: AgentViewVisibility,
 
     /// Whether natural language detection (NLD) was overridden (i.e., the user had manually locked
     /// the input type) at the time this block's command was submitted.
@@ -508,8 +346,6 @@ pub struct PromptInfo {
     pub ps1: Option<String>,
     pub rprompt: Option<String>,
     pub honor_ps1: bool,
-    /// JSON serialization of [`PromptSnapshot`]
-    pub prompt_snapshot: Option<String>,
 }
 
 impl From<&Block> for BlockType {
@@ -525,7 +361,7 @@ impl From<&Block> for BlockType {
             BootstrapStage::RestoreBlocks => BlockType::Restored,
             BootstrapStage::WarpInput | BootstrapStage::Bootstrapped => BlockType::BootstrapHidden,
             BootstrapStage::ScriptExecution => {
-                if block.is_empty(&AgentViewState::Inactive) {
+                if block.is_empty() {
                     BlockType::BootstrapHidden
                 } else {
                     let serialized_block = block.into();
@@ -539,10 +375,10 @@ impl From<&Block> for BlockType {
                     BlockType::Background(Arc::new(serialized_block))
                 } else {
                     let command = block.command_to_string();
-                    let mut command_with_obfuscated_secrets =
+                    let command_with_obfuscated_secrets =
                         block.command_with_secrets_obfuscated(false);
 
-                    let (output_truncated, mut output_truncated_with_obfuscated_secrets) =
+                    let (output_truncated, output_truncated_with_obfuscated_secrets) =
                         if block.is_ai_ugc_telemetry_enabled {
                             // If telemetry is enabled, we collect the full output but are limiting it to
                             // the first and last 2500 lines in case the block is very large.
@@ -568,15 +404,11 @@ impl From<&Block> for BlockType {
                     if matches!(
                         block.prompt_and_command_grid().should_scan_for_secrets,
                         ObfuscateSecrets::No
-                    ) {
-                        redact_secrets(&mut command_with_obfuscated_secrets);
-                    }
+                    ) {}
                     if matches!(
                         block.output_grid().should_scan_for_secrets,
                         ObfuscateSecrets::No
-                    ) {
-                        redact_secrets(&mut output_truncated_with_obfuscated_secrets);
-                    }
+                    ) {}
 
                     BlockType::User(UserBlockCompleted {
                         index: block.block_index,
@@ -585,7 +417,7 @@ impl From<&Block> for BlockType {
                         command_with_obfuscated_secrets,
                         output_truncated,
                         output_truncated_with_obfuscated_secrets,
-                        was_part_of_agent_interaction: block.agent_interaction_metadata().is_some(),
+                        was_part_of_agent_interaction: false,
                         started_at: block.command_start_time(),
                         num_output_lines: block.output_grid().len() as u64,
                         num_output_lines_truncated: block
@@ -931,7 +763,6 @@ impl Block {
         honor_ps1: bool,
         should_scan_for_secrets: ObfuscateSecrets,
         is_ai_ugc_telemetry_enabled: bool,
-        conversation_id: Option<AIConversationId>,
     ) -> Self {
         let perform_reset_grid_checks = if cfg!(windows) && bootstrap_stage.is_done() {
             PerformResetGridChecks::Yes
@@ -998,11 +829,8 @@ impl Block {
             interaction_mode: InteractionMode::default(),
             block_banner: None,
             ignore_next_rprompt: false,
-            prompt_snapshot: None,
             home_dir: None,
             filter_query: None,
-            cloud_workflow_id: None,
-            cloud_env_var_collection_id: None,
             last_painted_at: None.into(),
             has_received_user_input: false,
             hidden: false,
@@ -1010,10 +838,6 @@ impl Block {
             leading_linefeeds_ignored: 0,
             is_ai_ugc_telemetry_enabled,
             restored_block_was_local: None,
-            agent_view_visibility: match conversation_id {
-                Some(id) => AgentViewVisibility::new_from_conversation(id),
-                None => AgentViewVisibility::new_from_terminal(),
-            },
             nld_overridden: false,
             is_oz_environment_startup_command: false,
         }
@@ -1029,60 +853,6 @@ impl Block {
 
     pub fn interaction_mode(&self) -> &InteractionMode {
         &self.interaction_mode
-    }
-
-    /// Replaces this block's visibility to be associated with the given conversation.
-    /// Use this when a block is being created/assigned to a conversation (e.g., entering agent view).
-    pub fn set_conversation_id(&mut self, conversation_id: AIConversationId) {
-        self.agent_view_visibility = AgentViewVisibility::new_from_conversation(conversation_id);
-    }
-
-    /// Resets this block's visibility to terminal mode.
-    /// Use this when a block is being returned to terminal context (e.g., exiting agent view).
-    pub fn clear_conversation_id(&mut self) {
-        self.agent_view_visibility = AgentViewVisibility::new_from_terminal();
-    }
-
-    /// Sets this block's agent view visibility state directly.
-    /// Use this when restoring a block from serialization.
-    pub fn set_agent_view_visibility(&mut self, visibility: AgentViewVisibility) {
-        self.agent_view_visibility = visibility;
-    }
-
-    /// Adds a conversation ID to the set of conversations where this block is attached as context.
-    pub(super) fn add_attached_conversation_id(&mut self, conversation_id: AIConversationId) {
-        self.agent_view_visibility
-            .add_attached_conversation_id(conversation_id);
-    }
-
-    /// Adds a conversation ID to the set of conversations where this block is pending context.
-    /// It maybe removed if the user removes the block attachment before sending the request, else if it is attached it will be 'promoted'.
-    pub(super) fn add_pending_conversation_id(&mut self, conversation_id: AIConversationId) {
-        self.agent_view_visibility
-            .add_pending_conversation_id(conversation_id);
-    }
-
-    /// Removes a conversation ID from the set of conversations where this block should be visible.
-    /// Returns true if the conversation ID was present and removed, false if it wasn't present.
-    pub(super) fn remove_pending_conversation_id(
-        &mut self,
-        conversation_id: AIConversationId,
-    ) -> bool {
-        self.agent_view_visibility
-            .remove_pending_conversation_id(conversation_id)
-    }
-
-    /// Moves the block from pending context to attached context for the given conversation ID.
-    pub(super) fn promote_pending_to_attached(
-        &mut self,
-        conversation_id: AIConversationId,
-    ) -> bool {
-        self.agent_view_visibility
-            .promote_pending_to_attached(conversation_id)
-    }
-
-    pub fn agent_view_visibility(&self) -> &AgentViewVisibility {
-        &self.agent_view_visibility
     }
 
     /// Returns whether NLD was overridden (input type was manually locked) when this block's
@@ -1297,14 +1067,6 @@ impl Block {
         }
     }
 
-    pub fn set_prompt_snapshot(&mut self, prompt_snapshot: PromptSnapshot) {
-        self.prompt_snapshot = Some(prompt_snapshot);
-    }
-
-    pub fn prompt_snapshot(&self) -> Option<&PromptSnapshot> {
-        self.prompt_snapshot.as_ref()
-    }
-
     /// Sets the prompt and right prompt grids in this block from grids that
     /// we cached when the last user command was submitted.
     ///
@@ -1358,9 +1120,9 @@ impl Block {
         self.header_grid.clone_command_from_blockgrid(command);
     }
 
-    pub fn is_empty(&self, agent_view_state: &AgentViewState) -> bool {
+    pub fn is_empty(&self) -> bool {
         // TODO(vorporeal): this should use a larger epsilon
-        self.height(agent_view_state).as_f64() < f64::EPSILON
+        self.height().as_f64() < f64::EPSILON
     }
 
     pub fn is_restored(&self) -> bool {
@@ -1381,56 +1143,7 @@ impl Block {
     }
 
     /// If true, this block is hidden and has a height of 0.
-    pub fn should_hide_block(&self, agent_view_state: &AgentViewState) -> bool {
-        if self.hidden {
-            return true;
-        }
-        if FeatureFlag::AgentView.is_enabled() {
-            match agent_view_state {
-                AgentViewState::Active {
-                    display_mode: AgentViewDisplayMode::FullScreen,
-                    conversation_id: active_id,
-                    ..
-                } => {
-                    // Agent view is active - show only blocks that belong to this conversation
-                    let visible_in_conversation = match &self.agent_view_visibility {
-                        AgentViewVisibility::Terminal {
-                            pending_conversation_ids,
-                            conversation_ids,
-                        } => {
-                            pending_conversation_ids.contains(active_id)
-                                || conversation_ids.contains(active_id)
-                        }
-                        AgentViewVisibility::Agent {
-                            origin_conversation_id,
-                            pending_other_conversation_ids,
-                            other_conversation_ids,
-                        } => {
-                            active_id == origin_conversation_id
-                                || pending_other_conversation_ids.contains(active_id)
-                                || other_conversation_ids.contains(active_id)
-                        }
-                    };
-                    if !visible_in_conversation {
-                        return true;
-                    }
-                }
-                AgentViewState::Active {
-                    display_mode: AgentViewDisplayMode::Inline,
-                    ..
-                }
-                | AgentViewState::Inactive => {
-                    // Terminal view - hide blocks that were created in agent mode
-                    if matches!(
-                        self.agent_view_visibility,
-                        AgentViewVisibility::Agent { .. }
-                    ) {
-                        return true;
-                    }
-                }
-            }
-        }
-
+    pub fn should_hide_block(&self) -> bool {
         let is_bootstrap_block = self.bootstrap_stage == BootstrapStage::WarpInput;
         let is_empty_bootstrap_script_execution_block = self.bootstrap_stage
             == BootstrapStage::ScriptExecution
@@ -1447,7 +1160,6 @@ impl Block {
                 .as_ref()
                 .is_some_and(|metadata| metadata.should_hide_block)
             || (self.is_for_in_band_command && !self.show_in_band_command_blocks)
-            || self.interaction_mode.should_hide_block()
     }
 
     pub fn is_hidden(&self) -> bool {
@@ -1487,11 +1199,8 @@ impl Block {
 
     /// Returns true iff this block should be used as a scrollback block
     /// in a shared session context. Note the active block is included in scrollback to get the active prompt.
-    pub fn is_scrollback_block_for_shared_session(
-        &self,
-        agent_view_state: &AgentViewState,
-    ) -> bool {
-        !self.should_hide_block(agent_view_state) && !self.is_restored()
+    pub fn is_scrollback_block_for_shared_session(&self) -> bool {
+        !self.should_hide_block() && !self.is_restored()
     }
 
     pub fn index(&self) -> BlockIndex {
@@ -1499,15 +1208,15 @@ impl Block {
     }
 
     /// `true` if the block is rendered in the blocklist.
-    pub fn is_visible(&self, agent_view_state: &AgentViewState) -> bool {
-        self.height(agent_view_state) > Lines::zero()
+    pub fn is_visible(&self) -> bool {
+        self.height() > Lines::zero()
     }
 
     /// Height is the source-of-truth determinant for whether or not a block is hidden (i.e. if it
     /// has a height of 0). Thus it depends on agent_view_state, which affects whether or not a
     /// given block should be hidden.
-    pub fn height(&self, agent_view_state: &AgentViewState) -> Lines {
-        if self.should_hide_block(agent_view_state) {
+    pub fn height(&self) -> Lines {
+        if self.should_hide_block() {
             Lines::zero()
         } else {
             self.block_banner_height()
@@ -1529,28 +1238,6 @@ impl Block {
     /// line prompt, we render on the same line for PS1, but not for Warp prompt!
     pub fn render_prompt_on_same_line(&self) -> bool {
         self.honor_ps1()
-    }
-
-    /// Used for determining the height of the block with `DisplaySettings` used when sharing a block.
-    pub fn full_content_height_with_display_options(
-        &self,
-        display_setting: &DisplaySetting,
-        show_prompt: bool,
-    ) -> Lines {
-        let mut height = self.padding_top();
-        if show_prompt && !self.render_prompt_on_same_line() {
-            height += self.prompt_height() + self.command_padding_top();
-        }
-
-        let command_height = self.prompt_and_command_height();
-
-        height += match display_setting {
-            DisplaySetting::Command => command_height,
-            DisplaySetting::Output => self.output_grid_full_content_height(),
-            _ => command_height + self.padding_middle() + self.output_grid_full_content_height(),
-        };
-        height += self.padding_bottom();
-        height
     }
 
     /// The last part of the lifecycle for the block. After this, its contents
@@ -1627,13 +1314,13 @@ impl Block {
             number_of_bottom_lines_per_grid,
         );
 
-        let mut processed_input = self.prompt_and_command_grid().content_summary(
+        let processed_input = self.prompt_and_command_grid().content_summary(
             optimized_top_lines,
             optimized_bottom_lines,
             true,
         );
 
-        let mut processed_output =
+        let processed_output =
             self.output_grid()
                 .content_summary(optimized_top_lines, optimized_bottom_lines, true);
 
@@ -1641,15 +1328,11 @@ impl Block {
         if matches!(
             self.prompt_and_command_grid().should_scan_for_secrets(),
             ObfuscateSecrets::No
-        ) {
-            redact_secrets(&mut processed_input);
-        }
+        ) {}
         if matches!(
             self.output_grid().should_scan_for_secrets(),
             ObfuscateSecrets::No
-        ) {
-            redact_secrets(&mut processed_output);
-        }
+        ) {}
 
         (processed_input, processed_output)
     }
@@ -1781,8 +1464,8 @@ impl Block {
         &self,
         include_escape_sequences: bool,
     ) -> (String, String) {
-        let mut command = self.command_with_secrets_obfuscated(include_escape_sequences);
-        let mut output = self
+        let command = self.command_with_secrets_obfuscated(include_escape_sequences);
+        let output = self
             .output_grid()
             .contents_to_string_force_secrets_obfuscated(
                 include_escape_sequences,
@@ -1793,15 +1476,11 @@ impl Block {
         if matches!(
             self.prompt_and_command_grid().should_scan_for_secrets,
             ObfuscateSecrets::No
-        ) {
-            redact_secrets(&mut command);
-        }
+        ) {}
         if matches!(
             self.output_grid().should_scan_for_secrets,
             ObfuscateSecrets::No
-        ) {
-            redact_secrets(&mut output);
-        }
+        ) {}
 
         (command, output)
     }
@@ -2566,7 +2245,7 @@ impl Block {
             x if x < (self.output_grid_offset() + self.output_grid_displayed_height()) => {
                 BlockSection::OutputGrid((row - self.output_grid_offset()).max(Lines::zero()))
             }
-            x if x < self.height(&AgentViewState::Inactive) => BlockSection::PaddingBottom,
+            x if x < self.height() => BlockSection::PaddingBottom,
             _ => BlockSection::NotContained,
         }
     }
@@ -2619,22 +2298,6 @@ impl Block {
 
     pub fn set_home_dir(&mut self, home_dir: Option<String>) {
         self.home_dir = home_dir;
-    }
-
-    pub fn set_cloud_env_var_state(&mut self, env_var_collection_id: Option<SyncId>) {
-        self.cloud_env_var_collection_id = env_var_collection_id;
-    }
-
-    pub fn cloud_env_var_collection_state(&self) -> Option<SyncId> {
-        self.cloud_env_var_collection_id
-    }
-
-    pub fn set_cloud_workflow_state(&mut self, workflow_id: Option<SyncId>) {
-        self.cloud_workflow_id = workflow_id;
-    }
-
-    pub fn cloud_workflow_state(&self) -> Option<SyncId> {
-        self.cloud_workflow_id
     }
 
     pub fn server_pwd(&self) -> Option<Cow<'_, str>> {
@@ -2802,12 +2465,6 @@ impl Block {
     }
 
     /// Returns `true` if this block is a valid option to use as context for an AI model.
-    pub fn can_be_ai_context(&self, agent_view_state: &AgentViewState) -> bool {
-        self.is_visible(agent_view_state)
-            && !self.is_in_band_command_block()
-            && !self.is_agent_monitoring()
-    }
-
     pub fn estimated_heap_usage_bytes(&self) -> usize {
         // For now, we're only factoring in heap allocations in grids, and not
         // in other fields.

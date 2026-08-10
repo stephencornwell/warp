@@ -4,16 +4,16 @@ members = [
   "app",
 ]
 resolver = "2"
+exclude = [
+  "crates/integration",
+]
 
-# Include all members except serve-wasm (since it's a helper helper for serving
-# wasm binaries and not something we want to regularly compile or run
-# tests against) and integration (since it is only used for testing).
+# Include the default application and core library members in regular builds.
 default-members = [
   "app",
   "crates/channel_versions",
   "crates/command",
   "crates/editor",
-  "crates/graphql",
   "crates/markdown_parser",
   "crates/sum_tree",
   "crates/warpui",
@@ -29,30 +29,23 @@ publish = false
 
 [workspace.dependencies]
 # Local workspace crates. This lets us reference them in other crates without specifying a path.
-ai = { path = "crates/ai" }
 app-installation-detection = { path = "crates/app-installation-detection" }
 asset_cache = { path = "crates/asset_cache" }
 asset_macro = { path = "crates/asset_macro" }
 channel_versions = { path = "crates/channel_versions", default-features = false }
 command = { path = "crates/command" }
 command-signatures-v2 = { path = "crates/command-signatures-v2" }
-computer_use = { path = "crates/computer_use" }
 field_mask = { path = "crates/field_mask" }
-firebase = { path = "crates/firebase" }
 fuzzy_match = { path = "crates/fuzzy_match" }
 handlebars = { path = "crates/handlebars" }
 http_client = { path = "crates/http_client" }
 http_server = { path = "crates/http_server" }
-input_classifier = { path = "crates/input_classifier" }
-integration = { path = "crates/integration" }
 ipc = { path = "crates/ipc" }
 jsonrpc = { path = "crates/jsonrpc" }
 languages = { path = "crates/languages" }
 lsp = { path = "crates/lsp" }
 markdown_parser = { path = "crates/markdown_parser" }
-natural_language_detection = { path = "crates/natural_language_detection" }
 node_runtime = { path = "crates/node_runtime" }
-onboarding = { path = "crates/onboarding" }
 persistence = { path = "crates/persistence" }
 prevent_sleep = { path = "crates/prevent_sleep" }
 repo_metadata = { path = "crates/repo_metadata" }
@@ -66,26 +59,19 @@ syntax_tree = { path = "crates/syntax_tree" }
 ui_components = { path = "crates/ui_components" }
 vim = { path = "crates/vim" }
 virtual-fs = { path = "crates/virtual_fs" }
-voice_input = { path = "crates/voice_input" }
 warp = { path = "app" }
 warp_cli = { path = "crates/warp_cli" }
 warp_completer = { path = "crates/warp_completer" }
 warp_core = { path = "crates/warp_core" }
 warp_editor = { path = "crates/editor" }
 warp_features = { path = "crates/warp_features" }
-remote_server = { path = "crates/remote_server" }
 warp_files = { path = "crates/warp_files" }
-warp_graphql = { path = "crates/graphql" }
-warp_graphql_schema = { path = "crates/warp_graphql_schema" }
 warp_isolation_platform = { path = "crates/isolation_platform" }
 warp_js = { path = "crates/warp_js" }
 warp_logging = { path = "crates/warp_logging" }
-warp_managed_secrets = { path = "crates/managed_secrets" }
 warp_ripgrep = { path = "crates/warp_ripgrep" }
-warp_server_client = { path = "crates/warp_server_client" }
 warp_terminal = { path = "crates/warp_terminal" }
 warp_util = { path = "crates/warp_util" }
-warp_web_event_bus = { path = "crates/warp_web_event_bus" }
 warpui = { path = "crates/warpui" }
 warpui_core = { path = "crates/warpui_core" }
 warpui_extras = { path = "crates/warpui_extras", default-features = false }
@@ -145,11 +131,6 @@ futures-lite = "1.13.0"
 futures-util = { version = "0.3", default-features = false }
 get-size = { version = "0.1.4", features = ["derive"] }
 globset = "0.4.18"
-gloo = { version = "0.11.0", default-features = false, features = [
-  "events",
-  "futures",
-  "utils",
-] }
 graphql-ws-client = { version = "0.11.1", default-features = false }
 hex = "0.4.3"
 # This matches the version of hyper used by reqwest.
@@ -164,7 +145,7 @@ image = { version = "0.25.9", default-features = false, features = [
   "gif",
   "webp",
 ] }
-instant = { version = "0.1.12", features = ["wasm-bindgen"] }
+instant = "0.1.12"
 itertools = "0.14.0"
 jaq-json = { version = "2.0", features = ["serde"] }
 # Disabling the default `formats` feature is intended to avoid pulling in
@@ -224,7 +205,6 @@ reqwest = { version = "0.12.28", default-features = false, features = [
   "stream",
   "system-proxy",
 ] }
-reqwest-eventsource = "0.6.0"
 resvg = "0.47.0"
 rust-embed = { version = "8.7.0", features = ["include-exclude"] }
 rustc-hash = "2.1.1"
@@ -304,27 +284,6 @@ version-compare = "0.1"
 vte = { git = "https://github.com/warpdotdev/vte.git", rev = "4b399c87b63ba88f45709edaa6383fc519f6c900", default-features = false }
 walkdir = "2"
 warp-workflows = { git = "https://github.com/warpdotdev/workflows", rev = "793a98ddda6ef19682aed66364faebd2829f0e01" }
-warp_multi_agent_api = { git = "https://github.com/warpdotdev/warp-proto-apis.git", rev = "aa2f9cde164a5b48ac01087d417d1188771f9b6d" }
-wasm-bindgen = "0.2.89"
-wasm-bindgen-futures = "0.4.42"
-web-sys = { version = "0.3.69", features = [
-  "Blob",
-  "Clipboard",
-  "ClipboardEvent",
-  "ClipboardItem",
-  "CompositionEvent",
-  "Document",
-  "DataTransfer",
-  "Event",
-  "HtmlCanvasElement",
-  "HtmlInputElement",
-  "InputEvent",
-  "Navigator",
-  "MediaQueryList",
-  "Window",
-  "Notification",
-  "NotificationPermission",
-] }
 # Disable default features to disable support for WebGPU, which does not yet
 # have wide browser support.  We enable all other default feature of wgpu,
 # though.
@@ -376,7 +335,6 @@ typed-path = "0.10.0"
 streaming-iterator = "0.1.0"
 derivative = "2.2.0"
 parquet = { version = "55.0.0", features = ["arrow"] }
-rmcp = { git = "https://github.com/warpdotdev/rmcp.git", rev = "c0f65dc441af7d714b9c453ac5e7ef641451abe3" }
 
 [profile.release]
 # Use line-tables-only (debug = 1) rather than full debuginfo (debug = 2 /
@@ -459,7 +417,6 @@ inherits = "release-lto-debug_assertions"
 # A profile tuned for the `oz` CLI tarball. The CLI is shipped over the network
 # and run headlessly, so we trade some compile time and a small amount of
 # runtime perf for a smaller binary by mirroring the size-leaning settings used
-# by `release-wasm`.
 [profile.release-cli]
 inherits = "release-lto"
 opt-level = "s"
@@ -471,25 +428,11 @@ codegen-units = 1
 inherits = "release-cli"
 debug-assertions = true
 
-[profile.release-wasm]
-inherits = "release"
-opt-level = "s"
-lto = true
-codegen-units = 1
-
-[profile.release-wasm-debug_assertions]
-inherits = "release-wasm"
-debug-assertions = true
-
 # A dev profile optimized for remote server deployment. Strips symbols to
 # reduce binary size and improve rsync delta transfer efficiency.
 [profile.dev-remote]
 inherits = "dev"
 strip = "symbols"
-
-[profile.dev-wasm]
-inherits = "dev"
-opt-level = "s"
 
 [patch.crates-io]
 # Pinned to the merge commit of servo/core-foundation-rs#746, which fixes a
@@ -514,4 +457,3 @@ tikv-jemalloc-sys = { git = "https://github.com/warpdotdev/jemallocator.git", re
 
 [patch."https://github.com/warpdotdev/warp-proto-apis.git"]
 # Uncomment for local development of warp-proto-apis
-# warp_multi_agent_api = { path = "../warp-proto-apis/apis/multi_agent/v1/gen/rust" }

@@ -22,25 +22,17 @@ pub(super) struct WorkspaceMouseStates {
     pub(super) new_tab_button: MouseStateHandle,
     pub(super) new_tab_menu: MouseStateHandle,
     pub(super) new_tab: MouseStateHandle,
-    pub(super) overflow_button: MouseStateHandle,
     pub(super) banner_button: MouseStateHandle,
     pub(super) banner_secondary_button: MouseStateHandle,
     pub(super) more_info_banner_button: MouseStateHandle,
-    pub(super) resource_center_icon: MouseStateHandle,
-    pub(super) ai_tab_bar_button: MouseStateHandle,
-    pub(super) agent_management_view_button: MouseStateHandle,
     pub(super) left_panel_icon: MouseStateHandle,
     pub(super) settings_icon: MouseStateHandle,
     pub(super) dismiss_banner_button: MouseStateHandle,
-    pub(super) sign_in_button: MouseStateHandle,
-    pub(super) sign_up_button: MouseStateHandle,
     pub(super) offline_icon: MouseStateHandle,
-    pub(super) avatar_icon: MouseStateHandle,
     pub(super) header_dimming: MouseStateHandle,
-    pub(super) right_panel_icon: MouseStateHandle,
-    pub(super) notifications_mailbox: MouseStateHandle,
-    pub(super) session_config_tab_config_chip_close: MouseStateHandle,
+    #[allow(dead_code)]
     pub(super) tools_panel_icon: MouseStateHandle,
+    #[allow(dead_code)]
     pub(super) title_bar_search_bar: MouseStateHandle,
     #[cfg(target_family = "wasm")]
     pub(super) warp_logo: MouseStateHandle,
@@ -106,11 +98,8 @@ pub struct WorkspaceState {
     pub is_workflow_modal_open: bool,
     pub is_prompt_editor_open: bool,
     pub is_agent_toolbar_editor_open: bool,
-    pub is_header_toolbar_editor_open: bool,
     pub is_import_modal_open: bool,
     pub is_close_session_confirmation_dialog_open: bool,
-    pub is_rewind_confirmation_dialog_open: bool,
-    pub is_delete_conversation_confirmation_dialog_open: bool,
     pub is_native_quit_modal_open: bool,
     pub is_shared_objects_creation_denied_modal_open: bool,
     pub is_suggested_agent_mode_workflow_modal_open: bool,
@@ -118,12 +107,9 @@ pub struct WorkspaceState {
     pub is_enable_auto_reload_modal_open: bool,
     pub is_notification_mailbox_open: bool,
     pub is_agent_management_view_open: bool,
-    pub is_codex_modal_open: bool,
     pub is_cloud_agent_capacity_modal_open: bool,
-    pub is_free_tier_limit_hit_modal_open: bool,
     pub is_tab_config_params_modal_open: bool,
     pub is_session_config_modal_open: bool,
-    pub is_new_worktree_modal_open: bool,
     pub is_remove_tab_config_dialog_open: bool,
     /// Whether the transcript details panel is open (WASM only, for conversation transcript viewing).
     pub is_transcript_details_panel_open: bool,
@@ -151,24 +137,19 @@ impl WorkspaceState {
             || self.is_command_search_open
             || self.is_prompt_editor_open
             || self.is_agent_toolbar_editor_open
-            || self.is_header_toolbar_editor_open
             || self.is_agent_management_popup_open
             || self.is_import_modal_open
             || self.is_shared_objects_creation_denied_modal_open
             || self.is_suggested_rule_modal_open
             || self.is_suggested_agent_mode_workflow_modal_open
             || self.is_enable_auto_reload_modal_open
-            || self.is_codex_modal_open
             || self.is_cloud_agent_capacity_modal_open
-            || self.is_free_tier_limit_hit_modal_open
             || self.is_tab_config_params_modal_open
             || self.is_session_config_modal_open
-            || self.is_new_worktree_modal_open
             || self.is_remove_tab_config_dialog_open
             || {
                 let one_time_modal = OneTimeModalModel::as_ref(app);
-                one_time_modal.is_oz_launch_modal_open()
-                    || one_time_modal.is_build_plan_migration_modal_open()
+                one_time_modal.is_build_plan_migration_modal_open()
             }
     }
 
@@ -193,7 +174,6 @@ impl WorkspaceState {
         self.is_workflow_modal_open = false;
         self.is_prompt_editor_open = false;
         self.is_agent_toolbar_editor_open = false;
-        self.is_header_toolbar_editor_open = false;
         self.is_import_modal_open = false;
         self.is_shared_objects_creation_denied_modal_open = false;
         self.is_auth_override_modal_open = false;
@@ -201,12 +181,9 @@ impl WorkspaceState {
         self.is_suggested_rule_modal_open = false;
         self.is_suggested_agent_mode_workflow_modal_open = false;
         self.is_enable_auto_reload_modal_open = false;
-        self.is_codex_modal_open = false;
         self.is_cloud_agent_capacity_modal_open = false;
-        self.is_free_tier_limit_hit_modal_open = false;
         self.is_tab_config_params_modal_open = false;
         self.is_session_config_modal_open = false;
-        self.is_new_worktree_modal_open = false;
         self.is_remove_tab_config_dialog_open = false;
     }
 

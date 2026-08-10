@@ -11,7 +11,8 @@ use std::{io::sink, sync::Arc};
 use warp_core::command::ExitCode;
 use warpui::r#async::executor::Background;
 
-use crate::ai::blocklist::SerializedBlockListItem;
+use crate::terminal::model::block::SerializedBlock;
+type SerializedBlockListItem = SerializedBlock;
 use crate::terminal::{
     color::{self, Colors},
     event_listener::ChannelEventListener,
@@ -221,7 +222,6 @@ impl TestBlockBuilder {
             self.honor_ps1,
             ObfuscateSecrets::No,
             false, /* is_telemetry_enabled */
-            None,
         )
     }
 }

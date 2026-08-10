@@ -15,16 +15,13 @@ use super::{SettingActionPairContexts, SettingActionPairDescriptions, ToggleSett
 use crate::appearance::{Appearance, AppearanceEvent};
 use crate::channel::{Channel, ChannelState};
 use crate::context_chips::prompt::PromptEvent;
-use crate::context_chips::renderer::ChipDragState;
 use crate::context_chips::{
     prompt::Prompt, renderer::Renderer as ContextChipRenderer, ChipAvailability,
 };
 use crate::editor::{
     EditOrigin, Event as EditorEvent, InteractionState, SingleLineEditorOptions, TextOptions,
 };
-use crate::gpu_state::{GPUState, GPUStateEvent};
-use crate::prompt::editor_modal::OpenSource as PromptEditorOpenSource;
-use crate::server::telemetry::InputUXChangeOrigin;
+use crate::gpu_state::GPUState;
 use crate::settings::{
     active_theme_kind,
     app_icon::{AppIcon, AppIconSettings},
@@ -35,10 +32,8 @@ use crate::settings::{
 };
 use crate::settings::{CursorDisplayType, GPUSettings, InputSettings, InputSettingsChangedEvent};
 use crate::terminal::block_list_viewport::InputMode;
-use crate::terminal::blockgrid_element::BlockGridElement;
 use crate::terminal::ligature_settings::{LigatureRenderingEnabled, LigatureSettings};
 use crate::terminal::model::blockgrid::BlockGrid;
-use crate::terminal::model::ObfuscateSecrets;
 use crate::terminal::session_settings::SessionSettings;
 use crate::terminal::settings::{
     AltScreenPadding, AltScreenPaddingMode, Spacing, SpacingMode, TerminalSettings,
@@ -52,12 +47,9 @@ use crate::window_settings::{
     BackgroundBlurRadius, BackgroundBlurTexture, BackgroundOpacity, LeftPanelVisibilityAcrossTabs,
     OpenWindowsAtCustomSize, WindowSettings, WindowSettingsChangedEvent, ZoomLevel,
 };
-use crate::workspace::header_toolbar_editor::HeaderToolbarInlineEditor;
 use crate::workspace::tab_settings::{
     DirectoryTabColor, PreserveActiveTabColor, ShowCodeReviewButton, ShowIndicatorsButton,
-    ShowVerticalTabPanelInRestoredWindows, TabCloseButtonPosition, TabSettings,
-    TabSettingsChangedEvent, UseLatestUserPromptAsConversationTitleInTabNames, UseVerticalTabs,
-    WorkspaceDecorationVisibility,
+    TabCloseButtonPosition, TabSettings, TabSettingsChangedEvent, WorkspaceDecorationVisibility,
 };
 use crate::workspace::WorkspaceAction;
 use crate::{editor::EditorView, themes::theme_chooser::ThemeChooserMode};
@@ -65,8 +57,7 @@ use crate::{
     features::FeatureFlag,
     view_components::{Dropdown, DropdownItem, FilterableDropdown},
 };
-use crate::{report_error, report_if_error, themes};
-use crate::{send_telemetry_from_ctx, server::telemetry::TelemetryEvent};
+use crate::{report_error, themes};
 use ::settings::{Setting, SettingSection, ToggleableSetting};
 use enum_iterator::all;
 use std::borrow::Cow;
@@ -74,11 +65,10 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::rc::Rc;
+use warp_core::report_if_error;
 use warp_core::ui::theme::color::internal_colors;
 use warp_util::path::user_friendly_path;
-use warpui::elements::{
-    Clipped, Empty, FormattedTextElement, MainAxisAlignment, MainAxisSize, Text, Wrap,
-};
+use warpui::elements::{Empty, FormattedTextElement, MainAxisAlignment, MainAxisSize, Text};
 use warpui::fonts::{FamilyId, FontInfo, Weight};
 use warpui::keymap::{ContextPredicate, FixedBinding};
 use warpui::platform::{Cursor, FilePickerConfiguration, GraphicsBackend};
@@ -372,25 +362,6 @@ pub fn init_actions_from_parent_view<T: Action + Clone>(
         )
     }
 
-    if FeatureFlag::VerticalTabs.is_enabled() {
-        toggle_binding_pairs.push(ToggleSettingActionPair::new(
-            "vertical tab layout",
-            builder(SettingsAction::AppearancePageToggle(
-                AppearancePageAction::ToggleVerticalTabs,
-            )),
-            context,
-            flags::USE_VERTICAL_TABS_FLAG,
-        ));
-        toggle_binding_pairs.push(ToggleSettingActionPair::new(
-            "show vertical tabs panel in restored windows",
-            builder(SettingsAction::AppearancePageToggle(
-                AppearancePageAction::ToggleShowVerticalTabPanelInRestoredWindows,
-            )),
-            context,
-            flags::USE_VERTICAL_TABS_FLAG,
-        ));
-    }
-
     if FeatureFlag::Ligatures.is_enabled() {
         toggle_binding_pairs.push(ToggleSettingActionPair::new(
             "ligature rendering",
@@ -459,9 +430,6 @@ pub enum AppearancePageAction {
     ToggleTabIndicators,
     ToggleShowCodeReviewButton,
     TogglePreserveActiveTabColor,
-    ToggleVerticalTabs,
-    ToggleShowVerticalTabPanelInRestoredWindows,
-    ToggleUseLatestUserPromptAsConversationTitleInTabNames,
     ToggleLigatureRendering,
     ToggleBlurTexture,
     ToggleLeftPanelVisibility,
@@ -513,7 +481,6 @@ pub struct AppearanceSettingsPageView {
     alt_screen_padding_editor: ViewHandle<EditorView>,
     color_picker_dot_states: Vec<Vec<MouseStateHandle>>,
     directory_tab_color_delete_buttons: Vec<ViewHandle<ActionButton>>,
-    header_toolbar_inline_editor: ViewHandle<HeaderToolbarInlineEditor>,
 
     /// The context chip renderers based on the most recently
     /// selected Warp prompt configuration.
@@ -598,13 +565,6 @@ impl TypedActionView for AppearanceSettingsPageView {
             ToggleTabIndicators => self.toggle_tab_indicators(ctx),
             ToggleShowCodeReviewButton => self.toggle_show_code_review_button(ctx),
             TogglePreserveActiveTabColor => self.toggle_preserve_active_tab_color(ctx),
-            ToggleVerticalTabs => self.toggle_vertical_tabs(ctx),
-            ToggleShowVerticalTabPanelInRestoredWindows => {
-                self.toggle_show_vertical_tab_panel_in_restored_windows(ctx)
-            }
-            ToggleUseLatestUserPromptAsConversationTitleInTabNames => {
-                self.toggle_use_latest_user_prompt_as_conversation_title_in_tab_names(ctx)
-            }
             ToggleLigatureRendering => self.toggle_ligature_rendering(ctx),
             ToggleFocusPaneOnHover => {
                 PaneSettings::handle(ctx).update(ctx, |pane_settings, ctx| {
@@ -612,12 +572,7 @@ impl TypedActionView for AppearanceSettingsPageView {
                         .focus_panes_on_hover
                         .toggle_and_save_value(ctx)
                     {
-                        Ok(new_val) => {
-                            send_telemetry_from_ctx!(
-                                TelemetryEvent::ToggleFocusPaneOnHover { enabled: new_val },
-                                ctx
-                            );
-                        }
+                        Ok(_new_val) => {}
                         Err(e) => {
                             report_error!(e);
                         }
@@ -635,12 +590,6 @@ impl TypedActionView for AppearanceSettingsPageView {
                         .set_value(*new_mode, ctx));
                 });
                 self.set_alt_screen_padding_editor_text(ctx);
-                send_telemetry_from_ctx!(
-                    TelemetryEvent::UpdateAltScreenPaddingMode {
-                        new_mode: *new_mode,
-                    },
-                    ctx
-                );
             }
             SetTabCloseButtonPosition(position) => {
                 self.update_tab_close_button_position(*position, ctx);
@@ -765,12 +714,6 @@ impl AppearanceSettingsPageView {
                 editor_view.set_interaction_state(InteractionState::Disabled, ctx);
             })
         }
-
-        ctx.subscribe_to_model(&GPUState::handle(ctx), |_, _, event, ctx| {
-            if matches!(event, GPUStateEvent::LowPowerGPUAvailable) {
-                ctx.notify();
-            }
-        });
 
         let appearance_handle = Appearance::handle(ctx);
         ctx.subscribe_to_model(&appearance_handle, Self::handle_appearance_update);
@@ -1197,8 +1140,6 @@ impl AppearanceSettingsPageView {
         let input_type = InputSettings::as_ref(ctx).input_type(ctx);
         let input_type_radio_state = RadioButtonStateHandle::default();
         input_type_radio_state.set_selected_idx(input_type as usize);
-        let header_toolbar_inline_editor =
-            ctx.add_typed_action_view(HeaderToolbarInlineEditor::new);
 
         AppearanceSettingsPageView {
             page: Self::build_page(ctx),
@@ -1237,7 +1178,6 @@ impl AppearanceSettingsPageView {
                 })
                 .collect(),
             directory_tab_color_delete_buttons: build_directory_delete_buttons(ctx),
-            header_toolbar_inline_editor,
             alt_screen_padding_editor,
             context_chips,
             ps1_grid_info: None,
@@ -1307,7 +1247,6 @@ impl AppearanceSettingsPageView {
 
         let category_widgets: Vec<Box<dyn SettingsWidget<View = Self>>> = vec![
             Box::new(InputTypeWidget::default()),
-            Box::new(PromptWidget::default()),
             Box::new(InputModeWidget::default()),
         ];
 
@@ -1384,19 +1323,6 @@ impl AppearanceSettingsPageView {
             tab_settings_widgets.push(Box::new(TabCloseButtonPositionWidget::default()));
         }
         tab_settings_widgets.push(Box::new(PreserveActiveTabColorWidget::default()));
-
-        if FeatureFlag::VerticalTabs.is_enabled() {
-            tab_settings_widgets.push(Box::new(VerticalTabsWidget::default()));
-            tab_settings_widgets.push(Box::new(
-                ShowVerticalTabPanelInRestoredWindowsWidget::default(),
-            ));
-            tab_settings_widgets.push(Box::new(
-                UseLatestUserPromptAsConversationTitleInTabNamesWidget::default(),
-            ));
-            if FeatureFlag::ConfigurableToolbar.is_enabled() {
-                tab_settings_widgets.push(Box::new(EditToolbarWidget));
-            }
-        }
 
         if FeatureFlag::DirectoryTabColors.is_enabled() {
             let add_picker = ctx.add_typed_action_view(DirectoryColorAddPicker::new);
@@ -1600,10 +1526,6 @@ impl AppearanceSettingsPageView {
                             report_if_error!(terminal_settings
                                 .alt_screen_padding
                                 .set_value(new_mode, ctx));
-                            send_telemetry_from_ctx!(
-                                TelemetryEvent::UpdateAltScreenPaddingMode { new_mode },
-                                ctx
-                            );
                         });
                     }
                 }
@@ -1751,17 +1673,9 @@ impl AppearanceSettingsPageView {
     fn set_opacity(
         &mut self,
         opacity_value: f32,
-        should_set_defaults: bool,
+        _should_set_defaults: bool,
         ctx: &mut ViewContext<Self>,
     ) {
-        if should_set_defaults {
-            send_telemetry_from_ctx!(
-                TelemetryEvent::SetOpacity {
-                    opacity: opacity_value as u8
-                },
-                ctx
-            );
-        }
         WindowSettings::handle(ctx).update(ctx, |window_settings, ctx| {
             report_if_error!(window_settings
                 .background_opacity
@@ -1773,18 +1687,9 @@ impl AppearanceSettingsPageView {
     fn set_blur(
         &mut self,
         blur_value: f32,
-        should_set_defaults: bool,
+        _should_set_defaults: bool,
         ctx: &mut ViewContext<Self>,
     ) {
-        if should_set_defaults {
-            send_telemetry_from_ctx!(
-                TelemetryEvent::SetBlurRadius {
-                    blur_radius: blur_value as u8
-                },
-                ctx
-            );
-        }
-
         ctx.windows()
             .set_all_windows_background_blur_radius(blur_value as u8);
 
@@ -1800,13 +1705,6 @@ impl AppearanceSettingsPageView {
         self.line_height_editor.update(ctx, |editor, ctx| {
             editor.set_buffer_text(&format!("{DEFAULT_UI_LINE_HEIGHT_RATIO}"), ctx);
         });
-
-        send_telemetry_from_ctx!(
-            TelemetryEvent::SetLineHeight {
-                new_value: DEFAULT_UI_LINE_HEIGHT_RATIO
-            },
-            ctx
-        );
 
         FontSettings::handle(ctx).update(ctx, |font_settings, ctx| {
             report_if_error!(font_settings
@@ -1824,21 +1722,14 @@ impl AppearanceSettingsPageView {
         let appearance = Appearance::as_ref(ctx);
         let current_line_height = appearance.ui_builder().line_height_ratio();
 
-        if (current_line_height - new_line_height).abs() > f32::EPSILON {
-            send_telemetry_from_ctx!(
-                TelemetryEvent::SetLineHeight {
-                    new_value: new_line_height
-                },
-                ctx
-            );
-
-            if (MIN_LINE_SPACING..=MAX_LINE_SPACING).contains(&new_line_height) {
-                FontSettings::handle(ctx).update(ctx, |font_settings, ctx| {
-                    report_if_error!(font_settings
-                        .line_height_ratio
-                        .set_value(new_line_height, ctx));
-                });
-            }
+        if (current_line_height - new_line_height).abs() > f32::EPSILON
+            && (MIN_LINE_SPACING..=MAX_LINE_SPACING).contains(&new_line_height)
+        {
+            FontSettings::handle(ctx).update(ctx, |font_settings, ctx| {
+                report_if_error!(font_settings
+                    .line_height_ratio
+                    .set_value(new_line_height, ctx));
+            });
         }
     }
 
@@ -1846,10 +1737,6 @@ impl AppearanceSettingsPageView {
         WindowSettings::handle(ctx).update(ctx, |window_settings, ctx| {
             let current_val = window_settings.open_windows_at_custom_size.value();
             let new_val: bool = !current_val;
-            send_telemetry_from_ctx!(
-                TelemetryEvent::ToggleNewWindowsAtCustomSize { enabled: new_val },
-                ctx
-            );
             report_if_error!(window_settings
                 .open_windows_at_custom_size
                 .set_value(new_val, ctx));
@@ -1859,7 +1746,6 @@ impl AppearanceSettingsPageView {
 
     fn set_new_windows_num_columns(&mut self, columns: u16, ctx: &mut ViewContext<Self>) {
         WindowSettings::handle(ctx).update(ctx, |window_settings, ctx| {
-            send_telemetry_from_ctx!(TelemetryEvent::SetNewWindowsAtCustomSize, ctx);
             report_if_error!(window_settings
                 .new_windows_num_columns
                 .set_value(columns, ctx));
@@ -1868,7 +1754,6 @@ impl AppearanceSettingsPageView {
 
     fn set_new_windows_num_rows(&mut self, rows: u16, ctx: &mut ViewContext<Self>) {
         WindowSettings::handle(ctx).update(ctx, |window_settings, ctx| {
-            send_telemetry_from_ctx!(TelemetryEvent::SetNewWindowsAtCustomSize, ctx);
             report_if_error!(window_settings.new_windows_num_rows.set_value(rows, ctx));
         });
     }
@@ -2073,12 +1958,7 @@ impl AppearanceSettingsPageView {
     fn set_thin_strokes(&mut self, value: &ThinStrokes, ctx: &mut ViewContext<Self>) {
         FontSettings::handle(ctx).update(ctx, |font_settings, ctx| {
             match font_settings.use_thin_strokes.set_value(*value, ctx) {
-                Ok(_) => {
-                    send_telemetry_from_ctx!(
-                        TelemetryEvent::ThinStrokesSettingChanged { new_value: *value },
-                        ctx
-                    );
-                }
+                Ok(_) => {}
                 Err(e) => {
                     report_error!(e);
                 }
@@ -2094,10 +1974,6 @@ impl AppearanceSettingsPageView {
                 .show_jump_to_bottom_of_block_button
                 .value()
         };
-        send_telemetry_from_ctx!(
-            TelemetryEvent::ToggleJumpToBottomofBlockButton { enabled: new_value },
-            ctx
-        );
         ctx.update_model(&block_list_settings, move |block_list_settings, ctx| {
             report_if_error!(block_list_settings
                 .show_jump_to_bottom_of_block_button
@@ -2108,10 +1984,6 @@ impl AppearanceSettingsPageView {
     pub fn toggle_show_block_dividers(&mut self, ctx: &mut ViewContext<Self>) {
         let block_list_settings = BlockListSettings::handle(ctx);
         let new_value = { !*block_list_settings.as_ref(ctx).show_block_dividers.value() };
-        send_telemetry_from_ctx!(
-            TelemetryEvent::ToggleShowBlockDividers { enabled: new_value },
-            ctx
-        );
         ctx.update_model(&block_list_settings, move |block_list_settings, ctx| {
             report_if_error!(block_list_settings
                 .show_block_dividers
@@ -2147,12 +2019,7 @@ impl AppearanceSettingsPageView {
                 .should_dim_inactive_panes
                 .toggle_and_save_value(ctx)
             {
-                Ok(new_value) => {
-                    send_telemetry_from_ctx!(
-                        TelemetryEvent::ToggleDimInactivePanes { enabled: new_value },
-                        ctx
-                    );
-                }
+                Ok(_new_value) => {}
                 Err(e) => {
                     report_error!(e);
                 }
@@ -2189,8 +2056,7 @@ impl AppearanceSettingsPageView {
         from_binding: bool,
         ctx: &mut ViewContext<Self>,
     ) {
-        let old_mode = *InputModeSettings::as_ref(ctx).input_mode.value();
-        send_telemetry_from_ctx!(TelemetryEvent::InputModeChanged { old_mode, new_mode }, ctx);
+        let _old_mode = *InputModeSettings::as_ref(ctx).input_mode.value();
         InputModeSettings::handle(ctx).update(ctx, |input_mode, ctx| {
             report_if_error!(input_mode.input_mode.set_value(new_mode, ctx));
         });
@@ -2218,14 +2084,7 @@ impl AppearanceSettingsPageView {
             self.input_type_radio_state
                 .set_selected_idx(new_type as usize);
 
-            let is_udi_enabled = new_type == InputBoxType::Universal;
-            send_telemetry_from_ctx!(
-                TelemetryEvent::InputUXModeChanged {
-                    is_udi_enabled,
-                    origin: InputUXChangeOrigin::Settings
-                },
-                ctx
-            );
+            let _is_udi_enabled = new_type == InputBoxType::Universal;
 
             // Selecting classic mode must also enable honor_ps1 so the mode takes
             // effect immediately (input_type() requires honor_ps1 to return classic).
@@ -2242,12 +2101,6 @@ impl AppearanceSettingsPageView {
     fn set_app_icon(&mut self, new_icon: AppIcon, ctx: &mut ViewContext<Self>) {
         AppIconSettings::handle(ctx).update(ctx, |app_icon_settings, ctx| {
             report_if_error!(app_icon_settings.app_icon.set_value(new_icon, ctx));
-            send_telemetry_from_ctx!(
-                TelemetryEvent::AppIconSelection {
-                    icon: new_icon.to_string(),
-                },
-                ctx
-            );
         });
     }
 
@@ -2256,12 +2109,6 @@ impl AppearanceSettingsPageView {
             report_if_error!(app_editor_settings
                 .cursor_display_type
                 .set_value(new_cursor_type, ctx));
-            send_telemetry_from_ctx!(
-                TelemetryEvent::CursorDisplayType {
-                    cursor: new_cursor_type.to_string(),
-                },
-                ctx
-            );
         });
     }
 
@@ -2277,11 +2124,6 @@ impl AppearanceSettingsPageView {
         ctx.update_model(&tab_settings, move |tab_settings, ctx| {
             report_if_error!(tab_settings.show_indicators.set_value(new_value, ctx));
         });
-
-        send_telemetry_from_ctx!(
-            TelemetryEvent::ToggleTabIndicators { enabled: new_value },
-            ctx
-        );
     }
 
     fn toggle_show_code_review_button(&mut self, ctx: &mut ViewContext<Self>) {
@@ -2304,39 +2146,6 @@ impl AppearanceSettingsPageView {
                 .preserve_active_tab_color
                 .set_value(new_value, ctx));
         });
-
-        send_telemetry_from_ctx!(
-            TelemetryEvent::TogglePreserveActiveTabColor { enabled: new_value },
-            ctx
-        );
-    }
-
-    fn toggle_vertical_tabs(&mut self, ctx: &mut ViewContext<Self>) {
-        let tab_settings = TabSettings::handle(ctx);
-        let new_value = !*tab_settings.as_ref(ctx).use_vertical_tabs.value();
-
-        ctx.update_model(&tab_settings, move |tab_settings, ctx| {
-            report_if_error!(tab_settings.use_vertical_tabs.set_value(new_value, ctx));
-        });
-    }
-
-    fn toggle_show_vertical_tab_panel_in_restored_windows(&mut self, ctx: &mut ViewContext<Self>) {
-        TabSettings::handle(ctx).update(ctx, |settings, ctx| {
-            report_if_error!(settings
-                .show_vertical_tab_panel_in_restored_windows
-                .toggle_and_save_value(ctx));
-        });
-    }
-
-    fn toggle_use_latest_user_prompt_as_conversation_title_in_tab_names(
-        &mut self,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        TabSettings::handle(ctx).update(ctx, |settings, ctx| {
-            report_if_error!(settings
-                .use_latest_user_prompt_as_conversation_title_in_tab_names
-                .toggle_and_save_value(ctx));
-        });
     }
 
     /// Set the workspace decoration visibility to a particular value.
@@ -2345,25 +2154,18 @@ impl AppearanceSettingsPageView {
         new_value: WorkspaceDecorationVisibility,
         ctx: &mut ViewContext<Self>,
     ) {
-        let previous_value = TabSettings::handle(ctx).update(ctx, |tab_settings, ctx| {
+        let _previous_value = TabSettings::handle(ctx).update(ctx, |tab_settings, ctx| {
             let prev_value = *tab_settings.workspace_decoration_visibility.value();
             report_if_error!(tab_settings
                 .workspace_decoration_visibility
                 .set_value(new_value, ctx));
             prev_value
         });
-        send_telemetry_from_ctx!(
-            TelemetryEvent::ToggleWorkspaceDecorationVisibility {
-                previous_value,
-                new_value
-            },
-            ctx
-        );
     }
 
     /// Toggle among the supported workspace decoration visibility values.
     fn toggle_workspace_decoration_visiblity(&mut self, ctx: &mut ViewContext<Self>) {
-        let (new_value, previous_value) =
+        let (_new_value, _previous_value) =
             TabSettings::handle(ctx).update(ctx, |tab_settings, ctx| {
                 let previous_value = *tab_settings.workspace_decoration_visibility.value();
                 let new_value = previous_value.toggled();
@@ -2372,13 +2174,6 @@ impl AppearanceSettingsPageView {
                     .set_value(new_value, ctx));
                 (new_value, previous_value)
             });
-        send_telemetry_from_ctx!(
-            TelemetryEvent::ToggleWorkspaceDecorationVisibility {
-                previous_value,
-                new_value
-            },
-            ctx
-        );
     }
 
     fn build_workspace_decoration_visibility_dropdown(
@@ -2513,11 +2308,6 @@ impl AppearanceSettingsPageView {
                     .ligature_rendering_enabled
                     .set_value(new_value, ctx));
             });
-
-            send_telemetry_from_ctx!(
-                TelemetryEvent::ToggleLigatureRendering { enabled: new_value },
-                ctx
-            );
         }
     }
 
@@ -2543,10 +2333,6 @@ impl AppearanceSettingsPageView {
         TabSettings::handle(ctx).update(ctx, |tab_settings, ctx| {
             report_if_error!(tab_settings.close_button_position.set_value(position, ctx));
         });
-        send_telemetry_from_ctx!(
-            TelemetryEvent::TabCloseButtonPositionUpdated { position },
-            ctx
-        );
         ctx.notify();
     }
 }
@@ -3408,94 +3194,6 @@ impl SettingsWidget for InputModeWidget {
             None,
             &view.input_mode_dropdown,
         )
-    }
-}
-
-#[derive(Default)]
-struct PromptWidget {
-    button_mouse_state: MouseStateHandle,
-}
-
-impl SettingsWidget for PromptWidget {
-    type View = AppearanceSettingsPageView;
-
-    fn search_terms(&self) -> &str {
-        "prompt ps1 terminal warp shell custom"
-    }
-
-    fn render(
-        &self,
-        view: &Self::View,
-        appearance: &Appearance,
-        app: &AppContext,
-    ) -> Box<dyn Element> {
-        let session_settings = SessionSettings::as_ref(app);
-        let honor_ps1 = *session_settings.honor_ps1;
-        let background = internal_colors::fg_overlay_1(appearance.theme());
-
-        let body = if honor_ps1 {
-            // TODO: we should render something else when the grid info isn't available.
-            if let Some((grid, size_info)) = &view.ps1_grid_info {
-                let left_padding = size_info.padding_x_px();
-                let prompt_grid = BlockGridElement::new(
-                    grid,
-                    appearance,
-                    *FontSettings::as_ref(app).enforce_minimum_contrast,
-                    ObfuscateSecrets::No,
-                    *size_info,
-                )
-                .finish();
-
-                Flex::row()
-                    .with_main_axis_size(MainAxisSize::Max)
-                    .with_child(
-                        Clipped::new(
-                            Container::new(prompt_grid)
-                                // Remove any left-padding built into the prompt to make sure it's
-                                // left-aligned with the title.
-                                .with_padding_left(-left_padding.as_f32())
-                                .finish(),
-                        )
-                        .finish(),
-                    )
-                    .finish()
-            } else {
-                Empty::new().finish()
-            }
-        } else {
-            Wrap::row()
-                .with_children(view.context_chips.iter().map(|renderer| {
-                    Container::new(renderer.render_unused(ChipDragState::Undraggable, appearance))
-                        .with_margin_right(4.)
-                        .finish()
-                }))
-                .with_run_spacing(4.)
-                .finish()
-        };
-
-        Hoverable::new(self.button_mouse_state.clone(), |hover_state| {
-            let (border_color, border_width) = match hover_state.is_hovered() {
-                true => (appearance.theme().accent(), 1.0),
-                false => (appearance.theme().accent(), 0.0),
-            };
-
-            Container::new(body)
-                .with_background(background)
-                .with_corner_radius(CornerRadius::with_all(Radius::Pixels(8.)))
-                .with_border(Border::all(border_width).with_border_fill(border_color))
-                .with_horizontal_padding(24. - border_width)
-                .with_vertical_padding(12. - border_width)
-                .with_margin_right(4.)
-                .with_margin_bottom(16.)
-                .finish()
-        })
-        .with_cursor(Cursor::PointingHand)
-        .on_click(|ctx, _, _| {
-            ctx.dispatch_typed_action(WorkspaceAction::OpenPromptEditor {
-                open_source: PromptEditorOpenSource::AppearancePage,
-            })
-        })
-        .finish()
     }
 }
 
@@ -4560,189 +4258,6 @@ impl SettingsWidget for PreserveActiveTabColorWidget {
                 .finish(),
             None,
         )
-    }
-}
-
-#[derive(Default)]
-struct VerticalTabsWidget {
-    switch_state: SwitchStateHandle,
-}
-
-impl SettingsWidget for VerticalTabsWidget {
-    type View = AppearanceSettingsPageView;
-
-    fn search_terms(&self) -> &str {
-        "vertical tabs sidebar layout"
-    }
-
-    fn render(
-        &self,
-        view: &Self::View,
-        appearance: &Appearance,
-        app: &AppContext,
-    ) -> Box<dyn Element> {
-        let tab_settings = TabSettings::as_ref(app);
-
-        render_body_item::<AppearancePageAction>(
-            "Use vertical tab layout".into(),
-            None,
-            LocalOnlyIconState::for_setting(
-                UseVerticalTabs::storage_key(),
-                UseVerticalTabs::sync_to_cloud(),
-                &mut view.local_only_icon_tooltip_states.borrow_mut(),
-                app,
-            ),
-            ToggleState::Enabled,
-            appearance,
-            appearance
-                .ui_builder()
-                .switch(self.switch_state.clone())
-                .check(*tab_settings.use_vertical_tabs)
-                .build()
-                .on_click(move |ctx, _, _| {
-                    ctx.dispatch_typed_action(AppearancePageAction::ToggleVerticalTabs);
-                })
-                .finish(),
-            None,
-        )
-    }
-}
-
-#[derive(Default)]
-struct ShowVerticalTabPanelInRestoredWindowsWidget {
-    switch_state: SwitchStateHandle,
-}
-
-impl SettingsWidget for ShowVerticalTabPanelInRestoredWindowsWidget {
-    type View = AppearanceSettingsPageView;
-
-    fn search_terms(&self) -> &str {
-        "vertical tabs panel restore window session snapshot"
-    }
-
-    fn render(
-        &self,
-        view: &Self::View,
-        appearance: &Appearance,
-        app: &AppContext,
-    ) -> Box<dyn Element> {
-        let tab_settings = TabSettings::as_ref(app);
-
-        render_body_item::<AppearancePageAction>(
-            "Show vertical tabs panel in restored windows".into(),
-            None,
-            LocalOnlyIconState::for_setting(
-                ShowVerticalTabPanelInRestoredWindows::storage_key(),
-                ShowVerticalTabPanelInRestoredWindows::sync_to_cloud(),
-                &mut view.local_only_icon_tooltip_states.borrow_mut(),
-                app,
-            ),
-            ToggleState::Enabled,
-            appearance,
-            appearance
-                .ui_builder()
-                .switch(self.switch_state.clone())
-                .check(*tab_settings.show_vertical_tab_panel_in_restored_windows)
-                .build()
-                .on_click(move |ctx, _, _| {
-                    ctx.dispatch_typed_action(
-                        AppearancePageAction::ToggleShowVerticalTabPanelInRestoredWindows,
-                    );
-                })
-                .finish(),
-            Some(
-                "When enabled, reopening or restoring a window opens the vertical tabs panel even if it was closed when the window was last saved."
-                    .to_string(),
-            ),
-        )
-    }
-}
-
-#[derive(Default)]
-struct UseLatestUserPromptAsConversationTitleInTabNamesWidget {
-    switch_state: SwitchStateHandle,
-}
-
-impl SettingsWidget for UseLatestUserPromptAsConversationTitleInTabNamesWidget {
-    type View = AppearanceSettingsPageView;
-
-    fn search_terms(&self) -> &str {
-        "latest user prompt conversation title tab names vertical tabs oz third-party agent"
-    }
-
-    fn render(
-        &self,
-        view: &Self::View,
-        appearance: &Appearance,
-        app: &AppContext,
-    ) -> Box<dyn Element> {
-        let tab_settings = TabSettings::as_ref(app);
-
-        render_body_item::<AppearancePageAction>(
-            "Use latest user prompt as conversation title in tab names".into(),
-            None,
-            LocalOnlyIconState::for_setting(
-                UseLatestUserPromptAsConversationTitleInTabNames::storage_key(),
-                UseLatestUserPromptAsConversationTitleInTabNames::sync_to_cloud(),
-                &mut view.local_only_icon_tooltip_states.borrow_mut(),
-                app,
-            ),
-            ToggleState::Enabled,
-            appearance,
-            appearance
-                .ui_builder()
-                .switch(self.switch_state.clone())
-                .check(
-                    *tab_settings
-                        .use_latest_user_prompt_as_conversation_title_in_tab_names,
-                )
-                .build()
-                .on_click(move |ctx, _, _| {
-                    ctx.dispatch_typed_action(
-                        AppearancePageAction::ToggleUseLatestUserPromptAsConversationTitleInTabNames,
-                    );
-                })
-                .finish(),
-            Some(
-                "Show the latest user prompt instead of the generated conversation title for Oz and third-party agent sessions in vertical tabs."
-                    .to_string(),
-            ),
-        )
-    }
-}
-
-#[derive(Default)]
-struct EditToolbarWidget;
-
-impl SettingsWidget for EditToolbarWidget {
-    type View = AppearanceSettingsPageView;
-
-    fn search_terms(&self) -> &str {
-        "edit toolbar header panel buttons configure arrange layout chip chips rearrange re-arrange customize"
-    }
-
-    fn render(
-        &self,
-        view: &Self::View,
-        appearance: &Appearance,
-        _app: &AppContext,
-    ) -> Box<dyn Element> {
-        let label = render_body_item_label::<AppearancePageAction>(
-            "Header toolbar layout".to_string(),
-            None,
-            None,
-            LocalOnlyIconState::Hidden,
-            ToggleState::Enabled,
-            appearance,
-        );
-        let editor = Container::new(ChildView::new(&view.header_toolbar_inline_editor).finish())
-            .with_padding_bottom(HEADER_PADDING)
-            .finish();
-
-        Flex::column()
-            .with_child(Container::new(label).with_margin_bottom(4.).finish())
-            .with_child(editor)
-            .finish()
     }
 }
 

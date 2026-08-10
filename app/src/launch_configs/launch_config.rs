@@ -7,10 +7,6 @@ use crate::app_state::{
 use crate::themes::theme::AnsiColorIdentifier;
 use serde::{Deserialize, Deserializer, Serialize};
 
-#[cfg(test)]
-#[path = "launch_config_tests.rs"]
-mod tests;
-
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub struct LaunchConfig {
     pub name: String,
@@ -146,19 +142,12 @@ impl TryFrom<PaneNodeSnapshot> for PaneTemplateType {
                 }),
                 // Currently, notebook panes cannot be saved in launch configurations.
                 LeafContents::Notebook(_)
-                | LeafContents::EnvVarCollection(_)
-                | LeafContents::Code(_)
                 | LeafContents::Workflow(_)
                 | LeafContents::Settings(_)
-                | LeafContents::AIFact(_)
-                | LeafContents::CodeReview(_)
                 | LeafContents::ExecutionProfileEditor
                 | LeafContents::GetStarted
                 | LeafContents::NetworkLog
-                | LeafContents::Welcome { .. }
-                | LeafContents::AIDocument(_)
-                | LeafContents::EnvironmentManagement(_)
-                | LeafContents::AmbientAgent(_) => {
+                | LeafContents::Welcome { .. } => {
                     // TODO: Handle AIDocument in launch config
                     Err(())
                 }

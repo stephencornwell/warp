@@ -12,15 +12,6 @@ use warp_util::standardized_path::StandardizedPath;
 use warpui::{elements::MouseStateHandle, ViewContext};
 
 use super::{FileTreeIdentifier, FileTreeItem, FileTreeView};
-use crate::{
-    code::file_tree::{
-        view::{PendingEdit, PendingEditKind},
-        FileTreeEvent,
-    },
-    send_telemetry_from_ctx,
-    server::telemetry::TelemetryEvent,
-};
-
 /// Custom ordering function for items in the file tree.
 ///
 /// Directories are ordered first, sorted alphabetically.
@@ -187,7 +178,6 @@ impl FileTreeView {
                             return;
                         }
 
-                        send_telemetry_from_ctx!(TelemetryEvent::FileTreeItemCreated, ctx);
 
                         FileTreeEntryState::File(metadata.clone())
                     } else {

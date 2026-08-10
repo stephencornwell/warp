@@ -1,3 +1,4 @@
+use crate::report_if_error;
 use std::{
     collections::{HashMap, HashSet},
     path::PathBuf,
@@ -24,7 +25,6 @@ use crate::{
     },
     debounce::debounce,
     drive::CloudObjectTypeAndId,
-    report_if_error,
     server::{
         cloud_objects::update_manager::{
             GenericStringObjectInput, InitiatedBy, UpdateManager, UpdateManagerEvent,
@@ -463,7 +463,7 @@ impl CloudPreferencesSyncer {
 
         PrivacySettings::handle(ctx).update(ctx, |privacy_settings, ctx| {
             // Note that this also blocks on update_manager.initial_load_complete()
-            privacy_settings.maybe_sync_with_warp_drive_prefs(ctx);
+            privacy_settings.initialize_default_regexes_once(ctx);
         });
     }
 

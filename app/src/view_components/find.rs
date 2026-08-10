@@ -3,8 +3,6 @@ use crate::editor::{
     EditorView, Event as EditorEvent, PropagateAndNoOpNavigationKeys, SingleLineEditorOptions,
     TextOptions,
 };
-use crate::send_telemetry_from_ctx;
-use crate::server::telemetry::{FindOption, TelemetryEvent};
 use crate::settings::InputModeSettings;
 use crate::ui_components::{blended_colors, icons::Icon};
 use serde::Serialize;
@@ -41,10 +39,8 @@ pub const FIND_EDITOR_BORDER_RADIUS: f32 = 6.;
 pub(crate) const FIND_EDITOR_BORDER_WIDTH: f32 = 1.;
 const FIND_EDITOR_FONT_SIZE: f32 = 12.;
 
-pub const REGEX_TOGGLE_LABEL: &str = ". *";
 pub const REGEX_TOGGLE_TOOLTIP: &str = "Regex toggle";
 
-pub const CASE_SENSITIVE_LABEL: &str = "Aa";
 pub const CASE_SENSITIVE_TOOLTIP: &str = "Case sensitive search";
 
 pub const FIND_WITHIN_BLOCK_TOOLTIP: &str = "Find in selected block";
@@ -276,13 +272,6 @@ impl<T: FindModel + Entity<Event = FindEvent> + 'static> Find<T> {
             FindWithinBlockState::Disabled => FindWithinBlockState::Enabled,
             _ => return,
         };
-        send_telemetry_from_ctx!(
-            TelemetryEvent::ToggleFindOption {
-                option: FindOption::FindInBlock,
-                enabled: self.display_find_within_block == FindWithinBlockState::Enabled,
-            },
-            ctx
-        );
         ctx.emit(Event::ToggleFindInBlock {
             value: self.display_find_within_block == FindWithinBlockState::Enabled,
         });
@@ -290,13 +279,6 @@ impl<T: FindModel + Entity<Event = FindEvent> + 'static> Find<T> {
 
     fn toggle_case_sensitivity(&mut self, ctx: &mut ViewContext<Self>) {
         self.case_sensitivity_enabled = !self.case_sensitivity_enabled;
-        send_telemetry_from_ctx!(
-            TelemetryEvent::ToggleFindOption {
-                option: FindOption::CaseSensitive,
-                enabled: self.case_sensitivity_enabled
-            },
-            ctx
-        );
         ctx.emit(Event::ToggleCaseSensitivity {
             is_case_sensitive: self.case_sensitivity_enabled,
         });
@@ -304,13 +286,6 @@ impl<T: FindModel + Entity<Event = FindEvent> + 'static> Find<T> {
 
     fn toggle_regex_search(&mut self, ctx: &mut ViewContext<Self>) {
         self.regex_search_enabled = !self.regex_search_enabled;
-        send_telemetry_from_ctx!(
-            TelemetryEvent::ToggleFindOption {
-                option: FindOption::Regex,
-                enabled: self.regex_search_enabled
-            },
-            ctx
-        );
         ctx.emit(Event::ToggleRegexSearch {
             is_regex_enabled: self.regex_search_enabled,
         });
@@ -694,7 +669,3 @@ impl<T: FindModel + Entity<Event = FindEvent> + 'static> View for Find<T> {
         .finish()
     }
 }
-
-#[cfg(test)]
-#[path = "find_tests.rs"]
-mod tests;

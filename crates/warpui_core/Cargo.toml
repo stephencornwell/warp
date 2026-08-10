@@ -97,10 +97,5 @@ tokio = { workspace = true, features = ["rt-multi-thread"] }
 [target.'cfg(any(target_os = "linux", target_os = "freebsd", target_os = "windows"))'.dependencies]
 arboard = { workspace = true, features = ["image-data"] }
 
-[target.'cfg(target_family = "wasm")'.dependencies]
-gloo.workspace = true
-wasm-bindgen-futures.workspace = true
-woothee = "0.13.0"
-
 [build-dependencies]
 cfg_aliases.workspace = true

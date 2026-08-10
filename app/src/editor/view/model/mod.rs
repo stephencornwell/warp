@@ -1457,11 +1457,6 @@ impl EditorModel {
         self.change_selections(new_selections, ctx);
     }
 
-    #[cfg(test)]
-    pub fn selection_line_start_test(&mut self, ctx: &mut ModelContext<Self>) {
-        self.selection_line_start(ctx)
-    }
-
     /// Move selection end point to the end of the current line.
     fn selection_line_end(&mut self, ctx: &mut ModelContext<Self>) {
         let buffer = self.buffer(ctx);
@@ -2774,11 +2769,6 @@ impl EditorModel {
 
     pub fn is_single_cursor_only<C: ModelAsRef>(&self, ctx: &C) -> bool {
         self.selections(ctx).len() == 1 && self.selections(ctx)[0].is_cursor_only(self.buffer(ctx))
-    }
-
-    #[cfg(test)]
-    pub fn is_cursor_only<C: ModelAsRef>(&self, selection: &LocalSelection, ctx: &C) -> bool {
-        selection.is_cursor_only(self.buffer(ctx))
     }
 
     pub fn copy_selection_to_vim_register(

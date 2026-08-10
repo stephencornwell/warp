@@ -1,16 +1,9 @@
-use crate::ai::blocklist::agent_view::{agent_view_bg_fill, AgentViewState};
-use crate::ai::blocklist::{ai_brand_color, ATTACH_AS_AGENT_MODE_CONTEXT_TEXT};
-use crate::ai_assistant::{AI_ASSISTANT_SVG_PATH, ASK_AI_ASSISTANT_TEXT};
 use crate::appearance::Appearance;
-use crate::drive::settings::WarpDriveSettings;
 use crate::features::FeatureFlag;
 use crate::pane_group::SplitPaneState;
-use crate::settings::{
-    AISettings, DebugSettings, EnforceMinimumContrast, PrivacySettings, TerminalSpacing,
-};
+use crate::settings::{DebugSettings, EnforceMinimumContrast, TerminalSpacing};
 use crate::terminal::alt_screen::{should_intercept_mouse, should_intercept_scroll};
 use crate::terminal::block_list_viewport::AutoscrollBehavior;
-use crate::terminal::input::inline_menu::InlineMenuPositioner;
 use crate::terminal::model::block::{Block, BlockSection};
 use crate::terminal::model::blocks::{
     BlockHeight, BlockHeightItem, BlockHeightSummary, BlockList, BlockListPoint, TotalIndex,
@@ -20,23 +13,19 @@ use crate::terminal::model::selection::{SelectAction, SelectionPoint};
 use crate::terminal::safe_mode_settings::get_secret_obfuscation_mode;
 use crate::terminal::view::TerminalAction;
 use crate::terminal::{grid_renderer, SizeInfo};
-use crate::themes::theme::{Fill, WarpTheme};
-use crate::ui_components::{self, icons as UIIcon};
+use crate::themes::theme::WarpTheme;
+use crate::ui_components::icons as UIIcon;
 use crate::util::color::Opacity;
 use enum_iterator::Sequence;
-use itertools::Itertools;
 use parking_lot::FairMutex;
 use vec1::Vec1;
 use warp_core::semantic_selection::SemanticSelection;
 use warp_core::ui::builder::UiBuilder;
-use warp_core::ui::theme::AnsiColorIdentifier;
 use warp_util::user_input::UserInput;
 use warpui::platform::Cursor;
 use warpui::text::SelectionType;
 
 use pathfinder_color::ColorU;
-use session_sharing_protocol::common::{ParticipantId, Selection};
-use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
 use std::mem;
 use std::ops::{Deref, Range, RangeInclusive};
@@ -53,7 +42,6 @@ use warpui::event::{KeyState, ModifiersState};
 use warpui::fonts::{FamilyId, Properties, Weight};
 use warpui::geometry::rect::RectF;
 use warpui::geometry::vector::{vec2f, Vector2F};
-use warpui::platform::keyboard::KeyCode;
 use warpui::ui_components::components::UiComponent;
 use warpui::units::{IntoLines, IntoPixels, Lines, Pixels};
 use warpui::{elements::Icon, ClipBounds};
@@ -69,7 +57,6 @@ use super::find::{BlockListFindRun, BlockListMatch, TerminalFindModel};
 use super::grid_renderer::CellGlyphCache;
 
 use super::meta_shortcuts::handle_keystroke_despite_composing;
-use super::model::block::BlockId;
 use super::model::blocks::{RichContentItem, SelectionRange};
 use super::model::grid::grid_handler::{Link, TermMode};
 use super::model::image_map::StoredImageMetadata;
@@ -77,20 +64,14 @@ use super::model::mouse::{MouseAction, MouseButton, MouseState};
 use super::model::session::SessionId;
 use super::model::terminal_model::{SelectedBlocks, WithinBlock, WithinModel};
 use super::model::SecretHandle;
-use super::shared_session::presence_manager::{
-    text_selection_color, PresenceManager, MUTED_PARTICIPANT_COLOR,
-};
-use super::shared_session::render_util::SHARED_SESSION_AVATAR_DIAMETER;
 use super::view::{
-    BlocklistAIRenderContext, InlineBannerId, RichContentMetadata, SeparatorId,
-    SharedSessionBanners, TerminalEditor, TerminalViewRenderContext, BLOCK_BANNER_HEIGHT,
+    InlineBannerId, RichContentMetadata, SeparatorId, TerminalEditor, TerminalViewRenderContext,
+    BLOCK_BANNER_HEIGHT,
 };
-use super::warpify::render::{draw_flag_pole, render_subshell_flag};
 use super::TerminalModel;
 use super::{heights_approx_eq, HEIGHT_FUDGE_FACTOR_LINES};
 use crate::terminal::blockgrid_renderer::BlockGridParams;
 use crate::terminal::model::terminal_model::BlockIndex;
-use crate::terminal::warpify::SubshellSource;
 
 use crate::terminal::model::escape_sequences::{
     maybe_kitty_keyboard_escape_sequence, KeystrokeWithDetails, ToEscapeSequence,
@@ -131,8 +112,6 @@ impl Default for SelectionBorderWidth {
     }
 }
 
-const SHARED_SESSION_PARTICIPANT_SELECTION_BORDER_WIDTH: f32 = 1.5;
-
 const SNACKBAR_HOVER_OPACITY: Opacity = 60;
 
 // If the header is more than SNACKBAR_HEADER_MAX_RATIO percent of the entire
@@ -153,11 +132,6 @@ const LINEAR_SCROLLING: ScrollingAcceleration = ScrollingAcceleration::Polynomia
 /// have a height that extends down to the bottom of the window when there's a horizontal scroll bar, which messes with the on-hover behavior.
 const BLOCK_HOVER_BUTTON_HEIGHT: f32 = 28.;
 
-const TAG_AGENT_FOR_ASSISTANCE_TEXT: &str = "Tag agent for assistance";
-
-const SAVE_AS_WORKFLOW_TEXT: &str = "Save as Workflow";
-const SAVE_AS_WORKFLOW_SECRETS_TEXT: &str = "Blocks containing secrets cannot be saved.";
-
 enum ScrollingAcceleration {
     Polynomial(f32),
 }
@@ -170,26 +144,12 @@ impl ScrollingAcceleration {
     }
 }
 
-enum SelectionCursorRenderLocation {
-    None,
-    Start,
-    End,
-}
-
 const OVERFLOW_BUTTON_ICON_PATH: &str = "bundled/svg/overflow.svg";
 /// The number of lines from the top of the blocklist where we should show the snackbar toggle
 /// button on mouse hover when the snackbar is collapsed.
 const SNACKBAR_TOGGLE_BUTTON_HOVER_LINES: f32 = 4.;
 const SNACKBAR_TOGGLE_BUTTON_WIDTH: f32 = 30.;
 const SNACKBAR_TOGGLE_BUTTON_HEIGHT: f32 = 16.;
-
-/// How far away from the right edge of the blocklist the selected block avatar should be
-const SELECTED_BLOCK_AVATAR_EDGE_OFFSET: f32 = 25.;
-/// Space between multiple avatars on a selected block.
-const SPACE_BETWEEN_SELECTED_BLOCK_AVATARS: f32 = 2.;
-
-const CLI_SUBAGENT_HORIZONTAL_MARGIN: f32 = 8.;
-const CLI_SUBAGENT_VERTICAL_MARGIN: f32 = 8.;
 
 pub type LabelBuilderFn = dyn Fn(
     Vec<BlockIndex>,
@@ -608,9 +568,6 @@ pub struct BlockListElement {
     scroll_position: ScrollPosition,
     is_terminal_focused: bool,
     is_terminal_selecting: bool,
-    /// This map contains the IDs of sessions that were subshells as keys. Their corresponding
-    /// values are the command that spawned the subshell, which is needed to paint the "flag"
-    subshell_sessions: HashMap<SessionId, SubshellSource>,
     size: Option<Vector2F>,
     /// These are the bounds the UI framework paints in, which are NOT necessarily the same as the visible bounds of the blocklist element.
     /// If we have a horizontal scroll bar (see horizontal_clipped_scroll_state), the UI bounds can go beyond the actually visible bounds.
@@ -644,12 +601,7 @@ pub struct BlockListElement {
     save_as_workflow_button: Option<Box<dyn Element>>,
     restored_session_separator: Option<Box<dyn Element>>,
     inline_banners: HashMap<InlineBannerId, Box<dyn Element>>,
-    /// Subshell separators are similar to banners, except they are smaller and only meant to show
-    /// in compact mode. Setting Self::subshell_separator_height to 0 will effectively hide the
-    /// flags.
     subshell_separators: HashMap<SeparatorId, Box<dyn Element>>,
-    cli_subagent_views: HashMap<BlockId, Box<dyn Element>>,
-    subshell_separator_height: f32,
 
     selected_blocks: SelectedBlocks,
 
@@ -724,15 +676,9 @@ pub struct BlockListElement {
     rich_content_elements: HashMap<EntityId, Box<dyn Element>>,
     rich_content_metadata: HashMap<EntityId, RichContentMetadata>,
 
-    shared_session_banner_state: SharedSessionBanners,
-    presence_manager: Option<ModelHandle<PresenceManager>>,
-    presence_avatars: HashMap<ParticipantId, Box<dyn Element>>,
-
     horizontal_clipped_scroll_state: ClippedScrollStateHandle,
 
     /// Information about blocks and AI blocks used to render blocklist AI-specific decoration.
-    ai_render_context: Rc<RefCell<BlocklistAIRenderContext>>,
-
     /// The last laid out size of the input view.
     input_size_at_last_frame: Vector2F,
 
@@ -742,12 +688,6 @@ pub struct BlockListElement {
 
     /// If `Some()`, lays out and renders the element next to the cursor.
     cursor_hint_text_element: Option<Box<dyn Element>>,
-
-    /// Voice input toggle key code for CLI agent footer integration.
-    #[cfg(feature = "voice_input")]
-    voice_input_toggle_key_code: Option<KeyCode>,
-
-    inline_menu_positioner: ModelHandle<InlineMenuPositioner>,
 }
 
 #[derive(Debug)]
@@ -886,12 +826,9 @@ impl BlockListElement {
         filter_elements_builder: Box<FilterBuilderFn>,
         inline_banners: HashMap<InlineBannerId, Box<dyn Element>>,
         subshell_separators: HashMap<SeparatorId, Box<dyn Element>>,
-        cli_subagent_views: HashMap<BlockId, Box<dyn Element>>,
         selection_ranges: Option<Vec1<SelectionRange>>,
         block_banner: Option<Box<dyn Element>>,
-        shared_session_banners: SharedSessionBanners,
         input_size_at_last_frame: Vector2F,
-        inline_menu_positioner: ModelHandle<InlineMenuPositioner>,
         cursor_hint_text_element: Option<Box<dyn Element>>,
     ) -> Self {
         let highlighted_url = terminal_view_render_context
@@ -913,7 +850,6 @@ impl BlockListElement {
             scroll_position: terminal_view_render_context.scroll_position,
             is_terminal_focused: terminal_view_render_context.is_terminal_focused,
             is_terminal_selecting: terminal_view_render_context.is_terminal_selecting,
-            subshell_sessions: terminal_view_render_context.spawning_command_for_subshell_sessions,
             subshell_flags: HashMap::new(),
             size: None,
             bounds: None,
@@ -928,7 +864,6 @@ impl BlockListElement {
             ui_builder: appearance.ui_builder().clone(),
             block_borders_enabled: terminal_spacing.block_borders_enabled,
             overflow_offset: terminal_spacing.overflow_offset,
-            subshell_separator_height: terminal_spacing.subshell_separator_height,
             hovered_block_index: None,
             overflow_menu_button: None,
             ask_ai_assistant_button: None,
@@ -965,36 +900,16 @@ impl BlockListElement {
             filtered_blocks: None,
             rich_content_elements: HashMap::new(),
             rich_content_metadata: HashMap::new(),
-            shared_session_banner_state: shared_session_banners,
-            presence_manager: None,
-            presence_avatars: HashMap::new(),
             horizontal_clipped_scroll_state: terminal_view_render_context
                 .horizontal_clipped_scroll_state,
-            ai_render_context: terminal_view_render_context.ai_render_context,
             input_size_at_last_frame,
             block_footer_elements: HashMap::new(),
             cursor_hint_text_element,
-            cli_subagent_views,
-            inline_menu_positioner,
-            #[cfg(feature = "voice_input")]
-            voice_input_toggle_key_code: None,
         }
-    }
-
-    /// Sets the voice input toggle key code for CLI agent footer integration.
-    #[cfg(feature = "voice_input")]
-    pub fn with_voice_input_toggle_key(mut self, key_code: Option<KeyCode>) -> Self {
-        self.voice_input_toggle_key_code = key_code;
-        self
     }
 
     pub fn with_ligature_rendering(mut self) -> Self {
         self.use_ligature_rendering = true;
-        self
-    }
-
-    pub fn with_hide_cursor_cell(mut self) -> Self {
-        self.hide_cursor_cell = true;
         self
     }
 
@@ -1027,12 +942,7 @@ impl BlockListElement {
             self.size
                 .expect("Cannot construct ViewportState prior to element layout."),
             self.input_size_at_last_frame,
-            if self.ai_render_context.borrow().has_active_conversation() {
-                AutoscrollBehavior::WhenScrolledToEnd
-            } else {
-                AutoscrollBehavior::Always
-            },
-            self.inline_menu_positioner.clone(),
+            AutoscrollBehavior::Always,
         )
     }
 
@@ -1060,9 +970,9 @@ impl BlockListElement {
     pub fn with_hovered_index(
         mut self,
         block_index: BlockIndex,
-        model: &TerminalModel,
-        should_render_tooltip_below_button: bool,
-        app: &AppContext,
+        _model: &TerminalModel,
+        _should_render_tooltip_below_button: bool,
+        _app: &AppContext,
     ) -> Self {
         self.hovered_block_index = Some(block_index);
         let icon_color = self
@@ -1136,148 +1046,6 @@ impl BlockListElement {
             .finish(),
         );
 
-        if AISettings::as_ref(app).is_any_ai_enabled(app) {
-            let icon = Container::new(
-                ConstrainedBox::new(if FeatureFlag::AgentView.is_enabled() {
-                    UIIcon::Icon::Paperclip
-                        .to_warpui_icon(icon_color.into())
-                        .finish()
-                } else if FeatureFlag::AgentMode.is_enabled() {
-                    UIIcon::Icon::Stars
-                        .to_warpui_icon(icon_color.into())
-                        .finish()
-                } else {
-                    Icon::new(AI_ASSISTANT_SVG_PATH, icon_color).finish()
-                })
-                .with_height(16.)
-                .with_width(16.)
-                .finish(),
-            )
-            .with_vertical_padding(5.)
-            .with_padding_left(6.)
-            .with_padding_right(4.);
-
-            let (ai_button_action, ai_button_tooltip) = if FeatureFlag::AgentMode.is_enabled() {
-                let active_block = model.block_list().active_block();
-                let has_active_long_running_command = active_block.is_active_and_long_running();
-
-                if has_active_long_running_command && active_block.index() == block_index {
-                    (
-                        Some(TerminalAction::SetInputModeAgent),
-                        TAG_AGENT_FOR_ASSISTANCE_TEXT,
-                    )
-                } else {
-                    (
-                        Some(TerminalAction::AskAIAssistant { block_index }),
-                        *ATTACH_AS_AGENT_MODE_CONTEXT_TEXT,
-                    )
-                }
-            } else {
-                (
-                    Some(TerminalAction::AskAIAssistant { block_index }),
-                    ASK_AI_ASSISTANT_TEXT,
-                )
-            };
-
-            let tooltip = ToolbeltButtonTooltip {
-                label: ai_button_tooltip.to_owned(),
-                tool_tip_below_button: should_render_tooltip_below_button,
-            };
-
-            let element = render_hoverable_block_button(
-                icon,
-                Some(tooltip),
-                false,
-                true,
-                self.mouse_states.ai_assistant_button_mouse_state.clone(),
-                &self.warp_theme,
-                &self.ui_builder,
-                move |ctx: &mut EventContext, _, _| {
-                    if let Some(action) = ai_button_action.clone() {
-                        ctx.dispatch_typed_action(action);
-                    }
-                },
-            );
-            self.ask_ai_assistant_button = Some(element);
-        }
-
-        if FeatureFlag::BlockToolbeltSaveAsWorkflow.is_enabled()
-            && WarpDriveSettings::is_warp_drive_enabled(app)
-        {
-            let icon = Container::new(
-                ConstrainedBox::new(
-                    ui_components::icons::Icon::Save
-                        .to_warpui_icon(icon_color.into())
-                        .finish(),
-                )
-                .with_height(16.)
-                .with_width(16.)
-                .finish(),
-            )
-            .with_uniform_padding(4.);
-
-            let element = if PrivacySettings::as_ref(app).is_enterprise_secret_redaction_enabled()
-                && model
-                    .block_list()
-                    .block_at(block_index)
-                    .is_some_and(|block| block.num_secrets_obfuscated() > 0)
-            {
-                // If enterprise secret redaction is enabled and the block contains secrets,
-                // disable save as workflow button + show different tooltip messaging.
-                render_hoverable_block_button(
-                    icon,
-                    Some(ToolbeltButtonTooltip {
-                        label: SAVE_AS_WORKFLOW_SECRETS_TEXT.to_owned(),
-                        tool_tip_below_button: should_render_tooltip_below_button,
-                    }),
-                    false,
-                    false,
-                    self.mouse_states
-                        .save_as_workflow_button_mouse_state
-                        .clone(),
-                    &self.warp_theme,
-                    &self.ui_builder,
-                    move |ctx: &mut EventContext, _, _| {
-                        ctx.dispatch_typed_action(TerminalAction::OpenWorkflowModalForBlock(
-                            block_index,
-                        ));
-                    },
-                )
-            } else {
-                render_hoverable_block_button(
-                    icon,
-                    Some(ToolbeltButtonTooltip {
-                        label: SAVE_AS_WORKFLOW_TEXT.to_owned(),
-                        tool_tip_below_button: should_render_tooltip_below_button,
-                    }),
-                    false,
-                    true,
-                    self.mouse_states
-                        .save_as_workflow_button_mouse_state
-                        .clone(),
-                    &self.warp_theme,
-                    &self.ui_builder,
-                    move |ctx: &mut EventContext, _, _| {
-                        ctx.dispatch_typed_action(TerminalAction::OpenWorkflowModalForBlock(
-                            block_index,
-                        ));
-                    },
-                )
-            };
-
-            self.save_as_workflow_button = Some(element);
-        }
-
-        self
-    }
-
-    pub fn with_shared_session_presence(
-        mut self,
-        presence_avatars: HashMap<ParticipantId, Box<dyn Element>>,
-        presence_manager: ModelHandle<PresenceManager>,
-    ) -> Self {
-        self.presence_avatars = presence_avatars;
-        self.presence_manager = Some(presence_manager);
         self
     }
 
@@ -1531,7 +1299,7 @@ impl BlockListElement {
 
         if self.is_mouse_position_within_bounds(position) {
             ctx.dispatch_typed_action(TerminalAction::CloseContextMenu);
-            let mut should_redetermine_focus = true;
+            let should_redetermine_focus = true;
 
             match self.coord_to_point(
                 SnackbarPoint::within_snackbar(position),
@@ -1639,7 +1407,9 @@ impl BlockListElement {
                         }
                         // While rich content blocks can't be selected like command blocks,
                         // text selections can still originate in them (i.e. with AI blocks)
-                        Some(BlockHeightItem::RichContent(RichContentItem { view_id, .. })) => {
+                        Some(BlockHeightItem::RichContent(RichContentItem {
+                            view_id: _, ..
+                        })) => {
                             let bounds = self
                                 .bounds
                                 .expect("Bounds should be set before event dispatching");
@@ -1652,12 +1422,6 @@ impl BlockListElement {
 
                             if self.snackbar_header_state().mouse_down(position, ctx) {
                                 return true;
-                            }
-
-                            if let Some(RichContentMetadata::AIBlock { .. }) =
-                                self.rich_content_metadata.get(view_id)
-                            {
-                                should_redetermine_focus = false;
                             }
 
                             ctx.dispatch_typed_action(TerminalAction::BlockSelect {
@@ -2031,7 +1795,6 @@ impl BlockListElement {
         origin: Vector2F,
         block_list: &BlockList,
         color: ColorU,
-        selection_cursor_render_location: SelectionCursorRenderLocation,
         ctx: &mut PaintContext,
     ) {
         let total_block_heights = block_list.block_heights().summary().height;
@@ -2079,139 +1842,9 @@ impl BlockListElement {
             color,
             ctx,
         );
-        match selection_cursor_render_location {
-            SelectionCursorRenderLocation::Start => {
-                let mut cursor_color = color;
-                cursor_color.a = crate::util::color::OPAQUE;
-                grid_renderer::render_selection_cursor(
-                    &start,
-                    &self.size_info,
-                    viewport.scroll_top_in_lines(),
-                    selection_origin,
-                    cursor_color,
-                    false,
-                    ctx,
-                );
-            }
-            SelectionCursorRenderLocation::End => {
-                let mut cursor_color = color;
-                cursor_color.a = crate::util::color::OPAQUE;
-                grid_renderer::render_selection_cursor(
-                    &end,
-                    &self.size_info,
-                    viewport.scroll_top_in_lines(),
-                    selection_origin,
-                    cursor_color,
-                    true,
-                    ctx,
-                );
-            }
-            _ => (),
-        }
         if rendered_snackbar_selection {
             // Rendering the snackbar creates a layer that we need to close.
             ctx.scene.stop_layer();
-        }
-    }
-
-    fn render_shared_session_participants_selections(
-        &self,
-        origin: Vector2F,
-        block_list: &BlockList,
-        app: &AppContext,
-        ctx: &mut PaintContext<'_>,
-    ) {
-        // Render other shared session participants'
-        if let Some(presence_manager) = &self.presence_manager {
-            let is_self_reconnecting = presence_manager.as_ref(app).is_reconnecting();
-            for participant in presence_manager.as_ref(app).all_present_participants() {
-                let Selection::BlockText {
-                    start,
-                    end,
-                    is_reversed,
-                } = &participant.info.selection
-                else {
-                    continue;
-                };
-                let start = WithinBlock::<IndexPoint>::from_session_sharing_block_point(
-                    start.clone(),
-                    block_list,
-                );
-                let end = WithinBlock::<IndexPoint>::from_session_sharing_block_point(
-                    end.clone(),
-                    block_list,
-                );
-
-                // TODO: if either of these are None, we should probably find the closest, relevant point.
-                // For example, if there is displayed output in our grid and a remote selection is made
-                // starting at an undisplayed row and ends somewhere in a displayed row, the selection should
-                // probably be from the start of the displayed row to its end, rather than no selection at all.
-                let Some((start, end)) = start.zip(end) else {
-                    continue;
-                };
-                let start_block_index = start.block_index;
-                let end_block_index = end.block_index;
-
-                // Don't show highlight ui if this block is hidden.
-                let mut any_hidden = false;
-                for block_index in
-                    BlockIndex::range_as_iter(start_block_index..end_block_index.next())
-                {
-                    if block_list
-                        .block_at(block_index)
-                        .map(|block| block.should_hide_block(block_list.agent_view_state()))
-                        .unwrap_or(true)
-                    {
-                        any_hidden = true;
-                        break;
-                    }
-                }
-                if any_hidden {
-                    continue;
-                }
-
-                let start_block_list_point =
-                    BlockListPoint::from_within_block_point(&start, block_list);
-                let end_block_list_point =
-                    BlockListPoint::from_within_block_point(&end, block_list);
-                let range = SelectionRange::new(start_block_list_point, end_block_list_point);
-                let participant_color = if is_self_reconnecting {
-                    MUTED_PARTICIPANT_COLOR
-                } else {
-                    participant.color
-                };
-                let viewport = self.viewport_state_after_layout(block_list);
-                if viewport.is_range_in_order_in_viewport(&range) {
-                    let selection_cursor_render_location = if *is_reversed {
-                        SelectionCursorRenderLocation::Start
-                    } else {
-                        SelectionCursorRenderLocation::End
-                    };
-                    self.render_selection(
-                        &range,
-                        origin,
-                        block_list,
-                        text_selection_color(participant_color),
-                        selection_cursor_render_location,
-                        ctx,
-                    );
-                } else {
-                    // The start is always before the end from the participant's perspective before it's sent to the server.
-                    // If the start is after the end for us, it means our blocklist is inverted relative to the participant's.
-                    // For example, this happens if the selection spans multiple blocks and they are using waterfall mode but we are not, or vice versa.
-                    self.render_shared_session_participant_selection_relative_inverted_blocklist(
-                        start_block_list_point,
-                        start_block_index,
-                        end_block_list_point,
-                        end_block_index,
-                        *is_reversed,
-                        participant_color,
-                        origin,
-                        block_list,
-                        ctx,
-                    );
-                }
-            }
         }
     }
 
@@ -2240,120 +1873,6 @@ impl BlockListElement {
     ///
     /// Returns Some(()) if the selection was rendered, which will happen as long as the block indices are in bounds.
     #[allow(clippy::too_many_arguments)]
-    fn render_shared_session_participant_selection_relative_inverted_blocklist(
-        &self,
-        start_block_list_point: BlockListPoint,
-        start_block_index: BlockIndex,
-        end_block_list_point: BlockListPoint,
-        end_block_index: BlockIndex,
-        is_reversed: bool,
-        participant_color: ColorU,
-        origin: Vector2F,
-        block_list: &BlockList,
-        ctx: &mut PaintContext<'_>,
-    ) -> Option<()> {
-        // Render a selection from the start point of the same block that the end point is in, to the end point.
-        // 4.  [X][X][E][ ][ ]
-        //     [ ][ ][ ][ ][ ]
-        let block_start = block_list
-            .block_at(end_block_index)
-            .map(|b| b.start_point().to_within_block_point(end_block_index))?;
-        let range = SelectionRange::new(
-            BlockListPoint::from_within_block_point(&block_start, block_list),
-            end_block_list_point,
-        );
-        let selection_cursor_render_location = if is_reversed {
-            SelectionCursorRenderLocation::None
-        } else {
-            SelectionCursorRenderLocation::End
-        };
-        self.render_selection(
-            &range,
-            origin,
-            block_list,
-            text_selection_color(participant_color),
-            selection_cursor_render_location,
-            ctx,
-        );
-
-        // Any intermediate blocks between start and end points are fully selected.
-        // 3.  [X][X][X][X][X]
-        //     [X][X][X][X][X]
-        // 2.  [X][X][X][X][X]
-        //     [X][X][X][X][X]
-        let (larger_block_index, smaller_block_index) = if start_block_index > end_block_index {
-            (start_block_index, end_block_index)
-        } else {
-            (end_block_index, start_block_index)
-        };
-        if larger_block_index - smaller_block_index > 1.into() {
-            // The intermediate start block index should be whichever is on top in the viewport.
-            // The intermediate end block index is whichever is on bottom in the viewport.
-            let (intermediate_start_block_index, intermediate_end_block_index) =
-                if !self.input_mode.is_inverted_blocklist() {
-                    (
-                        smaller_block_index + 1.into(),
-                        larger_block_index - 1.into(),
-                    )
-                } else {
-                    (
-                        larger_block_index - 1.into(),
-                        smaller_block_index + 1.into(),
-                    )
-                };
-            let intermediate_start =
-                block_list
-                    .block_at(intermediate_start_block_index)
-                    .map(|b| {
-                        b.start_point()
-                            .to_within_block_point(intermediate_start_block_index)
-                    })?;
-
-            let intermediate_end = block_list.block_at(intermediate_end_block_index).map(|b| {
-                b.end_point()
-                    .to_within_block_point(intermediate_end_block_index)
-            })?;
-
-            let range = SelectionRange::new(
-                BlockListPoint::from_within_block_point(&intermediate_start, block_list),
-                BlockListPoint::from_within_block_point(&intermediate_end, block_list),
-            );
-            self.render_selection(
-                &range,
-                origin,
-                block_list,
-                text_selection_color(participant_color),
-                SelectionCursorRenderLocation::None,
-                ctx,
-            );
-        }
-
-        // Render a selection from the start point to the end of the block that the start point is in.
-        // 1.  [ ][ ][S][X][X]
-        //     [X][X][X][X][X]
-        let block_end = block_list
-            .block_at(start_block_index)
-            .map(|b| b.end_point().to_within_block_point(start_block_index))?;
-        let range = SelectionRange::new(
-            start_block_list_point,
-            BlockListPoint::from_within_block_point(&block_end, block_list),
-        );
-        let selection_cursor_render_location = if is_reversed {
-            SelectionCursorRenderLocation::Start
-        } else {
-            SelectionCursorRenderLocation::None
-        };
-        self.render_selection(
-            &range,
-            origin,
-            block_list,
-            text_selection_color(participant_color),
-            selection_cursor_render_location,
-            ctx,
-        );
-        Some(())
-    }
-
     #[allow(clippy::too_many_arguments)]
     fn draw_block_background(
         cell_size: Vector2F,
@@ -2364,41 +1883,17 @@ impl BlockListElement {
         warp_theme: &WarpTheme,
         block_borders_enabled: bool,
         snackbar_header: &Option<SnackbarHeader>,
-        ai_render_context: &BlocklistAIRenderContext,
-        agent_view_state: &AgentViewState,
         ctx: &mut PaintContext,
-        app: &AppContext,
+        _app: &AppContext,
     ) {
-        let block_height = block.height(agent_view_state).as_f64() as f32 * cell_size.y();
-        if block.is_restored()
-            && (!FeatureFlag::AgentView.is_enabled() || !agent_view_state.is_fullscreen())
-        {
+        let block_height = block.height().as_f64() as f32 * cell_size.y();
+        if block.is_restored() {
             ctx.scene
                 .draw_rect_with_hit_recording(RectF::new(
                     grid_origin,
                     Vector2F::new(bounds.width(), block_height),
                 ))
                 .with_background(warp_theme.restored_blocks_overlay());
-        }
-
-        // Update the background for the current active long running command when the inline agent view is active.
-        if agent_view_state.is_inline() && block.is_active_and_long_running() {
-            ctx.scene
-                .draw_rect_with_hit_recording(RectF::new(
-                    grid_origin,
-                    Vector2F::new(bounds.width(), block_height),
-                ))
-                .with_background(agent_view_bg_fill(app));
-        }
-
-        let mut did_render_ai_stripe = false;
-        if !FeatureFlag::AgentView.is_enabled() {
-            if let Some(ai_context_stripe_color) =
-                ai_render_context.context_color_for_block(block, warp_theme)
-            {
-                draw_flag_pole(grid_origin, block_height, ai_context_stripe_color, ctx);
-                did_render_ai_stripe = true;
-            }
         }
 
         if block.has_failed() {
@@ -2409,14 +1904,7 @@ impl BlockListElement {
                 ))
                 .with_background(warp_theme.failed_block_color().with_opacity(10));
 
-            if !is_selected_by_anyone && !did_render_ai_stripe {
-                draw_flag_pole(
-                    grid_origin,
-                    block_height,
-                    warp_theme.failed_block_color(),
-                    ctx,
-                );
-            }
+            let _ = is_selected_by_anyone;
         }
 
         if let Some((is_hovered, header_rect)) =
@@ -2479,10 +1967,8 @@ impl BlockListElement {
         snackbar_header: &Option<SnackbarHeader>,
         terminal_view_id: EntityId,
         draw_border_between_blocks: bool,
-        ai_render_context: &BlocklistAIRenderContext,
         cursor_hint_text: Option<&mut Box<dyn Element>>,
         image_metadata: &HashMap<u32, StoredImageMetadata>,
-        agent_view_state: &AgentViewState,
         ctx: &mut PaintContext,
         app: &AppContext,
     ) {
@@ -2495,8 +1981,6 @@ impl BlockListElement {
             &block_grid_params.grid_render_params.warp_theme,
             block_borders_enabled,
             snackbar_header,
-            ai_render_context,
-            agent_view_state,
             ctx,
             app,
         );
@@ -2719,25 +2203,11 @@ impl BlockListElement {
                     ctx,
                     terminal_view_id,
                     cursor_hint_text,
-                    if block.is_agent_blocked() {
-                        AnsiColorIdentifier::Yellow
-                            .to_ansi_color(
-                                &block_grid_params
-                                    .grid_render_params
-                                    .warp_theme
-                                    .terminal_colors()
-                                    .normal,
-                            )
-                            .into()
-                    } else if block.is_agent_in_control() {
-                        ai_brand_color(&block_grid_params.grid_render_params.warp_theme)
-                    } else {
-                        block_grid_params
-                            .grid_render_params
-                            .warp_theme
-                            .cursor()
-                            .into()
-                    },
+                    block_grid_params
+                        .grid_render_params
+                        .warp_theme
+                        .cursor()
+                        .into(),
                     app,
                 );
             }
@@ -3059,36 +2529,6 @@ impl BlockListElement {
 
         result
     }
-
-    #[cfg(feature = "voice_input")]
-    fn maybe_handle_voice_toggle(
-        &self,
-        key_code: &KeyCode,
-        state: &KeyState,
-        ctx: &mut EventContext,
-    ) -> bool {
-        use crate::terminal::view::TerminalAction;
-
-        if let Some(voice_input_toggle_key_code) = self.voice_input_toggle_key_code {
-            if *key_code == voice_input_toggle_key_code {
-                ctx.dispatch_typed_action(TerminalAction::ToggleCLIAgentVoiceInput(
-                    voice_input::VoiceInputToggledFrom::Key { state: *state },
-                ));
-                return true;
-            }
-        }
-        false
-    }
-
-    #[cfg(not(feature = "voice_input"))]
-    fn maybe_handle_voice_toggle(
-        &self,
-        _key_code: &KeyCode,
-        _state: &KeyState,
-        _ctx: &mut EventContext,
-    ) -> bool {
-        false
-    }
 }
 
 /// With a `WithinBlock<IndexPoint>`, the point will count rows with 0 starting with the beginning
@@ -3207,12 +2647,7 @@ impl Element for BlockListElement {
                     self.horizontal_clipped_scroll_state.clone(),
                     constraint.max,
                     self.input_size_at_last_frame,
-                    if self.ai_render_context.borrow().has_active_conversation() {
-                        AutoscrollBehavior::WhenScrolledToEnd
-                    } else {
-                        AutoscrollBehavior::Always
-                    },
-                    self.inline_menu_positioner.clone(),
+                    AutoscrollBehavior::Always,
                 )
             };
         }
@@ -3225,12 +2660,12 @@ impl Element for BlockListElement {
         // Collect all the necessary subshell flags here. Usually there will only be one in the
         // viewport, but it's possible the user might start a subshell, exit, and start another
         // one within the same viewport. They might also start a nested subshell.
-        let mut subshell_flags = HashMap::new();
+        let subshell_flags = HashMap::new();
 
         // Keep track of whether the previous block in this loop was part of a subshell, and if so
         // what was the session_id. We need this to determine if the current block needs to have a
         // subshell flag on it.
-        let mut prev_block_subshell_session_id: Option<SessionId> = None;
+        let _prev_block_subshell_session_id: Option<SessionId> = None;
 
         if let Some(banner) = &mut self.block_banner {
             banner.layout(constraint, ctx, app);
@@ -3306,73 +2741,14 @@ impl Element for BlockListElement {
                 BlockHeightItem::Block(height) => {
                     if height.as_f64() > 0. {
                         let block_index = viewport_item.block_index.expect("block index defined");
-                        let mut subshell_session_id = None;
+                        let subshell_session_id = None;
 
                         if let Some(block) = model.block_list().block_at(block_index) {
                             if !(block.honor_ps1() || block.is_background() || block.is_static()) {
                                 block_indices_with_label_elements.push(block_index);
                             }
 
-                            // Check if the current block belongs to a subshell session. We'll add
-                            // a stripe during paint if it does.
-                            if let Some(session_id) = block.session_id() {
-                                if let Some(command) = self.subshell_sessions.get(&session_id) {
-                                    subshell_session_id = Some(session_id);
-
-                                    // Check if this block is the first in this viewport to belong
-                                    // to this subshell, and lay out a flag Element for it. Don't
-                                    // do this in compact mode though (in which case
-                                    // subshell_separator_height will be > 0), or
-                                    // if this is a background block.
-                                    if (prev_block_subshell_session_id.is_none()
-                                        || prev_block_subshell_session_id != Some(session_id))
-                                        && self.subshell_separator_height == 0.
-                                        && !block.is_background()
-                                    {
-                                        let command = if let SubshellSource::Command(cmd) = command
-                                        {
-                                            cmd.split_whitespace()
-                                                .next()
-                                                .map(|exec| {
-                                                    SubshellSource::Command(exec.to_owned())
-                                                })
-                                                .unwrap_or_else(|| command.clone())
-                                        } else {
-                                            command.clone()
-                                        };
-
-                                        let mut flag_element = render_subshell_flag(
-                                            command,
-                                            self.font_family,
-                                            self.font_size,
-                                            &self.warp_theme,
-                                        );
-                                        flag_element.layout(constraint, ctx, app);
-                                        subshell_flags.insert(block_index, flag_element);
-                                    }
-                                    prev_block_subshell_session_id = Some(session_id);
-                                } else {
-                                    prev_block_subshell_session_id = None;
-                                }
-                            }
-
-                            if let Some(cli_subagent_view) =
-                                self.cli_subagent_views.get_mut(block.id())
-                            {
-                                let block_height = (height.as_f64() as f32) * cell_size.y();
-                                cli_subagent_view.layout(
-                                    SizeConstraint {
-                                        min: vec2f(0., 0.),
-                                        max: vec2f(
-                                            constraint.max.x() * 0.4
-                                                - CLI_SUBAGENT_HORIZONTAL_MARGIN,
-                                            block_height - CLI_SUBAGENT_VERTICAL_MARGIN * 2.,
-                                        ),
-                                    },
-                                    ctx,
-                                    app,
-                                );
-                            }
+                            let _ = block;
                         }
 
                         visible_items.push(VisibleItem::Block {
@@ -3515,17 +2891,6 @@ impl Element for BlockListElement {
                     self.size_info.pane_width_px().as_f32(),
                     BLOCK_HOVER_BUTTON_HEIGHT,
                 )),
-                ctx,
-                app,
-            );
-        }
-
-        for avatar_element in self.presence_avatars.values_mut() {
-            avatar_element.layout(
-                SizeConstraint::new(
-                    vec2f(constraint.min.x(), BLOCK_HOVER_BUTTON_HEIGHT),
-                    vec2f(constraint.max.x(), BLOCK_HOVER_BUTTON_HEIGHT),
-                ),
                 ctx,
                 app,
             );
@@ -3675,14 +3040,6 @@ impl Element for BlockListElement {
             rich_content.after_layout(ctx, app);
         }
 
-        for cli_subagent_view in self
-            .cli_subagent_views
-            .values_mut()
-            .filter(|e| e.size().is_some())
-        {
-            cli_subagent_view.after_layout(ctx, app);
-        }
-
         let model = self.model.lock();
         let viewport = self.viewport_state_after_layout(model.block_list());
 
@@ -3776,15 +3133,6 @@ impl Element for BlockListElement {
         // the next block to be drawn.
         let mut draw_border_above_block = true;
 
-        struct CLISubagentRenderParams {
-            block_id: BlockId,
-            view_origin: Option<Vector2F>,
-            should_clip_view: bool,
-        }
-
-        let mut cli_subagent_views_to_paint = vec![];
-        let agent_view_state = model.block_list().agent_view_state();
-
         let items = self
             .visible_items
             .as_ref()
@@ -3836,8 +3184,7 @@ impl Element for BlockListElement {
                     }
 
                     // TODO(vorporeal): should probably use `Pixels` here
-                    let block_pixel_height =
-                        block.height(agent_view_state).as_f64() as f32 * cell_size.y();
+                    let block_pixel_height = block_grid_params.bounds.height();
 
                     let block_bottom_y = grid_origin.y() + block_pixel_height;
                     let selection_bottom_y = snackbar_header
@@ -3859,8 +3206,7 @@ impl Element for BlockListElement {
                             is_bottom_of_continuous_selection,
                         );
 
-                        let can_be_ai_context = self.ai_render_context.borrow().is_ai_input_enabled
-                            && block.can_be_ai_context(agent_view_state);
+                        let can_be_ai_context = false;
 
                         ctx.scene
                             .draw_rect_with_hit_recording(RectF::new(
@@ -3898,98 +3244,6 @@ impl Element for BlockListElement {
                     // the gray border at the top of the block.
                     if is_top_of_continuous_selection {
                         draw_border_above_block = false;
-                    }
-
-                    // Current block is selected by ourselves or by another shared session participant
-                    let mut is_current_block_selected_by_anyone = is_current_block_selected;
-                    let mut participant_ids_for_avatar_render = vec![];
-                    if let Some(presence_manager) = &self.presence_manager {
-                        let is_self_reconnecting = presence_manager.as_ref(app).is_reconnecting();
-                        // Sort participants by reverse participant ID so we construct participant_ids_for_avatar_render in an ordering that's consistent with the pane header (avatars get rendered from right to left below).
-                        // Sorting here before rendering borders also ensures that the border color that gets rendered is always the color of participant on the furthest left,
-                        // since that is the color that gets rendered last.
-                        for participant in presence_manager
-                            .as_ref(app)
-                            .get_participants_at_selected_block(*block_index, block_list)
-                            .into_iter()
-                            .sorted_by(|a, b| b.participant.info.id.cmp(&a.participant.info.id))
-                        {
-                            if participant.should_show_avatar {
-                                participant_ids_for_avatar_render
-                                    .push(participant.participant.info.id.clone());
-                            }
-                            // Don't render any shared session participant background or border if we're rendering our own selection background and border.
-                            if is_current_block_selected {
-                                continue;
-                            }
-                            let color: Fill = if is_self_reconnecting {
-                                MUTED_PARTICIPANT_COLOR
-                            } else {
-                                participant.participant.color
-                            }
-                            .into();
-                            ctx.scene
-                                .draw_rect_with_hit_recording(RectF::new(
-                                    header_origin,
-                                    Vector2F::new(
-                                        self.bounds
-                                            .expect("bounds must be set at paint time")
-                                            .width(),
-                                        selection_height,
-                                    ),
-                                ))
-                                .with_background(color.with_opacity(10))
-                                .with_border(
-                                    Border::new(SHARED_SESSION_PARTICIPANT_SELECTION_BORDER_WIDTH)
-                                        .with_sides(
-                                            participant.is_top_of_continuous_selection,
-                                            true,
-                                            participant.is_bottom_of_continuous_selection,
-                                            true,
-                                        )
-                                        .with_border_fill(color),
-                                );
-                            // If we drew a colored top border here due to a participant's selection, don't also draw a gray border at the top.
-                            if participant.is_top_of_continuous_selection {
-                                draw_border_above_block = false;
-                            }
-                            is_current_block_selected_by_anyone = true;
-                        }
-                    }
-                    // Render their avatar in the top right of the block.
-                    let mut avatar_origin = vec2f(
-                        header_origin.x()
-                            + self.size_info.pane_width_px().as_f32()
-                            + self.horizontal_clipped_scroll_state.scroll_start().as_f32()
-                            - SELECTED_BLOCK_AVATAR_EDGE_OFFSET
-                            - SHARED_SESSION_AVATAR_DIAMETER,
-                        header_origin.y() - SHARED_SESSION_AVATAR_DIAMETER / 2.,
-                    );
-                    // participant_ids_for_avatar_render is already sorted in reverse order,
-                    // so the ordering will be consistent with the pane header as we go right to left.
-                    for participant_id in participant_ids_for_avatar_render {
-                        if let Some(avatar_element) = self.presence_avatars.get_mut(&participant_id)
-                        {
-                            avatar_element.paint(avatar_origin, ctx, app);
-                            avatar_origin.set_x(
-                                avatar_origin.x()
-                                    - SHARED_SESSION_AVATAR_DIAMETER
-                                    - SPACE_BETWEEN_SELECTED_BLOCK_AVATARS,
-                            );
-                        } else {
-                            log::warn!("Should show avatar for shared session participant at selected block but avatar element was not found")
-                        }
-                    }
-
-                    // Check if this block is in a subshell. If it is, draw a gray stripe on the
-                    // left-hand side.
-                    if subshell_session_id.is_some() {
-                        draw_flag_pole(
-                            header_origin.min(grid_origin),
-                            block_pixel_height,
-                            self.warp_theme.subshell_background(),
-                            ctx,
-                        );
                     }
 
                     // This section draws the subshell flag at the start of the subshell
@@ -4047,15 +3301,13 @@ impl Element for BlockListElement {
                         self.block_footer_elements.get_mut(block_index),
                         *block_index,
                         self.block_borders_enabled,
-                        is_current_block_selected_by_anyone,
+                        is_current_block_selected,
                         &block_grid_params,
                         &snackbar_header,
                         self.terminal_view_id,
                         draw_border_above_block,
-                        self.ai_render_context.borrow().deref(),
                         self.cursor_hint_text_element.as_mut(),
                         &model.image_id_to_metadata,
-                        agent_view_state,
                         ctx,
                         app,
                     );
@@ -4205,32 +3457,6 @@ impl Element for BlockListElement {
                         }
                     }
 
-                    // Paint the CLI subagent view on top of everything else for this block
-                    let mut render_params = CLISubagentRenderParams {
-                        block_id: block.id().clone(),
-                        view_origin: None,
-                        should_clip_view: !block.is_agent_blocked(),
-                    };
-
-                    if let Some(cli_subagent_view) = self.cli_subagent_views.get_mut(block.id()) {
-                        // Only paint if the element was laid out; the business logic that decides to render this element is done at layout time.
-                        if let Some(cli_subagent_view_size) = cli_subagent_view.size() {
-                            render_params.view_origin = Some(
-                                vec2f(
-                                    grid_origin.x() + block_grid_params.bounds.width(),
-                                    grid_origin.y(),
-                                ) - vec2f(
-                                    CLI_SUBAGENT_HORIZONTAL_MARGIN,
-                                    CLI_SUBAGENT_VERTICAL_MARGIN,
-                                ) - cli_subagent_view_size,
-                            );
-                        }
-                    }
-
-                    if render_params.view_origin.is_some() {
-                        cli_subagent_views_to_paint.push(render_params);
-                    }
-
                     draw_border_above_block = true;
                     ctx.scene.stop_layer();
 
@@ -4296,17 +3522,7 @@ impl Element for BlockListElement {
                     // we want to avoid drawing a border between the banner and the next block.
                     // Specifically, if there is a banner, we want to draw the border
                     // iff it's not a shared session banner.
-                    draw_border_above_block = match self.shared_session_banner_state {
-                        SharedSessionBanners::None => true,
-                        SharedSessionBanners::ActiveShare {
-                            started_banner_id, ..
-                        } => *banner_id != started_banner_id,
-                        SharedSessionBanners::LastShared {
-                            started_banner_id,
-                            ended_banner_id,
-                            ..
-                        } => *banner_id != started_banner_id && *banner_id != ended_banner_id,
-                    };
+                    draw_border_above_block = true;
 
                     grid_origin += vec2f(0., *height);
                 }
@@ -4325,25 +3541,9 @@ impl Element for BlockListElement {
                 VisibleItem::RichContent {
                     view_id, height_px, ..
                 } => {
-                    let block_origin = grid_origin;
+                    let _block_origin = grid_origin;
                     if let Some(rich_content) = self.rich_content_elements.get_mut(view_id) {
                         rich_content.paint(grid_origin, ctx, app);
-                    }
-
-                    if !FeatureFlag::AgentView.is_enabled() {
-                        let ai_render_context = self.ai_render_context.borrow();
-                        if let Some(ai_context_color) = self
-                            .rich_content_metadata
-                            .get(view_id)
-                            .and_then(|metadata| {
-                                ai_render_context
-                                    .context_color_for_rich_content(metadata, &self.warp_theme)
-                            })
-                        {
-                            ctx.scene.start_layer(ClipBounds::ActiveLayer);
-                            draw_flag_pole(block_origin, *height_px, ai_context_color, ctx);
-                            ctx.scene.stop_layer();
-                        }
                     }
 
                     draw_border_above_block = true;
@@ -4366,17 +3566,7 @@ impl Element for BlockListElement {
                 .iter()
                 .flat_map(|selection| self.segment_blocklist_selection(selection, block_list));
 
-            let text_selection_color = if self
-                .ai_render_context
-                .borrow()
-                .has_pending_context_selected_text
-            {
-                self.warp_theme
-                    .text_selection_as_context_color()
-                    .into_solid()
-            } else {
-                self.warp_theme.text_selection_color().into_solid()
-            };
+            let text_selection_color = self.warp_theme.text_selection_color().into_solid();
 
             for current_range in selection_ranges {
                 self.render_selection(
@@ -4384,36 +3574,10 @@ impl Element for BlockListElement {
                     origin,
                     block_list,
                     text_selection_color,
-                    SelectionCursorRenderLocation::None,
                     ctx,
                 );
             }
         };
-        self.render_shared_session_participants_selections(origin, block_list, app, ctx);
-
-        if !cli_subagent_views_to_paint.is_empty() {
-            for CLISubagentRenderParams {
-                block_id,
-                view_origin,
-                should_clip_view,
-            } in cli_subagent_views_to_paint.into_iter()
-            {
-                if let (Some(cli_subagent_view), Some(view_origin)) =
-                    (self.cli_subagent_views.get_mut(&block_id), view_origin)
-                {
-                    ctx.scene.start_layer(if should_clip_view {
-                        ClipBounds::BoundedBy(
-                            self.bounds
-                                .expect("Bounds were set at beginning of paint()"),
-                        )
-                    } else {
-                        ClipBounds::None
-                    });
-                    cli_subagent_view.paint(view_origin, ctx, app);
-                    ctx.scene.stop_layer();
-                }
-            }
-        }
 
         ctx.scene.stop_layer();
         self.child_max_z_index = Some(ctx.scene.max_active_z_index());
@@ -4449,13 +3613,6 @@ impl Element for BlockListElement {
         );
 
         if events_to_propagate_on {
-            for cli_subagent_view in self.cli_subagent_views.values_mut() {
-                // If the event is handled by the CLI subagent view, do not propagate it down to the blocklist.
-                if cli_subagent_view.dispatch_event(event, ctx, app) {
-                    return true;
-                }
-            }
-
             // The floating buttons are a group of buttons that are on top of the blocklist elements.
             // If the event is handled by any of them, we do not propagate it down to the blocklist.
             // Note that this is in violation of the dispatch_event contract: we are not
@@ -4488,10 +3645,6 @@ impl Element for BlockListElement {
             if let Some(snackbar_toggle_button) = &mut self.snackbar_toggle_button {
                 handled_by_floating_button |=
                     snackbar_toggle_button.dispatch_event(event, ctx, app);
-            }
-
-            for avatar_element in self.presence_avatars.values_mut() {
-                handled_by_floating_button |= avatar_element.dispatch_event(event, ctx, app);
             }
 
             if handled_by_floating_button {
@@ -4628,7 +3781,7 @@ impl Element for BlockListElement {
                         ctx.dispatch_typed_action(TerminalAction::ControlSequence(escape_sequence));
                         return true;
                     }
-                    self.maybe_handle_voice_toggle(key_code, state, ctx)
+                    false
                 } else {
                     false
                 }

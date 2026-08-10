@@ -1,7 +1,7 @@
+use crate::report_if_error;
 use crate::ai::execution_profiles::profiles::AIExecutionProfilesModel;
 use crate::ai::execution_profiles::{ActionPermission, WriteToPtyPermission};
 use crate::drive::settings::WarpDriveSettings;
-use crate::report_if_error;
 use crate::settings::ai::DefaultSessionMode;
 use crate::settings::{AISettings, CodeSettings};
 use crate::workspace::tab_settings::TabSettings;
@@ -71,9 +71,6 @@ fn apply_ui_customization_settings(
         return;
     }
     TabSettings::handle(app).update(app, |settings, ctx| {
-        report_if_error!(settings
-            .use_vertical_tabs
-            .set_value(ui.use_vertical_tabs, ctx));
         report_if_error!(settings
             .show_code_review_button
             .set_value(ui.show_code_review_button, ctx));

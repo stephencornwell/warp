@@ -24,13 +24,10 @@ use crate::{
     pane_group::{
         focus_state::PaneFocusHandle, pane::view, BackingView, PaneConfiguration, PaneEvent,
     },
-    send_telemetry_from_ctx,
-    terminal::TerminalView,
     util::bindings::{keybinding_name_to_display_string, BindingGroup, CustomAction},
     view_components::DismissibleToast,
     workspace::ToastStack,
-    workspace::{Workspace, WorkspaceAction},
-    TelemetryEvent,
+    workspace::WorkspaceAction,
 };
 
 pub fn init(app: &mut AppContext) {
@@ -97,10 +94,6 @@ impl GetStartedView {
         match event {
             ProjectButtonsEvent::OpenRepository(path_result) => match path_result {
                 Ok(path) => {
-                    send_telemetry_from_ctx!(
-                        TelemetryEvent::OpenRepoFolderSubmitted { is_ftux: true },
-                        ctx
-                    );
                     ctx.dispatch_typed_action(&WorkspaceAction::OpenRepository {
                         path: Some(path.clone()),
                     });
@@ -141,8 +134,9 @@ impl GetStartedView {
         ctx: &mut ViewContext<Self>,
     ) {
         match event {
-            CreateProjectEvent::SubmitPrompt(prompt) => {
-                self.start_create_new_project(prompt.clone(), ctx);
+            CreateProjectEvent::SubmitPrompt => {
+                self.active_page = ActivePage::Main;
+                ctx.notify();
             }
             CreateProjectEvent::Cancel => {
                 self.active_page = Default::default();
@@ -158,36 +152,15 @@ impl GetStartedView {
         ctx: &mut ViewContext<Self>,
     ) {
         match event {
-            CloneRepoEvent::SubmitPrompt(url) => {
-                self.start_clone_repo(url.clone(), ctx);
+            CloneRepoEvent::SubmitPrompt => {
+                self.active_page = ActivePage::Main;
+                ctx.notify();
             }
             CloneRepoEvent::Cancel => {
                 self.active_page = ActivePage::Main;
                 ctx.notify();
             }
         }
-    }
-
-    fn start_create_new_project(&mut self, prompt: String, ctx: &mut ViewContext<Self>) {
-        ctx.dispatch_typed_action(&WorkspaceAction::AddTerminalTab {
-            hide_homepage: true,
-        });
-        update_active_terminal(ctx, |terminal, ctx| {
-            terminal.create_new_project(prompt, ctx);
-        });
-
-        self.close(ctx);
-    }
-
-    fn start_clone_repo(&mut self, url: String, ctx: &mut ViewContext<Self>) {
-        ctx.dispatch_typed_action(&WorkspaceAction::AddTerminalTab {
-            hide_homepage: true,
-        });
-        update_active_terminal(ctx, |terminal, ctx| {
-            terminal.agent_clone_repository(url, ctx);
-        });
-
-        self.close(ctx);
     }
 
     fn render_main_content(&self, app: &AppContext) -> Box<dyn Element> {
@@ -317,7 +290,6 @@ impl TypedActionView for GetStartedView {
     fn handle_action(&mut self, action: &Self::Action, ctx: &mut ViewContext<Self>) {
         match action {
             GetStartedAction::TerminalSession => {
-                send_telemetry_from_ctx!(TelemetryEvent::GetStartedSkipToTerminal, ctx);
                 ctx.dispatch_typed_action(&WorkspaceAction::AddTerminalTab {
                     hide_homepage: true,
                 });
@@ -372,24 +344,5 @@ impl BackingView for GetStartedView {
 
     fn set_focus_handle(&mut self, focus_handle: PaneFocusHandle, _ctx: &mut ViewContext<Self>) {
         self.focus_handle = Some(focus_handle);
-    }
-}
-
-fn update_active_terminal<F, S>(ctx: &mut ViewContext<GetStartedView>, func: F)
-where
-    F: FnOnce(&mut TerminalView, &mut ViewContext<TerminalView>) -> S,
-{
-    let window_id = ctx.window_id();
-    if let Some(workspaces) = ctx.views_of_type::<Workspace>(window_id) {
-        if let Some(workspace) = workspaces.into_iter().next() {
-            workspace.update(ctx, |workspace, ctx| {
-                let pane_group = workspace.active_tab_pane_group();
-                pane_group.update(ctx, |pane_group, ctx| {
-                    if let Some(active_terminal) = pane_group.active_session_view(ctx) {
-                        active_terminal.update(ctx, func);
-                    }
-                });
-            });
-        }
     }
 }

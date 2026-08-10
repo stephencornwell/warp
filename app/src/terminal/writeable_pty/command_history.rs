@@ -28,7 +28,7 @@ pub fn update_command_history(
         return;
     }
 
-    let is_agent_executed = event.source.is_ai_command();
+    let is_agent_executed = false;
 
     let session_ref = &*session;
     History::handle(ctx).update(ctx, move |history, _| {
@@ -38,8 +38,6 @@ pub fn update_command_history(
                 event.command.to_string(),
                 active_block,
                 session_ref,
-                event.workflow_id.to_owned(),
-                event.workflow_command.to_owned(),
                 is_agent_executed,
             )],
         )
@@ -56,7 +54,6 @@ pub fn update_command_history(
                 username: Some(session.user().to_owned()),
                 hostname: Some(session.hostname().to_owned()),
                 session_id: Some(session_id),
-                cloud_workflow_id: event.workflow_id.to_owned(),
                 workflow_command: event.workflow_command.to_owned(),
                 git_branch: active_block
                     .git_branch()

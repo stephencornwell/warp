@@ -65,7 +65,7 @@ use crate::{
         link::{LinkTarget, NotebookLinks, ResolveError},
         telemetry::{ActionEntrypoint, BlockInfo, EmbeddedObjectInfo, SelectionMode},
     },
-    server::ids::SyncId,
+    sync_ids::SyncId,
     settings::{AppEditorSettings, FontSettings, SelectionSettings},
     terminal::{grid_renderer::URL_COLOR, links::directly_open_link_keybinding_string},
     ui_components::icons::ICON_DIMENSIONS,
@@ -77,8 +77,6 @@ use crate::{
 };
 
 #[cfg(feature = "local_fs")]
-use crate::util::link_detection::{detect_file_paths, get_word_range_at_offset, DetectedLinkType};
-
 #[cfg(feature = "local_fs")]
 use warpui::text::word_boundaries::WordBoundariesPolicy;
 
@@ -2085,72 +2083,6 @@ impl RichTextEditorView {
         }
 
         self.hovered_file_path = None;
-
-        #[cfg(feature = "local_fs")]
-        {
-            // Check for file paths at the hovered word, expanding to include the previous word
-            // to detect line ranges like "file.rs (16-30)" when hovering over "(16-30)"
-            let buffer = self.model.as_ref(ctx).content().as_ref(ctx);
-            let Some(current_word_range) = get_word_range_at_offset(
-                buffer,
-                char_offset,
-                Some(WordBoundariesPolicy::OnlyWhitespace),
-            ) else {
-                return;
-            };
-            let Some(file_link_resolution_context) =
-                self.model.as_ref(ctx).file_link_resolution_context()
-            else {
-                return;
-            };
-
-            // Get the previous word to include in our search context
-            // This allows us to detect "file.rs (16-30)" when hovering over "(16-30)"
-            let search_start = if current_word_range.start > CharOffset::from(1) {
-                // Try to get the word before the current word. Skip over expected space
-                let before_current = current_word_range.start - CharOffset::from(2);
-                get_word_range_at_offset(
-                    buffer,
-                    before_current,
-                    Some(WordBoundariesPolicy::OnlyWhitespace),
-                )
-                .map(|range| range.start)
-                .unwrap_or(current_word_range.start)
-            } else {
-                current_word_range.start
-            };
-
-            // Create expanded context range from previous word start to current word end
-            let context_range = search_start..current_word_range.end;
-
-            // Detect ALL file paths in the context (including line ranges)
-            let detected_links = detect_file_paths(
-                &file_link_resolution_context.working_directory,
-                buffer.text_in_range(context_range.clone()).as_str(),
-                file_link_resolution_context.shell_launch_data.as_ref(),
-            );
-
-            // Find which detected link (if any) contains the hovered char_offset
-            for (link_range, link_type) in detected_links {
-                // Adjust link_range which is relative to context_range to absolute buffer offsets
-                let absolute_range = search_start + CharOffset::from(link_range.start)
-                    ..search_start + CharOffset::from(link_range.end);
-                if absolute_range.contains(&char_offset) {
-                    if let DetectedLinkType::FilePath {
-                        absolute_path,
-                        line_and_column_num,
-                    } = link_type
-                    {
-                        self.hovered_file_path = Some(SelectedFilePath {
-                            range: absolute_range,
-                            path: absolute_path,
-                            line_and_column_num,
-                        });
-                        break;
-                    }
-                }
-            }
-        }
 
         ctx.notify();
     }

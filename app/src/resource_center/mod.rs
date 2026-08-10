@@ -1,11 +1,9 @@
+use crate::report_if_error;
 use std::collections::HashSet;
 
 use settings::Setting as _;
 
-use crate::{
-    report_if_error, terminal::general_settings::GeneralSettings,
-    util::bindings::trigger_to_keystroke,
-};
+use crate::{terminal::general_settings::GeneralSettings, util::bindings::trigger_to_keystroke};
 
 use chrono::{DateTime, FixedOffset};
 
@@ -15,7 +13,7 @@ pub use main_page::{ResourceCenterMainEvent, ResourceCenterMainView};
 mod keybindings_page;
 pub use keybindings_page::KeybindingsView;
 mod section_views;
-pub use section_views::{ChangelogSectionView, ContentSectionView, FeatureSectionView};
+pub use section_views::{ContentSectionView, FeatureSectionView};
 pub mod sections;
 mod view;
 use serde::{Deserialize, Serialize};
@@ -128,7 +126,6 @@ impl TipAction {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-
 // Section item that dispatches an action within the app
 pub struct FeatureItem {
     pub title: &'static str,
@@ -181,7 +178,6 @@ pub struct ContentItem {
 pub enum Section {
     Feature(FeatureSectionData),
     Content(ContentSectionData),
-    Changelog(),
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]

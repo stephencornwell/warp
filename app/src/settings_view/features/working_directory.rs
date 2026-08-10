@@ -1,3 +1,13 @@
+use crate::report_if_error;
+use crate::{
+    appearance::Appearance,
+    editor::{EditorView, Event as EditorEvent, SingleLineEditorOptions, TextOptions},
+    settings_view::features_page::render_group,
+    terminal::session_settings::{
+        NewSessionSource, SessionSettings, SessionSettingsChangedEvent, WorkingDirectoryMode,
+    },
+    view_components::{dropdown::TOP_MENU_BAR_HEIGHT, Dropdown, DropdownItem},
+};
 use itertools::Itertools;
 use warpui::{
     elements::{Container, CrossAxisAlignment, Flex, ParentElement, Shrinkable},
@@ -5,17 +15,6 @@ use warpui::{
     ui_components::components::{Coords, UiComponent, UiComponentStyles},
     Element, Entity, SingletonEntity, TypedActionView, View, ViewContext, ViewHandle,
 };
-
-use crate::{
-    appearance::Appearance,
-    editor::{EditorView, Event as EditorEvent, SingleLineEditorOptions, TextOptions},
-    report_if_error, send_telemetry_from_ctx,
-    server::telemetry::TelemetryEvent,
-    settings_view::features_page::render_group,
-    terminal::session_settings::*,
-    view_components::{dropdown::TOP_MENU_BAR_HEIGHT, Dropdown, DropdownItem},
-};
-
 #[derive(Clone, Debug)]
 #[allow(clippy::enum_variant_names)]
 pub enum WorkingDirectoryAction {
@@ -206,13 +205,6 @@ impl TypedActionView for WorkingDirectoryView {
                         ctx,
                     ));
                 });
-
-                send_telemetry_from_ctx!(
-                    TelemetryEvent::InitialWorkingDirectoryConfigurationChanged {
-                        advanced_mode_enabled: mode.is_none()
-                    },
-                    ctx
-                );
 
                 // Redraw settings in case we switched in or out of advanced mode.
                 ctx.notify();

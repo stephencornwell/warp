@@ -1,10 +1,3 @@
-use crate::{
-    appearance::Appearance,
-    send_telemetry_from_ctx,
-    server::telemetry::TelemetryEvent,
-    settings_view::keybindings::{KeybindingChangedEvent, KeybindingChangedNotifier},
-    themes::theme::Fill,
-};
 use warpui::{
     elements::{
         Align, ConstrainedBox, Container, CrossAxisAlignment, Element, Flex, Hoverable, Icon,
@@ -21,6 +14,11 @@ use crate::resource_center::{
     complete_tips_and_write_to_user_defaults, main_page::ActionTarget,
     skip_tips_and_write_to_user_defaults, FeatureItem, FeatureSectionData, Tip, TipsCompleted,
 };
+use crate::{
+    appearance::Appearance,
+    settings_view::keybindings::{KeybindingChangedEvent, KeybindingChangedNotifier},
+};
+use warpui::elements::Fill;
 
 use super::{
     SectionAction, SectionView, CHEVRON_ICON_SIZE, DESCRIPTION_FONT_SIZE, ELLIPSE_ICON_SIZE,
@@ -147,7 +145,6 @@ impl FeatureSectionView {
 
     // Turns gamification off without rendering completed modal
     pub fn skip_gamified_section(&mut self, ctx: &mut ViewContext<Self>) {
-        send_telemetry_from_ctx!(TelemetryEvent::ResourceCenterTipsSkipped, ctx);
         self.tips_completed.update(ctx, |tips_completed, ctx| {
             skip_tips_and_write_to_user_defaults(tips_completed, ctx);
             ctx.notify();
@@ -156,7 +153,6 @@ impl FeatureSectionView {
 
     // Turns gamification off and renders completed modal
     pub fn complete_gamified_section(&mut self, ctx: &mut ViewContext<Self>) {
-        send_telemetry_from_ctx!(TelemetryEvent::ResourceCenterTipsCompleted, ctx);
         self.tips_completed.update(ctx, |tips_completed, ctx| {
             complete_tips_and_write_to_user_defaults(tips_completed, ctx);
             ctx.notify();
@@ -238,7 +234,11 @@ impl FeatureSectionView {
             .wrappable_text(item.description.to_string(), true)
             .with_style(UiComponentStyles {
                 font_size: Some(DESCRIPTION_FONT_SIZE),
-                font_color: Some(color.into()),
+                font_color: Some(match color {
+                    Fill::Solid(color) => color,
+                    Fill::None => pathfinder_color::ColorU::new(0, 0, 0, 255),
+                    Fill::Gradient { .. } => pathfinder_color::ColorU::new(0, 0, 0, 255),
+                }),
                 ..Default::default()
             })
             .build()
@@ -285,7 +285,7 @@ impl FeatureSectionView {
         };
 
         // description
-        element.add_child(self.render_description(item, appearance, description_color));
+        element.add_child(self.render_description(item, appearance, description_color.into()));
 
         let mut feature_item = Flex::row();
         if !is_completed && show_gamified {

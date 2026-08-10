@@ -1,3 +1,10 @@
+use crate::report_if_error;
+use crate::{
+    pane_group::{PaneGroup, PaneId},
+    session_management::{RunningSessionSummary, SessionNavigationData},
+    terminal::general_settings::GeneralSettings,
+    workspace::Workspace,
+};
 use itertools::Itertools;
 use settings::ToggleableSetting as _;
 use std::fmt::Write;
@@ -5,18 +12,6 @@ use warpui::{
     modals::{AlertDialogWithCallbacks, AppModalCallback, ModalButton},
     AppContext, EntityId, SingletonEntity, ViewContext, WeakViewHandle, WindowId,
 };
-
-use crate::{
-    code::editor_management::{CodeEditorStatus, CodeEditorSummary},
-    pane_group::{CodePane, PaneGroup, PaneId, TerminalPane},
-    report_if_error, send_telemetry_from_app_ctx,
-    server::telemetry::CloseTarget,
-    session_management::{RunningSessionSummary, SessionNavigationData},
-    terminal::general_settings::GeneralSettings,
-    workspace::Workspace,
-    TelemetryEvent,
-};
-
 /// Scope of what's being quit/closed.
 #[derive(Clone)]
 enum QuitScope<'a> {
@@ -29,11 +24,6 @@ enum QuitScope<'a> {
     Tabs(Vec<WeakViewHandle<PaneGroup>>),
     Window(WindowId),
     App,
-    #[allow(dead_code)]
-    EditorTab {
-        file_name: Option<String>,
-        editor_status: Vec<CodeEditorStatus>,
-    }, // TODO: Include the "log out" confirmation modal too.
 }
 
 /// Summary of unsaved data and running processes to show the user before they quit.
@@ -77,9 +67,8 @@ impl QuitScope<'_> {
                 pane_group_id,
                 window_id,
             } => pane_group
-                .downcast_pane_by_id::<TerminalPane>(*pane_id)
-                .map(|pane| pane.session_navigation_data(*pane_group_id, *window_id, ctx))
-                .into_iter()
+                .pane_sessions(*pane_group_id, *window_id, ctx)
+                .filter(|session| session.is_for_session(*pane_id))
                 .collect_vec(),
             Self::Tabs(ref tabs) => {
                 // We can't use SessionNavigationData::all_sessions here, as the caller is likely
@@ -100,63 +89,6 @@ impl QuitScope<'_> {
                 .filter(|session| session.window_id() == *window_id)
                 .collect_vec(),
             Self::App => SessionNavigationData::all_sessions(ctx).collect_vec(),
-            Self::EditorTab { .. } => Vec::new(),
-        }
-    }
-
-    /// All code editors in this scope.
-    fn code_editors(&self, ctx: &AppContext) -> Vec<CodeEditorStatus> {
-        match self {
-            Self::Pane {
-                pane_group,
-                pane_id,
-                ..
-            } => pane_group
-                .downcast_pane_by_id::<CodePane>(*pane_id)
-                .map(|code_pane| code_pane.editor_status(ctx))
-                .into_iter()
-                .collect(),
-            Self::Tabs(ref tabs) => tabs
-                .iter()
-                .filter_map(|tab| tab.upgrade(ctx))
-                .flat_map(|pane_group| CodeEditorStatus::editors_in_tab(&pane_group, ctx))
-                .collect_vec(),
-            Self::Window(window_id) => {
-                CodeEditorStatus::editors_in_window(*window_id, ctx).collect_vec()
-            }
-            Self::App => CodeEditorStatus::all_editors(ctx).collect_vec(),
-            Self::EditorTab { editor_status, .. } => editor_status.clone(),
-        }
-    }
-
-    /// All code review views in this scope (from the panel, not panes).
-    fn code_review_views(&self, ctx: &AppContext) -> Vec<CodeEditorStatus> {
-        match self {
-            Self::Pane { .. } => {
-                vec![] // There cannot be a code review view in a pane.
-            }
-            Self::Tabs(ref tabs) => {
-                let window_ids: Vec<_> = tabs
-                    .iter()
-                    .filter_map(|tab| tab.upgrade(ctx))
-                    .map(|pane_group| pane_group.window_id(ctx))
-                    .unique()
-                    .collect();
-                window_ids
-                    .into_iter()
-                    .flat_map(|window_id| {
-                        CodeEditorStatus::code_review_views_in_window(window_id, ctx)
-                    })
-                    .collect_vec()
-            }
-            Self::Window(window_id) => {
-                CodeEditorStatus::code_review_views_in_window(*window_id, ctx).collect_vec()
-            }
-            Self::App => ctx
-                .window_ids()
-                .flat_map(|window_id| CodeEditorStatus::code_review_views_in_window(window_id, ctx))
-                .collect_vec(),
-            Self::EditorTab { .. } => vec![],
         }
     }
 
@@ -164,14 +96,10 @@ impl QuitScope<'_> {
     fn shared_sessions(&self, ctx: &AppContext) -> usize {
         match self {
             Self::Pane {
-                pane_group,
-                pane_id,
+                pane_group: _,
+                pane_id: _,
                 ..
-            } => pane_group
-                .terminal_view_from_pane_id(*pane_id, ctx)
-                .filter(|view| view.as_ref(ctx).is_sharing_session())
-                .into_iter()
-                .count(),
+            } => 0,
             Self::Tabs(ref tabs) => tabs
                 .iter()
                 .filter_map(|tab| tab.upgrade(ctx))
@@ -187,17 +115,6 @@ impl QuitScope<'_> {
                 })
                 .unwrap_or_default(),
             Self::App => crate::session_management::num_shared_sessions(ctx),
-            Self::EditorTab { .. } => 0,
-        }
-    }
-
-    fn close_target(&self) -> CloseTarget {
-        match self {
-            Self::Pane { .. } => CloseTarget::Pane,
-            Self::Tabs(_) => CloseTarget::Tab,
-            Self::Window(_) => CloseTarget::Window,
-            Self::App => CloseTarget::App,
-            Self::EditorTab { .. } => CloseTarget::EditorTab,
         }
     }
 }
@@ -213,21 +130,6 @@ impl UnsavedStateSummary<'static> {
 
     pub fn for_tabs(tabs: Vec<WeakViewHandle<PaneGroup>>, ctx: &mut AppContext) -> Self {
         Self::for_scope(QuitScope::Tabs(tabs), ctx)
-    }
-
-    #[allow(dead_code)]
-    pub fn for_editor_tab(
-        file_name: Option<String>,
-        editor_status: Vec<CodeEditorStatus>,
-        ctx: &mut AppContext,
-    ) -> Self {
-        Self::for_scope(
-            QuitScope::EditorTab {
-                file_name,
-                editor_status,
-            },
-            ctx,
-        )
     }
 }
 
@@ -252,12 +154,6 @@ impl<'a> UnsavedStateSummary<'a> {
         let sessions = scope.sessions(ctx);
         let sessions_summary = RunningSessionSummary::new(&sessions);
 
-        let code_editors = scope.code_editors(ctx);
-        let code_editor_summary = CodeEditorSummary::new(&code_editors);
-
-        let code_review_views = scope.code_review_views(ctx);
-        let code_review_summary = CodeEditorSummary::new(&code_review_views);
-
         let num_shared_sessions = scope.shared_sessions(ctx);
 
         UnsavedStateSummary {
@@ -267,8 +163,7 @@ impl<'a> UnsavedStateSummary<'a> {
             tabs_with_long_running_commands: sessions_summary.tabs_running().len(),
             terminal_sessions: sessions,
             shared_sessions: num_shared_sessions,
-            unsaved_code_changes: !code_editor_summary.unsaved_changes.is_empty()
-                || !code_review_summary.unsaved_changes.is_empty(),
+            unsaved_code_changes: false,
         }
     }
 
@@ -296,7 +191,7 @@ impl<'a> UnsavedStateSummary<'a> {
             QuitScope::Tabs(ref tabs) if tabs.len() == 1 => " in this tab.",
             QuitScope::Window(_) => " in this window.",
             QuitScope::Pane { .. } => " in this pane.",
-            QuitScope::App | QuitScope::Tabs(_) | QuitScope::EditorTab { .. } => ".",
+            QuitScope::App | QuitScope::Tabs(_) => ".",
         };
 
         if self.total_long_running_commands > 0 {
@@ -331,11 +226,7 @@ impl<'a> UnsavedStateSummary<'a> {
         }
 
         if self.unsaved_code_changes {
-            if let QuitScope::EditorTab { ref file_name, .. } = self.scope {
-                info_text_lines.push(format!("Do you want to save the changes you made to {}? Your changes will be discarded if you don't save them.", file_name.clone().unwrap_or("this file".to_string())));
-            } else {
-                info_text_lines.push(format!("You have unsaved file changes{scope_suffix}"));
-            }
+            info_text_lines.push(format!("You have unsaved file changes{scope_suffix}"));
         }
 
         info_text_lines.join("\n")
@@ -402,7 +293,6 @@ impl<'a> QuitWarningDialog<'a> {
             let confirm_title = match state.scope {
                 QuitScope::Window(_) | QuitScope::Tabs(_) | QuitScope::Pane { .. } => "Yes, close",
                 QuitScope::App => "Yes, quit",
-                _ => "",
             };
             buttons.push(ModalButton::for_app(confirm_title.to_string(), callback));
         }
@@ -436,7 +326,6 @@ impl<'a> QuitWarningDialog<'a> {
             QuitScope::Tabs(_) => "Close tabs?",
             QuitScope::Window(_) => "Close window?",
             QuitScope::App => "Quit Warp?",
-            QuitScope::EditorTab { .. } => "Save changes?",
         };
 
         AlertDialogWithCallbacks::for_app(
@@ -450,15 +339,6 @@ impl<'a> QuitWarningDialog<'a> {
     /// Show the quit warning dialog. This returns `true` if the dialog was shown, and `false` if
     /// the current platform doesn't support showing a modal.
     pub fn show(self, ctx: &mut AppContext) -> bool {
-        send_telemetry_from_app_ctx!(
-            TelemetryEvent::QuitModalShown {
-                running_processes: self.state.total_long_running_commands as u32,
-                shared_sessions: self.state.shared_sessions as u32,
-                modal_for: self.state.scope.close_target()
-            },
-            ctx
-        );
-
         let session_summary = self.state.running_sessions();
         let dialog = self.build();
         // We don't support showing a modal on all platforms.
@@ -508,5 +388,4 @@ fn on_disable_warning_modal(ctx: &mut AppContext) {
             .show_warning_before_quitting
             .toggle_and_save_value(ctx));
     });
-    send_telemetry_from_app_ctx!(TelemetryEvent::QuitModalDisabled, ctx);
 }

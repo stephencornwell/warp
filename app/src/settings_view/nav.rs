@@ -21,6 +21,7 @@ const SUBPAGE_FONT_SIZE: f32 = 10.;
 const SUBPAGE_LEFT_MARGIN: f32 = NAV_ITEM_LEFT_MARGIN + 12.;
 
 /// A collapsible group of settings subpages in the sidebar.
+#[allow(dead_code)]
 pub struct SettingsUmbrella {
     pub label: &'static str,
     pub subpages: Vec<SettingsSection>,
@@ -31,6 +32,7 @@ pub struct SettingsUmbrella {
     pub subpage_button_states: Vec<MouseStateHandle>,
 }
 
+#[allow(dead_code)]
 impl SettingsUmbrella {
     pub fn new(label: &'static str, subpages: Vec<SettingsSection>) -> Self {
         let subpage_count = subpages.len();
@@ -136,5 +138,6 @@ pub enum SettingsNavItem {
     /// A top-level page that is rendered directly in the sidebar.
     Page(SettingsSection),
     /// A collapsible group header whose children are subpage sections.
+    #[allow(dead_code)]
     Umbrella(SettingsUmbrella),
 }

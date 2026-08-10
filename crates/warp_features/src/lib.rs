@@ -11,7 +11,6 @@ pub enum FeatureFlag {
     CocoaSentry,
     CrashReporting,
     DebugMode,
-    Autoupdate,
     LogExpensiveFramesInSentry,
     WithSandboxTelemetry,
     RecordAppActiveEvents,
@@ -225,9 +224,6 @@ pub enum FeatureFlag {
     /// If enabled, the default theme is set to Adeberry for new users.
     DefaultAdeberryTheme,
 
-    /// New, less intrusive autoupdate UI.
-    AutoupdateUIRevamp,
-
     /// Enables Kitty image rendering
     KittyImages,
 
@@ -262,9 +258,6 @@ pub enum FeatureFlag {
 
     /// Forces users to login.
     ForceLogin,
-
-    /// Enables prediction of Agent Mode queries.
-    PredictAMQueries,
 
     /// Enables full source code embedding of repos when using codebase context.
     FullSourceCodeEmbedding,
@@ -750,9 +743,6 @@ pub enum FeatureFlag {
     /// and Project Explorer & Global Search features.
     OpenWarpNewSettingsModes,
 
-    /// Enables vertical tab layout as an alternative to the horizontal tab bar.
-    VerticalTabs,
-
     /// Enables attaching code review comments, diff hunk, and attach as context
     /// from code review + code editor for House Of Agents work
     HoaCodeReview,
@@ -830,10 +820,6 @@ pub enum FeatureFlag {
 
     /// Redux of the setup/initial user query UI for cloud mode.
     CloudModeSetupV2,
-
-    /// Enables summary mode in vertical tabs, showing condensed tab summaries
-    /// instead of individual pane rows.
-    VerticalTabsSummaryMode,
 
     CloudModeInputV2,
 
@@ -917,7 +903,6 @@ pub const DOGFOOD_FLAGS: &[FeatureFlag] = &[
     FeatureFlag::OrchestrationV2,
     FeatureFlag::GeminiNotifications,
     FeatureFlag::LocalDockerSandbox,
-    FeatureFlag::VerticalTabsSummaryMode,
     FeatureFlag::CloudModeSetupV2,
     FeatureFlag::ConfigurableContextWindow,
     #[cfg(not(windows))]
@@ -940,7 +925,6 @@ pub const PREVIEW_FLAGS: &[FeatureFlag] = &[
 /// NOTE: if you are promoting a feature from Preview to launch, you'll likely
 /// want to enable the feature by default in app/Cargo.toml, rather than add it to RELEASE_FLAGS.
 pub const RELEASE_FLAGS: &[FeatureFlag] = &[
-    FeatureFlag::Autoupdate,
     FeatureFlag::Changelog,
     FeatureFlag::CrashReporting,
     // Marked text is currently only supported on MacOS.

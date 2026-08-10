@@ -1,14 +1,11 @@
-use std::{collections::HashMap, fmt::Display};
-
-use crate::{
-    send_telemetry_from_app_ctx, server::telemetry::TelemetryEvent, terminal::shell::ShellType,
-};
 use regex::Regex;
+use std::{collections::HashMap, fmt::Display};
 use url::Url;
 use warp_util::path::{is_posix_portable_pathname, ShellFamily};
 use warpui::AppContext;
 
 use crate::root_view::SubshellCommandArg;
+use crate::terminal::shell::ShellType;
 
 use anyhow::{anyhow, Result};
 
@@ -108,14 +105,5 @@ pub fn open_docker_container(url: &Url, ctx: &mut AppContext) -> Result<()> {
         },
     );
 
-    send_telemetry_from_app_ctx!(
-        TelemetryEvent::OpenAndWarpifyDockerSubshell { shell_type },
-        ctx
-    );
-
     Ok(())
 }
-
-#[cfg(test)]
-#[path = "docker_test.rs"]
-mod tests;

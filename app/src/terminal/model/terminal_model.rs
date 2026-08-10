@@ -1,10 +1,8 @@
-use crate::ai::ambient_agents::AmbientAgentTaskId;
-use crate::ai::blocklist::SerializedBlockListItem;
 use crate::terminal::available_shells::AvailableShell;
 use crate::terminal::block_list_element::GridType;
 use crate::terminal::event::{
     BootstrappedEvent, Event, ExecutedExecutorCommandEvent, InitSshEvent, InitSubshellEvent,
-    SourcedRcFileInSubshellEvent, SshLoginStatus, TerminalMode,
+    SourcedRcFileInSubshellEvent, TerminalMode,
 };
 use crate::terminal::event_listener::ChannelEventListener;
 use crate::terminal::model::ansi;
@@ -15,10 +13,8 @@ use crate::terminal::model::completions::{
 use crate::terminal::model::escape_sequences::ModeProvider;
 use crate::terminal::model::index::VisibleRow;
 use crate::terminal::model::iterm_image::{ITermImage, ITermImageMetadata};
-use crate::terminal::shared_session::{ai_agent::encode_agent_response_event, SharedSessionStatus};
-use crate::terminal::ssh::util::{InteractiveSshCommand, SshLoginState};
 use crate::terminal::{block_filter::BlockFilterQuery, model::ansi::Handler};
-use crate::terminal::{color, ssh, BlockPadding, ShellHost, SizeUpdate, SizeUpdateReason};
+use crate::terminal::{color, BlockPadding, ShellHost, SizeUpdate, SizeUpdateReason};
 use crate::terminal::{ShellLaunchData, ShellLaunchState};
 use crate::util::AsciiDebug;
 
@@ -29,8 +25,7 @@ use super::ansi::{
     WarpificationUnavailableReason,
 };
 use super::block::{
-    AgentInteractionMetadata, Block, BlockId, BlockMetadata, BlockSize, BlocklistEnvVarMetadata,
-    SerializedBlock,
+    Block, BlockId, BlockMetadata, BlockSize, BlocklistEnvVarMetadata, SerializedBlock,
 };
 use super::blockgrid::BlockGrid;
 use super::grid::grid_handler::{
@@ -62,19 +57,14 @@ use crate::terminal::shell::{ShellName, ShellType};
 
 use crate::terminal::model::secrets::ObfuscateSecrets;
 use session_sharing_protocol::sharer::SessionSourceType;
-use warp_core::report_error;
 #[cfg(not(target_family = "wasm"))]
 use warpui::util::save_as_file;
 
-use async_channel::Sender;
 use base64::Engine;
 use hex::FromHexError;
 use instant::Instant;
 use itertools::{Either, Itertools};
 use serde::Serialize;
-use session_sharing_protocol::common::{
-    AICommandMetadata, OrderedTerminalEventType, ParticipantId,
-};
 use std::cmp::{max, min};
 use std::collections::HashMap;
 use std::num::ParseIntError;
@@ -102,8 +92,6 @@ pub enum ConversationTranscriptViewerStatus {
     Loading,
     /// Viewing a local conversation (not from ambient agent).
     ViewingLocalConversation,
-    /// Viewing an ambient agent conversation with the associated task ID.
-    ViewingAmbientConversation(AmbientAgentTaskId),
 }
 
 #[derive(Debug, Clone, Default)]
@@ -563,12 +551,8 @@ pub struct TerminalModel {
     /// Whether or not to respect secrets that are obfuscated, respecting the Safe Mode/Secret Redaction setting.
     obfuscate_secrets: ObfuscateSecrets,
 
-    shared_session_status: SharedSessionStatus,
-
     /// The source type of the shared session (if this is a shared session).
     /// If it is not a shared session, this will be `None`.
-    shared_session_source_type: Option<SessionSourceType>,
-
     /// Whether this terminal model was created as a cloud mode dummy session
     /// (no local shell process, deferred shared-session viewer backing).
     is_dummy_cloud_mode_session: bool,
@@ -582,16 +566,6 @@ pub struct TerminalModel {
     /// a synchronized data structure (i.e. [`FairMutex<TerminalModel>`]) and thus multiple
     /// `send`s via the [`TerminalModel`] will be synchronized.
     ///
-    /// This field is only [`Some`] if this session is shared.
-    /// TODO: consider combining this with `shared_session_status` because
-    /// the state can technically diverge.
-    ordered_terminal_events_for_shared_session_tx: Option<Sender<OrderedTerminalEventType>>,
-
-    /// A sender for write to pty events for a shared session viewer.
-    ///
-    /// This field is only [`Some`] if this session is shared.
-    write_to_pty_events_for_shared_session_tx: Option<Sender<Vec<u8>>>,
-
     /// Whether this viewer is currently receiving historical agent conversation replay.
     /// Used to suppress live-conversation-specific actions (e.g. tombstone insertion)
     /// until the replay is complete.
@@ -599,32 +573,11 @@ pub struct TerminalModel {
 
     tmux_background_outputs: HashMap<u32, Vec<u8>>,
 
-    /// When some, the TerminalModel emits the event [Event::DetectedEndOfSshLogin]. This
-    /// event is emitted either as the initial check or the confirmation check.
-    notify_on_end_of_ssh_login: Option<SshLogin>,
-
     pub image_id_to_metadata: HashMap<u32, StoredImageMetadata>,
 
     /// Next ID to use for images where the ID is not explicitly specified
     /// by the Kitty protocol
     pub next_kitty_image_id: u32,
-}
-
-#[derive(Clone, Debug)]
-pub struct SshLogin {
-    /// The block id of the ssh session we're tracking
-    block_id: BlockId,
-    notification_state: SshLoginNotificationState,
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub enum SshLoginNotificationState {
-    /// Read all pty output to see if ssh login is complete.
-    Monitoring,
-    /// Read all pty output but don't send another initial notification.
-    SentInitialNotification,
-    /// The final notification has been sent. No need to monitor anymore.
-    Completed,
 }
 
 /// This struct contains metadata for a subshell, and its precence in the SessionInfo indicates
@@ -640,11 +593,6 @@ pub struct SubshellInitializationInfo {
 
     /// The subshell was triggered from an EVC invocation
     pub env_var_collection_name: Option<String>,
-
-    /// If the subshell is from an SSH command, store the connection details.
-    /// Note that these details come from parsing the ssh command, not from retrieving
-    /// any actual state on the remote host.
-    pub ssh_connection_info: Option<InteractiveSshCommand>,
 }
 
 /// Since a SelectedBlockRange is a range of blocks, it is possible that
@@ -1038,7 +986,7 @@ impl TerminalModel {
         event_proxy: ChannelEventListener,
         background_executor: Arc<Background>,
         should_show_bootstrap_block: bool,
-        restored_blocks: Option<&[SerializedBlockListItem]>,
+        restored_blocks: Option<&[SerializedBlock]>,
         honor_ps1: bool,
         is_inverted: bool,
         session_startup_path: Option<PathBuf>,
@@ -1088,7 +1036,7 @@ impl TerminalModel {
 
     #[allow(clippy::too_many_arguments)]
     fn new_internal(
-        restored_blocks: Option<&[SerializedBlockListItem]>,
+        restored_blocks: Option<&[SerializedBlock]>,
         sizes: BlockSize,
         colors: color::List,
         event_proxy: ChannelEventListener,
@@ -1102,8 +1050,6 @@ impl TerminalModel {
         is_ai_ugc_telemetry_enabled: bool,
         session_startup_path: Option<PathBuf>,
         shell_state: ShellLaunchState,
-        shared_session_status: SharedSessionStatus,
-        is_dummy_cloud_mode_session: bool,
     ) -> Self {
         let alt_screen = AltScreen::new(
             sizes.size,
@@ -1127,6 +1073,7 @@ impl TerminalModel {
 
         Self {
             alt_screen,
+            is_dummy_cloud_mode_session: false,
             is_input_dirty: false,
             block_list,
             blocklist_has_been_cleared: false,
@@ -1154,17 +1101,11 @@ impl TerminalModel {
             env_var_collection_name: None,
             shell_launch_state: shell_state,
             obfuscate_secrets,
-            shared_session_status,
-            shared_session_source_type: None,
-            is_dummy_cloud_mode_session,
             conversation_transcript_viewer_status: None,
-            ordered_terminal_events_for_shared_session_tx: None,
-            write_to_pty_events_for_shared_session_tx: None,
             is_receiving_agent_conversation_replay: false,
             tmux_background_outputs: HashMap::new(),
             tmux_control_mode_context: None,
             pending_warp_initiated_control_mode: None,
-            notify_on_end_of_ssh_login: None,
             is_receiving_hook: IsReceivingHook::No,
             image_id_to_metadata: HashMap::new(),
             // Start mid-way through the u32 range to avoid collisions
@@ -1175,7 +1116,7 @@ impl TerminalModel {
     /// Creates a terminal model for a local terminal session.
     #[allow(clippy::too_many_arguments)]
     pub fn new(
-        restored_blocks: Option<&[SerializedBlockListItem]>,
+        restored_blocks: Option<&[SerializedBlock]>,
         sizes: BlockSize,
         colors: color::List,
         event_proxy: ChannelEventListener,
@@ -1205,8 +1146,6 @@ impl TerminalModel {
             is_ai_ugc_telemetry_enabled,
             session_startup_path,
             shell_state,
-            SharedSessionStatus::NotShared,
-            false,
         )
     }
 
@@ -1250,7 +1189,7 @@ impl TerminalModel {
         honor_ps1: bool,
         is_inverted: bool,
         obfuscate_secrets: ObfuscateSecrets,
-        is_dummy_cloud_mode_session: bool,
+        _is_dummy_cloud_mode_session: bool,
     ) -> Self {
         Self::new_internal(
             None,
@@ -1272,8 +1211,6 @@ impl TerminalModel {
                 display_name: ShellName::blank(),
                 shell_type: ShellType::Zsh,
             },
-            SharedSessionStatus::ViewPending,
-            is_dummy_cloud_mode_session,
         )
     }
 
@@ -1302,111 +1239,9 @@ impl TerminalModel {
         )
     }
 
-    pub fn set_ordered_terminal_events_for_shared_session_tx(
-        &mut self,
-        tx: Sender<OrderedTerminalEventType>,
-    ) {
-        self.ordered_terminal_events_for_shared_session_tx = Some(tx);
-    }
+    pub fn send_agent_conversation_replay_started_for_shared_session(&mut self) {}
 
-    pub fn clear_ordered_terminal_events_for_shared_session_tx(&mut self) {
-        self.ordered_terminal_events_for_shared_session_tx = None;
-    }
-
-    fn ai_metadata_to_protocol(metadata: &AgentInteractionMetadata) -> AICommandMetadata {
-        AICommandMetadata {
-            tool_call_id: metadata
-                .requested_command_action_id()
-                .map(|id| id.to_string())
-                .unwrap_or_default(),
-            // Any command with a long-running control state is considered agent-monitored.
-            is_agent_monitored: metadata.long_running_control_state().is_some(),
-        }
-    }
-
-    pub fn set_write_to_pty_events_for_shared_session_tx(&mut self, tx: Sender<Vec<u8>>) {
-        self.write_to_pty_events_for_shared_session_tx = Some(tx);
-    }
-
-    pub fn send_write_to_pty_events_for_shared_session(&mut self, bytes: Vec<u8>) {
-        if !FeatureFlag::SharedSessionWriteToLongRunningCommands.is_enabled()
-            || !self.shared_session_status().is_executor()
-        {
-            return;
-        }
-
-        if let Some(tx) = &self.write_to_pty_events_for_shared_session_tx {
-            if let Err(e) = tx.try_send(bytes) {
-                log::warn!("Failed to send write to pty events: {e}");
-            }
-        }
-    }
-
-    pub fn clear_write_to_pty_events_for_shared_session_tx(&mut self) {
-        self.write_to_pty_events_for_shared_session_tx = None;
-    }
-
-    /// Sends an Agent ResponseEvent to viewers if this session is shared.
-    /// The participant_id should be the ID of the participant who initiated the query.
-    /// The forked_from_conversation_token is used for forked conversations to help viewers
-    /// link the new server-assigned token to an existing conversation from historical replay.
-    pub fn send_agent_response_for_shared_session(
-        &mut self,
-        response: &warp_multi_agent_api::ResponseEvent,
-        response_initiator: Option<ParticipantId>,
-        forked_from_conversation_token: Option<String>,
-    ) {
-        // We should always have a response initiator for shared sessions,
-        // but if we don't we should still send the response event to the viewers
-        // (as opposed to completely failing and skipping the send).
-        if response_initiator.is_none() {
-            report_error!(anyhow::anyhow!(
-                "No response initiator tracked for agent response event."
-            ));
-        }
-
-        if self.shared_session_status().is_sharer() {
-            if let Some(tx) = &self.ordered_terminal_events_for_shared_session_tx {
-                let encoded = encode_agent_response_event(response);
-                if let Err(e) = tx.try_send(OrderedTerminalEventType::AgentResponseEvent {
-                    response_initiator,
-                    response_event: encoded,
-                    forked_from_conversation_token,
-                }) {
-                    log::warn!("Failed to send OrderedTerminalEventType::AgentResponseEvent: {e}");
-                }
-            }
-        } else {
-            log::debug!("Not sharing this session; ignoring agent response event");
-        }
-    }
-
-    pub fn send_agent_conversation_replay_started_for_shared_session(&mut self) {
-        if self.shared_session_status().is_sharer() {
-            if let Some(tx) = &self.ordered_terminal_events_for_shared_session_tx {
-                if let Err(e) =
-                    tx.try_send(OrderedTerminalEventType::AgentConversationReplayStarted)
-                {
-                    log::warn!(
-                        "Failed to send OrderedTerminalEventType::AgentConversationReplayStarted: {e}"
-                    );
-                }
-            }
-        }
-    }
-
-    pub fn send_agent_conversation_replay_ended_for_shared_session(&mut self) {
-        if self.shared_session_status().is_sharer() {
-            if let Some(tx) = &self.ordered_terminal_events_for_shared_session_tx {
-                if let Err(e) = tx.try_send(OrderedTerminalEventType::AgentConversationReplayEnded)
-                {
-                    log::warn!(
-                        "Failed to send OrderedTerminalEventType::AgentConversationReplayEnded: {e}"
-                    );
-                }
-            }
-        }
-    }
+    pub fn send_agent_conversation_replay_ended_for_shared_session(&mut self) {}
 
     /// Whether the session sharing server is currently replaying
     /// conversation events (for conversation reconstruction).
@@ -1422,39 +1257,15 @@ impl TerminalModel {
         &mut self,
         set_shared_session_source_type: SessionSourceType,
     ) {
-        self.shared_session_source_type = Some(set_shared_session_source_type);
+        let _ = set_shared_session_source_type;
     }
 
     pub fn shared_session_source_type(&self) -> Option<SessionSourceType> {
-        self.shared_session_source_type.clone()
+        None
     }
 
     pub fn is_dummy_cloud_mode_session(&self) -> bool {
         self.is_dummy_cloud_mode_session
-    }
-
-    pub fn is_shared_ambient_agent_session(&self) -> bool {
-        matches!(
-            self.shared_session_source_type,
-            Some(SessionSourceType::AmbientAgent { .. })
-        )
-    }
-
-    pub fn ambient_agent_task_id(&self) -> Option<AmbientAgentTaskId> {
-        // Check if we're viewing an ambient agent conversation transcript
-        if let Some(ConversationTranscriptViewerStatus::ViewingAmbientConversation(task_id)) =
-            &self.conversation_transcript_viewer_status
-        {
-            return Some(*task_id);
-        }
-
-        // Otherwise, check if we're in a shared ambient agent session
-        if let Some(SessionSourceType::AmbientAgent { task_id }) = &self.shared_session_source_type
-        {
-            task_id.as_deref().and_then(|s| s.parse().ok())
-        } else {
-            None
-        }
     }
 
     /// Loads the provided scrollback into the model.
@@ -1462,8 +1273,6 @@ impl TerminalModel {
     // terminal model for the viewers so that we're guaranteed that
     // loading scrollback is the first thing that we do.
     pub fn load_shared_session_scrollback(&mut self, scrollback: &[SerializedBlock]) {
-        debug_assert!(self.shared_session_status().is_viewer());
-
         self.block_list_mut()
             .load_shared_session_scrollback(scrollback);
 
@@ -1472,8 +1281,6 @@ impl TerminalModel {
     }
 
     pub fn append_followup_shared_session_scrollback(&mut self, scrollback: &[SerializedBlock]) {
-        debug_assert!(self.shared_session_status().is_viewer());
-
         self.block_list_mut()
             .append_followup_shared_session_scrollback(scrollback);
 
@@ -1519,9 +1326,7 @@ impl TerminalModel {
     }
 
     pub fn is_read_only(&self) -> bool {
-        self.handled_exit
-            || self.is_conversation_transcript_viewer()
-            || self.shared_session_status().is_finished_viewer()
+        self.handled_exit || self.is_conversation_transcript_viewer()
     }
 
     pub fn is_conversation_transcript_viewer(&self) -> bool {
@@ -1697,47 +1502,6 @@ impl TerminalModel {
         self.block_list
             .active_block_mut()
             .set_env_var_metadata(env_var_metadata);
-    }
-
-    /// Starts the execution for a command in a shared session (sharer or viewer).
-    pub fn start_command_execution_for_shared_session(
-        &mut self,
-        participant_id: ParticipantId,
-        agent_metadata: Option<AgentInteractionMetadata>,
-    ) {
-        self.start_command_execution();
-
-        // If this command has AI metadata, attach it to the active block.
-        if let Some(ai_metadata) = &agent_metadata {
-            self.block_list
-                .active_block_mut()
-                .set_agent_interaction_mode(ai_metadata.clone());
-        }
-
-        // TODO (suraj): add participant ID to active block metadata.
-
-        // If this is a sharer, send an event to indicate the start of the command execution
-        // along with the identity of the participant that ran the command.
-        if let Some(tx) = &self.ordered_terminal_events_for_shared_session_tx {
-            if let Err(e) = tx.try_send(OrderedTerminalEventType::CommandExecutionStarted {
-                participant_id,
-                ai_metadata: agent_metadata.as_ref().map(Self::ai_metadata_to_protocol),
-            }) {
-                log::warn!("Failed to send OrderedTerminalEventType::CommandExecutionStarted: {e}");
-            }
-        }
-    }
-
-    /// Starts the command execution (per `Self::start_command_execution`) and additionally sets
-    /// the given `ai_metadata` on the active block.
-    pub fn start_command_execution_with_ai_metadata(
-        &mut self,
-        agent_metadata: AgentInteractionMetadata,
-    ) {
-        self.start_command_execution();
-        self.block_list
-            .active_block_mut()
-            .set_agent_interaction_mode(agent_metadata);
     }
 
     // Starts active block as a background block. Used in Alacritty integration tests to
@@ -1939,19 +1703,6 @@ impl TerminalModel {
         }
     }
 
-    pub fn shared_session_status(&self) -> &SharedSessionStatus {
-        &self.shared_session_status
-    }
-
-    pub fn set_shared_session_status(&mut self, shared_session_status: SharedSessionStatus) {
-        self.shared_session_status = shared_session_status;
-    }
-
-    /// Returns whether this terminal is viewing a shared session.
-    pub fn is_shared_session_viewer(&self) -> bool {
-        self.shared_session_status.is_viewer()
-    }
-
     /// Resize terminal to new dimensions.
     /// The block sort direction is needed to update the state of the find dialog.
     pub fn resize(&mut self, size_update: SizeUpdate) {
@@ -1971,11 +1722,7 @@ impl TerminalModel {
             // - Sharers skip reflow when honoring a viewer's reported size
             //   (the viewer's smaller size is transient and shouldn't reshape history).
             let update_old_blocks = match size_update.update_reason {
-                SizeUpdateReason::SharerSizeChanged { .. }
-                    if self.shared_session_status().is_viewer() =>
-                {
-                    false
-                }
+                SizeUpdateReason::SharerSizeChanged { .. } if false => false,
                 SizeUpdateReason::ViewerSizeReported { .. } => false,
                 _ => true,
             };
@@ -1985,16 +1732,7 @@ impl TerminalModel {
         if size_update.rows_or_columns_changed() {
             let num_rows = size_update.new_size.rows();
             let num_cols = size_update.new_size.columns();
-            if let Some(tx) = &self.ordered_terminal_events_for_shared_session_tx {
-                if let Err(e) = tx.try_send(OrderedTerminalEventType::Resize {
-                    window_size: session_sharing_protocol::common::WindowSize {
-                        num_rows,
-                        num_cols,
-                    },
-                }) {
-                    log::warn!("Failed to send OrderedTerminalEventType::Resize: {e}");
-                }
-            }
+            let _ = (num_rows, num_cols);
 
             if self.tmux_control_mode_context.is_some() {
                 self.emit_handler_event(HandlerEvent::RunTmuxCommand(
@@ -2098,10 +1836,6 @@ impl TerminalModel {
     pub fn set_obfuscate_secrets(&mut self, obfuscate_secrets: ObfuscateSecrets) {
         // Secret obfuscation is forced off in shared sessions so changing
         // the setting during a shared session should be a no-op (for this session).
-        if self.shared_session_status.is_sharer_or_viewer() {
-            return;
-        }
-
         self.obfuscate_secrets = obfuscate_secrets;
         self.alt_screen.set_obfuscate_secrets(obfuscate_secrets);
         self.block_list.set_obfuscate_secrets(obfuscate_secrets);
@@ -2115,12 +1849,7 @@ impl TerminalModel {
         &mut self,
         first_scrollback_block_index: BlockIndex,
     ) {
-        if !self.shared_session_status.is_sharer() {
-            log::warn!(
-                "Tried to disable secret obfuscation without being a shared session creator."
-            );
-            return;
-        }
+        let _ = first_scrollback_block_index;
 
         let setting = ObfuscateSecrets::No;
         self.obfuscate_secrets = setting;
@@ -2235,95 +1964,11 @@ impl TerminalModel {
     /// has progressed past authentication/login. When login is complete, emit Event::DetectedEndOfSshLogin.
     pub fn start_notify_on_end_of_ssh_login(&mut self) {
         let id_of_ssh_block = self.active_block_id().clone();
-        self.notify_on_end_of_ssh_login = Some(SshLogin {
-            block_id: id_of_ssh_block,
-            notification_state: SshLoginNotificationState::Monitoring,
-        });
+        let _ = id_of_ssh_block;
     }
 
     /// Stop monitoring for the end of ssh login.
-    pub fn end_notify_on_ssh_login_complete(&mut self) {
-        self.notify_on_end_of_ssh_login = None;
-    }
-
-    /// Emits the event [Event::DetectedEndOfSshLogin] if the last line of output in the
-    /// ssh session indicates login is complete. The check_type parameter specifies whether
-    /// this is the initial check or a confirmation check (i.e., a previous check has already
-    /// succeeded).
-    ///
-    /// Overall, the heuristic waits for the line "Last login:" to appear in a line of output,
-    /// indicating that login is complete. However, this isn't enough. Users might have a .hushlogin
-    /// that suppresses that output line, so we also have a backup check. When we receive
-    /// a line of output that is not a known SSH output, we consider that to be some mild evidence that
-    /// login is complete. Though, because that output line might be a false alarm (i.e., it could be
-    /// an SSH banner OR a line like "Permission denied."), we wait some amount of time and check again
-    /// before indicating we're ready for warpification.
-    pub fn check_for_end_of_ssh_login(&mut self, confirmation_check: bool) {
-        let Some(mut ssh_login_state) = self.notify_on_end_of_ssh_login.clone() else {
-            return;
-        };
-
-        // Only check for the end of ssh login if it was specifically enabled for the current active block.
-        let active_block = self.block_list().active_block();
-        if &ssh_login_state.block_id != active_block.id() {
-            return;
-        }
-
-        // Only check for the end of ssh login if it wasn't already detected and notified.
-        if ssh_login_state.notification_state == SshLoginNotificationState::Completed {
-            return;
-        }
-
-        let is_initial_check = !confirmation_check;
-        let block_output = active_block.output_to_string();
-        match ssh::util::check_ssh_login_state(&block_output) {
-            SshLoginState::LastLogin | SshLoginState::PromptDetected => {
-                self.event_proxy
-                    .send_terminal_event(Event::DetectedEndOfSshLogin(
-                        SshLoginStatus::ReadyToWarpify,
-                    ));
-
-                ssh_login_state.notification_state = SshLoginNotificationState::Completed;
-            }
-            SshLoginState::NonSshOutput => {
-                // If we detect non-SSH output AND we haven't already notified, send a notification.
-                if is_initial_check {
-                    if ssh_login_state.notification_state == SshLoginNotificationState::Monitoring {
-                        self.event_proxy
-                            .send_terminal_event(Event::DetectedEndOfSshLogin(
-                                SshLoginStatus::RecheckBeforeWarpifying,
-                            ));
-
-                        // We want to avoid emitting redundant events for the initial check.
-                        ssh_login_state.notification_state =
-                            SshLoginNotificationState::SentInitialNotification;
-                    }
-                } else {
-                    self.event_proxy
-                        .send_terminal_event(Event::DetectedEndOfSshLogin(
-                            SshLoginStatus::ReadyToWarpify,
-                        ));
-
-                    ssh_login_state.notification_state = SshLoginNotificationState::Completed;
-                }
-            }
-            SshLoginState::Authenticating => {
-                // False alarm case. If this is the confirmation check and it's detected that
-                // we have NOT completed login, then we should start over and go back to monitoring
-                // each output chunk for lines indicating login completion.
-                if !is_initial_check {
-                    ssh_login_state.notification_state = SshLoginNotificationState::Monitoring;
-                }
-            }
-        }
-
-        // Update the notification state.
-        self.notify_on_end_of_ssh_login = Some(ssh_login_state);
-    }
-
-    pub fn is_ssh_block(&self) -> bool {
-        self.notify_on_end_of_ssh_login.is_some()
-    }
+    pub fn end_notify_on_ssh_login_complete(&mut self) {}
 
     pub fn tmux_control_mode_active(&self) -> bool {
         self.tmux_control_mode_context.is_some()
@@ -2793,13 +2438,7 @@ impl ansi::Handler for TerminalModel {
         let finished_block_bootstrap_stage = self.block_list().active_block().bootstrap_stage();
         delegate!(self.command_finished(data));
 
-        if let Some(tx) = &self.ordered_terminal_events_for_shared_session_tx {
-            if let Err(e) = tx.try_send(OrderedTerminalEventType::CommandExecutionFinished {
-                next_block_id: block_id.into(),
-            }) {
-                log::warn!("Failed to send OrderedTerminalEventType::CommandFinished: {e}");
-            }
-        }
+        let _ = block_id;
 
         self.emit_handler_event(HandlerEvent::CommandFinished {
             command_type: if is_for_in_band_command {
@@ -2906,14 +2545,10 @@ impl ansi::Handler for TerminalModel {
                 let env_var_collection_name = self.env_var_collection_name.take();
                 let spawning_command = self.block_list().active_block().command_to_string();
 
-                let ssh_connection_info =
-                    ssh::util::parse_interactive_ssh_command(&spawning_command);
-
                 Some(SubshellInitializationInfo {
                     spawning_command,
                     was_triggered_by_rc_file_snippet,
                     env_var_collection_name,
-                    ssh_connection_info,
                 })
             } else {
                 None
@@ -3104,38 +2739,10 @@ impl ansi::Handler for TerminalModel {
     }
 
     fn on_finish_byte_processing(&mut self, input: &ansi::ProcessorInput<'_>) {
-        if let Some(SshLogin {
-            notification_state, ..
-        }) = &self.notify_on_end_of_ssh_login
-        {
-            if matches!(
-                notification_state,
-                SshLoginNotificationState::Monitoring
-                    | SshLoginNotificationState::SentInitialNotification
-            ) {
-                self.check_for_end_of_ssh_login(false);
-            }
-        }
-
         let bytes = input.bytes();
 
         // Send a copy of the bytes to subscribers.
         self.event_proxy.send_pty_read_event(bytes);
-
-        // Send a copy of the bytes for the active shared session, if applicable.
-        // When processing a synchronized output frame, `on_finish_byte_processing` is called
-        // both when the frame is flushed and when we initially process the raw bytes (the ordering of the two
-        // depends on whether we receive the start and end markers in the same batch of bytes). We only want to send
-        // the raw bytes to viewers, not the flushed frame - they'll handle the synchronized output framing themselves.
-        if !input.is_synchronized_output_frame() && self.shared_session_status().is_sharer() {
-            if let Some(tx) = &self.ordered_terminal_events_for_shared_session_tx {
-                if let Err(e) = tx.try_send(OrderedTerminalEventType::PtyBytesRead {
-                    bytes: bytes.to_owned(),
-                }) {
-                    log::warn!("Failed to send OrderedTerminalEventType::PtyBytesRead: {e}");
-                }
-            }
-        }
 
         delegate!(self.on_finish_byte_processing(input))
     }

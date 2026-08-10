@@ -37,10 +37,6 @@ warpui.workspace = true
 warp_util.workspace = true
 typed-path.workspace = true
 
-[target.'cfg(target_family = "wasm")'.dependencies]
-# For wasm, we don't use the feature "embed-signatures".
-warp-command-signatures = {workspace = true}
-
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 command = { path = "../command" }
 rquickjs = { workspace = true, optional = true }

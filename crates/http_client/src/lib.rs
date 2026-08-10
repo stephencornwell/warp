@@ -1,18 +1,16 @@
+use std::fmt;
 use std::future::Future;
 use std::pin::Pin;
 use std::time::Duration;
-use std::{fmt, future};
 
 #[cfg(not(target_family = "wasm"))]
 use async_compat::{Compat, CompatExt};
-use async_stream::stream;
 use bytes::Bytes;
-use futures::{Stream, StreamExt};
+use futures::Stream;
 use http::HeaderValue;
 use http::header::HeaderName;
 pub use http::{HeaderMap, StatusCode, header::AUTHORIZATION};
 use reqwest::IntoUrl;
-use reqwest_eventsource::RequestBuilderExt;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use warp_core::{
@@ -73,24 +71,6 @@ pub type RequestHookFn = Box<dyn Fn(&reqwest::Request, &Option<String>) + 'stati
 /// reference to the inbound response object.
 pub type ResponseHookFn = Box<dyn Fn(&reqwest::Response) + 'static + Send + Sync>;
 
-cfg_if::cfg_if! {
-    if #[cfg(target_family = "wasm")] {
-        // The WASM version of this type has no bound on `Send`, which is not implemented on
-        // `wasm_bindgen::JsValue`, which is ultimately used in reqwest_eventsource::Error.
-        // Furthermore, `Send` is an unnecessary bound when targeting wasm because the browser is
-        // single-threaded (and we don't leverage WebWorkers for async execution in WoW).
-        pub type EventSourceStream = futures::stream::LocalBoxStream<
-            'static,
-            Result<reqwest_eventsource::Event, reqwest_eventsource::Error>,
-        >;
-    } else {
-        pub type EventSourceStream = futures::stream::BoxStream<
-            'static,
-            Result<reqwest_eventsource::Event, reqwest_eventsource::Error>,
-        >;
-    }
-}
-
 /// A custom request builder that is a wrapper around a `request::RequestBuilder`. Ensures any async
 /// call to the underyling `reqwest::RequestBuilder` are properly adapted to run outside of a Tokio
 /// context via a call to `compat`.
@@ -147,7 +127,6 @@ impl Client {
             // never be making real requests in tests.
             .tls_built_in_native_certs(false)
             .tls_built_in_root_certs(false)
-            .tls_built_in_webpki_certs(false)
             // Disable proxy usage in tests, as loading system proxy configuration can be
             // slow.
             .no_proxy();
@@ -410,77 +389,6 @@ impl<'a> RequestBuilder<'a> {
         }
     }
 
-    /// Sends the request to the endpoint, which is assumed to be a streaming server-sent-events
-    /// endpoint, and returns a corresponding `EventSource`.
-    pub fn eventsource(self) -> EventSourceStream {
-        cfg_if::cfg_if! {
-            if #[cfg(target_family = "wasm")] {
-                let mut stream = self
-                    .wrapped
-                    .eventsource()
-                    .expect("Request type for SSE endpoint must be cloneable.");
-
-                let stream = stream! {
-                    while let Some(event) = stream.next().await {
-                        match event {
-                            Ok(event) => {
-                                yield Ok(event);
-                            }
-                            Err(err) => {
-                                yield Err(err);
-
-                                // Close the stream if an error occurs.
-                                stream.close();
-                            }
-                        }
-                    }
-                };
-            } else {
-                let mut stream = self
-                    .wrapped
-                    .eventsource()
-                    .expect("Request type for SSE endpoint must be cloneable.");
-
-                let stream = stream! {
-                    // Wrap the stream with async-compat since reqwest requires Tokio.
-                    while let Some(event) = stream.next().compat().await {
-                        match event {
-                            Ok(event) => {
-                                yield Ok(event);
-                            }
-                            Err(err) => {
-                                yield Err(err);
-
-                                // Close the stream if an error occurs.
-                                stream.close();
-                            }
-                        }
-                    }
-                };
-            }
-        }
-        let stream = stream.take_while(|event| {
-            if let Err(reqwest_eventsource::Error::StreamEnded) = event {
-                return future::ready(false);
-            }
-            future::ready(true)
-        });
-
-        // Wrap the stream in one that holds onto a prevent_sleep guard, if one is required here.
-        let stream = prevent_sleep::Stream::wrap(
-            stream,
-            self.prevent_sleep_reason.map(prevent_sleep::prevent_sleep),
-        );
-
-        cfg_if::cfg_if! {
-            if #[cfg(target_family = "wasm")] {
-                stream.boxed_local()
-            } else {
-                stream.boxed()
-            }
-        }
-    }
-
     pub fn basic_auth<U, P>(self, username: U, password: Option<P>) -> RequestBuilder<'a>
     where
         U: fmt::Display,
@@ -655,9 +563,6 @@ impl Response {
 impl<'c> oauth2::AsyncHttpClient<'c> for Client {
     type Error = oauth2::HttpClientError<reqwest::Error>;
 
-    #[cfg(target_arch = "wasm32")]
-    type Future = Pin<Box<dyn Future<Output = Result<oauth2::HttpResponse, Self::Error>> + 'c>>;
-    #[cfg(not(target_arch = "wasm32"))]
     type Future =
         Pin<Box<dyn Future<Output = Result<oauth2::HttpResponse, Self::Error>> + Send + Sync + 'c>>;
 
@@ -677,10 +582,7 @@ impl<'c> oauth2::AsyncHttpClient<'c> for Client {
 
             let mut builder = ::http::Response::builder().status(response.status());
 
-            #[cfg(not(target_arch = "wasm32"))]
-            {
-                builder = builder.version(response.0.version());
-            }
+            builder = builder.version(response.0.version());
 
             for (name, value) in response.0.headers().iter() {
                 builder = builder.header(name, value);

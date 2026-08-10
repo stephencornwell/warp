@@ -1,18 +1,10 @@
 pub mod header;
 pub mod header_content;
 
-use crate::pane_group::pane::ActionOrigin;
-use crate::{
-    appearance::Appearance,
-    pane_group::{Direction, SplitPaneState, TabBarHoverIndex},
-    server::telemetry::SharingDialogSource,
-    settings::{PaneSettings, PaneSettingsChangedEvent},
-    util::bindings::CustomAction,
-};
-
 use super::{
     BackingView, PaneConfiguration, PaneConfigurationEvent, PaneId, PaneStack, PaneStackEvent,
 };
+use crate::pane_group::pane::ActionOrigin;
 use header::PaneHeader;
 
 use warpui::{
@@ -20,33 +12,21 @@ use warpui::{
         Border, Container, DropTarget, DropTargetData, Flex, MainAxisSize, ParentElement,
         SavePosition, Shrinkable,
     },
-    keymap::EditableBinding,
     presenter::ChildView,
-    AppContext, Element, Entity, ModelHandle, SingletonEntity, TypedActionView, View, ViewContext,
-    ViewHandle,
+    AppContext, Element, Entity, ModelHandle, SingletonEntity, View, ViewContext, ViewHandle,
 };
 
-use crate::pane_group::focus_state::{PaneFocusHandle, PaneGroupFocusEvent};
+use crate::appearance::Appearance;
+use crate::pane_group::{
+    focus_state::{PaneFocusHandle, PaneGroupFocusEvent},
+    Direction, SplitPaneState, TabBarHoverIndex,
+};
+use crate::settings::PaneSettings;
 
 pub use header::PaneHeaderAction;
-pub use header::PaneHeaderAction::CustomAction as PaneHeaderCustomAction;
 pub use header_content::{
     HeaderContent, HeaderRenderContext, StandardHeader, StandardHeaderOptions,
 };
-
-const HAS_SHARED_OBJECT_CONTEXT_KEY: &str = "PaneView_HasSharedObject";
-
-pub fn init(app: &mut AppContext) {
-    use warpui::keymap::macros::*;
-
-    app.register_editable_bindings([EditableBinding::new(
-        "pane:share_pane_contents",
-        "Share pane",
-        PaneAction::ShareContents,
-    )
-    .with_custom_action(CustomAction::SharePaneContents)
-    .with_context_predicate(id!("PaneView") & id!(HAS_SHARED_OBJECT_CONTEXT_KEY))]);
-}
 
 pub enum PaneViewEvent {
     MovePaneWithinPaneGroup {
@@ -64,11 +44,6 @@ pub enum PaneViewEvent {
     PaneDraggedOutsideTabBarOrPaneGroup,
     PaneDragEnded,
     PaneHeaderClicked,
-}
-
-#[derive(Debug, Clone)]
-pub enum PaneAction {
-    ShareContents,
 }
 
 impl<P: BackingView> Entity for PaneView<P> {
@@ -110,15 +85,6 @@ impl<P: BackingView> PaneView<P> {
 
         ctx.subscribe_to_model(&pane_stack, |me, _, event, ctx| {
             me.handle_pane_stack_event(event, ctx);
-        });
-
-        ctx.subscribe_to_model(&PaneSettings::handle(ctx), |_, _, event, ctx| {
-            if matches!(
-                event,
-                PaneSettingsChangedEvent::ShouldDimInactivePanes { .. }
-            ) {
-                ctx.notify();
-            }
         });
 
         Self {
@@ -241,16 +207,6 @@ impl<P: BackingView> PaneView<P> {
                     header.set_toolbelt_buttons(buttons, ctx);
                 });
                 ctx.notify();
-            }
-            PaneConfigurationEvent::ShareableObjectChanged(object) => {
-                self.header.update(ctx, |header, ctx| {
-                    header.set_shareable_object(object.clone(), ctx);
-                });
-            }
-            PaneConfigurationEvent::ToggleSharingDialog(source) => {
-                self.header.update(ctx, |header, ctx| {
-                    header.share_pane_contents(*source, ctx);
-                });
             }
             _ => {}
         }
@@ -425,24 +381,8 @@ impl<P: BackingView> View for PaneView<P> {
         .finish()
     }
 
-    fn keymap_context(&self, ctx: &AppContext) -> warpui::keymap::Context {
-        let mut keymap_context = Self::default_keymap_context();
-        if self.header.as_ref(ctx).is_sharing_dialog_enabled(ctx) {
-            keymap_context.set.insert(HAS_SHARED_OBJECT_CONTEXT_KEY);
-        }
-        keymap_context
-    }
-}
-
-impl<P: BackingView> TypedActionView for PaneView<P> {
-    type Action = PaneAction;
-
-    fn handle_action(&mut self, action: &Self::Action, ctx: &mut ViewContext<Self>) {
-        match action {
-            PaneAction::ShareContents => self.header.update(ctx, |header, ctx| {
-                header.share_pane_contents(SharingDialogSource::CommandPalette, ctx);
-            }),
-        }
+    fn keymap_context(&self, _ctx: &AppContext) -> warpui::keymap::Context {
+        Self::default_keymap_context()
     }
 }
 

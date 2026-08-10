@@ -37,9 +37,8 @@ pub enum DismissalType {
     Permanent,
 }
 
-pub enum BannerEvent<T> {
+pub enum BannerEvent {
     Dismiss(DismissalType),
-    Action(T),
 }
 
 pub struct BannerTextContent<T: Action + Clone> {
@@ -86,7 +85,7 @@ impl<T: Action + Clone> BannerTextContent<T> {
         .register_default_click_handlers_with_action_support(|hyperlink_lens, evt, _ctx| {
             match hyperlink_lens {
                 HyperlinkLens::Url(url) => {
-                    evt.dispatch_typed_action(BannerAction::<T>::HyperlinkClick(HyperlinkUrl {
+                    evt.dispatch_typed_action(BannerAction::HyperlinkClick(HyperlinkUrl {
                         url: url.to_owned(),
                     }));
                 }
@@ -137,21 +136,15 @@ pub struct Banner<T: Action + Clone> {
 }
 
 #[derive(Clone, Debug)]
-pub enum BannerAction<T: Action + Clone> {
+pub enum BannerAction {
     Dismiss(DismissalType),
     HyperlinkClick(HyperlinkUrl),
-    Action(T),
 }
 
 impl<T: Action + Clone> Banner<T> {
     /// Creates a plain banner with a close button.
     pub fn new(content: BannerTextContent<T>) -> Self {
         Self::new_internal(content, vec![], /* with_close_button */ true)
-    }
-
-    /// Creates a plain banner without a close button.
-    pub fn new_without_close(content: BannerTextContent<T>) -> Self {
-        Self::new_internal(content, vec![], /* with_close_button */ false)
     }
 
     /// Creates a banner with the given text buttons and a close button.
@@ -178,7 +171,7 @@ impl<T: Action + Clone> Banner<T> {
         BannerTextButton::new(
             String::from("Don't show me again"),
             Rc::new(|ctx, _, _| {
-                ctx.dispatch_typed_action(BannerAction::<T>::Dismiss(DismissalType::Permanent));
+                ctx.dispatch_typed_action(BannerAction::Dismiss(DismissalType::Permanent));
             }),
         )
     }
@@ -233,7 +226,7 @@ impl<T: Action + Clone> Banner<T> {
             })
             .build()
             .on_click(|ctx, _, _| {
-                ctx.dispatch_typed_action(BannerAction::<T>::Dismiss(DismissalType::Temporary));
+                ctx.dispatch_typed_action(BannerAction::Dismiss(DismissalType::Temporary));
             })
             .finish()
     }
@@ -260,11 +253,11 @@ impl<T: Action + Clone> Banner<T> {
 }
 
 impl<T: Action + Clone> Entity for Banner<T> {
-    type Event = BannerEvent<T>;
+    type Event = BannerEvent;
 }
 
 impl<T: Action + Clone> TypedActionView for Banner<T> {
-    type Action = BannerAction<T>;
+    type Action = BannerAction;
 
     fn handle_action(&mut self, action: &Self::Action, ctx: &mut ViewContext<Self>) {
         match action {
@@ -274,9 +267,6 @@ impl<T: Action + Clone> TypedActionView for Banner<T> {
             BannerAction::HyperlinkClick(hyperlink) => {
                 ctx.notify();
                 ctx.open_url(&hyperlink.url);
-            }
-            BannerAction::Action(action) => {
-                ctx.emit(BannerEvent::Action(action.clone()));
             }
         }
     }

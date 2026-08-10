@@ -1,4 +1,6 @@
 use chrono::{DateTime, Local, TimeZone as _};
+#[cfg(test)]
+use futures::future::join_all;
 use futures::Future;
 use serde::{Deserialize, Serialize};
 use std::{
@@ -7,28 +9,18 @@ use std::{
 };
 
 use warp_core::command::ExitCode;
-use warpui::{AppContext, Entity, ModelContext, SingletonEntity};
+#[cfg(test)]
+use warpui::ModelHandle;
+use warpui::{Entity, ModelContext, SingletonEntity};
 
 use super::{
-    model::block::{AgentInteractionMetadata, Block, SerializedAIMetadata, SerializedBlock},
+    model::block::{Block, SerializedBlock},
     shell::ShellType,
 };
 use crate::{
-    cloud_object::{
-        model::{persistence::CloudModel, view::CloudViewModel},
-        Space,
-    },
-    server::ids::{ClientId, HashableId as _, SyncId},
     terminal::model::session::{Session, SessionId},
     util::dedupe_from_last,
-    workflows::{
-        local_workflows::LocalWorkflows, workflow::Workflow, WorkflowId, WorkflowSource,
-        WorkflowType,
-    },
 };
-
-mod up_arrow;
-pub(crate) use up_arrow::UpArrowHistoryConfig;
 
 /// Data model for a history command persisted to sqlite, used as an intermediate representation
 /// between the sqlite schema (sqlite::model::Command) and the [`History`] model.
@@ -43,8 +35,6 @@ pub struct PersistedCommand {
     pub shell_host: Option<ShellHost>,
     pub session_id: Option<SessionId>,
     pub git_branch: Option<String>,
-    pub workflow_id: Option<SyncId>,
-    pub workflow_command: Option<String>,
     pub is_agent_executed: bool,
 }
 
@@ -79,15 +69,6 @@ impl From<crate::persistence::model::Command> for PersistedCommand {
                     .map(SessionId::from)
             }),
             git_branch: command.git_branch,
-            workflow_id: command.cloud_workflow_id.and_then(|workflow_id| {
-                if let Some(client_id) = ClientId::from_hash(workflow_id.as_str()) {
-                    Some(SyncId::ClientId(client_id))
-                } else {
-                    WorkflowId::from_hash(workflow_id.as_str())
-                        .map(|id| SyncId::ServerId(id.into()))
-                }
-            }),
-            workflow_command: command.workflow_command,
             is_agent_executed: command.is_agent_executed.unwrap_or(false),
         }
     }
@@ -142,7 +123,6 @@ impl ShellHost {
 
 /// Represents the state of the async task for reading the shell's history file for a given session.
 #[derive(Debug)]
-
 enum ReadHistoryFileState {
     InProgress {
         /// Commands that were executed by the user while the history file was being loaded. When
@@ -213,50 +193,6 @@ pub struct History {
     session_id_to_shell_host: HashMap<SessionId, ShellHost>,
 }
 
-#[derive(Clone, Debug)]
-pub enum LinkedWorkflowData {
-    /// The history entry is linked to a `CloudWorkflow` by its ID.
-    Id(SyncId),
-
-    /// The history entry is linked to a local `Workflow` by its command.
-    ///
-    /// Local workflows are not keyed by any common ID.
-    Command(String),
-}
-
-impl LinkedWorkflowData {
-    /// Returns the WorkflowType and WorkflowSource corresponding to this `LinkedWorkflowData`, if
-    /// any.
-    pub fn linked_workflow(&self, ctx: &AppContext) -> Option<(WorkflowType, WorkflowSource)> {
-        match self {
-            LinkedWorkflowData::Id(id) => {
-                let cloud_model = CloudModel::as_ref(ctx);
-                let workflow = cloud_model.get_workflow(id);
-                let workflow_source = match CloudViewModel::as_ref(ctx).object_space(&id.uid(), ctx)
-                {
-                    Some(Space::Team { team_uid }) => WorkflowSource::Team { team_uid },
-                    _ => WorkflowSource::PersonalCloud,
-                };
-                workflow.map(|workflow| {
-                    (
-                        WorkflowType::Cloud(Box::new(workflow.clone())),
-                        workflow_source,
-                    )
-                })
-            }
-            LinkedWorkflowData::Command(workflow_command) => {
-                if let Some((workflow_source, workflow)) = LocalWorkflows::as_ref(ctx)
-                    .workflow_with_command(ctx, workflow_command.as_str())
-                {
-                    Some((WorkflowType::Local(workflow.clone()), workflow_source))
-                } else {
-                    None
-                }
-            }
-        }
-    }
-}
-
 /// For history entries coming from the shell history file, only the command is populated.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct HistoryEntry {
@@ -270,27 +206,10 @@ pub struct HistoryEntry {
     pub shell_host: Option<ShellHost>,
 
     /// The ID of the `CloudWorkflow` used to construct this command.
-    workflow_id: Option<SyncId>,
-
-    /// The templated command contained in the `Workflow` used to construct the executed
-    /// command.
-    workflow_command: Option<String>,
-
     pub is_for_restored_block: bool,
 
     /// Whether this command was executed by an AI agent.
     pub is_agent_executed: bool,
-}
-
-fn serialized_block_is_agent_executed(block: &SerializedBlock) -> bool {
-    let Some(ai_metadata) = block.ai_metadata.as_ref() else {
-        return false;
-    };
-
-    serde_json::from_str::<SerializedAIMetadata>(ai_metadata)
-        .ok()
-        .map(AgentInteractionMetadata::from)
-        .is_some_and(|metadata| metadata.requested_command_action_id().is_some())
 }
 
 impl HistoryEntry {
@@ -301,8 +220,6 @@ impl HistoryEntry {
             pwd: None,
             start_ts: None,
             completed_ts: None,
-            workflow_id: None,
-            workflow_command: None,
             exit_code: None,
             git_head: None,
             shell_host: None,
@@ -328,8 +245,6 @@ impl HistoryEntry {
         command: String,
         active_block: &Block,
         session: &Session,
-        workflow_id: Option<SyncId>,
-        workflow_command: Option<String>,
         is_agent_executed: bool,
     ) -> Self {
         HistoryEntry {
@@ -337,8 +252,6 @@ impl HistoryEntry {
             command,
             pwd: active_block.pwd().map(|pwd| pwd.to_owned()),
             start_ts: active_block.start_ts().copied(),
-            workflow_id,
-            workflow_command,
             git_head: active_block
                 .git_branch()
                 .map(|git_branch| git_branch.to_owned()),
@@ -356,14 +269,12 @@ impl HistoryEntry {
             command,
             pwd: block.pwd().map(|pwd| pwd.to_owned()),
             start_ts: block.start_ts().copied(),
-            workflow_id: None,
-            workflow_command: None,
             git_head: block.git_branch().map(|git_branch| git_branch.to_owned()),
             shell_host: block.shell_host().clone(),
             completed_ts: block.completed_ts().copied(),
             exit_code: Some(block.exit_code()),
             is_for_restored_block: true,
-            is_agent_executed: block.requested_command_action_id().is_some(),
+            is_agent_executed: false,
         }
     }
 
@@ -374,29 +285,11 @@ impl HistoryEntry {
             pwd: block.pwd.clone(),
             start_ts: block.start_ts,
             completed_ts: block.completed_ts,
-            workflow_id: None,
-            workflow_command: None,
             exit_code: Some(block.exit_code),
             git_head: block.git_head.clone(),
             shell_host: block.shell_host.clone(),
             is_for_restored_block: false,
-            is_agent_executed: serialized_block_is_agent_executed(block),
-        }
-    }
-
-    /// Returns an `Option` containing the workflow linked to this command, if any.
-    ///
-    /// First looks up the workflow using `self.workflow_id`, then falls back to looking up the
-    /// workflow using `self.workflow_command`, if any.
-    pub fn linked_workflow(&self, app: &AppContext) -> Option<Workflow> {
-        match (&self.workflow_id, &self.workflow_command) {
-            (Some(workflow_id), _) => CloudModel::as_ref(app)
-                .get_workflow(workflow_id)
-                .map(|workflow| workflow.model().data.clone()),
-            (_, Some(workflow_command)) => LocalWorkflows::as_ref(app)
-                .workflow_with_command(app, workflow_command)
-                .map(|(_, workflow)| workflow.clone()),
-            _ => None,
+            is_agent_executed: false,
         }
     }
 
@@ -412,30 +305,11 @@ impl HistoryEntry {
             pwd,
             start_ts,
             completed_ts: _,
-            workflow_id,
             exit_code,
             git_head,
-            workflow_command,
             shell_host: _,
         } = self;
-        pwd.is_some()
-            || start_ts.is_some()
-            || workflow_id.is_some()
-            || exit_code.is_some()
-            || git_head.is_some()
-            || workflow_command.is_some()
-    }
-
-    /// Returns `LinkedWorkflowData` referring to the workflow used to create this history command,
-    /// if any.
-    pub fn linked_workflow_data(&self) -> Option<LinkedWorkflowData> {
-        match (&self.workflow_id, &self.workflow_command) {
-            (Some(workflow_id), _) => Some(LinkedWorkflowData::Id(*workflow_id)),
-            (_, Some(workflow_command)) => {
-                Some(LinkedWorkflowData::Command(workflow_command.clone()))
-            }
-            _ => None,
-        }
+        pwd.is_some() || start_ts.is_some() || exit_code.is_some() || git_head.is_some()
     }
 }
 
@@ -449,8 +323,6 @@ impl From<PersistedCommand> for HistoryEntry {
             completed_ts: command.completed_ts,
             pwd: command.pwd,
             git_head: command.git_branch,
-            workflow_id: command.workflow_id,
-            workflow_command: command.workflow_command,
             shell_host: command.shell_host,
             is_for_restored_block: false,
             is_agent_executed: command.is_agent_executed,
@@ -465,6 +337,38 @@ impl Entity for History {
 impl SingletonEntity for History {}
 
 impl History {
+    #[cfg(test)]
+    pub async fn initialized_sessions(
+        history_handle: &mut ModelHandle<History>,
+        app: &mut warpui::App,
+        session_ids: Vec<SessionId>,
+    ) {
+        let mut receivers = vec![];
+        for session_id in session_ids {
+            if !history_handle.read(app, |history, _| {
+                history.is_session_initialized(&session_id)
+            }) {
+                let (tx, rx) = async_channel::unbounded();
+                let handle = history_handle.clone();
+                history_handle.update(app, move |_, ctx| {
+                    ctx.subscribe_to_model(&handle, move |_, event, _| {
+                        let HistoryEvent::Initialized(event_id) = event;
+                        if session_id == *event_id {
+                            let _ = tx.try_send(());
+                        }
+                    });
+                });
+                receivers.push(rx);
+            }
+        }
+        join_all(
+            receivers
+                .into_iter()
+                .map(|rx| async move { rx.recv().await }),
+        )
+        .await;
+    }
+
     pub fn new(persisted_commands: Vec<PersistedCommand>) -> Self {
         log::debug!("Creating new History model with persisted commands {persisted_commands:?}");
         let mut persisted_commands_summary =
@@ -965,7 +869,3 @@ impl History {
         }
     }
 }
-
-#[cfg(test)]
-#[path = "history_tests.rs"]
-pub mod tests;

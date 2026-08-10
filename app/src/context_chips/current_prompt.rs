@@ -15,7 +15,6 @@ use crate::{
         },
         session_settings::{
             GithubPrPromptChipDefaultValidation, SessionSettings, SessionSettingsChangedEvent,
-            ToolbarChipSelection,
         },
         view::{ContextMenuAction, PromptPart, PromptPosition, TerminalAction},
     },
@@ -39,24 +38,16 @@ use super::{
     ChipValue, ContextChipKind,
 };
 #[cfg(feature = "local_fs")]
-use crate::code_review::git_status_update::{GitRepoStatusEvent, GitRepoStatusModel};
-#[cfg(feature = "local_fs")]
-use crate::context_chips::display_chip::GitLineChanges;
 use std::collections::{HashMap, HashSet};
 use std::hash::{Hash as _, Hasher as _};
 use std::sync::Arc;
 use std::time::Duration;
 #[cfg(feature = "local_fs")]
-use warpui::WeakModelHandle;
 use warpui::{
     r#async::{SpawnedFutureHandle, Timer},
     AppContext, ViewHandle,
 };
 use warpui::{Entity, ModelAsRef, ModelContext, ModelHandle, SingletonEntity};
-
-#[cfg(test)]
-#[path = "current_prompt_test.rs"]
-mod tests;
 
 const PROMPT_DEBOUNCE_PERIOD: Duration = Duration::from_millis(50);
 const PROMPT_DEBOUNCE_PERIOD_KEY: &str = "PromptDebouncePeriod";
@@ -178,11 +169,6 @@ pub struct CurrentPrompt {
     sessions: ModelHandle<Sessions>,
     prompt_chip_logger: PromptChipLogger,
     update_tx: async_channel::Sender<()>,
-
-    /// When set, `ShellGitBranch` chip values are driven by filesystem events from
-    /// `GitRepoStatusModel` instead of the 30s periodic timer.
-    #[cfg(feature = "local_fs")]
-    git_repo_status: Option<WeakModelHandle<GitRepoStatusModel>>,
 }
 
 /// Context about the current terminal session, needed to update the prompt.
@@ -252,8 +238,6 @@ impl CurrentPrompt {
             update_tx,
             same_line_prompt_enabled: prompt.as_ref(ctx).same_line_prompt_enabled(),
             separator: prompt.as_ref(ctx).separator(),
-            #[cfg(feature = "local_fs")]
-            git_repo_status: None,
         }
     }
 
@@ -1092,30 +1076,7 @@ impl CurrentPrompt {
     /// customization/ordering/visibility, so we keep their backing values up to date even if they
     /// are not present in the prompt configuration.
     fn chips_to_run(&self, ctx: &AppContext) -> Vec<ContextChipKind> {
-        let mut chips = self.configured_chips(ctx);
-
-        if FeatureFlag::AgentView.is_enabled() {
-            let footer_chips = SessionSettings::as_ref(ctx)
-                .agent_footer_chip_selection
-                .all_chips();
-            for chip_kind in footer_chips {
-                if !chips.contains(&chip_kind) {
-                    chips.push(chip_kind);
-                }
-            }
-
-            // Also include chips configured for the CLI agent footer.
-            let cli_footer_chips = SessionSettings::as_ref(ctx)
-                .cli_agent_footer_chip_selection
-                .all_chips();
-            for chip_kind in cli_footer_chips {
-                if !chips.contains(&chip_kind) {
-                    chips.push(chip_kind);
-                }
-            }
-        }
-
-        chips
+        self.configured_chips(ctx)
     }
 
     /// Resets states (including terminating any in progress spawned operations), and updates the
@@ -1186,15 +1147,6 @@ impl CurrentPrompt {
             self.same_line_prompt_enabled =
                 session_settings.saved_prompt.same_line_prompt_enabled();
             self.separator = session_settings.saved_prompt.separator();
-        }
-
-        if let SessionSettingsChangedEvent::AgentToolbarChipSelectionSetting { .. } = event {
-            // Recompute which chips to run when the agent footer config changes.
-            self.update_states_with_new_context(ctx);
-        }
-
-        if let SessionSettingsChangedEvent::CLIAgentToolbarChipSelectionSetting { .. } = event {
-            self.update_states_with_new_context(ctx);
         }
     }
 
@@ -1406,87 +1358,9 @@ impl CurrentPrompt {
         )
     }
 
-    /// Set the per-repo git status model handle. When `Some`, subscribes to
-    /// metadata-changed events so `ShellGitBranch` and `GitDiffStats` are updated
-    /// by filesystem events instead of the 30s periodic timer.
-    #[cfg(feature = "local_fs")]
-    pub fn set_git_repo_status(
-        &mut self,
-        handle: Option<WeakModelHandle<GitRepoStatusModel>>,
-        ctx: &mut ModelContext<Self>,
-    ) {
-        // Unsubscribe from the previous model, if any.
-        if let Some(old_weak) = self.git_repo_status.take() {
-            if let Some(old_strong) = old_weak.upgrade(ctx) {
-                ctx.unsubscribe_from_model(&old_strong);
-            }
-        }
-
-        if let Some(weak) = handle {
-            if let Some(strong) = weak.upgrade(ctx) {
-                self.git_repo_status = Some(weak);
-                ctx.subscribe_to_model(&strong, |me, event, ctx| match event {
-                    GitRepoStatusEvent::MetadataChanged => {
-                        let metadata = me
-                            .git_repo_status
-                            .as_ref()
-                            .and_then(|w| w.upgrade(ctx))
-                            .and_then(|h| h.as_ref(ctx).metadata().cloned());
-
-                        let Some(metadata) = metadata else {
-                            return;
-                        };
-
-                        // Update ShellGitBranch.
-                        let new_branch = ChipValue::Text(metadata.current_branch_name.clone());
-                        let current_branch = me
-                            .latest_chip_value(&ContextChipKind::ShellGitBranch)
-                            .cloned();
-                        if current_branch.as_ref() != Some(&new_branch) {
-                            me.update_chip_value(
-                                &ContextChipKind::ShellGitBranch,
-                                Some(new_branch),
-                            );
-                            // Refresh the branch dropdown so it stays in sync.
-                            let chip_kind = ContextChipKind::ShellGitBranch;
-                            if let Some(chip) = chip_kind.to_chip() {
-                                if let Some(on_click_gen) = chip.on_click_generator().cloned() {
-                                    me.refresh_on_click_values(&chip_kind, on_click_gen, ctx);
-                                }
-                            }
-                        }
-
-                        // Update GitDiffStats with structured data directly.
-                        let new_diff_stats = ChipValue::GitDiffStats(
-                            GitLineChanges::from_diff_stats(&metadata.stats_against_head),
-                        );
-                        let current_diff_stats = me
-                            .latest_chip_value(&ContextChipKind::GitDiffStats)
-                            .cloned();
-                        if current_diff_stats.as_ref() != Some(&new_diff_stats) {
-                            me.update_chip_value(
-                                &ContextChipKind::GitDiffStats,
-                                Some(new_diff_stats),
-                            );
-                        }
-                    }
-                });
-            }
-        }
-    }
-
     /// Returns `true` when the given chip's value is updated externally
     /// (e.g. by a filesystem watcher) and the periodic timer should be skipped.
     fn is_updated_externally(&self, chip_kind: &ContextChipKind) -> bool {
-        #[cfg(feature = "local_fs")]
-        {
-            if matches!(
-                chip_kind,
-                ContextChipKind::ShellGitBranch | ContextChipKind::GitDiffStats
-            ) {
-                return self.git_repo_status.is_some();
-            }
-        }
         let _ = chip_kind;
         false
     }

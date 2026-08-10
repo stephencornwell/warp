@@ -829,7 +829,6 @@ impl WorkflowView {
                 .with_centered_text_label("Add environment variables".to_string())
                 .build()
                 .on_click(|ctx, _, _| {
-                    ctx.dispatch_typed_action(WorkspaceAction::CreatePersonalEnvVarCollection);
                 })
                 .finish()
         };

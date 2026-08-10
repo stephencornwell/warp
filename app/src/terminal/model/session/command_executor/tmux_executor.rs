@@ -6,11 +6,9 @@ use std::sync::Arc;
 use anyhow::Result;
 use async_channel::{self, Receiver, Sender};
 use async_trait::async_trait;
-use chrono::DateTime;
 use parking_lot::Mutex;
 
 use super::{ExecuteCommandOptions, ExecutorCommandEvent};
-use crate::server::datetime_ext::DateTimeExt;
 use crate::terminal::event::ExecutedExecutorCommandEvent;
 use crate::terminal::model::tmux::commands::TmuxCommand;
 use crate::terminal::shell::Shell;
@@ -111,7 +109,7 @@ impl CommandExecutor for TmuxCommandExecutor {
         environment_variables: Option<HashMap<String, String>>,
         _execute_command_options: ExecuteCommandOptions,
     ) -> Result<CommandOutput> {
-        let command_id = DateTime::now().timestamp_micros().to_string();
+        let command_id = chrono::Utc::now().timestamp_micros().to_string();
 
         let future = async {
             let output_channel_rx = self.execute_command_internal(

@@ -27,31 +27,6 @@ use warpui::{
 
 #[cfg(feature = "local_fs")]
 use crate::notebooks::post_process_notebook;
-use crate::{
-    appearance::Appearance,
-    cmd_or_ctrl_shift,
-    editor::InteractionState,
-    menu::{MenuItem, MenuItemFields},
-    notebooks::editor::{model::NotebooksEditorModel, rich_text_styles},
-    pane_group::{
-        focus_state::PaneFocusHandle,
-        pane::view,
-        pane::view::header::components::{
-            render_pane_header_buttons, render_pane_header_title_text, render_three_column_header,
-            CenteredHeaderEdgeWidth,
-        },
-        BackingView, PaneConfiguration, PaneEvent,
-    },
-    safe_warn, send_telemetry_from_ctx,
-    server::telemetry::{NotebookActionEvent, NotebookTelemetryMetadata, TelemetryEvent},
-    settings::FontSettings,
-    terminal::model::session::Session,
-    ui_components::icons::Icon,
-    view_components::{MarkdownToggleEvent, MarkdownToggleView},
-    workflows::{WorkflowSource, WorkflowType},
-    workspace::ActiveSession,
-};
-
 use super::{
     context_menu::{show_rich_editor_context_menu, ContextMenuAction, ContextMenuState},
     editor::view::{EditorViewEvent, RichTextEditorConfig, RichTextEditorView},
@@ -417,10 +392,6 @@ impl FileNotebookView {
                         FileModelEvent::FileLoaded { content, .. } => {
                             let cleaned = post_process_notebook(content);
                             me.set_content(&cleaned, ctx);
-                            send_telemetry_from_ctx!(
-                                TelemetryEvent::OpenNotebook(me.open_telemetry_metadata(ctx)),
-                                ctx
-                            );
 
                             // Record the canonical path instead of the input path when available.
                             if let Some(canonical_path) = file_model.as_ref(ctx).file_path(file_id)
@@ -506,18 +477,6 @@ impl FileNotebookView {
 
     /// Send a [`NotebookTelemetryAction`] telemetry event.
     fn send_telemetry_action(&self, action: NotebookTelemetryAction, ctx: &mut ViewContext<Self>) {
-        send_telemetry_from_ctx!(
-            TelemetryEvent::NotebookAction(NotebookActionEvent {
-                action,
-                metadata: NotebookTelemetryMetadata::new(
-                    None,
-                    None,
-                    NotebookLocation::LocalFile,
-                    None
-                )
-            }),
-            ctx
-        );
     }
 
     /// Reload the file that was most recently opened (or attempted to open).

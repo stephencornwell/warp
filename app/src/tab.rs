@@ -1,5 +1,3 @@
-use crate::ai::agent::conversation::ConversationStatus;
-use crate::ai::conversation_status_ui::{render_status_element, STATUS_ELEMENT_PADDING};
 use crate::appearance::Appearance;
 /// Tab module contains structures related to Tabs (such as TabData or TabComponent) that simplify
 /// the rendering and management of tabs in general.
@@ -8,20 +6,17 @@ use crate::features::FeatureFlag;
 use crate::launch_configs::launch_config::LaunchConfig;
 use crate::menu::{MenuAction, MenuItem, MenuItemFields};
 use crate::pane_group::PaneGroup;
-use crate::terminal::model::terminal_model::ConversationTranscriptViewerStatus;
 use settings::Setting as _;
 use std::sync::Arc;
 use std::time::Duration;
 
 use crate::shell_indicator::ShellIndicatorType;
-use crate::terminal::shared_session::render_util::shared_session_indicator_color;
 use crate::terminal::view::TerminalViewState;
 use crate::themes::theme::{AnsiColorIdentifier, Fill as ThemeFill, VerticalGradient};
 use crate::ui_components::buttons::icon_button;
 use crate::ui_components::color_dot::{render_color_dot, TAB_COLOR_OPTIONS};
 use crate::ui_components::icons::{Icon, ICON_DIMENSIONS};
 use crate::util::color::{coloru_with_opacity, Opacity};
-use crate::util::truncation::truncate_from_end;
 
 use crate::window_settings::WindowSettings;
 use crate::workspace::sync_inputs::SyncedInputState;
@@ -29,7 +24,6 @@ use crate::workspace::tab_settings::{TabCloseButtonPosition, TabSettings};
 use crate::workspace::{
     PaneViewLocator, TabBarDropTargetData, TabBarLocation, TabContextMenuAnchor, WorkspaceAction,
 };
-use crate::BlocklistAIHistoryModel;
 use pathfinder_color::ColorU;
 use pathfinder_geometry::vector::vec2f;
 use serde::{Deserialize, Serialize};
@@ -54,18 +48,10 @@ use warpui::{AppContext, SingletonEntity, ViewHandle};
 pub const TAB_BAR_BORDER_HEIGHT: f32 = 1.0;
 const TAB_INDICATOR_HEIGHT: f32 = 14.0;
 
-/// True when the user has opted into vertical tabs and the feature flag is on.
-/// Exposed so binding-description overrides in `workspace/mod.rs` and context-
-/// menu builders here can share a single predicate.
-pub fn uses_vertical_tabs(ctx: &AppContext) -> bool {
-    FeatureFlag::VerticalTabs.is_enabled() && *TabSettings::as_ref(ctx).use_vertical_tabs
-}
-
 const WARP_2_TAB_COLOR_OPACITY: Opacity = 25;
 const WARP_2_HOVERED_TAB_COLOR_OPACITY: Opacity = 50;
 const TAB_CLOSE_BUTTON_OPACITY: Opacity = 60;
 const TAB_CLOSE_BUTTON_WIDTH: f32 = 20.0;
-const MAX_TOOLTIP_LENGTH: usize = 80;
 
 const TAB_INDICATOR_SYNCED_COLOR: u32 = 0x4A93FFFF;
 
@@ -101,15 +87,6 @@ impl SelectedTabColor {
     }
 }
 
-#[derive(Clone, Serialize, Deserialize)]
-#[allow(clippy::enum_variant_names)]
-pub enum TabTelemetryAction {
-    CloseTab,
-    CloseOtherTabs,
-    CloseTabsToRight,
-    SetColor,
-    ResetColor,
-}
 #[derive(Debug, Clone)]
 pub enum NewSessionMenuItem {
     OpenLaunchConfig(LaunchConfig),
@@ -193,7 +170,7 @@ impl TabData {
         for section_items in [
             self.session_sharing_menu_items(index, ctx),
             self.modify_tab_menu_items(index, tabs_len, pane_name_target, ctx),
-            self.close_tab_menu_items(index, tabs_len, ctx),
+            self.close_tab_menu_items(index, tabs_len),
             Self::save_config_menu_items(index),
             self.color_option_menu_items(index, terminal_colors),
         ] {
@@ -210,78 +187,10 @@ impl TabData {
 
     fn session_sharing_menu_items(
         &self,
-        index: usize,
-        ctx: &AppContext,
+        _index: usize,
+        _ctx: &AppContext,
     ) -> Vec<MenuItem<WorkspaceAction>> {
-        let mut menu_items = vec![];
-
-        if FeatureFlag::CreatingSharedSessions.is_enabled()
-            && ContextFlag::CreateSharedSession.is_enabled()
-        {
-            let shared_session_view_ids = self.pane_group.as_ref(ctx).shared_session_view_ids(ctx);
-            let focused_session_view = self.pane_group.as_ref(ctx).focused_session_view(ctx);
-
-            // If the focused pane is one of the shared sessions, add an option to stop it specifically,
-            // otherwise add an option to share it.
-            if let Some(focused_session_view) = focused_session_view {
-                if focused_session_view
-                    .as_ref(ctx)
-                    .model
-                    .lock()
-                    .shared_session_status()
-                    .is_active_sharer()
-                {
-                    menu_items.push(
-                        MenuItemFields::new("Stop sharing")
-                            .with_on_select_action(WorkspaceAction::StopSharingSessionFromTabMenu {
-                                terminal_view_id: focused_session_view.id(),
-                            })
-                            .into_item(),
-                    );
-                } else {
-                    menu_items.push(
-                        MenuItemFields::new("Share session")
-                            .with_on_select_action(WorkspaceAction::OpenShareSessionModal(index))
-                            .into_item(),
-                    );
-                }
-            }
-
-            // Always show an option to stop sharing all when there's at least 1 shared session in the tab.
-            if !shared_session_view_ids.is_empty() {
-                menu_items.push(
-                    MenuItemFields::new("Stop sharing all")
-                        .with_on_select_action(WorkspaceAction::StopSharingAllSessionsInTab {
-                            pane_group: self.pane_group.downgrade(),
-                        })
-                        .into_item(),
-                );
-            }
-        }
-
-        // Add "Copy link" option if the focused session in this tab is being shared or viewed
-        let is_shared_or_viewed = self
-            .pane_group
-            .as_ref(ctx)
-            .focused_session_view(ctx)
-            .map(|view| {
-                view.as_ref(ctx)
-                    .model
-                    .lock()
-                    .shared_session_status()
-                    .is_sharer_or_viewer()
-            })
-            .unwrap_or(false);
-
-        if is_shared_or_viewed {
-            menu_items.push(
-                MenuItemFields::new("Copy link")
-                    .with_on_select_action(WorkspaceAction::CopySharedSessionLinkFromTab {
-                        tab_index: index,
-                    })
-                    .into_item(),
-            );
-        }
+        let menu_items = vec![];
 
         menu_items
     }
@@ -294,8 +203,6 @@ impl TabData {
         ctx: &AppContext,
     ) -> Vec<MenuItem<WorkspaceAction>> {
         let mut menu_items = vec![];
-        let uses_vertical_tabs = uses_vertical_tabs(ctx);
-
         // TODO add option to show the keybinding once we figure out a nice API to retrieve
         // the actual keybinding (based on the user's preferences etc.)
         menu_items.append(&mut vec![MenuItemFields::new("Rename tab")
@@ -319,24 +226,16 @@ impl TabData {
         let not_last_tab = index != tabs_len - 1;
         if not_last_tab {
             menu_items.push(
-                MenuItemFields::new(if uses_vertical_tabs {
-                    "Move Tab Down"
-                } else {
-                    "Move Tab Right"
-                })
-                .with_on_select_action(WorkspaceAction::MoveTabRight(index))
-                .into_item(),
+                MenuItemFields::new("Move Tab Right")
+                    .with_on_select_action(WorkspaceAction::MoveTabRight(index))
+                    .into_item(),
             );
         }
         if index != 0 {
             menu_items.push(
-                MenuItemFields::new(if uses_vertical_tabs {
-                    "Move Tab Up"
-                } else {
-                    "Move Tab Left"
-                })
-                .with_on_select_action(WorkspaceAction::MoveTabLeft(index))
-                .into_item(),
+                MenuItemFields::new("Move Tab Left")
+                    .with_on_select_action(WorkspaceAction::MoveTabLeft(index))
+                    .into_item(),
             );
         }
         menu_items
@@ -355,10 +254,7 @@ impl TabData {
             return vec![];
         };
         let configuration = pane.pane_configuration();
-        let has_custom_name = configuration
-            .as_ref(ctx)
-            .custom_vertical_tabs_title()
-            .is_some();
+        let has_custom_name = configuration.as_ref(ctx).custom_title().is_some();
 
         let mut menu_items = vec![MenuItemFields::new(target.rename_label)
             .with_on_select_action(WorkspaceAction::RenamePane(target.locator))
@@ -377,11 +273,8 @@ impl TabData {
         &self,
         index: usize,
         tabs_len: usize,
-        ctx: &AppContext,
     ) -> Vec<MenuItem<WorkspaceAction>> {
         let mut menu_items = vec![];
-        let uses_vertical_tabs = uses_vertical_tabs(ctx);
-
         if ContextFlag::CloseWindow.is_enabled() || tabs_len != 1 {
             menu_items.push(
                 MenuItemFields::new("Close tab")
@@ -399,13 +292,9 @@ impl TabData {
         let not_last_tab = index != tabs_len - 1;
         if not_last_tab {
             menu_items.push(
-                MenuItemFields::new(if uses_vertical_tabs {
-                    "Close Tabs Below"
-                } else {
-                    "Close Tabs to the Right"
-                })
-                .with_on_select_action(WorkspaceAction::CloseTabsRight(index))
-                .into_item(),
+                MenuItemFields::new("Close Tabs to the Right")
+                    .with_on_select_action(WorkspaceAction::CloseTabsRight(index))
+                    .into_item(),
             );
         }
         menu_items
@@ -565,10 +454,6 @@ enum Indicator {
     Maximized,
     /// We should show a shell indicator for the tab.
     Shell(ShellIndicatorType),
-    Agent {
-        conversation_status: Option<ConversationStatus>,
-    },
-    AmbientAgent,
 }
 
 impl From<TerminalViewState> for Indicator {
@@ -632,7 +517,7 @@ impl TabStyles {
         let active_tab_bar_color: Option<ThemeFill> =
             tab_color.map(|color| color.to_ansi_color(&theme.terminal_colors().normal).into());
         let error_color = theme.ui_error_color();
-        let sharing_color = shared_session_indicator_color(appearance);
+        let sharing_color = theme.ui_error_color();
         let background = active_tab_bar_color.map(|color| {
             ThemeFill::VerticalGradient(VerticalGradient::new(
                 theme.background().into(),
@@ -669,23 +554,7 @@ impl<'a> TabComponent<'a> {
         let appearance = Appearance::as_ref(ctx);
         let title = tab.pane_group.as_ref(ctx).display_title(ctx);
 
-        let active_pane_is_ambient_agent_session = tab
-            .pane_group
-            .as_ref(ctx)
-            .active_session_terminal_model(ctx)
-            .map(|model| {
-                let model = model.lock();
-                model.is_shared_ambient_agent_session()
-                    || matches!(
-                        model.conversation_transcript_viewer_status(),
-                        Some(ConversationTranscriptViewerStatus::ViewingAmbientConversation(_))
-                    )
-            })
-            .unwrap_or(false);
-        let active_pane_has_unsaved_code_changes = tab
-            .pane_group
-            .as_ref(ctx)
-            .has_active_code_pane_with_unsaved_changes(ctx);
+        let active_pane_has_unsaved_code_changes = false;
         let is_being_shared = tab
             .pane_group
             .as_ref(ctx)
@@ -708,9 +577,7 @@ impl<'a> TabComponent<'a> {
         // But if it's on, we want to show the synced indicator if this tab is being synced.
         // If we aren't showing the synced indicator (and we know the setting is on),
         // we will show long-running, error indicators, etc. as applicable.
-        let indicator = if active_pane_is_ambient_agent_session {
-            Indicator::AmbientAgent
-        } else if active_pane_has_unsaved_code_changes {
+        let indicator = if active_pane_has_unsaved_code_changes {
             Indicator::UnsavedChanges
         } else if FeatureFlag::CreatingSharedSessions.is_enabled() && is_being_shared {
             Indicator::Shared
@@ -718,8 +585,6 @@ impl<'a> TabComponent<'a> {
             Indicator::None
         } else if are_inputs_synced {
             Indicator::Synced
-        } else if let Some(agent) = Self::agent_indicator(tab, ctx) {
-            agent
         } else if let Some(shell_indicator_type) = shell_indicator_type {
             Indicator::Shell(shell_indicator_type)
         } else if has_active_pane_state_indicator {
@@ -758,35 +623,6 @@ impl<'a> TabComponent<'a> {
         }
     }
 
-    /// Returns the agent indicator for the focused session's active conversation,
-    /// or `None` if there is no non-empty, non-passive conversation to display.
-    /// When a shell command is long-running the status is overridden to
-    /// `InProgress`, matching vertical-tab behavior.
-    fn agent_indicator(tab: &TabData, app: &AppContext) -> Option<Indicator> {
-        let terminal_view = tab.pane_group.as_ref(app).focused_session_view(app)?;
-        let terminal_view_ref = terminal_view.as_ref(app);
-        let is_long_running = terminal_view_ref.is_long_running();
-        let conversation =
-            BlocklistAIHistoryModel::as_ref(app).active_conversation(terminal_view_ref.id())?;
-
-        // Show in-progress indicator when a shell command is running in the AgentView.
-        // This matches vertical-tab behavior.
-        if is_long_running {
-            return Some(Indicator::Agent {
-                conversation_status: Some(ConversationStatus::InProgress),
-            });
-        }
-
-        if conversation.is_empty() || conversation.is_entirely_passive() {
-            return None;
-        }
-
-        let conversation_status = Some(conversation.status().clone());
-        Some(Indicator::Agent {
-            conversation_status,
-        })
-    }
-
     /// Determine if this tab is the active tab.
     fn is_active_tab(&self) -> bool {
         Some(self.tab_index) == self.tab_bar.active_tab_index
@@ -814,14 +650,10 @@ impl<'a> TabComponent<'a> {
 
     /// Get the tooltip message for tabs - handles both agent tasks and regular tab titles
     fn get_tooltip_message(
-        indicator: &Indicator,
+        _indicator: &Indicator,
         tab: &TabData,
         ctx: &AppContext,
     ) -> Option<String> {
-        if Self::is_agent_task_indicator(indicator) {
-            return Self::get_agent_task_tooltip_message(tab, ctx);
-        }
-
         // If we're not showing the conversation title in the tooltip,
         // use the original title from the terminal model.
         let original_title = tab
@@ -838,34 +670,9 @@ impl<'a> TabComponent<'a> {
         None
     }
 
-    /// Get the task description for the tooltip if this is an agent task
-    /// and the tooltip content would be different from what's displayed in the tab
-    fn get_agent_task_tooltip_message(tab: &TabData, ctx: &AppContext) -> Option<String> {
-        let terminal_view_id = tab
-            .pane_group
-            .as_ref(ctx)
-            .focused_session_view(ctx)
-            .map(|view| view.id())?;
-        let ai_history_model = BlocklistAIHistoryModel::as_ref(ctx);
-        let conversation = ai_history_model.active_conversation(terminal_view_id)?;
-
-        // Don't show tooltip for passive conversations
-        if conversation.is_entirely_passive() {
-            return None;
-        }
-
-        let conversation_title = conversation.title()?;
-        let trimmed_title = conversation_title.trim().to_owned();
-
-        // Truncate tooltip to prevent rendering issues
-        let truncated_name = truncate_from_end(&trimmed_title, MAX_TOOLTIP_LENGTH);
-
-        Some(truncated_name)
-    }
-
     /// Check if the given indicator is an agent task indicator
-    fn is_agent_task_indicator(indicator: &Indicator) -> bool {
-        matches!(indicator, Indicator::Agent { .. } | Indicator::AmbientAgent)
+    fn is_agent_task_indicator(_indicator: &Indicator) -> bool {
+        false
     }
 
     /// Get the current working directory for the tooltip if this is an agent task
@@ -1112,56 +919,6 @@ impl<'a> TabComponent<'a> {
                     .to_warpui_icon(internal_colors::neutral_5(self.appearance.theme()).into())
                     .finish(),
             ),
-            Indicator::Agent {
-                conversation_status,
-            } => {
-                if let Some(status) = conversation_status {
-                    if FeatureFlag::NewTabStyling.is_enabled() {
-                        let icon_size = 22.0 - STATUS_ELEMENT_PADDING * 2.;
-                        Some(render_status_element(status, icon_size, self.appearance))
-                    } else {
-                        Some(status.render_icon(self.appearance).finish())
-                    }
-                } else {
-                    let icon_color = self.appearance.theme().nonactive_ui_text_color();
-                    Some(Icon::Oz.to_warpui_icon(icon_color).finish())
-                }
-            }
-            Indicator::AmbientAgent => {
-                // Always use the active tab font color for the ambient agent cloud icon, with a safe fallback.
-                let active_styles = self.styles.default.merge(self.styles.active);
-                let icon_color = active_styles
-                    .font_color
-                    .unwrap_or_else(|| self.appearance.theme().active_ui_text_color().into());
-
-                let ui_builder = self.ui_builder.clone();
-                let mouse_state = self.tab.indicator_hover_state.clone();
-                Some(
-                    Hoverable::new(mouse_state, move |state| {
-                        let mut stack = Stack::new()
-                            .with_child(Icon::OzCloud.to_warpui_icon(icon_color.into()).finish());
-
-                        if state.is_hovered() {
-                            let tooltip = ui_builder
-                                .tool_tip("Cloud agent run".to_string())
-                                .build()
-                                .finish();
-                            stack.add_positioned_overlay_child(
-                                tooltip,
-                                OffsetPositioning::offset_from_parent(
-                                    vec2f(0., 3.),
-                                    ParentOffsetBounds::WindowByPosition,
-                                    ParentAnchor::BottomMiddle,
-                                    ChildAnchor::TopMiddle,
-                                ),
-                            );
-                        }
-
-                        stack.finish()
-                    })
-                    .finish(),
-                )
-            }
         };
 
         icon.map(|icon| {

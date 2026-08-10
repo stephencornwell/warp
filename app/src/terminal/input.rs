@@ -61,9 +61,7 @@ use crate::{
 use diesel::SqliteConnection;
 use futures::FutureExt as _;
 use itertools::Itertools;
-use lazy_static::lazy_static;
 use ordered_float::Float;
-use regex::Regex;
 use settings::{Setting as _, ToggleableSetting};
 use std::{
     any::Any,
@@ -201,8 +199,6 @@ const COMPLETIONS_START_OF_REPLACEMENT_SPAN_POSITION_ID: &str =
     "start_of_completions_replacement_span";
 
 const HISTORY_DETAILS_VIEW_WIDTH_REQUIREMENT: f32 = 1100.;
-
-const MIN_BUFFER_LEN_TO_SHOW_COMPLETIONS_WHILE_TYPING: usize = 2;
 
 const AI_COMMAND_SEARCH_TRIGGER: &str = "#";
 
@@ -742,37 +738,6 @@ impl InputRenderStateModel {
 
 impl Entity for InputRenderStateModel {
     type Event = ();
-}
-
-lazy_static! {
-    /// Define the regex patterns that we show completions-as-you-type in AI input on.
-    /// We only show file completions - as such, we match on the following patterns:
-    /// 1. "/": The last word starts with a slash
-    /// 2. "./": The last word starts with "./"
-    /// 3. "../": The last word starts with "../"
-    /// 4. "{text}/": The last word contains a slash after some text
-    /// We combine all the regex patterns for performance reasons (one string scan).
-    /// NOTE: this assumes Unix-style paths. When we expand to Windows, we'll want to update this!
-    static ref FILEPATH_PATTERN: Regex = Regex::new(
-        r"^(?:/|\.\/|\.\./|[^/]+/)"
-    ).expect("Expect regex to be valid");
-}
-
-/// Returns boolean indicating whether completions-as-you-type should pop up, while in AI input.
-/// This is primarily based on the last word in the buffer text, and whether it makes sense to show
-/// filepath completions.
-fn should_show_completions_in_ai_input(buffer_text: &str) -> bool {
-    if buffer_text.ends_with(char::is_whitespace) {
-        return false;
-    }
-
-    let last_word = buffer_text.split_whitespace().last();
-
-    if let Some(last_word) = last_word {
-        FILEPATH_PATTERN.is_match(last_word)
-    } else {
-        false
-    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -2721,7 +2686,6 @@ impl Input {
         let buffer_text = editor.buffer_text(ctx);
 
         self.is_completions_while_typing_turned_on(ctx)
-            && buffer_text.len() >= MIN_BUFFER_LEN_TO_SHOW_COMPLETIONS_WHILE_TYPING
             && self.is_cursor_in_valid_position_for_completions_while_typing(ctx)
     }
 
@@ -2749,8 +2713,6 @@ impl Input {
         ctx: &mut ViewContext<Self>,
     ) {
         let editor = self.editor.as_ref(ctx);
-        let buffer_text = editor.buffer_text(ctx);
-
         let is_command_grid_active = {
             let model = self.model.lock();
             !model.is_alt_screen_active()

@@ -302,7 +302,6 @@ pub enum InputSuggestionsMode {
         menu_position: TabCompletionsMenuPosition,
     },
 
-
     /// Mode indicating that no suggestion UI is being shown.
     Closed,
 }

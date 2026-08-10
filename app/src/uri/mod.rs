@@ -1,5 +1,4 @@
 mod docker;
-pub mod parse_url_paths;
 pub mod web_intent_parser;
 
 #[cfg(target_family = "wasm")]
@@ -832,7 +831,3 @@ fn safe_url_log_fields(url: &Url) -> String {
         url.path(),
     )
 }
-
-#[cfg(test)]
-#[path = "uri_test.rs"]
-mod tests;

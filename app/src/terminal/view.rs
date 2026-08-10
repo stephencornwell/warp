@@ -1323,13 +1323,6 @@ impl ContextMenuType {
     }
 }
 
-#[derive(Copy, Clone)]
-pub struct ContextMenuInfo {
-    menu_type: ContextMenuType,
-}
-
-impl ContextMenuInfo {}
-
 #[derive(Debug, Copy, Clone)]
 struct ContextMenuState {
     menu_type: ContextMenuType,

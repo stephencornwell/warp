@@ -68,7 +68,8 @@ impl CreateProjectView {
     fn handle_editor_event(&mut self, event: &GlowingEditorEvent, ctx: &mut ViewContext<Self>) {
         match event {
             GlowingEditorEvent::Submit(prompt) => {
-                ctx.emit(CreateProjectEvent::SubmitPrompt(prompt.clone()));
+                let _ = prompt;
+                ctx.emit(CreateProjectEvent::SubmitPrompt);
             }
             GlowingEditorEvent::Cancel => {
                 self.editor.update(ctx, |editor, ctx| {
@@ -141,7 +142,7 @@ impl CreateProjectView {
 }
 
 pub enum CreateProjectEvent {
-    SubmitPrompt(String),
+    SubmitPrompt,
     Cancel,
 }
 
@@ -161,7 +162,8 @@ impl TypedActionView for CreateProjectView {
         match action {
             CreateProjectAction::SuggestionSelected { prompt } => {
                 // Always send metadata event with suggested prompt content (non-UGC)
-                ctx.emit(CreateProjectEvent::SubmitPrompt(prompt.clone()));
+                let _ = prompt;
+                ctx.emit(CreateProjectEvent::SubmitPrompt);
             }
         }
     }

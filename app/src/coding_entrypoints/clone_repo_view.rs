@@ -9,7 +9,7 @@ pub struct CloneRepoView {
 }
 
 pub enum CloneRepoEvent {
-    SubmitPrompt(String),
+    SubmitPrompt,
     Cancel,
 }
 
@@ -32,7 +32,8 @@ impl CloneRepoView {
     fn handle_editor_event(&mut self, event: &GlowingEditorEvent, ctx: &mut ViewContext<Self>) {
         match event {
             GlowingEditorEvent::Submit(prompt) => {
-                ctx.emit(CloneRepoEvent::SubmitPrompt(prompt.clone()))
+                let _ = prompt;
+                ctx.emit(CloneRepoEvent::SubmitPrompt)
             }
             GlowingEditorEvent::Cancel => {
                 self.editor.update(ctx, |editor, ctx| {

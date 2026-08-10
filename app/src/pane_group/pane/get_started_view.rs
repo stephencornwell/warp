@@ -135,7 +135,7 @@ impl GetStartedView {
         ctx: &mut ViewContext<Self>,
     ) {
         match event {
-            CreateProjectEvent::SubmitPrompt(_) => {
+            CreateProjectEvent::SubmitPrompt => {
                 self.active_page = ActivePage::Main;
                 ctx.notify();
             }
@@ -153,7 +153,7 @@ impl GetStartedView {
         ctx: &mut ViewContext<Self>,
     ) {
         match event {
-            CloneRepoEvent::SubmitPrompt(_) => {
+            CloneRepoEvent::SubmitPrompt => {
                 self.active_page = ActivePage::Main;
                 ctx.notify();
             }

@@ -59,13 +59,6 @@ pub struct Argument {
 }
 
 impl Argument {
-    pub(super) fn optional() -> Self {
-        Self {
-            is_optional: true,
-            ..Default::default()
-        }
-    }
-
     pub(super) fn required() -> Self {
         Self {
             is_optional: false,
@@ -78,10 +71,6 @@ impl Argument {
         self
     }
 
-    pub(super) fn with_execute_on_selection(mut self) -> Self {
-        self.should_execute_on_selection = true;
-        self
-    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

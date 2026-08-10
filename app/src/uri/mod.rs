@@ -4,7 +4,6 @@ pub mod web_intent_parser;
 #[cfg(target_family = "wasm")]
 pub mod browser_url_handler;
 
-use crate::launch_configs::launch_config::LaunchConfig;
 use crate::linear::LinearAction;
 use crate::root_view::open_new_window_get_handles;
 use crate::util::openable_file_type::{

@@ -80,7 +80,6 @@ use crate::terminal::ligature_settings::{should_use_ligature_rendering, Ligature
 #[cfg(feature = "local_tty")]
 #[cfg(all(windows, feature = "local_tty"))]
 use crate::terminal::local_tty::windows::get_user_and_system_env_variable;
-use crate::terminal::model::blockgrid::BlockGrid;
 use crate::terminal::model::session::active_session::ActiveSession;
 use crate::terminal::model::session::{Session, SessionId};
 use crate::terminal::model::{ObfuscateSecrets, RespectObfuscatedSecrets, SecretHandle};
@@ -219,7 +218,7 @@ use crate::terminal::model::grid::grid_handler::{FragmentBoundary, TermMode};
 use crate::terminal::model::index::{Point, Side};
 use crate::terminal::model::mouse::MouseState;
 use crate::terminal::model::selection::{SelectAction, SelectionDirection};
-use crate::terminal::model::session::{SessionType, Sessions, SessionsEvent};
+use crate::terminal::model::session::{Sessions, SessionsEvent};
 use crate::terminal::model::terminal_model::{BlockIndex, TerminalInputState};
 use crate::terminal::model::terminal_model::{
     BlockSelectionCardinality, SelectedBlocks, WithinModel,
@@ -411,7 +410,6 @@ pub const LONG_RUNNING_AGENT_REQUESTED_COMMAND_USER_TOOK_OVER_CONTEXT_KEY: &str 
     "LongRunningRequestedUserTookOverCommand";
 
 /// We only auto open the code review pane if the pane it's getting opened from has a certain width
-const MINIMUM_WIDTH_TO_AUTO_OPEN_PANE: f32 = 600.0;
 
 lazy_static! {
     static ref CTRL_SHIFT_A_KEYSTROKE: Keystroke = Keystroke {
@@ -2298,46 +2296,6 @@ impl TerminalView {
         terminal_view
     }
 
-    /// Schedule a callback to run after the next [`ModelEvent::AfterBlockCompleted`] received.
-    fn on_next_block_completed<F>(&mut self, callback: F)
-    where
-        F: FnOnce(&mut Self, &mut ViewContext<Self>) + 'static,
-    {
-        self.block_completed_callbacks.push(Box::new(callback));
-    }
-
-    /// Exits the active agent, either:
-    /// Schedule a callback to run after the next
-    /// [`BlocklistAIControllerEvent::FinishedReceivingOutput`] received, regardless of whether the
-    /// conversation completed successfully, was cancelled, or encountered an error.
-    /// The callback receives the `FinishReason` to allow different handling based on how the
-    /// conversation ended.
-    /// Fully clear the per-repo git status handle, including the input's repo
-    /// path. Use this when navigating out of a git repository.
-    #[cfg(feature = "local_fs")]
-    /// Helper to read metadata from the per-repo sub-model.
-    #[cfg(feature = "local_fs")]
-    /// Returns whether this terminal view should subscribe to git status
-    /// updates. We subscribe when:
-    /// 1. Agent mode is active and its chip list includes `GitDiffStats`, or
-    /// 2. Terminal mode with the Warp prompt enabled and the git stats chip
-    ///    configured.
-    #[cfg(feature = "local_fs")]
-    /// Re-evaluate whether this terminal view should be subscribed to git
-    /// status updates and subscribe/unsubscribe accordingly.
-    #[cfg(feature = "local_fs")]
-    pub fn can_auto_open_panel(&self) -> bool {
-        self.size_info.pane_width_px().as_f32() > MINIMUM_WIDTH_TO_AUTO_OPEN_PANE
-    }
-
-    /// Returns true if conditions are met to auto-open the code review panel:
-    /// - Inside a git repository
-    /// - Window is wide enough to support the code review panel
-    #[cfg(feature = "local_fs")]
-    fn update_context_blocks_and_exchanges(&mut self, ctx: &mut ViewContext<Self>) {
-        let _ = ctx;
-    }
-
     /// Gets the DiffMode for the given branch name by fetching the main branch name
     /// for this session and comparing it to the given branch name.
     #[cfg_attr(not(feature = "local_fs"), allow(unused_variables))]
@@ -4141,44 +4099,6 @@ impl TerminalView {
         ctx.emit(Event::SessionBootstrapped);
     }
 
-    fn local_session_path(session: &Session) -> Option<String> {
-        if matches!(session.session_type(), SessionType::Local) && session.subshell_info().is_none()
-        {
-            #[cfg(all(windows, feature = "local_tty"))]
-            let path = {
-                let path_result =
-                    get_user_and_system_env_variable("PATH").map(|entry| entry.into_string());
-                let result = match path_result {
-                    Some(Ok(path_result)) => Some(path_result),
-                    None => {
-                        log::warn!("Failed to get PATH for session on Windows.");
-                        None
-                    }
-                    Some(Err(e)) => {
-                        log::warn!("Failed to convert PATH for session on Windows: `{e:?}`");
-                        None
-                    }
-                };
-                if result.is_none() {
-                    if session.shell_family() == ShellFamily::PowerShell {
-                        // This is a fallback for if the OsString cannot be converted to a String.
-                        // We cannot accept a Posix PATH on Windows.
-                        session.path().clone()
-                    } else {
-                        None
-                    }
-                } else {
-                    result
-                }
-            };
-            #[cfg(not(all(windows, feature = "local_tty")))]
-            let path = session.path().clone();
-
-            return path;
-        }
-        None
-    }
-
     fn should_display_vim_banner(
         &self,
         session: &Arc<Session>,
@@ -4214,27 +4134,6 @@ impl TerminalView {
             .contains("vi_mode");
 
         vi_mode_in_plugins || vi_mode_in_opts
-    }
-
-    #[cfg_attr(not(feature = "local_fs"), allow(dead_code))]
-    fn get_ps1_grid_info(&mut self) -> Option<(BlockGrid, SizeInfo)> {
-        let model = self.model.lock();
-        let ps1_grid_info = model
-            .prompt_grid()
-            .cloned()
-            .zip(Some(*model.block_list().size()));
-        ps1_grid_info
-    }
-
-    /// Opens a folder that the user may or may not have opened in the past.
-    #[cfg(feature = "local_fs")]
-    fn update_repo_banner_state(&mut self, directory: PathBuf, ctx: &mut ViewContext<Self>) {
-        let _ = (directory, ctx);
-    }
-
-    #[cfg(not(feature = "local_fs"))]
-    fn update_repo_banner_state(&mut self, _directory: PathBuf, _ctx: &mut ViewContext<Self>) {
-        // Repo setup is not supported without a local filesystem.
     }
 
     #[cfg(feature = "local_fs")]
@@ -4576,13 +4475,6 @@ impl TerminalView {
         self.on_pane_state_change(ctx);
     }
 
-    fn toggle_left_panel_file_tree(&self, force_open: bool, ctx: &mut ViewContext<Self>) {
-        ctx.emit(Event::ToggleLeftPanel {
-            target_view: LeftPanelTargetView::FileTree,
-            force_open,
-        });
-    }
-
     /// Adds persistent toast to toast stack.
     pub fn show_persistent_toast(
         &mut self,
@@ -4594,15 +4486,6 @@ impl TerminalView {
         ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
             let toast = DismissibleToast::new(text, flavor);
             toast_stack.add_persistent_toast(toast, window_id, ctx);
-        });
-    }
-
-    /// Adds ephemeral error toast to toast stack.
-    fn show_error_toast(&mut self, text: String, ctx: &mut ViewContext<Self>) {
-        let window_id = ctx.window_id();
-        ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
-            let toast = DismissibleToast::error(text);
-            toast_stack.add_ephemeral_toast(toast, window_id, ctx);
         });
     }
 
@@ -9467,15 +9350,6 @@ impl TerminalView {
         self.active_filter_editor_block_index
     }
 
-    /// Handles when a user clicks on a block in the list of blocks attached to an AI block.
-    pub(crate) fn view_id(&self) -> EntityId {
-        self.view_id
-    }
-
-    fn cursor_position_id(&self) -> String {
-        self.cursor_position_id.clone()
-    }
-
     fn drag_and_drop_files(&mut self, paths: &[String], ctx: &mut ViewContext<Self>) {
         self.is_file_drop_target = false;
         if paths.is_empty() {
@@ -9571,16 +9445,6 @@ impl TerminalView {
         self.shell_indicator_type
     }
 
-    /// Shows the warpify footer for a detected subshell/SSH command.
-    /// Starts all enabled LSP servers for the current working directory.
-    #[cfg(feature = "local_fs")]
-    pub(super) fn toggle_file_tree(
-        &mut self,
-        _cli_agent: Option<impl Sized>,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        self.toggle_left_panel_file_tree(false, ctx);
-    }
 }
 
 impl Entity for TerminalView {

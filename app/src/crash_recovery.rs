@@ -25,11 +25,7 @@ pub fn is_crash_recovery_process_running() -> bool {
     *IS_CRASH_RECOVERY_PROCESS_RUNNING.read()
 }
 
-pub enum Event {
-    /// User has acknowledged the fact that the application crashed and
-    /// recovered from the crash.
-    UserAcknowledgedCrash,
-}
+pub enum Event {}
 
 /// Returns true if this process is the crash recovery process.
 pub fn is_crash_recovery_process(args: &warp_cli::AppArgs) -> bool {
@@ -114,17 +110,10 @@ impl CrashRecoveryProcess {
 
 pub struct CrashRecovery {
     child_process: RefCell<Option<CrashRecoveryProcess>>,
-
-    /// If the user should be notified that we recovered from a crash, this
-    /// stores the recovery mechanism that was used to successfully recover
-    /// from the crash.
-    should_notify_user_about_crash: Option<RecoveryMechanism>,
 }
 
 impl CrashRecovery {
     pub fn new(launch_mode: &crate::LaunchMode, user_preferences: &dyn UserPreferences) -> Self {
-        let mut should_notify_user_about_crash = None;
-
         let args = launch_mode.args();
         if let Some(recovery_mechanism) = args.as_ref().crash_recovery_mechanism {
             // If we're a crash recovery process, wait for the parent to crash
@@ -133,9 +122,7 @@ impl CrashRecovery {
 
             // If we get to this point, the parent crashed. Handle the crash and then continue
             // execution, allowing another crash recovery process to start if necessary.
-            should_notify_user_about_crash =
-                handle_parent_crash(recovery_mechanism, user_preferences)
-                    .then_some(recovery_mechanism);
+            handle_parent_crash(recovery_mechanism, user_preferences);
         }
 
         // If we want automated recovery from a crash in this process, spawn a
@@ -149,7 +136,6 @@ impl CrashRecovery {
                         log::error!("Failed to spawn crash recovery child process: {err:#}");
                         return Self {
                             child_process: Default::default(),
-                            should_notify_user_about_crash,
                         };
                     }
                 };
@@ -157,14 +143,12 @@ impl CrashRecovery {
                 *IS_CRASH_RECOVERY_PROCESS_RUNNING.write() = true;
                 return Self {
                     child_process: RefCell::new(Some(CrashRecoveryProcess::new(child_process))),
-                    should_notify_user_about_crash,
                 };
             }
         }
 
         Self {
             child_process: Default::default(),
-            should_notify_user_about_crash: None,
         }
     }
 
@@ -182,11 +166,6 @@ impl CrashRecovery {
                 crate::crash_recovery::CrashRecovery::new(&launch_mode, user_preferences)
             })
         });
-    }
-
-    pub fn handle_user_acknowledged_crash(&mut self, ctx: &mut ModelContext<Self>) {
-        self.should_notify_user_about_crash = None;
-        ctx.emit(Event::UserAcknowledgedCrash);
     }
 
     pub fn on_draw_frame_error(&mut self, window_id: WindowId) {

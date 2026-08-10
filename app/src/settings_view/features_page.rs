@@ -1,6 +1,6 @@
 use crate::default_terminal::DefaultTerminal;
 use crate::global_resource_handles::GlobalResourceHandles;
-use crate::gpu_state::{GPUState, GPUStateEvent};
+use crate::gpu_state::GPUState;
 use crate::report_if_error;
 use crate::terminal::input::OPEN_COMPLETIONS_KEYBINDING_NAME;
 #[cfg(feature = "local_tty")]
@@ -1851,13 +1851,6 @@ impl FeaturesPageView {
                 ),
                 ctx,
             );
-        });
-
-        ctx.subscribe_to_model(&GPUState::handle(ctx), |me, _, event, ctx| {
-            if matches!(event, GPUStateEvent::LowPowerGPUAvailable) {
-                me.page = Self::build_page(ctx);
-                ctx.notify();
-            }
         });
 
         let mut features_page_view = FeaturesPageView {

@@ -22,7 +22,7 @@ use crate::context_chips::{
 use crate::editor::{
     EditOrigin, Event as EditorEvent, InteractionState, SingleLineEditorOptions, TextOptions,
 };
-use crate::gpu_state::{GPUState, GPUStateEvent};
+use crate::gpu_state::GPUState;
 use crate::settings::{
     active_theme_kind,
     app_icon::{AppIcon, AppIconSettings},
@@ -719,12 +719,6 @@ impl AppearanceSettingsPageView {
                 editor_view.set_interaction_state(InteractionState::Disabled, ctx);
             })
         }
-
-        ctx.subscribe_to_model(&GPUState::handle(ctx), |_, _, event, ctx| {
-            if matches!(event, GPUStateEvent::LowPowerGPUAvailable) {
-                ctx.notify();
-            }
-        });
 
         let appearance_handle = Appearance::handle(ctx);
         ctx.subscribe_to_model(&appearance_handle, Self::handle_appearance_update);

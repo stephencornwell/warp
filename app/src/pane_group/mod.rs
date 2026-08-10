@@ -2041,8 +2041,15 @@ impl PaneGroup {
         });
 
         ctx.notify();
-        ctx.emit(Event::TerminalViewStateChanged);
-        ctx.emit(Event::AppStateChanged);
+        ctx.spawn(
+            async {
+                futures_lite::future::yield_now().await;
+            },
+            |_, _, ctx| {
+                ctx.emit(Event::TerminalViewStateChanged);
+                ctx.emit(Event::AppStateChanged);
+            },
+        );
         pane_content
     }
 
@@ -2255,9 +2262,16 @@ impl PaneGroup {
                 // doing any additional clean-up work.  This ensures we don't
                 // pre-emptively delete any state that we might want to retain
                 // if the user re-opens the closed tab.
-                ctx.emit(Event::Exited {
-                    add_to_undo_stack: true,
-                });
+                ctx.spawn(
+                    async {
+                        warpui::r#async::Timer::after(std::time::Duration::from_millis(1)).await;
+                    },
+                    |_, _, ctx| {
+                        ctx.emit(Event::Exited {
+                            add_to_undo_stack: true,
+                        });
+                    },
+                );
 
                 return;
             }
@@ -2291,9 +2305,16 @@ impl PaneGroup {
                 // doing any additional clean-up work.  This ensures we don't
                 // pre-emptively delete any state that we might want to retain
                 // if the user re-opens the closed tab.
-                ctx.emit(Event::Exited {
-                    add_to_undo_stack: true,
-                });
+                ctx.spawn(
+                    async {
+                        warpui::r#async::Timer::after(std::time::Duration::from_millis(1)).await;
+                    },
+                    |_, _, ctx| {
+                        ctx.emit(Event::Exited {
+                            add_to_undo_stack: true,
+                        });
+                    },
+                );
 
                 return;
             }
@@ -3920,8 +3941,27 @@ impl TypedActionView for PaneGroup {
                 };
                 self.add_terminal_pane(*direction, chosen_shell, ctx);
             }
-            Remove(view_id) => self.close_pane_with_confirmation(*view_id, ctx),
-            RemoveActive => self.close_active_pane_with_confirmation(ctx),
+            Remove(view_id) => {
+                let view_id = *view_id;
+                ctx.spawn(
+                    async {
+                        futures_lite::future::yield_now().await;
+                    },
+                    move |group, _, ctx| {
+                        group.close_pane_with_confirmation(view_id, ctx);
+                    },
+                );
+            }
+            RemoveActive => {
+                ctx.spawn(
+                    async {
+                        futures_lite::future::yield_now().await;
+                    },
+                    |group, _, ctx| {
+                        group.close_active_pane_with_confirmation(ctx);
+                    },
+                );
+            }
             Activate(view_id, reason) => self.focus_pane_on_mouse_event(*view_id, *reason, ctx),
             ResizeMove(position) => self.maybe_resize_pane(*position, ctx),
             StartResizing(border) => self.start_resizing(*border, ctx),

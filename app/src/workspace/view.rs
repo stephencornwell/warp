@@ -289,7 +289,6 @@ pub(crate) const TOGGLE_NOTIFICATION_MAILBOX_BINDING_NAME: &str =
 
 // these won't have to be public after we deprecate the code mode v1 project explorer which is defined in terminal
 pub(crate) const TOGGLE_PROJECT_EXPLORER_BINDING_NAME: &str = "workspace:toggle_project_explorer";
-pub(crate) const TOGGLE_WARP_DRIVE_BINDING_NAME: &str = "workspace:toggle_warp_drive";
 pub(crate) const TOGGLE_RIGHT_PANEL_BINDING_NAME: &str = "workspace:toggle_right_panel";
 pub(crate) const OPEN_GLOBAL_SEARCH_BINDING_NAME: &str = "workspace:open_global_search";
 pub(crate) const NEW_TAB_BINDING_NAME: &str = "workspace:new_tab";
@@ -300,7 +299,6 @@ pub(crate) const TOGGLE_TAB_CONFIGS_MENU_BINDING_NAME: &str = "workspace:toggle_
 pub(crate) const LEFT_PANEL_PROJECT_EXPLORER_BINDING_NAME: &str =
     "workspace:left_panel_project_explorer";
 pub(crate) const LEFT_PANEL_GLOBAL_SEARCH_BINDING_NAME: &str = "workspace:left_panel_global_search";
-pub(crate) const LEFT_PANEL_WARP_DRIVE_BINDING_NAME: &str = "workspace:left_panel_warp_drive";
 
 const KEYBINDINGS_TO_CACHE: [&str; 4] = [
     ASK_AI_ASSISTANT_KEYBINDING_NAME,
@@ -4981,6 +4979,25 @@ impl Workspace {
         });
     }
 
+    fn set_command_palette_binding_source(
+        &mut self,
+        source: PaletteSource,
+        ctx: &mut ViewContext<Self>,
+    ) {
+        let window_id = ctx.window_id();
+        let view_id = ctx
+            .focused_view_id(window_id)
+            .expect("focused view should exist when opening the command palette");
+        let palette = if matches!(source, PaletteSource::CtrlTab { .. }) {
+            &self.ctrl_tab_palette
+        } else {
+            &self.palette
+        };
+        palette.update(ctx, |view, ctx| {
+            view.set_binding_source(window_id, view_id, ctx);
+        });
+    }
+
     fn open_files_palette(&mut self, ctx: &mut ViewContext<Self>) {
         self.tips_completed.update(ctx, |tips_completed, ctx| {
             mark_feature_used_and_write_to_user_defaults(
@@ -5054,6 +5071,7 @@ impl Workspace {
         ctx: &mut ViewContext<Self>,
     ) {
         self.close_all_overlays(ctx);
+        self.set_command_palette_binding_source(source.clone(), ctx);
 
         let _active_palette = if matches!(source, PaletteSource::CtrlTab { .. }) {
             &self.ctrl_tab_palette

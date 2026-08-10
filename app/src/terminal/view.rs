@@ -145,9 +145,10 @@ use warpui::elements::new_scrollable::{
     ScrollableAppearance, SingleAxisConfig,
 };
 use warpui::elements::{
-    ChildAnchor, ClippedScrollStateHandle, Container, DispatchEventResult, DropTarget,
-    DropTargetData, Empty, EventHandler, Flex, NewScrollable, OffsetPositioning, ParentAnchor,
-    ParentElement, ParentOffsetBounds, ScrollableElement, ScrollbarWidth, Shrinkable, Text,
+    get_rich_content_position_id, ChildAnchor, ClippedScrollStateHandle, Container,
+    DispatchEventResult, DropTarget, DropTargetData, Empty, EventHandler, Flex, NewScrollable,
+    OffsetPositioning, ParentAnchor, ParentElement, ParentOffsetBounds, PositionedElementAnchor,
+    PositionedElementOffsetBounds, ScrollableElement, ScrollbarWidth, Shrinkable, Text,
 };
 use warpui::event::ModifiersState;
 use warpui::keymap::Keystroke;
@@ -9658,6 +9659,81 @@ impl View for TerminalView {
 
         if self.is_any_tooltip_open() {
             self.render_grid_tooltip(&mut stack, &model, appearance, app);
+        }
+
+        match &self.context_menu_state.map(|state| state.menu_type) {
+            Some(ContextMenuType::BlockList { menu_source }) => match menu_source {
+                BlockListMenuSource::BlockOverflowButton { block_index }
+                | BlockListMenuSource::BlockKeybinding { block_index } => {
+                    stack.add_positioned_overlay_child(
+                        ChildView::new(&self.context_menu).finish(),
+                        OffsetPositioning::offset_from_save_position_element(
+                            format!("context_menu_button_{block_index}").as_str(),
+                            vec2f(OVERFLOW_BUTTON_OFFSET_X, 0.),
+                            PositionedElementOffsetBounds::WindowByPosition,
+                            PositionedElementAnchor::TopLeft,
+                            ChildAnchor::TopRight,
+                        ),
+                    );
+                }
+                BlockListMenuSource::RegularBlockRightClick {
+                    position_in_terminal_view,
+                    ..
+                }
+                | BlockListMenuSource::RegularTextRightClick {
+                    position_in_terminal_view,
+                }
+                | BlockListMenuSource::RichContentBlockRightClick {
+                    position_in_terminal_view,
+                    ..
+                }
+                | BlockListMenuSource::OutsideBlockRightClick {
+                    position_in_terminal_view,
+                } => {
+                    stack.add_positioned_overlay_child(
+                        ChildView::new(&self.context_menu).finish(),
+                        OffsetPositioning::offset_from_parent(
+                            *position_in_terminal_view,
+                            ParentOffsetBounds::WindowByPosition,
+                            ParentAnchor::TopLeft,
+                            ChildAnchor::TopLeft,
+                        ),
+                    );
+                }
+                BlockListMenuSource::RichContentTextRightClick {
+                    rich_content_view_id,
+                    position_in_rich_content,
+                } => {
+                    stack.add_positioned_overlay_child(
+                        ChildView::new(&self.context_menu).finish(),
+                        OffsetPositioning::offset_from_save_position_element(
+                            get_rich_content_position_id(rich_content_view_id),
+                            *position_in_rich_content,
+                            PositionedElementOffsetBounds::WindowByPosition,
+                            PositionedElementAnchor::TopLeft,
+                            ChildAnchor::TopLeft,
+                        ),
+                    );
+                }
+            },
+            Some(ContextMenuType::Prompt { position })
+            | Some(ContextMenuType::AltScreen { position })
+            | Some(ContextMenuType::Input { position }) => {
+                stack.add_positioned_overlay_child(
+                    ChildView::new(&self.context_menu).finish(),
+                    OffsetPositioning::offset_from_parent(
+                        *position,
+                        ParentOffsetBounds::WindowByPosition,
+                        ParentAnchor::TopLeft,
+                        ChildAnchor::TopLeft,
+                    ),
+                );
+            }
+            None => {}
+        }
+
+        if self.find_model.as_ref(app).is_find_bar_open() {
+            stack.add_child(ChildView::new(&self.find_bar).finish());
         }
 
         let element = if !did_wrap_terminal_size {

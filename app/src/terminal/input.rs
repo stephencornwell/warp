@@ -182,8 +182,6 @@ pub const SET_INPUT_MODE_UNLOCKED_AGENT_ACTION_NAME: &str = "input:set_mode_unlo
 /// Action name for setting input mode to unlocked terminal mode (with natural language detection)
 pub const SET_INPUT_MODE_UNLOCKED_TERMINAL_ACTION_NAME: &str = "input:set_mode_unlocked_terminal";
 
-const START_NEW_CONVERSATION_KEYBINDING_NAME: &str = "input:start_new_agent_conversation";
-
 /// The position ID used to identify the start of the replacement span for completions.
 const COMPLETIONS_START_OF_REPLACEMENT_SPAN_POSITION_ID: &str =
     "start_of_completions_replacement_span";
@@ -984,51 +982,6 @@ pub fn init(app: &mut AppContext) {
         )
         .with_context_predicate(id!("Input"))
         .with_key_binding("tab"),
-    ]);
-
-    app.register_editable_bindings([
-        EditableBinding::new(
-            "input:toggle_natural_language_command_search",
-            "Open AI Command Suggestions",
-            InputAction::ShowAiCommandSearch,
-        )
-        .with_context_predicate(id!("Input") & id!(flags::IS_ANY_AI_ENABLED) & !id!("AIInput"))
-        .with_group(bindings::BindingGroup::WarpAi.as_str())
-        .with_custom_action(CustomAction::AISearch),
-        EditableBinding::new(
-            START_NEW_CONVERSATION_KEYBINDING_NAME,
-            "New agent conversation",
-            InputAction::StartNewAgentConversation,
-        )
-        .with_enabled(|| !FeatureFlag::AgentView.is_enabled())
-        .with_group(bindings::BindingGroup::WarpAi.as_str())
-        .with_context_predicate(
-            id!("Input") & id!(flags::IS_ANY_AI_ENABLED) & id!("TerminalView_NonEmptyBlockList"),
-        )
-        .with_mac_key_binding("cmd-shift-N")
-        .with_linux_or_windows_key_binding("ctrl-alt-shift-N"),
-        EditableBinding::new(
-            "input:enable_auto_detection",
-            "Trigger Auto Detection",
-            InputAction::EnableAutoDetection,
-        )
-        .with_enabled(|| FeatureFlag::AgentMode.is_enabled())
-        .with_group(bindings::BindingGroup::WarpAi.as_str())
-        .with_context_predicate(
-            id!("Input")
-                & id!("UniversalDeveloperInput")
-                & id!(flags::IS_ANY_AI_ENABLED)
-                & !id!("IMEOpen"),
-        )
-        .with_key_binding("alt-shift-I"),
-        EditableBinding::new(
-            "input:clear_and_reset_ai_context_menu_query",
-            "Clear and reset AI context menu query",
-            InputAction::ClearAndResetAIContextMenuQuery,
-        )
-        .with_context_predicate(id!("Input") & id!("AIContextMenuOpen") & !id!("IMEOpen"))
-        .with_mac_key_binding("cmd-shift-backspace")
-        .with_linux_or_windows_key_binding("ctrl-shift-backspace"),
     ]);
 
     let slash_command_bindings = COMMAND_REGISTRY

@@ -59,10 +59,9 @@ pub fn panel_header_corner_radius() -> warpui::elements::CornerRadius {
 /// the command palette label and the menu item behavior never diverge.
 use crate::workspace::view::{
     LEFT_PANEL_GLOBAL_SEARCH_BINDING_NAME, LEFT_PANEL_PROJECT_EXPLORER_BINDING_NAME,
-    LEFT_PANEL_WARP_DRIVE_BINDING_NAME, NEW_TAB_BINDING_NAME, NEW_TERMINAL_TAB_BINDING_NAME,
-    OPEN_GLOBAL_SEARCH_BINDING_NAME, TOGGLE_NOTIFICATION_MAILBOX_BINDING_NAME,
-    TOGGLE_PROJECT_EXPLORER_BINDING_NAME, TOGGLE_RIGHT_PANEL_BINDING_NAME,
-    TOGGLE_TAB_CONFIGS_MENU_BINDING_NAME, TOGGLE_WARP_DRIVE_BINDING_NAME,
+    NEW_TAB_BINDING_NAME, NEW_TERMINAL_TAB_BINDING_NAME, OPEN_GLOBAL_SEARCH_BINDING_NAME,
+    TOGGLE_NOTIFICATION_MAILBOX_BINDING_NAME, TOGGLE_PROJECT_EXPLORER_BINDING_NAME,
+    TOGGLE_RIGHT_PANEL_BINDING_NAME, TOGGLE_TAB_CONFIGS_MENU_BINDING_NAME,
 };
 pub use one_time_modal_model::OneTimeModalModel;
 pub use registry::WorkspaceRegistry;
@@ -621,8 +620,7 @@ pub fn init(app: &mut AppContext) {
             BindingDescription::new("Open Left Panel"),
             WorkspaceAction::ToggleLeftPanel,
         )
-        .with_context_predicate(id!("Workspace"))
-        .with_custom_action(CustomAction::ToggleWarpDrive),
+        .with_context_predicate(id!("Workspace")),
         EditableBinding::new(
             TOGGLE_RIGHT_PANEL_BINDING_NAME,
             BindingDescription::new("Toggle code review")
@@ -651,15 +649,6 @@ pub fn init(app: &mut AppContext) {
         .with_enabled(|| FeatureFlag::GlobalSearch.is_enabled())
         .with_custom_action(CustomAction::ToggleGlobalSearch),
         EditableBinding::new(
-            LEFT_PANEL_WARP_DRIVE_BINDING_NAME,
-            BindingDescription::new("Left Panel: Warp Drive"),
-            WorkspaceAction::ToggleWarpDrive,
-        )
-        .with_group(bindings::BindingGroup::Navigation.as_str())
-        .with_context_predicate(id!("Workspace"))
-        .with_mac_key_binding("ctrl-4")
-        .with_linux_or_windows_key_binding("alt-4"),
-        EditableBinding::new(
             TOGGLE_PROJECT_EXPLORER_BINDING_NAME,
             BindingDescription::new("Toggle project explorer")
                 .with_custom_description(bindings::MAC_MENUS_CONTEXT, "Project Explorer"),
@@ -676,13 +665,6 @@ pub fn init(app: &mut AppContext) {
         .with_mac_key_binding("cmd-shift-F")
         // we use alt because we use ctrl-shift-f for find because ctrl-f needs to be reserved for the shell
         .with_linux_or_windows_key_binding("alt-shift-F"),
-        EditableBinding::new(
-            TOGGLE_WARP_DRIVE_BINDING_NAME,
-            BindingDescription::new("Toggle Warp Drive")
-                .with_custom_description(bindings::MAC_MENUS_CONTEXT, "Warp Drive"),
-            WorkspaceAction::ToggleWarpDrive,
-        )
-        .with_context_predicate(id!("Workspace")),
         EditableBinding::new(
             "workspace:close_panel",
             BindingDescription::new("Close focused panel")
@@ -888,18 +870,6 @@ pub fn init(app: &mut AppContext) {
         .with_context_predicate(id!("Workspace"))
         .with_custom_action(CustomAction::SaveCurrentConfig)
         .with_enabled(|| ContextFlag::LaunchConfigurations.is_enabled()),
-        EditableBinding::new(
-            // If you rename this name, please update the name in command_palette/action/data_source.rs
-            "workspace:search_drive",
-            "Search Warp Drive",
-            WorkspaceAction::OpenPalette {
-                mode: PaletteMode::WarpDrive,
-                source: PaletteSource::Keybinding,
-                query: None,
-            },
-        )
-        .with_context_predicate(id!("Workspace"))
-        .with_custom_action(CustomAction::SearchDrive),
     ]);
 
     app.register_editable_bindings([EditableBinding::new(
@@ -919,16 +889,6 @@ pub fn init(app: &mut AppContext) {
         .with_group(bindings::BindingGroup::Navigation.as_str())
         .with_context_predicate(id!("Workspace"))
         .with_custom_action(CustomAction::ToggleResourceCenter)]);
-    }
-
-    if cfg!(not(target_family = "wasm")) {
-        app.register_editable_bindings([EditableBinding::new(
-            "workspace:export_all_warp_drive_objects",
-            "Export all Warp Drive objects",
-            WorkspaceAction::ExportAllWarpDriveObjects,
-        )
-        .with_group(bindings::BindingGroup::Settings.as_str())
-        .with_context_predicate(id!("Workspace"))]);
     }
 
     // CLI install/uninstall actions (macOS only)
@@ -1112,14 +1072,6 @@ fn add_open_setting_pages_as_editable_binding(app: &mut AppContext) {
         .with_context_predicate(id!("Workspace"))
         .with_group(bindings::BindingGroup::Settings.as_str())
         .with_custom_action(CustomAction::ShowSettings),
-        EditableBinding::new(
-            "workspace:show_settings_account_page",
-            "Open Settings: Account",
-            WorkspaceAction::ShowSettingsPage(SettingsSection::Account),
-        )
-        .with_context_predicate(id!("Workspace"))
-        .with_group(bindings::BindingGroup::Settings.as_str())
-        .with_custom_action(CustomAction::ShowAccount),
         EditableBinding::new(
             "workspace:show_settings_appearance_page",
             BindingDescription::new("Open Settings: Appearance")

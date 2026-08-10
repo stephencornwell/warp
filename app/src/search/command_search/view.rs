@@ -11,7 +11,7 @@ use warpui::{
     accessibility::{AccessibilityContent, WarpA11yRole},
     elements::{
         resizable_state_handle, Align, AnchorPair, Border, ConstrainedBox, Container, CornerRadius,
-        CrossAxisAlignment, Dismiss, Fill, Flex, MouseStateHandle, OffsetPositioning, OffsetType,
+        CrossAxisAlignment, Dismiss, Fill, Flex, OffsetPositioning, OffsetType,
         ParentElement, ParentOffsetBounds, PositionedElementOffsetBounds, PositioningAxis, Radius,
         Resizable, ResizableStateHandle, SavePosition, ScrollStateHandle, Scrollable,
         ScrollableElement, Shrinkable, Stack, UniformList, UniformListState, XAxisAnchor,

@@ -2,8 +2,7 @@ use crate::pane_group::focus_state::PaneFocusHandle;
 use crate::{
     appearance::Appearance,
     editor::{
-        EditorView, Event as EditorEvent, PropagateAndNoOpNavigationKeys, SingleLineEditorOptions,
-        TextColors, TextOptions,
+        EditorView, Event as EditorEvent, PropagateAndNoOpNavigationKeys, SingleLineEditorOptions, TextOptions,
     },
     menu::{self, Menu, MenuItem, MenuItemFields},
     pane_group::{

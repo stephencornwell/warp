@@ -383,14 +383,6 @@ impl LaunchMode {
             LaunchMode::App { .. } | LaunchMode::Test { .. } => None,
         }
     }
-
-    #[cfg(test)]
-    pub(crate) fn new_for_unit_test() -> Self {
-        LaunchMode::Test {
-            driver: Box::new(None),
-            is_integration_test: false,
-        }
-    }
 }
 
 impl AssetProvider for Assets {

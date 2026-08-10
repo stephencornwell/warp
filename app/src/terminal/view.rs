@@ -3630,7 +3630,6 @@ impl TerminalView {
 
             if let Some(termination_reason) = termination_reason {
                 let (shell_path, shell_type) = self.get_shell_starter_local(ctx).unzip();
-                let long_os_version = crate::system::long_os_version(ctx);
             };
 
             let banner = ctx.add_typed_action_view(|ctx| {

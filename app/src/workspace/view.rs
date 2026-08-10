@@ -274,16 +274,7 @@ pub const TOTAL_TAB_BAR_HEIGHT: f32 = TAB_BAR_HEIGHT + TAB_BAR_BORDER_HEIGHT;
 
 const TAB_BAR_ICON_PADDING: f32 = 4.;
 
-const TAB_BAR_PILL_WIDTH: f32 = 100.;
-const PILL_FONT_SIZE: f32 = 12.;
-// We use the word "Warp" in the Update Ready button to make it obvious that the terminal is Warp.
-// This can lead to free advertising when users screen-share Warp when an update is available.
-const UPDATE_READY_TEXT: &str = "Update Warp";
-
 const TAB_BAR_OVERFLOW_MENU_WIDTH: f32 = 300.;
-
-#[cfg(not(target_family = "wasm"))]
-const RESOURCE_CENTER_WIDTH: f32 = 361.;
 
 // Ratio of terminal : theme chooser when theme chooser is active
 const THEME_CHOOSER_RATIO: f32 = 3.5;
@@ -294,15 +285,6 @@ const TAB_BAR_POSITION_ID: &str = "workspace_view:tab_bar";
 /// The main content area in a workspace. This is directly below the tab bar.
 const TAB_CONTENT_POSITION_ID: &str = "workspace_view:tab_content";
 
-const WELCOME_TIPS_POSITION_ID: &str = "welcome_tips_pill";
-const ELLIPSE_SVG_PATH: &str = "bundled/svg/ellipse.svg";
-
-const AI_ASSISTANT_BUTTON_ID: &str = "workspace_view:ai_assistant_button";
-
-const VERSION_DEPRECATION_BANNER_TEXT: &str = "Your app is out of date and some features may not work as expected. Please update immediately.";
-
-const VERSION_DEPRECATION_WITHOUT_PERMISSIONS_BANNER_TEXT: &str = "Some Warp features may not work as expected without updating immediately, but Warp is unable to perform the update.";
-
 const ASK_AI_ASSISTANT_KEYBINDING_NAME: &str = "workspace:toggle_ai_assistant";
 const TOGGLE_RESOURCE_CENTER_KEYBINDING_NAME: &str = "workspace:toggle_resource_center";
 
@@ -310,19 +292,10 @@ const TOGGLE_RESOURCE_CENTER_KEYBINDING_NAME: &str = "workspace:toggle_resource_
 /// `SavePosition` wrapper and the safe-zone rect lookup.
 const NEW_SESSION_SIDECAR_POSITION_ID: &str = "new_session_sidecar";
 const NEW_SESSION_SIDECAR_WIDTH: f32 = 300.;
-const NEW_SESSION_SIDECAR_SEARCH_BOX_HEIGHT: f32 = 32.;
-const NEW_SESSION_SIDECAR_SEARCH_BOX_HORIZONTAL_PADDING: f32 = 12.;
-const NEW_SESSION_SIDECAR_SEARCH_BOX_VERTICAL_PADDING: f32 = 6.;
-const NEW_SESSION_SIDECAR_FOOTER_HORIZONTAL_PADDING: f32 = 16.;
-const NEW_SESSION_SIDECAR_FOOTER_VERTICAL_PADDING: f32 = 8.;
-const SESSION_CONFIG_TAB_CONFIG_CHIP_TEXT: &str = "Access your tab configs here.";
-const SESSION_CONFIG_TAB_CONFIG_CHIP_WIDTH: f32 = 206.;
 const SHOW_SETTINGS_KEYBINDING_NAME: &str = "workspace:show_settings";
 pub const TOGGLE_COMMAND_PALETTE_KEYBINDING_NAME: &str = "workspace:toggle_command_palette";
 
 const USER_AVATAR_BUTTON_POSITION_ID: &str = "workspace:user_avatar_button";
-const NOTIFICATIONS_MAILBOX_POSITION_ID: &str = "workspace:notifications_mailbox";
-pub(crate) const JUMP_TO_LATEST_TOAST_BINDING_NAME: &str = "workspace:jump_to_latest_toast";
 pub(crate) const TOGGLE_NOTIFICATION_MAILBOX_BINDING_NAME: &str =
     "workspace:toggle_notification_mailbox";
 
@@ -348,9 +321,6 @@ const KEYBINDINGS_TO_CACHE: [&str; 4] = [
     TOGGLE_COMMAND_PALETTE_KEYBINDING_NAME,
 ];
 
-const WORKFLOW_AND_ENV_VAR_SPLIT_RATIO: f32 = 0.56;
-const NOTEBOOK_SMART_SPLIT_RATIO: f32 = 0.42;
-
 #[cfg(target_family = "wasm")]
 const MOBILE_OVERLAY_PANEL_WIDTH_RATIO: f32 = 0.9;
 #[cfg(target_family = "wasm")]
@@ -358,9 +328,6 @@ const MOBILE_OVERLAY_SCRIM_ALPHA: u8 = 128;
 
 pub const NEW_TAB_BUTTON_POSITION_ID: &str = "new_tab_button";
 pub const NEW_SESSION_MENU_BUTTON_POSITION_ID: &str = "new_session_menu_button";
-
-// The max length of the title of a fork toast (after which we truncate it).
-const MAX_FORK_TOAST_TITLE_LENGTH: usize = 100;
 
 // The max length of the window title (matching conversation title truncation).
 const MAX_WINDOW_TITLE_LENGTH: usize = 80;

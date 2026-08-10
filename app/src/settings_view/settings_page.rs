@@ -1,7 +1,6 @@
 use crate::ui_components::blended_colors;
 use core::fmt::{self, Display};
 use itertools::Itertools as _;
-use pathfinder_color::ColorU;
 use std::borrow::Cow;
 use std::collections::HashMap;
 
@@ -22,7 +21,7 @@ use warpui::{
     elements::{
         new_scrollable::{ClippedAxisConfiguration, DualAxisConfig, SingleAxisConfig},
         Align, Border, ChildView, ClippedScrollStateHandle, ConstrainedBox, Container,
-        CornerRadius, CrossAxisAlignment, Element, Empty, Expanded, Flex, Hoverable, MainAxisSize,
+        CornerRadius, CrossAxisAlignment, Element, Empty, Expanded, Flex, Hoverable,
         MouseStateHandle, NewScrollable, ParentElement, Radius, SavePosition, ScrollTarget,
         ScrollToPositionMode, Shrinkable, SizeConstraintCondition, SizeConstraintSwitch, Text,
     },

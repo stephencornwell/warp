@@ -152,22 +152,6 @@ impl CrashRecovery {
         }
     }
 
-    #[cfg(test)]
-    pub fn register_for_test(app: &mut warpui::App) {
-        use warp_core::user_preferences::GetUserPreferences as _;
-
-        app.update(|ctx| {
-            ctx.add_singleton_model(|ctx| {
-                let user_preferences = ctx.private_user_preferences();
-                let launch_mode = crate::LaunchMode::App {
-                    args: warp_cli::AppArgs::default(),
-                    api_key: None,
-                };
-                crate::crash_recovery::CrashRecovery::new(&launch_mode, user_preferences)
-            })
-        });
-    }
-
     pub fn on_draw_frame_error(&mut self, window_id: WindowId) {
         if let Some(child_process) = self.child_process.borrow_mut().as_mut() {
             child_process.handle_draw_frame_error(window_id);

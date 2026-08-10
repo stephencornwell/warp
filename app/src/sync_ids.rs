@@ -126,8 +126,6 @@ impl SyncId {
 impl settings_value::SettingsValue for SyncId {}
 
 pub type ObjectUid = String;
-pub type HashedSqliteId = String;
-pub type ApiKeyUid = String;
 
 #[derive(Clone, Copy, Default, Hash, PartialEq, Eq)]
 pub struct ServerId([char; 22]);
@@ -214,27 +212,8 @@ impl fmt::Debug for ServerId {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
-pub struct ServerIdAndType {
-    pub id: ServerId,
-    pub id_type: String,
-}
-
-impl ServerIdAndType {
-    pub fn sqlite_type_and_uid_hash(&self) -> HashedSqliteId {
-        format!("{}-{}", self.id_type, self.id)
-    }
-}
-
 pub trait ToServerId {
     fn to_server_id(&self) -> ServerId;
-}
-
-pub fn parse_sqlite_id_to_uid(value: HashedSqliteId) -> Result<ObjectUid, ()> {
-    value
-        .rsplit_once('-')
-        .map(|(_, uid)| uid.to_owned())
-        .ok_or(())
 }
 
 #[macro_export]

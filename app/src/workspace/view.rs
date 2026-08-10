@@ -1,3 +1,5 @@
+#[cfg(feature = "local_fs")]
+use crate::user_config::{find_unused_toml_path, tab_configs_dir};
 use crate::report_if_error;
 pub mod global_search;
 pub(crate) mod left_panel;
@@ -126,10 +128,6 @@ use crate::themes::theme_deletion_modal::{ThemeDeletionModal, ThemeDeletionModal
 use crate::ui_components::buttons::{combo_inner_button, icon_button_with_color};
 use crate::undo_close::UndoCloseStack;
 #[cfg(feature = "local_fs")]
-use crate::user_config::{
-    ensure_default_worktree_config, find_unused_toml_path, materialize_default_worktree_config,
-    sanitize_toml_base_name, tab_configs_dir,
-};
 use crate::user_config::{WarpConfig, WarpConfigUpdateEvent};
 use crate::util::bindings::{keybinding_name_to_display_string, keybinding_name_to_keystroke};
 use crate::util::links;
@@ -3933,75 +3931,6 @@ impl Workspace {
             &branch_refs,
         ))
     }
-
-    /// Opens a worktree in the given repo using the default worktree tab config,
-    /// saving the materialized config to `~/.warp/tab_configs/` first.
-    /// The branch name is auto-generated.
-    #[cfg(feature = "local_fs")]
-    fn open_worktree_in_repo(&mut self, repo_path: String, ctx: &mut ViewContext<Self>) {
-        log::info!("open_worktree_in_repo requested: repo_path={repo_path:?}");
-        let config_path = ensure_default_worktree_config();
-        log::info!("Reading default worktree config from {config_path:?}");
-        let template_toml = match std::fs::read_to_string(&config_path) {
-            Ok(s) => s,
-            Err(e) => {
-                log::warn!("Failed to read default worktree config from {config_path:?}: {e:?}");
-                return;
-            }
-        };
-        let branches = crate::util::git::list_local_branches_sync(Path::new(&repo_path));
-        let branch_refs: HashSet<&str> = branches.iter().map(|s| s.as_str()).collect();
-        let branch_name = warp_util::worktree_names::generate_worktree_branch_name(&branch_refs);
-        let repo_display_name = Path::new(&repo_path)
-            .file_name()
-            .map(|name| name.to_string_lossy().to_string())
-            .unwrap_or_else(|| repo_path.clone());
-        let config_name = format!("Worktree: {repo_display_name}");
-        let pane_type = "terminal";
-        log::info!(
-            "Materializing default worktree config: repo_path={repo_path:?}, branch_name={branch_name:?}, pane_type={pane_type}"
-        );
-
-        let (toml_content, tab_config) = match materialize_default_worktree_config(
-            &template_toml,
-            &config_name,
-            &repo_path,
-            pane_type,
-        ) {
-            Ok(materialized) => materialized,
-            Err(e) => {
-                log::warn!(
-                    "Failed to materialize default worktree config from {config_path:?}: {e}"
-                );
-                return;
-            }
-        };
-
-        let dir = tab_configs_dir();
-        if let Err(e) = std::fs::create_dir_all(&dir) {
-            log::warn!("Failed to create tab_configs dir: {e:?}");
-            return;
-        }
-
-        let saved_config_path =
-            find_unused_toml_path(&dir, &sanitize_toml_base_name(&repo_display_name));
-        if let Err(e) = std::fs::write(&saved_config_path, &toml_content) {
-            log::warn!("Failed to write worktree tab config to {saved_config_path:?}: {e:?}");
-            return;
-        }
-
-        log::info!(
-            "Saved default worktree config to {saved_config_path:?}: config_name={:?}",
-            tab_config.name
-        );
-
-        let param_values = tab_config.default_param_values();
-        log::info!("Opening tab from saved worktree config");
-        self.open_tab_config_with_params(tab_config, param_values, Some(&branch_name), ctx);
-    }
-
-    #[cfg(not(feature = "local_fs"))]
-    fn open_worktree_in_repo(&mut self, _repo_path: String, _ctx: &mut ViewContext<Self>) {}
 
     /// Opens a native folder picker to add a new repo to PersistedWorkspace,
     /// triggered from the "+ Add new repo..." item in the New worktree config submenu.

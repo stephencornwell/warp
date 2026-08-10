@@ -3,7 +3,6 @@ pub mod buffer_model;
 mod classic;
 mod common;
 pub mod decorations;
-pub mod message_bar;
 pub mod prompts;
 mod suggestions_mode_menu;
 pub mod suggestions_mode_model;

@@ -2,10 +2,8 @@ use std::sync::Arc;
 
 use crate::{
     appearance::Appearance,
-    settings::InputSettings,
     terminal::{
         input::{Input, InputAction, InputSuggestionsMode, MenuPositioning},
-        model::TerminalModel,
         view::{TerminalAction, PADDING_LEFT},
     },
     ui_components::icons::Icon,
@@ -24,17 +22,6 @@ use warpui::{
     ui_components::components::{UiComponent, UiComponentStyles},
     AppContext, SingletonEntity,
 };
-
-/// Whether the terminal input message bar should be shown.
-///
-/// The message bar is hidden when AI is disabled, the user has turned it off in settings,
-/// or the session is a shared ambient agent session.
-pub(super) fn should_show_terminal_input_message_bar(
-    _model: &TerminalModel,
-    app: &AppContext,
-) -> bool {
-    InputSettings::as_ref(app).is_terminal_input_message_bar_enabled()
-}
 
 /// Renders vim status bar
 /// Used by: agent.rs, terminal.rs, universal.rs, legacy.rs

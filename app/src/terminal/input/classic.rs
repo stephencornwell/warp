@@ -8,7 +8,6 @@ use crate::{
         input::{
             common::{
                 add_command_xray_overlay, add_input_suggestions_overlays, add_vim_status_to_stack,
-                should_show_terminal_input_message_bar,
                 wrap_input_with_terminal_padding_and_focus_handler,
             },
             get_input_box_top_border_width, InputDropTargetData,
@@ -112,7 +111,6 @@ impl Input {
 
         column.add_child(self.render_input_box(show_vim_status, appearance, app));
 
-        let _ = should_show_terminal_input_message_bar;
         column.add_child(
             Container::new(Flex::row().finish())
                 .with_margin_bottom(4.)

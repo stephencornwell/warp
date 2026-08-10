@@ -1,12 +1,7 @@
 use crate::report_if_error;
-use std::{
-    collections::HashSet,
-    path::{Path, PathBuf},
-};
+use std::path::PathBuf;
 
 use itertools::Itertools;
-use lazy_static::lazy_static;
-use warp_util::path::EscapeChar;
 use warpui::{
     accessibility::{AccessibilityContent, ActionAccessibilityContent, WarpA11yRole},
     SingletonEntity, ViewContext,
@@ -19,18 +14,9 @@ use crate::{
         general_settings::GeneralSettings,
         view::inline_banner::OpenInWarpBannerAction,
     },
-    util::openable_file_type::{is_file_openable_in_warp, OpenableFileType},
+    util::openable_file_type::OpenableFileType,
 };
 use settings::Setting as _;
-use warp_completer::{
-    completer::TopLevelCommandCaseSensitivity,
-    parsers::{
-        classify_command,
-        hir::{Command, Expression},
-        simple::all_parsed_commands,
-    },
-    signatures::CommandRegistry,
-};
 
 use super::{Event, TerminalView};
 
@@ -161,76 +147,4 @@ impl TerminalView {
             }
         }
     }
-}
-
-lazy_static! {
-    static ref FILE_VIEWER_COMMANDS: HashSet<&'static str> =
-        HashSet::from(["bat", "cat", "glow", "less", "open"]);
-}
-
-/// Examines `command` for a file openable in Warp, returning the resolved path and type if found.
-async fn check_openable_in_warp(
-    command: String,
-    working_directory: Option<String>,
-    command_case_sensitivity: TopLevelCommandCaseSensitivity,
-    escape_char: EscapeChar,
-) -> Option<OpenablePath> {
-    // We can use PathBuf/Path here because, at the moment, only local sessions are supported.
-    let working_directory = working_directory.map(PathBuf::from);
-    for command in all_parsed_commands(command, escape_char) {
-        // We want to parse the command enough to distinguish file names from arguments, but no
-        // more than necessary.
-        // TODO(ben): Expand aliases as well.
-        let mut tokens = command.parts.iter().map(|s| s.as_str()).collect_vec();
-        let command_registry = CommandRegistry::global_instance();
-        let Some(classified_command) = classify_command(
-            command.clone(),
-            &mut tokens,
-            &command_registry,
-            command_case_sensitivity,
-        ) else {
-            continue;
-        };
-        if !FILE_VIEWER_COMMANDS.contains(classified_command.command.command_name_span().item) {
-            continue;
-        }
-
-        // All the supported viewers take files as positional arguments.
-        let positionals = match classified_command.command {
-            Command::Classified(shell_command) => shell_command.args.positionals,
-            Command::Unclassified(command) => command.args.positionals,
-        };
-
-        if let Some(positionals) = positionals {
-            for arg in positionals.iter() {
-                // Skip commands and environment variables.
-                if !matches!(
-                    arg.expression(),
-                    Expression::Literal | Expression::ValidatableArgument(_) | Expression::Unknown
-                ) {
-                    continue;
-                }
-
-                let relative_path = Path::new(arg.value().as_str());
-
-                let Some(file_type) = is_file_openable_in_warp(relative_path) else {
-                    continue;
-                };
-
-                let resolved = working_directory.as_ref().map_or_else(
-                    || relative_path.to_path_buf(),
-                    |cwd| cwd.join(relative_path),
-                );
-
-                if async_fs::metadata(&resolved).await.is_ok() {
-                    // We've found a file that exists and can be opened in Warp.
-                    return Some(OpenablePath {
-                        path: resolved,
-                        file_type,
-                    });
-                }
-            }
-        }
-    }
-    None
 }

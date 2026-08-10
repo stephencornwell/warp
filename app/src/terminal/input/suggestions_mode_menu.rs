@@ -17,9 +17,8 @@ use crate::input_suggestions::{
 };
 use crate::themes::theme::WarpTheme;
 use warpui::elements::{
-    Border, ConstrainedBox, Container, CornerRadius, DragBarSide,
-    DropShadow, Element, Empty, Flex, ParentElement, Radius, Resizable, Shrinkable,
-    SizeConstraintCondition, SizeConstraintSwitch,
+    Border, ConstrainedBox, Container, CornerRadius, DragBarSide, DropShadow, Element, Empty, Flex,
+    ParentElement, Radius, Resizable, Shrinkable, SizeConstraintCondition, SizeConstraintSwitch,
 };
 use warpui::presenter::ChildView;
 

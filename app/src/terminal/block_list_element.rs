@@ -601,11 +601,7 @@ pub struct BlockListElement {
     save_as_workflow_button: Option<Box<dyn Element>>,
     restored_session_separator: Option<Box<dyn Element>>,
     inline_banners: HashMap<InlineBannerId, Box<dyn Element>>,
-    /// Subshell separators are similar to banners, except they are smaller and only meant to show
-    /// in compact mode. Setting Self::subshell_separator_height to 0 will effectively hide the
-    /// flags.
     subshell_separators: HashMap<SeparatorId, Box<dyn Element>>,
-    subshell_separator_height: f32,
 
     selected_blocks: SelectedBlocks,
 
@@ -868,7 +864,6 @@ impl BlockListElement {
             ui_builder: appearance.ui_builder().clone(),
             block_borders_enabled: terminal_spacing.block_borders_enabled,
             overflow_offset: terminal_spacing.overflow_offset,
-            subshell_separator_height: terminal_spacing.subshell_separator_height,
             hovered_block_index: None,
             overflow_menu_button: None,
             ask_ai_assistant_button: None,

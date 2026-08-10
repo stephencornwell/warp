@@ -614,19 +614,9 @@ pub struct PaneGroup {
     dragged_border: Option<DraggedBorder>,
     user_default_shell_changed_banner: ViewHandle<Banner<PaneGroupAction>>,
 
-    /// If there is an open share session modal, the pane ID of its terminal. Only terminal panes
-    /// use the share session modal. `None` if no share session modal is open.
-    terminal_with_open_share_session_modal: Option<TerminalPaneId>,
-
-    /// If there is a shared session role change modal open, this is the `TerminalPaneId` of the relevant session. Modal is opened whenever a shared session participant attempts to change a
-    /// role. For a viewer when they request a role. For a sharer when they receive a role request,
-    /// or when they attempt to grant a role.
-    terminal_with_shared_session_role_change_modal_open: Option<TerminalPaneId>,
     /// Parent modal that holds views to role request/response and role grant modals.
     /// Model that tracks the currently active file.
     active_file_model: ModelHandle<ActiveFileModel>,
-    /// If there is an open summarization cancel dialog, the terminal pane ID where summarization is active.
-    terminal_with_open_summarization_dialog: Option<TerminalPaneId>,
 
     /// Pane with an open environment setup mode selector modal (rendered at tab level).
     pane_with_open_environment_setup_mode_selector: Option<PaneId>,
@@ -1645,9 +1635,6 @@ impl PaneGroup {
             dragged_border: None,
             user_default_shell_changed_banner,
             active_file_model,
-            terminal_with_open_share_session_modal: None,
-            terminal_with_shared_session_role_change_modal_open: None,
-            terminal_with_open_summarization_dialog: None,
             pane_with_open_environment_setup_mode_selector: None,
             pane_with_open_agent_assisted_environment_modal: None,
             left_panel_open: false,
@@ -3968,11 +3955,6 @@ impl PaneGroup {
         _ctx: &'a AppContext,
     ) -> impl Iterator<Item = (EntityId, Option<String>)> + 'a {
         std::iter::empty()
-    }
-
-    #[cfg(test)]
-    pub fn is_share_session_modal_open(&self) -> bool {
-        self.terminal_with_open_share_session_modal.is_some()
     }
 }
 

@@ -15,7 +15,7 @@ use warpui::{
         components::{Coords, UiComponent, UiComponentStyles},
     },
     Action, AppContext, BlurContext, Entity, SingletonEntity, TypedActionView, View, ViewContext,
-    ViewHandle, WeakViewHandle,
+    ViewHandle,
 };
 
 use crate::{

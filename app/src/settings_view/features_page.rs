@@ -477,7 +477,7 @@ pub fn init_actions_from_parent_view<T: Action + Clone>(
         .with_enabled(|| FeatureFlag::AgentView.is_enabled()),
     );
 
-    if FeatureFlag::AgentView.is_enabled() && true {
+    if FeatureFlag::AgentView.is_enabled() {
         toggle_binding_pairs.push(
             ToggleSettingActionPair::new(
                 "slash commands in terminal mode",

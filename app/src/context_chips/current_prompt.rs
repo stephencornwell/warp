@@ -1076,9 +1076,7 @@ impl CurrentPrompt {
     /// customization/ordering/visibility, so we keep their backing values up to date even if they
     /// are not present in the prompt configuration.
     fn chips_to_run(&self, ctx: &AppContext) -> Vec<ContextChipKind> {
-        let chips = self.configured_chips(ctx);
-
-        chips
+        self.configured_chips(ctx)
     }
 
     /// Resets states (including terminating any in progress spawned operations), and updates the

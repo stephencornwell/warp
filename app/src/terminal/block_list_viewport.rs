@@ -1989,9 +1989,7 @@ impl Iterator for ViewportIter<'_> {
                 }
             }
 
-            match item {
-                _ => return next,
-            }
+            return next;
         }
     }
 }

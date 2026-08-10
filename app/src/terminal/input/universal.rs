@@ -171,11 +171,7 @@ impl Input {
 
         let mut column = Flex::column();
 
-        if input_mode.is_pinned_to_top() {
-            column.add_child(input);
-        } else {
-            column.add_child(input);
-        }
+        column.add_child(input);
 
         SavePosition::new(column.finish(), &self.save_position_id()).finish()
     }

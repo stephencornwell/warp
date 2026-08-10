@@ -148,7 +148,7 @@ impl Element for WaterfallGapElement {
         //
         // Basically, when the inline menu is open, the visible height of the blocklist should be
         // reduced by the height of the inline menu.
-        let blocklist_inset_accounting_for_inline_menu = None;
+        let blocklist_inset_accounting_for_inline_menu = Pixels::zero();
 
         // Calculate the height after the scroll position of the blocklist without
         // the gap - this is the height the block list element would like to take
@@ -156,7 +156,7 @@ impl Element for WaterfallGapElement {
         let visible_block_list_height_px = self.block_list_height_px
             - self.scroll_top_px
             - self.gap_size_px.y().into_pixels()
-            - blocklist_inset_accounting_for_inline_menu.unwrap_or_default();
+            - blocklist_inset_accounting_for_inline_menu;
 
         // Calculate the max height it could take up, which is a function of the pane height
         // and input size.

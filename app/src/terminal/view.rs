@@ -5196,9 +5196,7 @@ impl TerminalView {
                 true,
             ) => {
                 // If selection is empty, only show non-block related options
-                let items = Vec::new();
-
-                items
+                Vec::new()
             }
             _ => vec![],
         };
@@ -7153,7 +7151,6 @@ impl TerminalView {
             let has_bootstrapped = model.block_list().is_bootstrapping_precmd_done();
 
             let has_active_user_terminal_command = block_list.active_block().is_active_and_long_running()
-                && true
                 // The only case where terminal can take focus _while_ input is visible is
                 // pre-bootstrap, for example when oh-my-zsh prompts you to update -- at this point
                 // the input is visible but you should still be able to click into the block for the
@@ -8197,17 +8194,14 @@ impl TerminalView {
         evt: &SessionSettingsChangedEvent,
         ctx: &mut ViewContext<Self>,
     ) {
-        match evt {
-            SessionSettingsChangedEvent::HonorPS1 { .. } => {
-                let session = self
-                    .active_block_session_id()
-                    .and_then(|session_id| self.sessions.as_ref(ctx).get(session_id));
+        if let SessionSettingsChangedEvent::HonorPS1 { .. } = evt {
+            let session = self
+                .active_block_session_id()
+                .and_then(|session_id| self.sessions.as_ref(ctx).get(session_id));
 
-                if let Some(session) = session {
-                    self.update_incompatible_configuration_banner(session.shell().plugins(), ctx)
-                }
+            if let Some(session) = session {
+                self.update_incompatible_configuration_banner(session.shell().plugins(), ctx)
             }
-            _ => {}
         }
     }
 
@@ -9847,7 +9841,7 @@ impl TypedActionView for TerminalView {
                 format!("Open block filter editor for block {block_index}"),
                 WarpA11yRole::TextRole,
             )),
-            OpenFilesPalette { .. } => Custom(AccessibilityContent::new_without_help(
+            OpenFilesPalette => Custom(AccessibilityContent::new_without_help(
                 "Opened file search palette",
                 WarpA11yRole::ButtonRole,
             )),

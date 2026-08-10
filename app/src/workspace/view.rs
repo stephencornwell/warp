@@ -1134,8 +1134,7 @@ impl Workspace {
     fn build_remove_tab_config_confirmation_dialog(
         ctx: &mut ViewContext<Self>,
     ) -> ViewHandle<RemoveTabConfigConfirmationDialog> {
-        let dialog = ctx.add_typed_action_view(RemoveTabConfigConfirmationDialog::new);
-        dialog
+        ctx.add_typed_action_view(RemoveTabConfigConfirmationDialog::new)
     }
 
     fn handle_session_config_modal_event(
@@ -3914,8 +3913,6 @@ impl Workspace {
     ) {
         match event {
             TabConfigParamsModalEvent::Submit { config, params } => {
-                let should_track_existing_config_open =
-                    self.pending_session_config_replacement.is_none();
                 let worktree_name = self.maybe_generate_worktree_name(config);
                 self.open_tab_config_with_params(
                     config.as_ref().clone(),
@@ -3923,7 +3920,6 @@ impl Workspace {
                     worktree_name.as_deref(),
                     ctx,
                 );
-                if should_track_existing_config_open {}
                 self.close_tab_config_params_modal(ctx);
                 self.complete_pending_session_config_replacement(ctx);
 
@@ -5579,11 +5575,11 @@ impl Workspace {
     }
 
     fn handle_palette_event(&mut self, event: &CommandPaletteEvent, ctx: &mut ViewContext<Self>) {
-        match event {
-            CommandPaletteEvent::Close {
-                accepted_action_type,
-            } => self.close_palette(true, *accepted_action_type, ctx),
-            _ => {}
+        if let CommandPaletteEvent::Close {
+            accepted_action_type,
+        } = event
+        {
+            self.close_palette(true, *accepted_action_type, ctx);
         }
     }
 
@@ -6016,8 +6012,6 @@ impl Workspace {
                 .map_or_else(MenuPositioning::default, |input_handle| {
                     input_handle.read(ctx, |input, ctx| input.menu_positioning(ctx))
                 });
-
-            if !self.current_workspace_state.is_command_search_open {}
 
             // Make sure we close any already-open input suggestions panel.
             if let Some(input_handle) = &active_input_handle {
@@ -9430,8 +9424,6 @@ impl View for Workspace {
         if self.session_config_modal.is_open() {
             stack.add_child(self.session_config_modal.render());
         }
-
-        if self.current_workspace_state.is_prompt_editor_open {}
 
         if let Some(lightbox_view) = &self.lightbox_view {
             stack.add_child(ChildView::new(lightbox_view).finish());

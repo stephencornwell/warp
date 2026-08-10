@@ -440,7 +440,7 @@ impl fmt::Debug for TerminalAction {
                 selected_range,
             } => write!(f, "SetMarkedText {{{marked_text:?}, {selected_range:?}}}"),
             ClearMarkedText => write!(f, "ClearMarkedText"),
-            _ResumeConversation => write!(f, "ResumeConversation"),
+            _resume_conversation => write!(f, "ResumeConversation"),
         }
     }
 }

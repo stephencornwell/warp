@@ -1235,16 +1235,14 @@ impl RootView {
             view
         };
 
-        let root_view = Self {
+        Self {
             workspace,
             #[cfg(target_family = "wasm")]
             web_handoff_view,
             model_event_sender,
             mouse_states: Default::default(),
             window_id: ctx.window_id(),
-        };
-
-        root_view
+        }
     }
 
     /// Used for integration tests.

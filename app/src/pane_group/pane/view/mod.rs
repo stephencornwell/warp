@@ -382,8 +382,7 @@ impl<P: BackingView> View for PaneView<P> {
     }
 
     fn keymap_context(&self, _ctx: &AppContext) -> warpui::keymap::Context {
-        let keymap_context = Self::default_keymap_context();
-        keymap_context
+        Self::default_keymap_context()
     }
 }
 

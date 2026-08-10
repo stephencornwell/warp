@@ -57,9 +57,7 @@ impl HeaderToolbarItemKind {
         if !self.is_supported(app) {
             return false;
         }
-        match self {
-            _ => true,
-        }
+        true
     }
 
     /// Whether this item opens a side panel (as opposed to replacing the content

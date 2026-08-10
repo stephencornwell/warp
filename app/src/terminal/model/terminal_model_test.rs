@@ -107,7 +107,7 @@ fn ssh_bootstraps_if_blocklist_empty() {
 #[test]
 // An empty block that is restored should have a nonzero height and it should not get deleted.
 pub fn test_restored_empty_command_block() {
-    let restored_blocks = [create_default_serialized_block().into()];
+    let restored_blocks = [create_default_serialized_block()];
     let model = TerminalModel::mock(Some(&restored_blocks), None);
     let restored_block = &model.block_list().blocks()[0];
     assert_eq!(
@@ -162,8 +162,7 @@ fn test_restored_blocks_on_different_host() {
             is_background: false,
             prompt_snapshot: None,
             is_local: Some(true),
-        }
-        .into(),
+        },
         SerializedBlock {
             id: BlockId::new(),
             stylized_command: str_to_byte_vec("pwd"),
@@ -198,8 +197,7 @@ fn test_restored_blocks_on_different_host() {
             is_background: false,
             prompt_snapshot: None,
             is_local: Some(true),
-        }
-        .into(),
+        },
         SerializedBlock {
             id: BlockId::new(),
             stylized_command: str_to_byte_vec("uname"),
@@ -234,8 +232,7 @@ fn test_restored_blocks_on_different_host() {
             is_background: false,
             prompt_snapshot: None,
             is_local: Some(false),
-        }
-        .into(),
+        },
         SerializedBlock {
             id: BlockId::new(),
             stylized_command: str_to_byte_vec("mkdir secrets"),
@@ -266,8 +263,7 @@ fn test_restored_blocks_on_different_host() {
             is_background: false,
             prompt_snapshot: None,
             is_local: Some(true),
-        }
-        .into(),
+        },
     ];
     let model = TerminalModel::mock(Some(&restored_blocks), None);
     // The mocked terminal model comes with a WarpInput block and the active block.

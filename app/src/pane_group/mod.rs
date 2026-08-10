@@ -1439,7 +1439,7 @@ impl PaneGroup {
                 terminal_view
                     .as_ref(ctx)
                     .selected_text_from_input(ctx)
-                    .or_else(|| None)
+                    .or(None)
             } else {
                 None
             };

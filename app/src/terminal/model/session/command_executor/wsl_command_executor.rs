@@ -66,7 +66,7 @@ impl WslCommandExecutor {
             .arg(self.shell_type.name())
             .arg(shell_config_flag)
             .arg("-c")
-            .arg(&*command_with_env)
+            .arg(command_with_env)
             // The purpose of the executor is to produce output. If the child
             // has been dropped, there's no way to get the output anymore,
             // so there's no need for the process itself to stick around.

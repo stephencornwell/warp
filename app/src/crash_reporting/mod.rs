@@ -367,21 +367,6 @@ fn init_sentry(user_id: Option<UserUid>, email: Option<String>, ctx: &mut AppCon
         // erroneously reporting crashes when they would be successfully handled by the crash
         // recovery process.
         if is_crash_recovery_process_running() {
-            ctx.subscribe_to_model(&CrashRecovery::handle(ctx), |_handle, event, ctx| {
-                if matches!(
-                    event,
-                    crate::crash_recovery::Event::CrashRecoveryProcessTornDown
-                ) {
-                    log::info!("Initializing Sentry native");
-                    sentry_minidump::init();
-
-                    let auth_state_provider = crate::AuthStateProvider::handle(ctx).as_ref(ctx);
-                    let auth_state = auth_state_provider.get();
-                    let user_id = auth_state.user_id();
-                    let email = auth_state.user_email();
-                    set_optional_user_information(user_id, email, ctx);
-                }
-            });
         } else {
             sentry_minidump::init()
         }

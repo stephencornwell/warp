@@ -1904,7 +1904,6 @@ impl TerminalView {
         _is_cloud_mode: bool,
         ctx: &mut ViewContext<Self>,
     ) -> Self {
-        let terminal_view_id = ctx.view_id();
         let active_session = ctx.add_model(|ctx| {
             ActiveSession::new(sessions.clone(), model_events_handle.clone(), ctx)
         });
@@ -2037,7 +2036,6 @@ impl TerminalView {
                 size_info,
                 Arc::new(MenuPositioning::BelowInputBox),
                 current_prompt.clone(),
-                terminal_view_id,
                 None, // current_repo_path - will be set when CWD is determined
                 model_events_handle.clone(),
                 active_session.clone(),

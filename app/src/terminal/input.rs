@@ -29,7 +29,6 @@ use crate::{
     cmd_or_ctrl_shift,
     completer::SessionContext,
     context_chips::prompt_type::PromptType,
-    debounce::debounce,
     editor::{
         position_id_for_cached_point, position_id_for_cursor, position_id_for_first_cursor,
         AutosuggestionLocation, AutosuggestionType, BaselinePositionComputationMethod,
@@ -131,7 +130,6 @@ use super::{
     },
     History, HistoryEntry, SizeInfo, TerminalModel,
 };
-use async_channel::Sender;
 use futures::stream::AbortHandle;
 use parking_lot::FairMutex;
 #[cfg(feature = "local_fs")]
@@ -788,12 +786,10 @@ pub struct Input {
     focus_handle: Option<PaneFocusHandle>,
     active_block_metadata: Option<BlockMetadata>,
     /// The [`EntityId`] of the terminal view that this input view is inside.
-    terminal_view_id: EntityId,
     view_id: EntityId,
     input_render_state_model_handle: ModelHandle<InputRenderStateModel>,
     command_x_ray_description: Option<Arc<Description>>,
     last_parsed_tokens: Option<decorations::ParsedTokensSnapshot>,
-    debounce_input_background_tx: Sender<InputBackgroundJobOptions>,
     /// If true, will submit the command in the editor to the shell upon receiving the
     /// precmd message.
     has_pending_command: bool,
@@ -1139,7 +1135,6 @@ impl Input {
         size_info: SizeInfo,
         menu_positioning_provider: Arc<dyn MenuPositioningProvider>,
         current_prompt: ModelHandle<PromptType>,
-        terminal_view_id: EntityId,
         _current_repo_path: Option<PathBuf>,
         _model_events: ModelHandle<crate::terminal::model_events::ModelEventDispatcher>,
         _active_session: ModelHandle<ActiveSession>,
@@ -1231,17 +1226,6 @@ impl Input {
             ctx.notify();
         });
 
-        let (debounce_input_background_tx, debounce_input_background_rx) =
-            async_channel::unbounded();
-        let _ = ctx.spawn_stream_local(
-            debounce(
-                DEBOUNCE_INPUT_DECORATION_PERIOD,
-                debounce_input_background_rx,
-            ),
-            |me, mode, ctx| me.run_input_background_jobs(mode, ctx),
-            |_me, _ctx| {},
-        );
-
         ctx.subscribe_to_model(&SessionSettings::handle(ctx), move |me, _, evt, ctx| {
             me.handle_session_settings_event(evt, ctx);
         });
@@ -1285,12 +1269,10 @@ impl Input {
             sessions,
             focus_handle: None,
             active_block_metadata: None,
-            terminal_view_id,
             view_id,
             input_render_state_model_handle,
             command_x_ray_description: None,
             last_parsed_tokens: None,
-            debounce_input_background_tx,
             has_pending_command: false,
             last_word_insertion,
             completions_abort_handle: None,

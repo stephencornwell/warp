@@ -2682,9 +2682,6 @@ impl Input {
     }
 
     fn should_show_completions_while_typing(&self, ctx: &mut ViewContext<Self>) -> bool {
-        let editor = self.editor.as_ref(ctx);
-        let buffer_text = editor.buffer_text(ctx);
-
         self.is_completions_while_typing_turned_on(ctx)
             && self.is_cursor_in_valid_position_for_completions_while_typing(ctx)
     }
@@ -2713,6 +2710,7 @@ impl Input {
         ctx: &mut ViewContext<Self>,
     ) {
         let editor = self.editor.as_ref(ctx);
+        let buffer_text = editor.buffer_text(ctx);
         let is_command_grid_active = {
             let model = self.model.lock();
             !model.is_alt_screen_active()

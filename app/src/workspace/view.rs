@@ -398,7 +398,6 @@ enum PanePanelDirection {
 enum FocusRegion {
     LeftPanel,
     PaneGroup,
-    Other,
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
@@ -466,9 +465,6 @@ pub enum BannerSeverity {
 /// Visual style for an individual banner action button.
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 enum BannerButtonVariant {
-    /// No fill, no border, just text (and optional icon). Used for the primary
-    /// action in the Figma design (e.g. "Fix with Oz").
-    Naked,
     /// Border-only, no fill (e.g. "Open file").
     Outlined,
 }
@@ -500,16 +496,6 @@ enum DefaultSessionModeBehavior {
     Apply,
     /// Skip default-session-mode auto-entry because the caller is explicitly specifying the mode for the new session.
     Ignore,
-}
-
-/// Groups a modal view handle with the ID of the tab that was created to host
-/// it, so the custom tab title can be cleared on close regardless of which tab
-/// is active at that point.
-struct ModalWithTab<V> {
-    view: ViewHandle<V>,
-    /// Set when the modal opens a new tab; consumed (taken) when the modal
-    /// closes so we can clear the custom tab title.
-    tab_pane_group_id: Option<EntityId>,
 }
 
 /// Context saved when the session config modal triggers `open_tab_config` and
@@ -2076,7 +2062,7 @@ impl Workspace {
         if self.left_panel_view.is_self_or_child_focused(app) {
             return FocusRegion::LeftPanel;
         }
-        FocusRegion::Other
+        FocusRegion::PaneGroup
     }
 
     fn has_left_region(&self, app: &AppContext) -> bool {
@@ -2161,9 +2147,7 @@ impl Workspace {
             }
             // NEXT: Right panel to left panel if open, else first pane
             // NEXT: Pane group to next pane, or at end to right panel, left panel, first pane
-            // Included Other here for cases like the command palette action "Activate next Pane"
-            (FocusRegion::PaneGroup, PanePanelDirection::Next)
-            | (FocusRegion::Other, PanePanelDirection::Next) => {
+            (FocusRegion::PaneGroup, PanePanelDirection::Next) => {
                 let moved = self.focus_next_pane_in_group(ctx);
                 if moved {
                     FocusRegion::PaneGroup
@@ -2184,9 +2168,7 @@ impl Workspace {
                 FocusRegion::PaneGroup
             }
             // PREV: Pane group to prev pane, or at beginning to left panel to right panel to last pane
-            // Included Other here for cases like the command palette action "Activate next Pane"
-            (FocusRegion::PaneGroup, PanePanelDirection::Prev)
-            | (FocusRegion::Other, PanePanelDirection::Prev) => {
+            (FocusRegion::PaneGroup, PanePanelDirection::Prev) => {
                 let did_move = self.focus_prev_pane_in_group(ctx);
                 if did_move {
                     FocusRegion::PaneGroup

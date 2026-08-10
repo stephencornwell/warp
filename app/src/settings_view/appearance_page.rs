@@ -15,7 +15,6 @@ use super::{SettingActionPairContexts, SettingActionPairDescriptions, ToggleSett
 use crate::appearance::{Appearance, AppearanceEvent};
 use crate::channel::{Channel, ChannelState};
 use crate::context_chips::prompt::PromptEvent;
-use crate::context_chips::renderer::ChipDragState;
 use crate::context_chips::{
     prompt::Prompt, renderer::Renderer as ContextChipRenderer, ChipAvailability,
 };
@@ -33,10 +32,8 @@ use crate::settings::{
 };
 use crate::settings::{CursorDisplayType, GPUSettings, InputSettings, InputSettingsChangedEvent};
 use crate::terminal::block_list_viewport::InputMode;
-use crate::terminal::blockgrid_element::BlockGridElement;
 use crate::terminal::ligature_settings::{LigatureRenderingEnabled, LigatureSettings};
 use crate::terminal::model::blockgrid::BlockGrid;
-use crate::terminal::model::ObfuscateSecrets;
 use crate::terminal::session_settings::SessionSettings;
 use crate::terminal::settings::{
     AltScreenPadding, AltScreenPaddingMode, Spacing, SpacingMode, TerminalSettings,
@@ -71,9 +68,7 @@ use std::rc::Rc;
 use warp_core::report_if_error;
 use warp_core::ui::theme::color::internal_colors;
 use warp_util::path::user_friendly_path;
-use warpui::elements::{
-    Clipped, Empty, FormattedTextElement, MainAxisAlignment, MainAxisSize, Text, Wrap,
-};
+use warpui::elements::{Empty, FormattedTextElement, MainAxisAlignment, MainAxisSize, Text};
 use warpui::fonts::{FamilyId, FontInfo, Weight};
 use warpui::keymap::{ContextPredicate, FixedBinding};
 use warpui::platform::{Cursor, FilePickerConfiguration, GraphicsBackend};

@@ -23,7 +23,7 @@ use url::Url;
 use warpui::notification::UserNotification;
 use warpui::{platform::TerminationMode, SingletonEntity as _, TypedActionView};
 
-use warpui::{AppContext, EntityId, ViewHandle, WindowId};
+use warpui::{AppContext, WindowId};
 
 use self::docker::open_docker_container;
 

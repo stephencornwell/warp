@@ -133,27 +133,10 @@ pub enum SettingsSection {
     About,
     #[default]
     Account,
-    BillingAndUsage,
     Appearance,
     Features,
     Keybindings,
     Privacy,
-    /// Internal backing-page identifier for AISettingsPageView. Multiple subpages
-    /// (WarpAgent, AgentProfiles, Knowledge, ThirdPartyCLIAgents) share this single
-    /// backing page, so this variant is needed as the key in `settings_pages`.
-    /// External callers should navigate to a specific subpage (e.g. `WarpAgent`) instead.
-    AI,
-    // ── Agents umbrella subpages ──
-    WarpAgent,
-    AgentProfiles,
-    Knowledge,
-    ThirdPartyCLIAgents,
-    /// Internal backing-page identifier for CodeSettingsPageView. Multiple subpages
-    /// (CodeIndexing, EditorAndCodeReview) share this single backing page,
-    /// so this variant is needed as the key in `settings_pages`.
-    /// External callers should navigate to a specific subpage instead.
-    Code,
-    // ── Code umbrella subpages ──
 }
 
 use crate::util::bindings::custom_tag_to_keystroke;
@@ -162,50 +145,19 @@ use std::fmt::{self, Display};
 impl Display for SettingsSection {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            SettingsSection::BillingAndUsage => write!(f, "Billing and usage"),
             SettingsSection::Keybindings => write!(f, "Keyboard shortcuts"),
-            SettingsSection::WarpAgent => write!(f, "Warp Agent"),
-            SettingsSection::AgentProfiles => write!(f, "Profiles"),
-            SettingsSection::Knowledge => write!(f, "Knowledge"),
-            SettingsSection::ThirdPartyCLIAgents => write!(f, "Third party CLI agents"),
             _ => write!(f, "{self:?}"),
         }
     }
 }
 
 impl SettingsSection {
-    /// Returns true if this section is a subpage under any umbrella.
     pub fn is_subpage(&self) -> bool {
-        self.is_ai_subpage()
+        false
     }
 
-    /// Returns true if this section is a subpage under the "Agents" umbrella.
-    pub fn is_ai_subpage(&self) -> bool {
-        matches!(
-            self,
-            Self::WarpAgent | Self::AgentProfiles | Self::Knowledge | Self::ThirdPartyCLIAgents
-        )
-    }
-
-    /// Maps subpage sections back to their parent page section for page lookup.
-    /// Non-subpage sections return themselves.
     pub fn parent_page_section(&self) -> Self {
-        match self {
-            // AgentMCPServers renders the standalone MCPServers page directly.
-            // All other AI subpages render within the AI page.
-            s if s.is_ai_subpage() => Self::AI,
-            other => *other,
-        }
-    }
-
-    /// The ordered list of AI subpage sections shown under the Agents umbrella.
-    pub fn ai_subpages() -> &'static [Self] {
-        &[
-            Self::WarpAgent,
-            Self::AgentProfiles,
-            Self::Knowledge,
-            Self::ThirdPartyCLIAgents,
-        ]
+        *self
     }
 }
 
@@ -216,18 +168,10 @@ impl FromStr for SettingsSection {
         match s {
             "About" => Ok(Self::About),
             "Account" => Ok(Self::Account),
-            "AI" => Ok(Self::AI),
-            "Billing and usage" => Ok(Self::BillingAndUsage),
             "Appearance" => Ok(Self::Appearance),
-            "Code" => Ok(Self::Code),
             "Features" => Ok(Self::Features),
             "Keyboard shortcuts" => Ok(Self::Keybindings),
             "Privacy" => Ok(Self::Privacy),
-            // This page was called "Oz" at one point, keep for backward compatibility.
-            "Oz" | "Warp Agent" => Ok(Self::WarpAgent),
-            "Profiles" | "AgentProfiles" => Ok(Self::AgentProfiles),
-            "Knowledge" => Ok(Self::Knowledge),
-            "Third party CLI agents" | "ThirdPartyCLIAgents" => Ok(Self::ThirdPartyCLIAgents),
             _ => Err(()),
         }
     }
@@ -948,7 +892,6 @@ impl SettingsView {
 
         // Build sidebar nav items.
         let mut nav_items = vec![
-            SettingsNavItem::Page(SettingsSection::BillingAndUsage),
             SettingsNavItem::Page(SettingsSection::Appearance),
             SettingsNavItem::Page(SettingsSection::Features),
             SettingsNavItem::Page(SettingsSection::Keybindings),
@@ -958,7 +901,6 @@ impl SettingsView {
 
         // Resolve the initial page: map internal backing-page sections to their default subpage.
         let initial_page = match page {
-            Some(SettingsSection::AI) => SettingsSection::Account,
             Some(section) if section.is_subpage() => section,
             other => other.unwrap_or_default(),
         };
@@ -1358,10 +1300,6 @@ impl SettingsView {
     ) {
         // Map internal backing-page sections to their default subpage.
         // External callers should use subpage variants directly.
-        let section = match section {
-            SettingsSection::AI => SettingsSection::WarpAgent,
-            other => other,
-        };
 
         // For AI subpages, the backing page is the AI page. Check it exists.
         let page_section = section.parent_page_section();

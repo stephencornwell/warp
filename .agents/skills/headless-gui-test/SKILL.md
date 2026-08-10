@@ -143,6 +143,9 @@ code before blaming the environment:
   from the sidebar yet still be deep-linkable, opening a blank content pane. Sweep by
   typing `open settings` in the palette and comparing the results against the sidebar;
   a working deep-link highlights its sidebar row, a dead one renders an empty pane.
+- Settings keybinding search uses fuzzy subsequence matching rather than literal
+  substring matching. A query such as `team` can match unrelated labels, so inspect
+  the actual row labels before treating a search hit as a deleted-surface leftover.
 Confirm each by pairing a screenshot with the dispatched-action log line.
 
 ## Devin Secrets Needed

@@ -133,8 +133,6 @@ pub struct LeftPanelView {
     active_view: active_view_state::ActiveViewState,
     toolbelt_buttons: Vec<ToolbeltButtonConfig>,
     active_pane_group: Option<WeakViewHandle<PaneGroup>>,
-    #[cfg_attr(not(feature = "local_fs"), allow(dead_code))]
-    working_directories_model: ModelHandle<WorkingDirectoriesModel>,
     panel_position: super::PanelPosition,
 }
 
@@ -233,7 +231,6 @@ impl LeftPanelView {
             active_view: active_view_state::new(active_view),
             toolbelt_buttons,
             active_pane_group: None,
-            working_directories_model,
             panel_position: super::PanelPosition::Left,
         };
         view.update_button_active_states();
@@ -643,14 +640,6 @@ impl LeftPanelView {
         ctx: &mut ViewContext<Self>,
     ) {
         let _ = ctx;
-    }
-
-    fn deactivate_file_tree_view_for_pane_group(
-        &self,
-        pane_group_id: warpui::EntityId,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        let _ = (pane_group_id, ctx);
     }
 
     fn update_active_file_tree_subscription_state(&self, ctx: &mut ViewContext<Self>) {

@@ -39,7 +39,7 @@ pub use inline_banner::{NotificationsDiscoveryBannerAction, NotificationsErrorBa
 #[cfg(feature = "local_fs")]
 use repo_metadata::repositories::{DetectedRepositories, RepoDetectionSource};
 use warp_core::channel::ChannelState;
-use warpui::elements::{shimmering_text::ShimmeringTextStateHandle, ChildView};
+use warpui::elements::ChildView;
 use warpui::fonts::Properties;
 use warpui::{ViewHandle, WeakModelHandle};
 
@@ -83,7 +83,6 @@ use crate::terminal::local_tty::windows::get_user_and_system_env_variable;
 use crate::terminal::model::session::active_session::ActiveSession;
 use crate::terminal::model::session::{Session, SessionId};
 use crate::terminal::model::{ObfuscateSecrets, RespectObfuscatedSecrets, SecretHandle};
-use crate::terminal::recorder::PtyRecorder;
 use crate::terminal::safe_mode_settings::get_secret_obfuscation_mode;
 use crate::terminal::session_settings::SessionSettingsChangedEvent;
 use crate::terminal::session_settings::{
@@ -155,8 +154,7 @@ use warpui::event::ModifiersState;
 use warpui::keymap::Keystroke;
 use warpui::notification::{NotificationSendError, RequestPermissionsOutcome, UserNotification};
 use warpui::platform::{Cursor, OperatingSystem};
-use warpui::r#async::executor::Background;
-use warpui::r#async::{SpawnedFutureHandle, Timer};
+use warpui::r#async::Timer;
 use warpui::windowing::WindowManager;
 
 use warpui::assets::asset_cache::{AssetCache, AssetCacheEvent};
@@ -409,7 +407,6 @@ pub const LONG_RUNNING_AGENT_REQUESTED_COMMAND_CONTEXT_KEY: &str = "LongRunningR
 pub const LONG_RUNNING_AGENT_REQUESTED_COMMAND_USER_TOOK_OVER_CONTEXT_KEY: &str =
     "LongRunningRequestedUserTookOverCommand";
 
-/// We only auto open the code review pane if the pane it's getting opened from has a certain width
 
 lazy_static! {
     static ref CTRL_SHIFT_A_KEYSTROKE: Keystroke = Keystroke {
@@ -1456,11 +1453,6 @@ pub struct TerminalView {
 
     selected_blocks: SelectedBlocks,
 
-    // Whether any session contains blocks from a remote session. Cached to improve performance.
-    // Blocks don't necessarily need to be finished for this to be true (e.g. it's true for
-    // an empty ssh session where just the active block is remote).
-    any_session_contains_remote_blocks: bool,
-
     // Whether any session contains restored blocks from a remote session. Cached to improve performance.
     any_session_contains_restored_remote_blocks: bool,
 
@@ -1491,18 +1483,11 @@ pub struct TerminalView {
 
     last_hover_fragment_boundary: Option<WithinModel<FragmentBoundary>>,
 
-    bootstrap_start: Option<Instant>,
     is_login_shell_bootstrapped: bool,
     /// Set when a pending command is submitted to the shell. Cleared on the
     /// next `AfterBlockCompleted`, at which point `Event::PendingCommandCompleted`
     /// is emitted so subscribers know the command has finished.
     awaiting_pending_command_completion: bool,
-    /// When true, enter agent view after pending setup commands complete
-    /// (i.e. after `PendingCommandCompleted` is emitted). Set by
-    /// `pane_tree_from_template_recursive` when a tab config has both
-    /// commands and `PaneMode::Agent`.
-    enter_agent_view_after_pending_commands: bool,
-    slow_bootstrap_banner: ViewHandle<Banner<TerminalAction>>,
     is_slow_bootstrap_banner_open: bool,
 
     /// The handle to any currently hovered secret. Used to determine whether the
@@ -1512,7 +1497,6 @@ pub struct TerminalView {
     /// The details of a currently focused secret tooltip (either grid or rich content).
     open_secret_tool_tip: Option<SecretTooltip>,
 
-    control_master_error_banner: ViewHandle<Banner<TerminalAction>>,
     control_master_error_banner_state: ControlMasterErrorBannerState,
 
     /// Banner to show if we detect a configuration in the user's rc files that
@@ -1522,7 +1506,6 @@ pub struct TerminalView {
 
     /// Non-MacOS banner to ask if the user prefers MacOS bindings
     /// or Emacs-style bindings for `ctrl-a` and `ctrl-e`.
-    emacs_bindings_banner: ViewHandle<Banner<TerminalAction>>,
     is_emacs_bindings_banner_open: bool,
 
     pane_configuration: ModelHandle<PaneConfiguration>,
@@ -1532,10 +1515,6 @@ pub struct TerminalView {
     active_block_metadata: Option<BlockMetadata>,
 
     block_text_selection_start_position: Option<Vector2F>,
-
-    /// Background executor for sending telemetry when a TerminalView is
-    /// dropped.
-    background_executor: Arc<Background>,
 
     inline_banners_state: InlineBannersState,
 
@@ -1589,15 +1568,12 @@ pub struct TerminalView {
     is_focused_and_active: bool,
 
     current_prompt: ModelHandle<PromptType>,
-
-    model_event_sender: Option<SyncSender<persistence::ModelEvent>>,
+    #[cfg(test)]
+    model_events_handle: ModelHandle<ModelEventDispatcher>,
 
     /// The child views that represent rich content. These can be inserted into the block list with
     /// the `insert_rich_content` helper function.
     rich_content_views: Vec<RichContent>,
-
-    /// Cached view ids for usage footers keyed by the AI block view id that owns them.
-    usage_footer_view_ids: HashMap<EntityId, EntityId>,
 
     /// The type of the subshell that we will bootstrap/"warpify"" on the next [`AfterBlockStarted`]
     /// terminal model event. Will only be `Some` with a [`ShellType`] we can bootstrap.
@@ -1655,15 +1631,11 @@ pub struct TerminalView {
     /// Position ID for this view.
     position_id: String,
 
-    /// Position ID for the active terminal cursor.
-    cursor_position_id: String,
-
     #[cfg_attr(not(test), allow(unused))]
     active_session: ModelHandle<ActiveSession>,
 
     pty_spawn_failed: bool,
 
-    model_events_handle: ModelHandle<ModelEventDispatcher>,
 
     /// Per-repo git status model for the current repository, if any.
     /// A list of callbacks to run on the next [`ModelEvent::AfterBlockCompleted`] received.
@@ -1682,18 +1654,6 @@ pub struct TerminalView {
     /// Weak handle to the [`PaneStack`] this view is part of, allowing push/pop operations.
     pane_stack: Option<WeakModelHandle<crate::pane_group::pane::PaneStack<Self>>>,
 
-    /// If set, indicates a cloud mode entry is waiting for the fullscreen agent view to be exited.
-    /// This is used to ensure rich content inserted for cloud mode is scoped to the top-level
-    /// terminal view (not a specific agent view conversation).
-    pending_cloud_mode_start_callback: Option<TerminalViewCallback>,
-    pending_cloud_mode_start_abort_handle: Option<SpawnedFutureHandle>,
-
-    /// Whether we're waiting for the result of an AWS CLI login command.
-    /// Used to detect "command not found" errors when AWS CLI isn't installed.
-    /// TODO: In the future, when we support GCP/Azure cloud CLIs, this should be
-    /// converted to `pending_cloud_cli_login: Option<CloudProvider>` where CloudProvider
-    /// is an enum with variants like Aws, Gcp, Azure.
-    is_pending_aws_login: bool,
     /// `true` if this view explicitly requested a PTY shutdown.
     ///
     /// Once set, this remains true for the rest of the view's lifecycle and
@@ -1701,16 +1661,6 @@ pub struct TerminalView {
     /// (tab close, update relaunch, etc.) are not attributed to agent commands.
     manual_pty_shutdown_requested: bool,
 
-    /// Tracks the view ID of an inserted pending user query block, if any.
-    /// Used to remove the block when summarization completes or is cancelled.
-    pending_user_query_view_id: Option<EntityId>,
-
-    /// Per-session PTY recorder for writing PTY bytes to a file.
-    pty_recorder: ModelHandle<PtyRecorder>,
-
-    /// State handle for the shimmering text animation in the remote server loading footer.
-    /// Persisted across renders so the animation doesn't restart.
-    remote_server_shimmer_handle: ShimmeringTextStateHandle,
 }
 
 #[derive(Copy, Clone, Serialize)]
@@ -1814,9 +1764,9 @@ impl TerminalView {
         sessions: ModelHandle<Sessions>,
         size_info: SizeInfo,
         colors: List,
-        model_event_sender: Option<SyncSender<persistence::ModelEvent>>,
+        _model_event_sender: Option<SyncSender<persistence::ModelEvent>>,
         current_prompt: ModelHandle<PromptType>,
-        inactive_pty_reads_rx: Option<async_broadcast::InactiveReceiver<Arc<Vec<u8>>>>,
+        _inactive_pty_reads_rx: Option<async_broadcast::InactiveReceiver<Arc<Vec<u8>>>>,
         _is_cloud_mode: bool,
         ctx: &mut ViewContext<Self>,
     ) -> Self {
@@ -1988,34 +1938,8 @@ impl TerminalView {
             me.handle_menu_event(event, ctx);
         });
 
-        let slow_bootstrap_banner = ctx.add_typed_action_view(|_| {
-            Banner::new(BannerTextContent::formatted_text(vec![
-                FormattedTextFragment::plain_text(
-                    "Seems like your shell is taking a while to start...  ",
-                ),
-                FormattedTextFragment::hyperlink("More info", KNOWN_ISSUES_URL),
-            ]))
-        });
-        ctx.subscribe_to_view(&slow_bootstrap_banner, |me, _, event, ctx| {
-            me.handle_slow_bootstrap_banner_event(event, ctx);
-        });
-
         ctx.subscribe_to_model(&sessions, |me, _, event, ctx| {
             me.handle_sessions_event(event.clone(), ctx);
-        });
-
-        let control_master_error_banner = ctx.add_typed_action_view(|_| {
-            Banner::new(BannerTextContent::formatted_text(vec![
-                FormattedTextFragment::plain_text("Seems like your completions are not working ("),
-                FormattedTextFragment::hyperlink("more info", CONTROLMASTER_ISSUES_URL),
-                FormattedTextFragment::plain_text("). Enabling tmux warpification in "),
-                FormattedTextFragment::plain_text("settings"),
-                FormattedTextFragment::plain_text(" may resolve this issue."),
-            ]))
-        });
-
-        ctx.subscribe_to_view(&control_master_error_banner, |me, _, event, ctx| {
-            me.handle_controlmaster_error_banner_event(event, ctx);
         });
 
         let incompatible_configuration_banner = ctx.add_typed_action_view(|_| {
@@ -2032,7 +1956,7 @@ impl TerminalView {
         });
 
         let emacs_bindings_banner = ctx.add_typed_action_view(|_| {
-            Banner::new_with_buttons(
+            Banner::<TerminalAction>::new_with_buttons(
                 BannerTextContent::formatted_text(vec![
                     FormattedTextFragment::plain_text("Did you intend "),
                     FormattedTextFragment::inline_code("ctrl-a"),
@@ -2214,7 +2138,6 @@ impl TerminalView {
             hovered_block_index: None,
             selected_blocks: Default::default(),
             block_list_mouse_states,
-            any_session_contains_remote_blocks: false,
             any_session_contains_restored_remote_blocks: false,
             mouse_down_block_index: None,
             mouse_states: Default::default(),
@@ -2225,26 +2148,21 @@ impl TerminalView {
             find_link_tx,
             highlighted_link: HighlightedLinkOption::default(),
             last_hover_fragment_boundary: None,
-            bootstrap_start: None,
             is_login_shell_bootstrapped: false,
             awaiting_pending_command_completion: false,
-            enter_agent_view_after_pending_commands: false,
-            slow_bootstrap_banner,
             is_slow_bootstrap_banner_open: false,
             incompatible_configuration_banner,
             is_incompatible_configuration_banner_open: false,
-            emacs_bindings_banner,
             is_emacs_bindings_banner_open: false,
-            control_master_error_banner,
             control_master_error_banner_state: Default::default(),
             pane_configuration,
             focus_handle: None,
             sessions,
-            remote_server_shimmer_handle: ShimmeringTextStateHandle::new(),
             active_block_metadata: None,
             block_text_selection_start_position: None,
-            background_executor: ctx.background_executor().clone(),
             inline_banners_state: Default::default(),
+            #[cfg(test)]
+            model_events_handle,
             bookmarked_blocks: Default::default(),
             file_link_scanning_join_handle: None,
             last_focus_ts: None,
@@ -2256,11 +2174,9 @@ impl TerminalView {
             did_notify_long_running: false,
             is_focused_and_active: true,
             current_prompt,
-            model_event_sender,
             block_filter_editor,
             active_filter_editor_block_index: None,
             rich_content_views: Vec::new(),
-            usage_footer_view_ids: Default::default(),
             pending_auto_bootstrap_shell_type: None,
             show_snackbar: true,
             hover_near_snackbar_area: false,
@@ -2275,22 +2191,14 @@ impl TerminalView {
             shell_indicator_type: None,
             shell_detail: None,
             position_id: format!("terminal_view_{}", ctx.view_id()),
-            cursor_position_id: format!("terminal_view:cursor_{}", ctx.view_id()),
             active_session,
             pty_spawn_failed: false,
-            model_events_handle,
             block_completed_callbacks: Default::default(),
             current_repo_path: None,
             terminal_title: Default::default(),
             ignore_next_set_title_event: false,
-            is_pending_aws_login: false,
             manual_pty_shutdown_requested: false,
             pane_stack: None,
-            pending_cloud_mode_start_callback: None,
-            pending_cloud_mode_start_abort_handle: None,
-            pending_user_query_view_id: None,
-            pty_recorder: ctx
-                .add_model(|ctx| PtyRecorder::new(inactive_pty_reads_rx, window_id, ctx)),
         };
 
         terminal_view

@@ -53,7 +53,7 @@ use crate::{
     settings_view::{flags, SettingsSection},
     util::bindings::{self, CustomAction},
     view_components::{DismissibleToast, ToastFlavor},
-    workspace::{sync_inputs::SyncedInputState, CommandSearchOptions, ToastStack, WorkspaceAction},
+    workspace::{CommandSearchOptions, ToastStack, WorkspaceAction},
 };
 
 #[cfg(feature = "local_fs")]
@@ -2325,29 +2325,6 @@ impl Input {
             buffer_text,
             byte_range: alias.span().start()..cursor_pos.as_usize(),
         })
-    }
-
-    /// If at least one input is being synced, emit an event that other
-    /// terminal views can decide to process based on their sync state.
-    fn send_input_sync_event(&self, edit_origin: &EditOrigin, ctx: &mut ViewContext<Self>) {
-        let is_syncing_inputs =
-            SyncedInputState::as_ref(ctx).is_syncing_any_inputs(ctx.window_id());
-
-        if is_syncing_inputs
-                    // If the edit we're applying in `handle_editor_event`
-                    //came from another synced terminal,
-                    // don't emit a new event which would create a cycle
-                    && *edit_origin != EditOrigin::SyncedTerminalInput
-                    // Similarly, only emit an event from the session the user is typing in
-                    && self.focus_handle.as_ref().is_none_or(|h| h.is_focused(ctx))
-        {
-            let buffer = self.editor.as_ref(ctx).buffer_text(ctx);
-            ctx.emit(Event::SyncInput(
-                SyncInputType::InputEditorContentsChanged {
-                    contents: Arc::new(buffer),
-                },
-            ));
-        }
     }
 
     fn handle_editor_event(&mut self, event: &EditorEvent, ctx: &mut ViewContext<Self>) {

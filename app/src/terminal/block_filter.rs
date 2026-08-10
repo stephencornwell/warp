@@ -100,7 +100,6 @@ pub struct BlockFilterQuery {
 
 pub enum OpenedFromClick {
     Yes,
-    No,
 }
 
 impl BlockFilterQuery {

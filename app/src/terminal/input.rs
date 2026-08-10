@@ -32,7 +32,7 @@ use crate::{
     editor::{
         position_id_for_cached_point, position_id_for_cursor, position_id_for_first_cursor,
         AutosuggestionLocation, AutosuggestionType, BaselinePositionComputationMethod,
-        CrdtOperation, DisplayPoint, EditOrigin, EditorAction, EditorOptions, EditorSnapshot,
+        CrdtOperation, EditOrigin, EditorAction, EditorOptions, EditorSnapshot,
         EditorView, Event as EditorEvent, InteractionState, PathTransformerFn,
         PlainTextEditorViewAction, Point as BufferPoint, PropagateAndNoOpEscapeKey,
         PropagateAndNoOpNavigationKeys, PropagateHorizontalNavigationKeys, TextColors,
@@ -1373,12 +1373,6 @@ impl Input {
         )
     }
 
-    fn start_byte_index_of_first_selection(&self, ctx: &ViewContext<Self>) -> ByteOffset {
-        self.editor
-            .as_ref(ctx)
-            .start_byte_index_of_first_selection(ctx)
-    }
-
     fn handle_input_settings_event(
         &mut self,
         input_settings: ModelHandle<InputSettings>,
@@ -1431,16 +1425,6 @@ impl Input {
             }
             _ => {}
         }
-    }
-
-    fn start_byte_index_at_point(
-        &self,
-        point: &DisplayPoint,
-        ctx: &AppContext,
-    ) -> Option<ByteOffset> {
-        self.editor.read(ctx, |editor, ctx| {
-            editor.start_byte_offset_at_point(point, ctx)
-        })
     }
 
     fn handle_safe_mode_settings_changed_event(
@@ -2030,12 +2014,6 @@ impl Input {
     ///
     /// This is intentionally narrower than `close_overlays`: it does not close Voltron, workflow
     /// info overlays, etc.
-    fn close_suggestion_modes_for_new_conversation(&mut self, ctx: &mut ViewContext<Self>) {
-        self.suggestions_mode_model.update(ctx, |model, ctx| {
-            model.set_mode(InputSuggestionsMode::Closed, ctx);
-        });
-    }
-
     fn editor_up(&mut self, ctx: &mut ViewContext<Self>) {
         if self.suggestions_mode_model.as_ref(ctx).is_visible() {
             self.input_suggestions
@@ -2275,13 +2253,28 @@ impl Input {
         None
     }
 
-    /// Function to check whether the previous token was a valid command abbreviation
-    /// or alias and handle expansion. This should only be called after the user has
-    /// entered a space into the input editor.
     fn run_expansion_on_space(&mut self, ctx: &mut ViewContext<Self>) {
         if let Some(expansion_info) = self.run_expansion_internal(Executing::No, ctx) {
             self.expand_alias(expansion_info.byte_range, &expansion_info.alias_value, ctx);
         }
+    }
+
+    fn expand_alias(
+        &mut self,
+        replacement_range: Range<usize>,
+        alias_value: &str,
+        ctx: &mut ViewContext<Self>,
+    ) {
+        let alias_value_with_space = format!("{alias_value} ");
+        self.editor.update(ctx, |input, ctx| {
+            input.select_and_replace(
+                &alias_value_with_space,
+                [ByteOffset::from(replacement_range.start)
+                    ..ByteOffset::from(replacement_range.end)],
+                PlainTextEditorViewAction::ExpandAlias,
+                ctx,
+            );
+        });
     }
 
     /// Function that checks whether the current token was a valid command abbreviation
@@ -2334,24 +2327,6 @@ impl Input {
         })
     }
 
-    fn expand_alias(
-        &mut self,
-        replacement_range: Range<usize>,
-        alias_value: &str,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        let alias_value_with_space = format!("{alias_value} ");
-        self.editor.update(ctx, |input, ctx| {
-            input.select_and_replace(
-                &alias_value_with_space,
-                [ByteOffset::from(replacement_range.start)
-                    ..ByteOffset::from(replacement_range.end)],
-                PlainTextEditorViewAction::ExpandAlias,
-                ctx,
-            );
-        });
-    }
-
     /// If at least one input is being synced, emit an event that other
     /// terminal views can decide to process based on their sync state.
     fn send_input_sync_event(&self, edit_origin: &EditOrigin, ctx: &mut ViewContext<Self>) {
@@ -2373,13 +2348,6 @@ impl Input {
                 },
             ));
         }
-    }
-
-    /// Whether the given event should trigger a request to generate an AI-based natural language
-    /// autosuggestion, due to the buffer content meaningfully changing.
-    /// Helper function to replace "@" symbol and filter text with new text
-    pub(super) fn replace_at_symbol_with_text(&mut self, text: &str, ctx: &mut ViewContext<Self>) {
-        let _ = (text, ctx);
     }
 
     fn handle_editor_event(&mut self, event: &EditorEvent, ctx: &mut ViewContext<Self>) {

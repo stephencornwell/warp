@@ -10,11 +10,10 @@ use crate::pane_group::pane::view::header::components::{
     render_three_column_header, CenteredHeaderEdgeWidth,
 };
 use crate::pane_group::pane::PaneStack;
-use crate::pane_group::{pane::view, pane::view::PaneHeaderAction, BackingView, SplitPaneState};
+use crate::pane_group::{pane::view, BackingView, SplitPaneState};
 use crate::terminal::TerminalManager;
 use crate::terminal::TerminalView;
 use crate::ui_components::blended_colors;
-use crate::ui_components::buttons::icon_button_with_color;
 use crate::ui_components::icons;
 use warpui::elements::{
     ConstrainedBox, CrossAxisAlignment, Flex, MainAxisAlignment, MainAxisSize, ParentElement,
@@ -22,11 +21,9 @@ use warpui::elements::{
 };
 use warpui::prelude::Container;
 use warpui::text_layout::ClipConfig;
-use warpui::ui_components::components::UiComponent;
-use warpui::ui_components::components::UiComponentStyles;
 use warpui::WeakModelHandle;
 use warpui::{
-    elements::MouseStateHandle, AppContext, Element, ModelHandle, SingletonEntity, TypedActionView,
+    AppContext, Element, ModelHandle, SingletonEntity, TypedActionView,
     ViewContext,
 };
 
@@ -313,78 +310,6 @@ impl BackingView for TerminalView {
 }
 
 impl TerminalView {
-    /// Render the cancel button for cancelling the ambient agent task while it's loading.
-    fn render_ambient_agent_cancel_button(&self, app: &AppContext) -> Box<dyn Element> {
-        let appearance = Appearance::as_ref(app);
-        let theme = appearance.theme();
-        let ui_builder = appearance.ui_builder().clone();
-
-        icon_button_with_color(
-            appearance,
-            icons::Icon::StopFilled,
-            false, /* active */
-            MouseStateHandle::default(),
-            blended_colors::text_sub(theme, theme.background()).into(),
-        )
-        .with_tooltip(move || ui_builder.tool_tip("Cancel".to_string()).build().finish())
-        .build()
-        .on_click(|ctx, _, _| {
-            ctx.dispatch_typed_action::<PaneHeaderAction<TerminalAction, TerminalAction>>(
-                PaneHeaderAction::Close,
-            );
-        })
-        .finish()
-    }
-
-    fn render_cloud_mode_details_toggle_button(&self, app: &AppContext) -> Box<dyn Element> {
-        let appearance = Appearance::as_ref(app);
-        let theme = appearance.theme();
-        let is_open = false;
-        let ui_builder = appearance.ui_builder().clone();
-
-        // Use main text color when panel is open (hover-like appearance), sub color when closed
-        let icon_color = if is_open {
-            blended_colors::text_main(theme, theme.background()).into()
-        } else {
-            blended_colors::text_sub(theme, theme.background()).into()
-        };
-
-        let button = icon_button_with_color(
-            appearance,
-            icons::Icon::Info,
-            is_open, // show active background when panel is open
-            MouseStateHandle::default(),
-            icon_color,
-        );
-
-        // Add explicit background when panel is open
-        let button = if is_open {
-            button.with_style(UiComponentStyles::default().set_background(theme.surface_2().into()))
-        } else {
-            button
-        };
-
-        button
-            .with_tooltip(move || {
-                let tooltip_text = if is_open {
-                    "Hide details"
-                } else {
-                    "Show details"
-                };
-                ui_builder
-                    .tool_tip(tooltip_text.to_string())
-                    .build()
-                    .finish()
-            })
-            .build()
-            .on_click(|ctx, _, _| {
-                ctx.dispatch_typed_action::<PaneHeaderAction<TerminalAction, TerminalAction>>(
-                    PaneHeaderAction::Close,
-                );
-            })
-            .finish()
-    }
-
     /// Render the indicator for terminal mode (no conversation selected).
     /// Shows error indicator if terminal is in error state, otherwise shell indicator on Windows.
     fn render_terminal_mode_indicator(&self, app: &AppContext) -> Option<Box<dyn Element>> {

@@ -320,6 +320,9 @@ fn handle_terminal_view_event(
 
                 group.close_pane(pane_id, ctx);
             }
+            Event::CloseRequested => {
+                group.close_pane_with_confirmation(pane_id, ctx);
+            }
             Event::Pane(pane_event) => group.handle_pane_event(pane_id, pane_event, ctx),
             Event::BlockListCleared => {
                 // Capture CMD-K to clear blocks here so we could remove

@@ -9,10 +9,7 @@ use warpui::{
 #[cfg(feature = "local_fs")]
 use crate::code::editor_management::CodeSource;
 use crate::{
-    terminal::{
-        general_settings::GeneralSettings,
-        view::inline_banner::OpenInWarpBannerAction,
-    },
+    terminal::{general_settings::GeneralSettings, view::inline_banner::OpenInWarpBannerAction},
     util::openable_file_type::OpenableFileType,
 };
 use settings::Setting as _;

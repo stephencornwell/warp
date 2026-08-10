@@ -1,6 +1,6 @@
-#[cfg(feature = "local_fs")]
-use crate::user_config::{find_unused_toml_path, tab_configs_dir};
 use crate::report_if_error;
+#[cfg(feature = "local_fs")]
+use crate::user_config::tab_configs_dir;
 pub mod global_search;
 pub(crate) mod left_panel;
 mod startup_directory;
@@ -19,9 +19,7 @@ use crate::terminal::session_settings::SessionSettings;
 #[cfg(feature = "local_fs")]
 use crate::workspace::toast_stack::ToastStack;
 use crate::workspace::view::global_search::view::GlobalSearchEntryFocus;
-use crate::workspace::view::left_panel::{
-    LeftPanelAction, LeftPanelView, ToolPanelView,
-};
+use crate::workspace::view::left_panel::{LeftPanelAction, LeftPanelView, ToolPanelView};
 
 use crate::ui_components::window_focus_dimming::WindowFocusDimming;
 #[cfg(feature = "local_fs")]
@@ -108,8 +106,7 @@ use crate::terminal::resizable_data::{
     ModalSizes, ModalType, ResizableData, DEFAULT_LEFT_PANEL_WIDTH, DEFAULT_RIGHT_PANEL_WIDTH,
 };
 use crate::terminal::session_settings::{
-    NewSessionSource, NotificationsMode, NotificationsSettings, SessionSettingsChangedEvent,
-    WorkingDirectoryMode,
+    NewSessionSource, NotificationsMode, SessionSettingsChangedEvent, WorkingDirectoryMode,
 };
 use crate::terminal::shell::ShellType;
 use crate::terminal::{self, SizeInfo, TerminalView};
@@ -147,7 +144,6 @@ use crate::workspace::toast_stack::{
 use itertools::Itertools;
 use parking_lot::FairMutex;
 use pathfinder_geometry::rect::RectF;
-use repo_metadata::repositories::DetectedRepositories;
 use std::collections::{HashMap, HashSet};
 #[cfg(feature = "local_fs")]
 use std::convert::TryFrom;
@@ -233,9 +229,7 @@ use warpui::{
     geometry::vector::{vec2f, Vector2F},
     AppContext, Entity, TypedActionView, UpdateView, View, ViewContext, ViewHandle,
 };
-use warpui::{
-    EntityId, ModelHandle, SingletonEntity, UpdateModel, ViewAsRef, WeakViewHandle, WindowId,
-};
+use warpui::{EntityId, ModelHandle, SingletonEntity, UpdateModel, ViewAsRef, WindowId};
 
 use crate::terminal::view::LeftPanelTargetView;
 
@@ -443,8 +437,7 @@ type WorkspaceMenuHandles = (
 type SerializedBlockListItem = crate::terminal::model::block::SerializedBlock;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-enum NewSessionSidecarSelection {
-}
+enum NewSessionSidecarSelection {}
 
 /// Controls the color palette used for a workspace banner.
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -636,22 +629,6 @@ impl Workspace {
             menu.set_submenu_being_shown_for_item_index(None);
         });
         ctx.notify();
-    }
-
-    fn select_first_worktree_sidecar_repo(&mut self, ctx: &mut ViewContext<Self>) {
-        self.new_session_sidecar_menu.update(ctx, |menu, view_ctx| {
-            if menu.items_len() > 1 {
-                menu.set_selected_by_index(1, view_ctx);
-            } else {
-                menu.reset_selection(view_ctx);
-            }
-        });
-    }
-
-    fn reset_worktree_sidecar_repo_selection(&mut self, ctx: &mut ViewContext<Self>) {
-        self.new_session_sidecar_menu.update(ctx, |menu, view_ctx| {
-            menu.reset_selection(view_ctx);
-        });
     }
 
     fn navigate_worktree_sidecar_selection(
@@ -1650,18 +1627,6 @@ impl Workspace {
     }
 
     /// Handles updating the tab status when an agent task status changes.
-    fn workspace_contains_terminal_view(
-        &self,
-        terminal_view_id: EntityId,
-        ctx: &AppContext,
-    ) -> bool {
-        self.tabs.iter().any(|tab| {
-            tab.pane_group
-                .as_ref(ctx)
-                .contains_terminal_view(terminal_view_id, ctx)
-        })
-    }
-
     /// Handle session settings changes.
     fn handle_session_settings_event(
         &mut self,
@@ -1944,28 +1909,6 @@ impl Workspace {
     /// If the current user owns or created it, navigate to its open pane or restore it
     /// into a new tab. Otherwise, open the read-only transcript viewer.
     /// Load the conversation into a transcript viewer in a new tab (with no input/backing shell)
-    fn stop_sharing_all_panes_in_tab(
-        &mut self,
-        pane_group: &WeakViewHandle<PaneGroup>,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        let _ = (pane_group, ctx);
-    }
-
-    fn copy_shared_session_link_from_tab(&mut self, tab_index: usize, ctx: &mut ViewContext<Self>) {
-        // Get the pane group for the specified tab
-        let Some(pane_group) = self.tabs.get(tab_index).map(|tab| tab.pane_group.clone()) else {
-            return;
-        };
-
-        // Get the focused terminal view in that tab
-        let Some(terminal_view) = pane_group.as_ref(ctx).focused_session_view(ctx) else {
-            return;
-        };
-
-        let _ = (terminal_view, ctx);
-    }
-
     fn subscribe_to_shared_session_manager(_ctx: &mut ViewContext<Self>) {
         /*
                 ManagerEvent::StartedShare {
@@ -2082,10 +2025,6 @@ impl Workspace {
                 left_panel.focus_active_view_on_entry(ctx);
             });
         }
-    }
-
-    fn focus_right_region_entry(&mut self, ctx: &mut ViewContext<Self>) {
-        self.focus_active_tab(ctx);
     }
 
     fn navigate_pane_or_panel(
@@ -2941,52 +2880,7 @@ impl Workspace {
         ctx.open_url(links::USER_DOCS_URL);
     }
 
-    fn view_latest_changelog(&mut self, ctx: &mut ViewContext<Self>) {
-        self.update_toast_stack.update(ctx, |stack, ctx| {
-            stack.clear_toasts(ctx);
-        });
-        self.tips_completed.update(ctx, |tips_completed, ctx| {
-            mark_feature_used_and_write_to_user_defaults(
-                Tip::Action(TipAction::Changelog),
-                tips_completed,
-                ctx,
-            );
-            ctx.notify();
-        });
-    }
-
-    fn view_privacy_policy(&mut self, ctx: &mut ViewContext<Self>) {
-        ctx.open_url(links::PRIVACY_POLICY_URL);
-    }
-
     #[cfg(not(target_family = "wasm"))]
-    fn view_logs(&mut self, ctx: &mut ViewContext<Self>) {
-        ctx.spawn(
-            async { tokio::task::spawn_blocking(warp_logging::create_log_bundle_zip).await },
-            |me, result, ctx| match result {
-                Ok(Ok(path)) => {
-                    ctx.open_file_path_in_explorer(&path);
-                }
-                Ok(Err(err)) => {
-                    let error_message = format!("Failed to create log bundle: {err}");
-                    log::error!("{error_message}");
-                    me.toast_stack.update(ctx, |toast_stack, ctx| {
-                        let toast = DismissibleToast::error(error_message);
-                        toast_stack.add_persistent_toast(toast, ctx);
-                    });
-                }
-                Err(err) => {
-                    let error_message = format!("Failed to create log bundle: {err}");
-                    log::error!("{error_message}");
-                    me.toast_stack.update(ctx, |toast_stack, ctx| {
-                        let toast = DismissibleToast::error(error_message);
-                        toast_stack.add_persistent_toast(toast, ctx);
-                    });
-                }
-            },
-        );
-    }
-
     fn copy_version(&mut self, version: &str, ctx: &mut ViewContext<Self>) {
         ctx.clipboard()
             .write(ClipboardContent::plain_text(version.to_string()));
@@ -3140,40 +3034,6 @@ impl Workspace {
     /// Writes the default tab config template to an unused path in `~/.warp/tab_configs/`
     /// and opens it respecting the user's configured editor setting.
     #[cfg(feature = "local_fs")]
-    fn create_and_open_new_tab_config(&mut self, ctx: &mut ViewContext<Self>) {
-        let dir = tab_configs_dir();
-        if let Err(e) = std::fs::create_dir_all(&dir) {
-            log::warn!("Failed to create tab_configs dir: {e:?}");
-            return;
-        }
-        let path = find_unused_toml_path(&dir, "my_tab_config");
-        const TEMPLATE: &str =
-            include_str!("../../resources/tab_configs/new_tab_config_template.toml");
-        if let Err(e) = std::fs::write(&path, TEMPLATE) {
-            log::warn!("Failed to write new tab config template: {e:?}");
-            return;
-        }
-        let settings = EditorSettings::as_ref(ctx);
-        let target = resolve_file_target_with_editor_choice(
-            &path,
-            *settings.open_code_panels_file_editor,
-            *settings.prefer_markdown_viewer,
-            *settings.open_file_layout,
-            None,
-        );
-        self.open_file_with_target(
-            path.clone(),
-            target,
-            None,
-            CodeSource::Link {
-                path,
-                range_start: None,
-                range_end: None,
-            },
-            ctx,
-        );
-    }
-
     /// Snapshots the given tab's pane layout and writes it as a new tab config
     /// TOML to `~/.warp/tab_configs/`, then opens the file in the user's editor.
     #[cfg(feature = "local_fs")]
@@ -3279,10 +3139,6 @@ impl Workspace {
     /// Retrieves the entity id of the active current active input. This is needed
     /// by the Welcome Tip View in order to know where to dispatch the actions
     /// directly from the tip menu.
-    fn active_input_id(&self, app: &AppContext) -> Option<EntityId> {
-        self.read_from_active_terminal_view(app, |terminal| terminal.input().id())
-    }
-
     /// Gets the ID of the active terminal session, if any.
     pub fn active_session_id(&self, ctx: &ViewContext<Self>) -> Option<SessionId> {
         self.get_pane_group_view(self.active_tab_index)
@@ -3372,14 +3228,6 @@ impl Workspace {
             None,
             ctx,
         );
-    }
-
-    pub(super) fn active_session_view(
-        &self,
-        ctx: &mut ViewContext<Self>,
-    ) -> Option<ViewHandle<TerminalView>> {
-        self.active_tab_pane_group()
-            .read(ctx, |pane_group, ctx| pane_group.active_session_view(ctx))
     }
 
     pub fn close_tab_bar_overflow_menu(&mut self, ctx: &mut ViewContext<Self>) {
@@ -3724,22 +3572,6 @@ impl Workspace {
                 self.sync_new_session_sidecar_selection_to_hover(ctx);
             }
         }
-    }
-
-    fn should_include_worktree_sidecar_repo(repo_path: &Path, ctx: &AppContext) -> bool {
-        // This performs one repo-metadata lookup per persisted workspace while the
-        // sidecar items are rebuilt. That's acceptable for now given the expected
-        // repo counts here, and it keeps linked-worktree filtering scoped to the
-        // only UI that currently needs it.
-        let Some(repository) =
-            DetectedRepositories::as_ref(ctx).get_watched_repo_for_path(repo_path, ctx)
-        else {
-            return true;
-        };
-        // Linked worktrees (and submodules) have an external gitdir; exclude
-        // them so only primary repository checkouts appear in the list.
-
-        repository.as_ref(ctx).external_git_directory().is_none()
     }
 
     fn handle_tab_bar_overflow_menu_event(
@@ -5134,26 +4966,6 @@ impl Workspace {
         }
     }
 
-    fn toggle_notifications(&mut self, ctx: &mut ViewContext<Self>) {
-        let current_settings = SessionSettings::as_ref(ctx).notifications.value().clone();
-        let previous_mode = current_settings.mode;
-        let new_mode = match previous_mode {
-            NotificationsMode::Unset | NotificationsMode::Dismissed => NotificationsMode::Enabled,
-            NotificationsMode::Enabled => NotificationsMode::Disabled,
-            NotificationsMode::Disabled => NotificationsMode::Enabled,
-        };
-
-        SessionSettings::handle(ctx).update(ctx, |settings, ctx| {
-            let new_notifications = NotificationsSettings {
-                mode: new_mode,
-                ..current_settings
-            };
-            if let Err(e) = settings.notifications.set_value(new_notifications, ctx) {
-                log::error!("Error persisting notifications setting: {e}");
-            }
-        });
-    }
-
     fn open_command_palette(&mut self, ctx: &mut ViewContext<Self>) {
         self.tips_completed.update(ctx, |tips_completed, ctx| {
             mark_feature_used_and_write_to_user_defaults(
@@ -5321,10 +5133,6 @@ impl Workspace {
     /// This function is used when we want to view an item in Warp Drive AND focus Warp Drive.
     /// Updates the left panel's warp drive view.
     /// View an object in Warp Drive and open its sharing settings.
-    fn manual_check_for_update(&self, ctx: &mut ViewContext<Self>) {
-        let _ = ctx;
-    }
-
     pub fn is_theme_creator_modal_open(&self) -> bool {
         self.current_workspace_state.is_theme_creator_modal_open
     }
@@ -7794,16 +7602,6 @@ impl Workspace {
     }
 
     /// Renders the maximized code review panel if it is configured and maximized.
-    fn render_config_panel_maximized(
-        &self,
-        pane_group: &PaneGroup,
-        _config: &HeaderToolbarChipSelection,
-        app: &AppContext,
-    ) -> Option<Box<dyn Element>> {
-        let _ = (pane_group, app);
-        None
-    }
-
     /// Offset positioning for global toasts.
     // TODO: update positioning based on input mode.
     fn global_toast_positioning(&self) -> OffsetPositioning {

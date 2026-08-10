@@ -2,7 +2,6 @@ use super::*;
 use std::io::Write;
 use std::path::Path;
 
-
 fn write_tab_config_toml(dir: &Path, file_name: &str, config_name: &str) {
     let path = dir.join(file_name);
     let mut f = std::fs::File::create(path).unwrap();

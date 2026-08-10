@@ -206,5 +206,4 @@ impl InputSettings {
     pub fn is_classic_input_enabled(&self, app: &AppContext) -> bool {
         self.input_type(app) == InputBoxType::Classic
     }
-
 }

@@ -62,7 +62,6 @@ use crate::settings_view::keybindings::KeybindingChangedNotifier;
 use crate::settings_view::SettingsSection;
 use crate::shell_indicator::ShellIndicatorType;
 use crate::sync_ids::SyncId;
-use crate::terminal::alias::AliasedCommand;
 use crate::terminal::alt_screen_reporting::{AltScreenReporting, AltScreenReportingChangedEvent};
 use crate::terminal::block_filter::{
     filter_button_position_id, BlockFilterEditor, BlockFilterEditorEvent, BlockFilterQuery,
@@ -71,6 +70,7 @@ use crate::terminal::block_filter::{
 use crate::terminal::block_list_viewport::OverhangingBlock;
 use crate::terminal::block_list_viewport::ScrollPositionUpdate;
 use crate::terminal::block_list_viewport::ScrollState;
+use crate::terminal::element_size_at_last_frame;
 use crate::terminal::general_settings::GeneralSettings;
 use crate::terminal::grid_size_util::grid_cell_dimensions;
 use crate::terminal::input::decorations::InputBackgroundJobOptions;
@@ -90,7 +90,6 @@ use crate::terminal::session_settings::{
 };
 use crate::terminal::settings::{TerminalSettings, TerminalSettingsChangedEvent};
 use crate::terminal::ShellLaunchData;
-use crate::terminal::{element_size_at_last_frame, HistoryEntry};
 use crate::terminal::{height_in_range_approx, heights_approx_gt, SizeUpdate};
 use crate::terminal::{heights_approx_eq, CellSizeAndWindowPadding};
 use crate::terminal::{AudibleBell, SizeUpdateReason};
@@ -112,7 +111,7 @@ use crate::ActiveSession as WindowActiveSession;
 use async_channel::{Receiver, Sender};
 use chrono::{Local, NaiveDateTime};
 use command_corrections::rules::{Rule, RuleId as CommandCorrectionsRuleId};
-use command_corrections::{correct_command, Command, Correction, HistoryItem, SessionMetadata};
+use command_corrections::Correction;
 use enclose::enclose;
 use instant::Instant;
 use itertools::Itertools;
@@ -148,7 +147,7 @@ use warpui::elements::new_scrollable::{
 use warpui::elements::{
     ChildAnchor, ClippedScrollStateHandle, Container, DispatchEventResult, DropTarget,
     DropTargetData, Empty, EventHandler, Flex, NewScrollable, OffsetPositioning, ParentAnchor,
-    ParentElement, ParentOffsetBounds, Radius, ScrollableElement, ScrollbarWidth, Shrinkable, Text,
+    ParentElement, ParentOffsetBounds, ScrollableElement, ScrollbarWidth, Shrinkable, Text,
 };
 use warpui::event::ModifiersState;
 use warpui::keymap::Keystroke;
@@ -163,8 +162,8 @@ use warpui::{
     accessibility::{AccessibilityContent, ActionAccessibilityContent, WarpA11yRole},
     elements::SavePosition,
     elements::{
-        Align, Clipped, ConstrainedBox, CornerRadius, Fill, Hoverable, Icon, MouseStateHandle,
-        Rect, ScrollStateHandle, Scrollable,
+        Align, Clipped, ConstrainedBox, Fill, Hoverable, Icon, MouseStateHandle, Rect,
+        ScrollStateHandle, Scrollable,
     },
     fonts::{Cache as FontCache, FamilyId},
     ui_components::components::UiComponent,
@@ -203,7 +202,6 @@ use crate::terminal::block_list_element::{
 use crate::terminal::block_list_viewport::AutoscrollBehavior;
 use crate::terminal::block_list_viewport::{InputMode, ScrollPosition, ViewportState};
 use crate::terminal::event::TerminalMode;
-use crate::terminal::event::UserBlockCompleted;
 use crate::terminal::find::{BlockGridMatch, BlockListMatch, TerminalFindModel};
 use crate::terminal::input::{InputState, MenuPositioning};
 use crate::terminal::model::block::BlockMetadata;
@@ -225,8 +223,7 @@ use crate::terminal::model::{
     blocks::BlockListPoint,
 };
 use crate::terminal::view::inline_banner::{
-    AliasExpansionBannerState, NotificationsDiscoveryBannerState, NotificationsErrorBannerState,
-    VimModeBannerState,
+    NotificationsDiscoveryBannerState, NotificationsErrorBannerState, VimModeBannerState,
 };
 use crate::terminal::waterfall_gap_element::WaterfallGapElement;
 use crate::terminal::ShellHost;
@@ -401,7 +398,6 @@ const WARP_MD_PATH: &str = "WARP.md";
 pub const LONG_RUNNING_AGENT_REQUESTED_COMMAND_CONTEXT_KEY: &str = "LongRunningRequestedCommand";
 pub const LONG_RUNNING_AGENT_REQUESTED_COMMAND_USER_TOOK_OVER_CONTEXT_KEY: &str =
     "LongRunningRequestedUserTookOverCommand";
-
 
 lazy_static! {
     static ref CTRL_SHIFT_A_KEYSTROKE: Keystroke = Keystroke {
@@ -917,11 +913,7 @@ pub enum ContextMenuAction {
     CopyBlockCommands,
     CopyBlockOutputs,
     CopyBlockFilteredOutputs,
-    OpenShareBlockModal {
-        block_index: BlockIndex,
-    },
     FindWithinBlock,
-    ToggleBookmark,
     ScrollToBottomOfBlock,
     ScrollToTopOfBlock,
     CopyPrompt {
@@ -953,13 +945,9 @@ impl fmt::Debug for ContextMenuAction {
             CopyBlocks => f.write_str("CopyBlocks"),
             CopyBlockCommands => f.write_str("CopyBlockCommands"),
             CopyBlockOutputs => f.write_str("CopyBlockOutputs"),
-            OpenShareBlockModal { block_index } => {
-                write!(f, "OpenShareModal {{ block_index: {block_index} }}")
-            }
             FindWithinBlock => f.write_str("FindWithinBlock"),
             ScrollToBottomOfBlock => f.write_str("ScrollToBottomOfBlock"),
             ScrollToTopOfBlock => f.write_str("ScrollToTopOfBlock"),
-            ToggleBookmark => f.write_str("BookmarkBlock"),
             CopyPrompt { position, part } => {
                 write!(f, "CopyPrompt {{ position: {position:?}, part: {part:?} }}")
             }
@@ -1082,6 +1070,7 @@ pub enum Event {
     AppStateChanged,
     Escape,
     Exited,
+    CloseRequested,
     BlockListCleared,
     ShareModalOpened(BlockIndex),
     SendNotification(BlockNotification),
@@ -1631,7 +1620,6 @@ pub struct TerminalView {
 
     pty_spawn_failed: bool,
 
-
     /// Per-repo git status model for the current repository, if any.
     /// A list of callbacks to run on the next [`ModelEvent::AfterBlockCompleted`] received.
     block_completed_callbacks: Vec<TerminalViewCallback>,
@@ -1655,7 +1643,6 @@ pub struct TerminalView {
     /// suppresses `AgentExitedShellProcess` telemetry so manual shutdown paths
     /// (tab close, update relaunch, etc.) are not attributed to agent commands.
     manual_pty_shutdown_requested: bool,
-
 }
 
 #[derive(Copy, Clone, Serialize)]
@@ -3104,57 +3091,6 @@ impl TerminalView {
         ctx.notify();
     }
 
-    /// Inserts a notifications discovery banner into the block list.
-    fn insert_notifications_discovery_banner(
-        &mut self,
-        trigger: NotificationsTrigger,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        // Don't show if the user has dismissed the banner in this session.
-        if matches!(
-            self.inline_banners_state.notifications_discovery_banner,
-            NotificationsDiscoveryBanner::Closed
-        ) {
-            return;
-        }
-
-        let banner = &self.inline_banners_state.notifications_discovery_banner;
-        // Prevent stacking multiple banners or leaving empty space.
-        if let NotificationsDiscoveryBanner::Open { state, .. } = banner {
-            self.model
-                .lock()
-                .block_list_mut()
-                .remove_inline_banner(state.banner_id);
-        }
-
-        let banner_id = self.inline_banners_state.next_banner_id();
-        self.inline_banners_state.notifications_discovery_banner =
-            NotificationsDiscoveryBanner::Open {
-                trigger,
-                state: NotificationsDiscoveryBannerState {
-                    banner_id,
-                    mouse_states: Default::default(),
-                },
-                request_outcome: None,
-            };
-        self.model
-            .lock()
-            .block_list_mut()
-            .append_inline_banner(InlineBannerItem::new(
-                banner_id,
-                InlineBannerType::NotificationsDiscovery,
-            ));
-
-        let a11y_content = AccessibilityContent::new(
-            trigger.discovery_banner_copy(),
-            "You can enable notifications through the command palette.",
-            WarpA11yRole::TextRole,
-        );
-        ctx.emit_a11y_content(a11y_content);
-
-        ctx.notify();
-    }
-
     /// Inserts a notifications error banner into the block list.
     fn insert_notifications_error_banner(&mut self, ctx: &mut ViewContext<Self>) {
         let banner_id = self.inline_banners_state.next_banner_id();
@@ -3198,40 +3134,6 @@ impl TerminalView {
             input.replace_buffer_content(correction.command.as_str(), ctx);
             ctx.notify()
         });
-    }
-
-    /// Returns the view type for prompt suggestion telemetry based on whether agent view is active.
-    /// Try clearing agent mode query banner's passive code generation state.
-    /// Called when a suggested code diff fails and we need to fall back to prompt suggestions.
-    fn insert_alias_expansion_banner(
-        &mut self,
-        aliased_command: AliasedCommand,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        if let AliasExpansionBanner::Open { .. } = self.inline_banners_state.alias_expansion_banner
-        {
-            // We only show this banner once to the user.
-            log::warn!("Tried to insert more than one alias expansion banner");
-            return;
-        }
-        let banner_id = self.inline_banners_state.next_banner_id();
-        self.inline_banners_state.alias_expansion_banner = AliasExpansionBanner::Open {
-            state: AliasExpansionBannerState {
-                id: banner_id,
-                aliased_command,
-                yes_button_mouse_state: Default::default(),
-                no_button_mouse_state: Default::default(),
-            },
-        };
-
-        self.model
-            .lock()
-            .block_list_mut()
-            .append_inline_banner(InlineBannerItem::new(
-                banner_id,
-                InlineBannerType::AliasExpansion,
-            ));
-        ctx.notify();
     }
 
     /// Inserts a vim keybinding banner into the blocklist.
@@ -4039,71 +3941,6 @@ impl TerminalView {
     // (1) resizing right after swapping terminal modes, and
     // (2) the alt-screen app registering its resize handler
     #[cfg(feature = "local_tty")]
-    async fn fetch_command_corrections(
-        block: UserBlockCompleted,
-        session: Option<Arc<Session>>,
-        history_commands: Vec<HistoryEntry>,
-    ) -> Vec<Correction> {
-        // Create the command
-        let (input, output, exit_code, working_dir) = (
-            block.command.as_str(),
-            block.output_truncated.as_str(),
-            block.serialized_block.exit_code,
-            block.serialized_block.pwd.as_ref(),
-        );
-
-        let mut command = Command::new(input, output, exit_code.into());
-        if let Some(working_dir) = working_dir {
-            command = command.set_working_dir(working_dir);
-        }
-
-        // Create the session metadata
-        // TODO: we need to figure out how to avoid re-creating this
-        // for every single invocation of correct_command.
-        let mut session_metadata = SessionMetadata::new();
-
-        session_metadata.set_history(history_commands.iter().filter_map(|s| {
-            Some(HistoryItem::new(
-                s.command.as_str(),
-                s.exit_code?,
-                s.pwd.as_ref()?.as_str(),
-            ))
-        }));
-
-        let mut git_branches = None;
-        if let Some(session) = &session {
-            session_metadata.set_session_type(session.session_type().clone().into());
-            let shell = session.shell();
-            session_metadata.set_shell(shell.shell_type().into(), shell.version().as_deref());
-            session_metadata.set_aliases(session.alias_names());
-            session_metadata.set_executables(session.executable_names());
-            session_metadata.set_functions(session.function_names());
-            session_metadata.set_builtins(session.builtin_names());
-            session_metadata.set_platform_type(session.host_info().platform_type());
-            if let Some(working_dir) = working_dir {
-                git_branches = Some(
-                    session
-                        .git_branches_for_command_corrections(working_dir)
-                        .await,
-                );
-            }
-        }
-        session_metadata.set_git_branches(git_branches.iter().flatten().map(|s| s.as_str()));
-
-        // https://github.com/warpdotdev/command-corrections/blob/df7848d4fb3da7883623e959889a296a07d88053/src/rules/cd/mod.rs#L31-L36
-        // We don't currently support dynamic rules over SSH, so we should not attempt to correct commands if
-        // inside ssh session.
-        if FeatureFlag::CommandCorrectionsHistoryRule.is_enabled() {
-            correct_command(command, &session_metadata, std::iter::empty())
-        } else {
-            correct_command(
-                command,
-                &session_metadata,
-                DEFAULT_IGNORED_RULES_FOR_COMMAND_CORRECTIONS.into_iter(),
-            )
-        }
-    }
-
     /// If a command correction exists, generate the command correction banner.
     /// Removes hidden AI blocks for passive requests from the sumtree.
     ///
@@ -4517,15 +4354,6 @@ impl TerminalView {
 
     /// Returns the rich-content link currently hovered inside the AI block view whose view id is
     /// `rich_content_view_id`, if any. Used to surface a link-specific right-click context menu.
-    fn hovered_rich_content_link_for_view(
-        &self,
-        rich_content_view_id: EntityId,
-        ctx: &AppContext,
-    ) -> Option<RichContentLink> {
-        let _ = (rich_content_view_id, ctx);
-        None
-    }
-
     fn context_menu_items(
         &self,
         menu_source: &BlockListMenuSource,
@@ -4649,14 +4477,6 @@ impl TerminalView {
                 };
 
                 let is_single_selection = self.selected_blocks.is_singleton();
-                let is_active_block_selected = self
-                    .selected_blocks
-                    .is_selected(model.block_list().active_block_index());
-                let is_active_block_running = model
-                    .block_list()
-                    .active_block()
-                    .is_active_and_long_running();
-
                 let copy_commands_str = if is_single_selection {
                     "Copy command"
                 } else {
@@ -4679,22 +4499,10 @@ impl TerminalView {
                     "Scroll to bottom of blocks"
                 };
 
-                // currently, we don't support share for multi selections
-                let is_share_disabled =
-                    !is_single_selection || (is_active_block_selected && is_active_block_running);
-
                 let is_copy_commands_disabled =
                     is_single_selection && tail_block.command_to_string().trim().is_empty();
                 let is_copy_both_disabled =
                     is_copy_commands_disabled && tail_block.output_to_string().trim().is_empty();
-
-                let share_block_label = if FeatureFlag::CreatingSharedSessions.is_enabled()
-                    && ContextFlag::CreateSharedSession.is_enabled()
-                {
-                    "Share block..."
-                } else {
-                    "Share..."
-                };
 
                 let mut items = vec![
                     MenuItemFields::new(copy_str)
@@ -4717,30 +4525,7 @@ impl TerminalView {
                         ))
                         .with_disabled(is_copy_commands_disabled)
                         .into_item(),
-                    MenuItemFields::new(share_block_label)
-                        .with_on_select_action(TerminalAction::ContextMenu(
-                            ContextMenuAction::OpenShareBlockModal {
-                                block_index: tail_block_index,
-                            },
-                        ))
-                        .with_key_shortcut_label(keybinding_name_to_display_string(
-                            "terminal:open_share_block_modal",
-                            ctx,
-                        ))
-                        .with_disabled(is_share_disabled)
-                        .into_item(),
                 ];
-
-                if FeatureFlag::CreatingSharedSessions.is_enabled()
-                    && ContextFlag::CreateSharedSession.is_enabled()
-                {
-                    // Sharing a session from a context menu is disabled for multi block selections, restored blocks, and viewers.
-                    let _is_share_session_disabled = !is_single_selection
-                        || model
-                            .block_list()
-                            .block_at(tail_block_index)
-                            .is_none_or(|b| b.is_restored());
-                }
 
                 if is_single_selection {
                     let mut copy_output_menu_item = MenuItemFields::new("Copy output")
@@ -4793,16 +4578,6 @@ impl TerminalView {
                         ))
                         .into_item(),
                 ]);
-                items.append(&mut vec![MenuItemFields::new("Toggle bookmark")
-                    .with_on_select_action(TerminalAction::ContextMenu(
-                        ContextMenuAction::ToggleBookmark,
-                    ))
-                    .with_key_shortcut_label(keybinding_name_to_display_string(
-                        "terminal:bookmark_selected_block",
-                        ctx,
-                    ))
-                    .into_item()]);
-
                 items.append(&mut vec![
                     MenuItem::Separator,
                     MenuItemFields::new(scroll_to_top_str)
@@ -6059,19 +5834,6 @@ impl TerminalView {
         ctx.notify();
     }
 
-    fn find_within_block(&mut self, ctx: &mut ViewContext<Self>) {
-        self.tips_completed.update(ctx, |tips, ctx| {
-            mark_feature_used_and_write_to_user_defaults(
-                Tip::Hint(TipHint::BlockAction),
-                tips,
-                ctx,
-            );
-            ctx.notify();
-        });
-        self.update_find_selection(ctx);
-        self.show_find_bar(ctx);
-    }
-
     fn scroll_to_top_of_topmost_selected_block(&mut self, ctx: &mut ViewContext<Self>) {
         let input_mode = *InputModeSettings::as_ref(ctx).input_mode.value();
         let block_sort_direction = input_mode.block_sort_direction();
@@ -6155,68 +5917,6 @@ impl TerminalView {
         }
     }
 
-    fn cut_selected_text_from_input(&mut self, ctx: &mut ViewContext<Self>) {
-        let selected_input_text = self.input.read(ctx, |input, ctx| {
-            input
-                .editor()
-                .read(ctx, |editor, ctx| editor.selected_text(ctx))
-        });
-
-        self.input.update(ctx, |input, ctx| {
-            input.editor().update(ctx, |editor, ctx| {
-                editor.backspace(ctx);
-            })
-        });
-
-        if !selected_input_text.is_empty() {
-            ctx.clipboard()
-                .write(ClipboardContent::plain_text(selected_input_text));
-        }
-    }
-
-    fn copy_selected_text_from_input(&mut self, ctx: &mut ViewContext<Self>) {
-        let selected_input_text = self.input.read(ctx, |input, ctx| {
-            input
-                .editor()
-                .read(ctx, |editor, ctx| editor.selected_text(ctx))
-        });
-
-        if !selected_input_text.is_empty() {
-            ctx.clipboard()
-                .write(ClipboardContent::plain_text(selected_input_text));
-        }
-    }
-
-    fn select_all_text_from_input(&mut self, ctx: &mut ViewContext<Self>) {
-        self.input.update(ctx, |input, ctx| {
-            input.editor().update(ctx, |editor, ctx| {
-                editor.handle_action(&EditorAction::SelectAll, ctx)
-            })
-        });
-    }
-
-    fn paste_in_input(&mut self, ctx: &mut ViewContext<Self>) {
-        let clipboard_content = ctx.clipboard().read();
-
-        self.input.update(ctx, |input, ctx| {
-            input.system_insert(clipboard_content.plain_text.as_str(), ctx);
-            ctx.focus_self();
-        });
-    }
-
-    fn command_search_from_input(&mut self, ctx: &mut ViewContext<Self>) {
-        ctx.emit(Event::ShowCommandSearch(Default::default()))
-    }
-
-    fn toggle_input_hint_text(&mut self, ctx: &mut ViewContext<Self>) {
-        let _new_val = InputSettings::handle(ctx).update(ctx, |input_settings, ctx| {
-            report_if_error!(input_settings.show_hint_text.toggle_and_save_value(ctx));
-            *input_settings.show_hint_text
-        });
-
-        // Send the same telemetry event that we do from the features page to make data analysis easier.
-    }
-
     fn copy_prompt(
         &mut self,
         position: &PromptPosition,
@@ -6270,19 +5970,6 @@ impl TerminalView {
             ctx.notify();
         });
         self.close_context_menu(ctx, true);
-    }
-
-    fn copy_rprompt(&mut self, ctx: &mut ViewContext<Self>) {
-        let rprompt_text_option = self.input.as_ref(ctx).prompt_and_rprompt_text(ctx).1;
-
-        if let Some(rprompt_text) = rprompt_text_option {
-            ctx.clipboard()
-                .write(ClipboardContent::plain_text(rprompt_text));
-        }
-    }
-
-    fn edit_prompt(&mut self, ctx: &mut ViewContext<Self>) {
-        ctx.emit(Event::OpenPromptEditor);
     }
 
     /// Handle AI entrypoints, routing to AI in blocklist when possible and falling back to the AI
@@ -6622,10 +6309,6 @@ impl TerminalView {
         ctx.notify();
     }
 
-    fn rerender_rich_content_blocks(&mut self, ctx: &mut ViewContext<Self>) {
-        let _ = ctx;
-    }
-
     fn reset_selection_to_single_block(
         &mut self,
         block_index: BlockIndex,
@@ -6814,29 +6497,6 @@ impl TerminalView {
         }
     }
 
-    fn context_menu_insert_selected_text(&mut self, ctx: &mut ViewContext<Self>) {
-        {
-            let semantic_selection = SemanticSelection::as_ref(ctx);
-            // Note: we purposely separate this expression here, to avoid locking the TerminalModel for the duration of the `if let`
-            // block, since downstream functions may need the lock (`Input::insert_internal`).
-            let selected_text = self.model.lock().selection_to_string(
-                semantic_selection,
-                self.is_inverted_blocklist(ctx),
-                ctx,
-            );
-            if let Some(selected_text) = selected_text {
-                // We put everything from the selection into the input box, even
-                // if it includes non-printable characters. Note that this is
-                // important to handle new lines appropriately.
-                self.input.update(ctx, |input, ctx| {
-                    input.system_insert(&selected_text, ctx);
-                    ctx.focus_self();
-                })
-            }
-        }
-        self.close_context_menu(ctx, true);
-    }
-
     fn input_command(&mut self, ctx: &mut ViewContext<Self>, command: String) {
         self.input.update(ctx, |input, ctx| {
             input.replace_buffer_content((command).trim(), ctx);
@@ -6863,28 +6523,6 @@ impl TerminalView {
             self.input_command(ctx, commands.join("\n"));
             self.focus_input_box(ctx);
         }
-    }
-
-    fn context_menu_copy_blocks(&mut self, ctx: &mut ViewContext<Self>) {
-        self.copy_blocks(BlockEntity::CommandAndOutput, ctx);
-    }
-
-    fn context_menu_copy_block_commands(&mut self, ctx: &mut ViewContext<Self>) {
-        self.copy_blocks(BlockEntity::Command, ctx);
-    }
-
-    fn context_menu_copy_block_outputs(&mut self, ctx: &mut ViewContext<Self>) {
-        self.copy_blocks(BlockEntity::Output, ctx);
-    }
-
-    fn context_menu_copy_filtered_block_outputs(&mut self, ctx: &mut ViewContext<Self>) {
-        self.copy_blocks(BlockEntity::FilteredOutput, ctx);
-    }
-
-    fn context_menu_copy_url(&mut self, url_content: &str, ctx: &mut ViewContext<Self>) {
-        ctx.clipboard()
-            .write(ClipboardContent::plain_text(url_content.to_string()));
-        self.close_context_menu(ctx, true);
     }
 
     fn num_non_hidden_selected_blocks(&self) -> usize {
@@ -6930,20 +6568,6 @@ impl TerminalView {
         self.close_context_menu(ctx, true);
     }
 
-    fn context_menu_copy_selected_text(&mut self, ctx: &mut ViewContext<Self>) {
-        {
-            let semantic_selection = SemanticSelection::as_ref(ctx);
-            let model = self.model.lock();
-            if let Some(selected_text) =
-                model.selection_to_string(semantic_selection, self.is_inverted_blocklist(ctx), ctx)
-            {
-                ctx.clipboard()
-                    .write(ClipboardContent::plain_text(selected_text));
-            }
-        }
-        self.close_context_menu(ctx, true);
-    }
-
     fn selected_block_contents_as_string(
         &mut self,
         entity: BlockEntity,
@@ -6972,6 +6596,196 @@ impl TerminalView {
         );
 
         block_strs.join(separator)
+    }
+
+    fn find_within_block(&mut self, ctx: &mut ViewContext<Self>) {
+        self.tips_completed.update(ctx, |tips, ctx| {
+            mark_feature_used_and_write_to_user_defaults(
+                Tip::Hint(TipHint::BlockAction),
+                tips,
+                ctx,
+            );
+            ctx.notify();
+        });
+        self.update_find_selection(ctx);
+        self.show_find_bar(ctx);
+    }
+
+    fn cut_selected_text_from_input(&mut self, ctx: &mut ViewContext<Self>) {
+        let selected_input_text = self.input.read(ctx, |input, ctx| {
+            input
+                .editor()
+                .read(ctx, |editor, ctx| editor.selected_text(ctx))
+        });
+
+        self.input.update(ctx, |input, ctx| {
+            input.editor().update(ctx, |editor, ctx| {
+                editor.backspace(ctx);
+            })
+        });
+
+        if !selected_input_text.is_empty() {
+            ctx.clipboard()
+                .write(ClipboardContent::plain_text(selected_input_text));
+        }
+    }
+
+    fn copy_selected_text_from_input(&mut self, ctx: &mut ViewContext<Self>) {
+        let selected_input_text = self.input.read(ctx, |input, ctx| {
+            input
+                .editor()
+                .read(ctx, |editor, ctx| editor.selected_text(ctx))
+        });
+
+        if !selected_input_text.is_empty() {
+            ctx.clipboard()
+                .write(ClipboardContent::plain_text(selected_input_text));
+        }
+    }
+
+    fn select_all_text_from_input(&mut self, ctx: &mut ViewContext<Self>) {
+        self.input.update(ctx, |input, ctx| {
+            input.editor().update(ctx, |editor, ctx| {
+                editor.handle_action(&EditorAction::SelectAll, ctx)
+            })
+        });
+    }
+
+    fn paste_in_input(&mut self, ctx: &mut ViewContext<Self>) {
+        let clipboard_content = ctx.clipboard().read();
+
+        self.input.update(ctx, |input, ctx| {
+            input.system_insert(clipboard_content.plain_text.as_str(), ctx);
+            ctx.focus_self();
+        });
+    }
+
+    fn command_search_from_input(&mut self, ctx: &mut ViewContext<Self>) {
+        ctx.emit(Event::ShowCommandSearch(Default::default()))
+    }
+
+    fn toggle_input_hint_text(&mut self, ctx: &mut ViewContext<Self>) {
+        let _new_val = InputSettings::handle(ctx).update(ctx, |input_settings, ctx| {
+            report_if_error!(input_settings.show_hint_text.toggle_and_save_value(ctx));
+            *input_settings.show_hint_text
+        });
+
+        // Send the same telemetry event that we do from the features page to make data analysis easier.
+    }
+
+    fn copy_rprompt(&mut self, ctx: &mut ViewContext<Self>) {
+        let rprompt_text_option = self.input.as_ref(ctx).prompt_and_rprompt_text(ctx).1;
+
+        if let Some(rprompt_text) = rprompt_text_option {
+            ctx.clipboard()
+                .write(ClipboardContent::plain_text(rprompt_text));
+        }
+    }
+
+    fn edit_prompt(&mut self, ctx: &mut ViewContext<Self>) {
+        ctx.emit(Event::OpenPromptEditor);
+    }
+
+    fn context_menu_insert_selected_text(&mut self, ctx: &mut ViewContext<Self>) {
+        {
+            let semantic_selection = SemanticSelection::as_ref(ctx);
+            // Note: we purposely separate this expression here, to avoid locking the TerminalModel for the duration of the `if let`
+            // block, since downstream functions may need the lock (`Input::insert_internal`).
+            let selected_text = self.model.lock().selection_to_string(
+                semantic_selection,
+                self.is_inverted_blocklist(ctx),
+                ctx,
+            );
+            if let Some(selected_text) = selected_text {
+                // We put everything from the selection into the input box, even
+                // if it includes non-printable characters. Note that this is
+                // important to handle new lines appropriately.
+                self.input.update(ctx, |input, ctx| {
+                    input.system_insert(&selected_text, ctx);
+                    ctx.focus_self();
+                })
+            }
+        }
+        self.close_context_menu(ctx, true);
+    }
+
+    fn context_menu_copy_blocks(&mut self, ctx: &mut ViewContext<Self>) {
+        self.copy_blocks(BlockEntity::CommandAndOutput, ctx);
+    }
+
+    fn context_menu_copy_block_commands(&mut self, ctx: &mut ViewContext<Self>) {
+        self.copy_blocks(BlockEntity::Command, ctx);
+    }
+
+    fn context_menu_copy_block_outputs(&mut self, ctx: &mut ViewContext<Self>) {
+        self.copy_blocks(BlockEntity::Output, ctx);
+    }
+
+    fn context_menu_copy_filtered_block_outputs(&mut self, ctx: &mut ViewContext<Self>) {
+        self.copy_blocks(BlockEntity::FilteredOutput, ctx);
+    }
+
+    fn context_menu_copy_url(&mut self, url_content: &str, ctx: &mut ViewContext<Self>) {
+        ctx.clipboard()
+            .write(ClipboardContent::plain_text(url_content.to_string()));
+        self.close_context_menu(ctx, true);
+    }
+
+    fn context_menu_copy_selected_text(&mut self, ctx: &mut ViewContext<Self>) {
+        {
+            let semantic_selection = SemanticSelection::as_ref(ctx);
+            let model = self.model.lock();
+            if let Some(selected_text) =
+                model.selection_to_string(semantic_selection, self.is_inverted_blocklist(ctx), ctx)
+            {
+                ctx.clipboard()
+                    .write(ClipboardContent::plain_text(selected_text));
+            }
+        }
+        self.close_context_menu(ctx, true);
+    }
+
+    fn context_menu_action(&mut self, action: &ContextMenuAction, ctx: &mut ViewContext<Self>) {
+        match action {
+            ContextMenuAction::InsertSelectedText => self.context_menu_insert_selected_text(ctx),
+            ContextMenuAction::CopySelectedText => self.context_menu_copy_selected_text(ctx),
+            ContextMenuAction::CopyUrl { url_content } => {
+                self.context_menu_copy_url(url_content, ctx)
+            }
+            ContextMenuAction::CopyBlocks => self.context_menu_copy_blocks(ctx),
+            ContextMenuAction::CopyBlockCommands => self.context_menu_copy_block_commands(ctx),
+            ContextMenuAction::CopyBlockOutputs => self.context_menu_copy_block_outputs(ctx),
+            ContextMenuAction::CopyBlockFilteredOutputs => {
+                self.context_menu_copy_filtered_block_outputs(ctx)
+            }
+            ContextMenuAction::FindWithinBlock => self.find_within_block(ctx),
+            ContextMenuAction::ScrollToBottomOfBlock => {
+                self.scroll_to_bottom_of_bottommost_selected_block(ctx)
+            }
+            ContextMenuAction::ScrollToTopOfBlock => {
+                self.scroll_to_top_of_topmost_selected_block(ctx)
+            }
+            ContextMenuAction::CopyPrompt { position, part } => {
+                self.copy_prompt(position, part, ctx)
+            }
+            ContextMenuAction::CopyRprompt => self.copy_rprompt(ctx),
+            ContextMenuAction::EditPrompt => self.edit_prompt(ctx),
+        }
+    }
+
+    fn handle_input_context_menu_action(
+        &mut self,
+        action: &InputContextMenuAction,
+        ctx: &mut ViewContext<Self>,
+    ) {
+        match action {
+            InputContextMenuAction::CutSelectedText => self.cut_selected_text_from_input(ctx),
+            InputContextMenuAction::CopySelectedText => self.copy_selected_text_from_input(ctx),
+            InputContextMenuAction::SelectAll => self.select_all_text_from_input(ctx),
+            InputContextMenuAction::Paste => self.paste_in_input(ctx),
+            InputContextMenuAction::ShowCommandSearch => self.command_search_from_input(ctx),
+            InputContextMenuAction::ToggleInputHintText => self.toggle_input_hint_text(ctx),
+        }
     }
 
     fn handle_menu_event(&mut self, event: &MenuEvent, ctx: &mut ViewContext<Self>) {
@@ -7385,16 +7199,6 @@ impl TerminalView {
         }
     }
 
-    fn handle_slow_bootstrap_banner_event(
-        &mut self,
-        event: &BannerEvent,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        match event {
-            BannerEvent::Dismiss { .. } => self.hide_slow_bootstrap_banner(ctx),
-        }
-    }
-
     fn handle_incompatible_configuration_banner_event(
         &mut self,
         event: &BannerEvent,
@@ -7504,19 +7308,6 @@ impl TerminalView {
         if show_banner != self.is_incompatible_configuration_banner_open {
             self.is_incompatible_configuration_banner_open = show_banner;
             ctx.notify();
-        }
-    }
-
-    fn handle_controlmaster_error_banner_event(
-        &mut self,
-        event: &BannerEvent,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        match event {
-            BannerEvent::Dismiss { .. } => {
-                self.control_master_error_banner_state.is_open = false;
-                ctx.notify();
-            }
         }
     }
 
@@ -7891,12 +7682,6 @@ impl TerminalView {
     }
 
     /// Returns the duration as an std::time::Duration struct
-    fn block_duration(&self, serialized_block: &SerializedBlock) -> Option<Duration> {
-        (serialized_block.completed_ts? - serialized_block.start_ts?)
-            .to_std()
-            .ok()
-    }
-
     fn block_duration_text(model: &TerminalModel, block_index: BlockIndex) -> Option<String> {
         model
             .block_list()
@@ -8107,90 +7892,6 @@ impl TerminalView {
             .jump_to_bottom_of_block_button
             .lock()
             .is_ok_and(|handle| handle.is_hovered())
-    }
-
-    fn render_jump_to_bottom_of_block_element(
-        &self,
-        overhanging_block: OverhangingBlock,
-        is_long_running_command: bool,
-        appearance: &Appearance,
-        app: &AppContext,
-    ) -> Box<dyn Element> {
-        let theme = appearance.theme();
-        Hoverable::new(
-            self.mouse_states.jump_to_bottom_of_block_button.clone(),
-            move |state| {
-                let icon_color: ColorU = theme.sub_text_color(theme.surface_2()).into();
-                let icon_path = "bundled/svg/vertical_align_bottom.svg";
-
-                let container = Container::new(
-                    ConstrainedBox::new(Icon::new(icon_path, icon_color).finish())
-                        .with_height(JUMP_TO_BOTTOM_OF_BLOCK_ICON_SIZE_PX.as_f32())
-                        .with_width(JUMP_TO_BOTTOM_OF_BLOCK_ICON_SIZE_PX.as_f32())
-                        .finish(),
-                )
-                .with_uniform_padding(JUMP_TO_BOTTOM_OF_BLOCK_BUTTON_PADDING_PX.as_f32())
-                .with_corner_radius(CornerRadius::with_all(Radius::Pixels(
-                    JUMP_TO_BOTTOM_OF_BLOCK_CORNER_RADIUS_PX.as_f32(),
-                )));
-
-                let container = if state.is_hovered() || state.is_clicked() {
-                    container.with_background(theme.surface_2())
-                } else {
-                    container
-                };
-
-                let mut stack = Stack::new().with_child(container.finish());
-
-                if state.is_hovered() {
-                    let input_mode = *InputModeSettings::as_ref(app).input_mode.value();
-                    let tool_tip_text = if overhanging_block.is_most_recent_block()
-                        && input_mode.is_inverted_blocklist()
-                        && is_long_running_command
-                    {
-                        "Lock scrolling at bottom of block".to_string()
-                    } else {
-                        "Jump to the bottom of this block".to_string()
-                    };
-
-                    let tool_tip = appearance
-                        .ui_builder()
-                        .tool_tip(tool_tip_text)
-                        .build()
-                        .finish();
-
-                    stack.add_positioned_child(
-                        tool_tip,
-                        OffsetPositioning::offset_from_parent(
-                            vec2f(0., JUMP_TO_BOTTOM_OF_BLOCK_TOOLTIP_OFFSET_Y_PX.as_f32()),
-                            ParentOffsetBounds::Unbounded,
-                            ParentAnchor::TopRight,
-                            ChildAnchor::BottomRight,
-                        ),
-                    );
-                }
-
-                stack.finish()
-            },
-        )
-        .on_click(move |ctx, _, _| {
-            ctx.dispatch_typed_action(TerminalAction::ScrollToBottomOfOverhangingBlock(
-                overhanging_block,
-            ));
-        })
-        .on_hover(move |mouse_in, ctx, _, position| {
-            // Since this element is on top of the block list element, we need to start a block hover here
-            // rather than relying on the block list element itself to manage hover state.
-            if mouse_in {
-                ctx.dispatch_typed_action(TerminalAction::BlockHover(BlockHoverAction::Begin {
-                    position,
-                    block_index: overhanging_block.block_index(),
-                }));
-            } else {
-                ctx.dispatch_typed_action(TerminalAction::BlockHover(BlockHoverAction::Clear));
-            }
-        })
-        .finish()
     }
 
     fn render_label_element(
@@ -9192,15 +8893,6 @@ impl TerminalView {
         });
     }
 
-    fn reset_focus_after_rich_block(&mut self, ctx: &mut ViewContext<Self>) {
-        self.redetermine_terminal_focus(ctx);
-        self.input.update(ctx, |input, ctx| {
-            input.editor().update(ctx, |editor, ctx| {
-                editor.clear_autosuggestion(ctx);
-            });
-        });
-    }
-
     pub fn cancel_env_var_block(&mut self, ctx: &mut ViewContext<Self>) {
         let _ = ctx;
     }
@@ -9303,7 +8995,6 @@ impl TerminalView {
     pub fn shell_indicator_type(&self) -> Option<ShellIndicatorType> {
         self.shell_indicator_type
     }
-
 }
 
 impl Entity for TerminalView {
@@ -9473,7 +9164,6 @@ impl TypedActionView for TerminalView {
             | CopyCommands
             | MaybeHoverSecret { .. }
             | CopyGitBranch
-            | OpenShareModal
             | ReinputCommands
             | ReinputCommandsWithSudo
             | ClearBuffer
@@ -9641,7 +9331,7 @@ impl TypedActionView for TerminalView {
                 };
                 self.copy_prompt(&prompt_position, &PromptPart::GitBranch, ctx)
             }
-            OpenShareModal => {}
+            OpenFilesPalette => ctx.emit(Event::OpenFilesPalette),
             ReinputCommands => self.reinput_commands(false, ctx),
             ReinputCommandsWithSudo => self.reinput_commands(true, ctx),
             ClearBuffer => self.clear_buffer(ctx),
@@ -9699,8 +9389,8 @@ impl TypedActionView for TerminalView {
             CtrlD => self.ctrl_d(ctx),
             CtrlC => self.handle_ctrl_c_input_event(0, ctx),
             ClearSelectionsWhenShellMode => self.clear_selections_when_shell_mode(ctx),
-            ContextMenu(_) => {}
-            Close => {}
+            ContextMenu(action) => self.context_menu_action(action, ctx),
+            Close => ctx.emit(Event::CloseRequested),
             SplitRight(chosen_shell) => {
                 ctx.emit(Event::Pane(PaneEvent::SplitRight(chosen_shell.to_owned())))
             }
@@ -9718,7 +9408,7 @@ impl TypedActionView for TerminalView {
                 position_offset_from_prompt,
             } => self.show_prompt_context_menu(*position_offset_from_prompt, ctx),
             OpenInputContextMenu { position } => self.show_input_context_menu(*position, ctx),
-            InputContextMenuItem(_) => {}
+            InputContextMenuItem(action) => self.handle_input_context_menu_action(action, ctx),
             SelectAllBlocks => self.select_all_blocks(ctx),
             BookmarkBlock(index) => self.bookmark_block(index, ctx),
             ExpandBlockSelectionAbove => {

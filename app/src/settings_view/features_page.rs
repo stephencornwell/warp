@@ -46,8 +46,8 @@ use crate::settings::{
     LinuxSelectionClipboard, MiddleClickPasteEnabled, MouseScrollMultiplier,
     OutlineCodebaseSymbolsForAtContextMenu, PreferLowPowerGPU, PreferredGraphicsBackend,
     QuakeModeSettings, ScrollSettings, SelectionSettings, ShowAutosuggestionIgnoreButton,
-    SshSettings, SyntaxHighlighting, TabBehavior, VimModeEnabled,
-    VimStatusBar, VimUnnamedSystemClipboard, DEFAULT_QUAKE_MODE_SIZE_PERCENTAGES,
+    SshSettings, SyntaxHighlighting, TabBehavior, VimModeEnabled, VimStatusBar,
+    VimUnnamedSystemClipboard, DEFAULT_QUAKE_MODE_SIZE_PERCENTAGES,
     QUAKE_WINDOW_AUTOHIDE_SUPPORTED,
 };
 use crate::settings::{
@@ -2137,7 +2137,6 @@ impl FeaturesPageView {
                 OutlineCodebaseSymbolsForAtContextMenuWidget::default(),
             ));
         }
-
 
         editor_widgets.push(Box::new(TabKeyBehaviorWidget::default()));
 

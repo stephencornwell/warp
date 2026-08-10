@@ -22,10 +22,7 @@ use warpui::elements::{
 use warpui::prelude::Container;
 use warpui::text_layout::ClipConfig;
 use warpui::WeakModelHandle;
-use warpui::{
-    AppContext, Element, ModelHandle, SingletonEntity, TypedActionView,
-    ViewContext,
-};
+use warpui::{AppContext, Element, ModelHandle, SingletonEntity, TypedActionView, ViewContext};
 
 impl TerminalView {
     /// Returns a reference to the focus handle if one has been set.

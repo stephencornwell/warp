@@ -31,10 +31,10 @@ use crate::{
     editor::{
         position_id_for_cached_point, position_id_for_cursor, position_id_for_first_cursor,
         AutosuggestionLocation, AutosuggestionType, BaselinePositionComputationMethod,
-        CrdtOperation, EditOrigin, EditorAction, EditorOptions, EditorSnapshot,
-        EditorView, Event as EditorEvent, InteractionState, PathTransformerFn,
-        PlainTextEditorViewAction, Point as BufferPoint, PropagateAndNoOpEscapeKey,
-        PropagateAndNoOpNavigationKeys, PropagateHorizontalNavigationKeys, TextColors,
+        CrdtOperation, EditOrigin, EditorAction, EditorOptions, EditorSnapshot, EditorView,
+        Event as EditorEvent, InteractionState, PathTransformerFn, PlainTextEditorViewAction,
+        Point as BufferPoint, PropagateAndNoOpEscapeKey, PropagateAndNoOpNavigationKeys,
+        PropagateHorizontalNavigationKeys, TextColors,
     },
     features::FeatureFlag,
     input_suggestions::{
@@ -62,13 +62,7 @@ use itertools::Itertools;
 use ordered_float::Float;
 use settings::{Setting as _, ToggleableSetting};
 use std::{
-    any::Any,
-    borrow::Cow,
-    collections::HashMap,
-    ops::Range,
-    path::PathBuf,
-    rc::Rc,
-    time::Duration,
+    any::Any, borrow::Cow, collections::HashMap, ops::Range, path::PathBuf, rc::Rc, time::Duration,
 };
 use string_offset::CharOffset;
 use vim::vim::VimMode;
@@ -2311,9 +2305,9 @@ impl Input {
                 ) {
                     self.model.lock().set_is_input_dirty(true);
                 }
-                let last_action = self.editor.read(ctx, |editor, editor_ctx| {
-                    editor.get_last_action(editor_ctx)
-                });
+                let last_action = self
+                    .editor
+                    .read(ctx, |editor, editor_ctx| editor.get_last_action(editor_ctx));
                 if *edit_origin == EditOrigin::UserTyped
                     && last_action == Some(PlainTextEditorViewAction::Space)
                 {
@@ -3656,7 +3650,6 @@ impl Input {
     pub fn should_show_universal_developer_input(&self, app: &AppContext) -> bool {
         InputSettings::as_ref(app).is_universal_developer_input_enabled(app)
     }
-
 }
 
 impl Entity for Input {

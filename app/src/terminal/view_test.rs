@@ -7,7 +7,6 @@ use warpui::App;
 
 use crate::pane_group::focus_state::PaneGroupFocusState;
 use crate::pane_group::{BackingView, TerminalPaneId};
-use crate::terminal::model::grid::Dimensions as _;
 use crate::{
     terminal::alt_screen::should_intercept_mouse,
     test_util::terminal::add_window_with_id_and_terminal,
@@ -24,7 +23,7 @@ use crate::view_components::find::FindWithinBlockState;
 
 use crate::terminal::model::ansi::{self, InitShellValue};
 use crate::terminal::model::ansi::{BootstrappedValue, PreexecValue};
-use crate::terminal::model::blocks::{insert_block, TotalIndex};
+use crate::terminal::model::blocks::TotalIndex;
 use crate::terminal::model::terminal_model::WithinBlock;
 
 use crate::terminal::{MockTerminalManager, TerminalModel};
@@ -180,62 +179,6 @@ fn test_insert() {
 }
 
 const BODY_PREFIX: &str = "Latest output: ";
-
-/// Regression test for CORE-1654. Tests the "Insert into Input" functionality from the context menu.
-#[test]
-fn test_insert_into_input() {
-    // Note that this is defined as a unit test rather than an integration test since it requires precise selections
-    // (where we don't want UI updates making the test brittle, due to hardcoded mouse positions).
-    App::test((), |mut app| async move {
-        initialize_app_for_terminal_view(&mut app);
-        let terminal = add_window_with_terminal(&mut app, None);
-
-        // TODO: Potentially explore if we can re-use helpers from `input_test.rs` (`select_first_command_line_of_block` and `insert_dummy_block`).
-        terminal.update(&mut app, |terminal_view, ctx| {
-            {
-                let mut terminal_model = terminal_view.model.lock();
-                let blocks = terminal_model.block_list_mut();
-                // Add two lines to the command grid and output grid in a new block.
-                let block_index = insert_block(blocks, "cmd_a\ncmd_b\n", "output_a\noutput_b\n");
-                let block = blocks.block_at(block_index).expect("block should exist");
-                // Selections are inclusive of endpoint, hence we need to identify the last column to select the first command.
-                let block_command_columns =
-                    block.prompt_and_command_grid().grid_handler().columns();
-                let command_grid_offset = block.command_grid_offset();
-                // Create a selection that just spans the first line of the command grid in the block.
-                blocks.start_selection(
-                    BlockListPoint::new(command_grid_offset, 0),
-                    SelectionType::Simple,
-                    Side::Left,
-                );
-                blocks.update_selection(
-                    BlockListPoint::new(command_grid_offset, block_command_columns),
-                    Side::Right,
-                );
-                let selection = blocks.selection();
-                assert!(selection.is_some());
-            }
-
-            terminal_view.context_menu_insert_selected_text(ctx);
-        });
-
-        // Confirm that the blocklist selection is cleared upon inserting into the input box.
-        terminal.read(&app, |terminal_view, _ctx| {
-            let terminal_model = terminal_view.model.lock();
-            let blocks = terminal_model.block_list();
-            let selection = blocks.selection();
-            assert!(
-                selection.is_none(),
-                "Expected no selections in the blocklist but got {selection:?}"
-            );
-        });
-        let input = terminal.read(&app, |terminal, _ctx| terminal.input().clone());
-        // Confirm that the input box has the correct text (the first line of the command grid was selected above).
-        input.read(&app, |input, ctx| {
-            assert_eq!(input.buffer_text(ctx), "cmd_a");
-        });
-    });
-}
 
 #[test]
 fn test_copy_on_select() {

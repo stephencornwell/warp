@@ -19,9 +19,7 @@ use crate::pane_group::working_directories::WorkingDirectory;
 use crate::pane_group::{PaneGroup, WorkingDirectoriesEvent, WorkingDirectoriesModel};
 #[cfg(feature = "local_fs")]
 use crate::settings_view::keybindings::{KeybindingChangedEvent, KeybindingChangedNotifier};
-use crate::workspace::view::global_search::view::{
-    GlobalSearchEntryFocus, GlobalSearchView,
-};
+use crate::workspace::view::global_search::view::{GlobalSearchEntryFocus, GlobalSearchView};
 use crate::workspace::view::{
     LEFT_PANEL_GLOBAL_SEARCH_BINDING_NAME, LEFT_PANEL_PROJECT_EXPLORER_BINDING_NAME,
     OPEN_GLOBAL_SEARCH_BINDING_NAME, TOGGLE_PROJECT_EXPLORER_BINDING_NAME,
@@ -53,8 +51,7 @@ pub enum LeftPanelAction {
     GlobalSearch { entry_focus: GlobalSearchEntryFocus },
 }
 
-pub enum LeftPanelEvent {
-}
+pub enum LeftPanelEvent {}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ToolPanelView {
@@ -402,7 +399,6 @@ impl LeftPanelView {
             }
         }
     }
-
 }
 
 impl Entity for LeftPanelView {

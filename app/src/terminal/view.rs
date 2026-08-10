@@ -1398,10 +1398,6 @@ enum SecretTooltip {
         is_agent_mode: bool,
         tooltip: WithinModel<SecretHandle>,
     },
-    RichContent {
-        is_agent_mode: bool,
-        tooltip: RichContentSecretTooltipInfo,
-    },
 }
 
 type TerminalViewCallback = Box<dyn FnOnce(&mut TerminalView, &mut ViewContext<TerminalView>)>;

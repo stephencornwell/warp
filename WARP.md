@@ -7,6 +7,9 @@ This file provides guidance when working with code in this repository.
 ### Build and Run
 - `cargo run` - Build and run Warp locally
 - `cargo bundle --bin warp` - Bundle the main app
+- On macOS, `./script/macos/install_local` builds and installs the OSS app with only
+  the required local dependencies. Use `--debug` for a debug bundle or
+  `--no-install` to leave the prepared app in `target/`.
 
 ### Running with local warp-server
 To connect Warp client to a local warp-server instance:

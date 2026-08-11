@@ -117,7 +117,14 @@ fi
 command -v cargo-bundle >/dev/null 2>&1 || \
     error "cargo-bundle is still unavailable after installation; check that \$HOME/.cargo/bin is on PATH"
 
-WARP_APP_PATH="target/$PROFILE/bundle/osx/WarpOss.app"
+# The dev profile writes to target/debug; other profiles use their own name.
+if [[ "$PROFILE" = "dev" ]]; then
+    PROFILE_DIR="debug"
+else
+    PROFILE_DIR="$PROFILE"
+fi
+
+WARP_APP_PATH="target/$PROFILE_DIR/bundle/osx/WarpOss.app"
 rm -rf "$WARP_APP_PATH"
 
 export WARP_BIN_NAME WARP_CHANNEL FEATURES

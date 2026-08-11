@@ -1,0 +1,181 @@
+#!/usr/bin/env bash
+#
+# Build, prepare, and optionally install the open-source Warp app on macOS.
+
+set -euo pipefail
+
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/../.. && pwd)"
+cd "$REPO_ROOT"
+
+WARP_BIN_NAME="warp-oss"
+WARP_CHANNEL="oss"
+FEATURES="gui"
+CARGO_BUNDLE_REV="ae4c76e92c08774bf54ff077b1c52e3d1cd6c16d"
+RUSTUP_INSTALL_URL="https://sh.rustup.rs"
+DEST_DIR="/Applications"
+PROFILE="release"
+NO_INSTALL=false
+OPEN_APP=false
+
+usage() {
+    cat <<EOF
+Usage: $0 [options]
+
+Build and prepare the local open-source Warp macOS app.
+
+Options:
+  --dest <dir>  Install into <dir> instead of /Applications
+  --debug       Build with the debug profile
+  --no-install  Build and prepare without copying the app
+  --open        Open the app after installing it
+  --help        Show this help
+EOF
+}
+
+error() {
+    echo "Error: $*" >&2
+    exit 1
+}
+
+while (($# > 0)); do
+    case "$1" in
+        --dest)
+            (($# >= 2)) || error "--dest requires a directory"
+            DEST_DIR="$2"
+            shift 2
+            ;;
+        --debug)
+            PROFILE="dev"
+            shift
+            ;;
+        --no-install)
+            NO_INSTALL=true
+            shift
+            ;;
+        --open)
+            OPEN_APP=true
+            shift
+            ;;
+        --help)
+            usage
+            exit 0
+            ;;
+        *)
+            error "unknown option '$1'; use --help for usage"
+            ;;
+    esac
+done
+
+if [[ "$(uname -s)" != "Darwin" ]]; then
+    error "this script only runs on macOS"
+fi
+
+if ! command -v xcode-select >/dev/null 2>&1; then
+    cat >&2 <<EOF
+Error: Xcode is unavailable. Install Xcode from the App Store, then run:
+  sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer
+EOF
+    exit 1
+fi
+
+XCODE_DEVELOPER_DIR="$(xcode-select -p 2>/dev/null || true)"
+if [[ -z "$XCODE_DEVELOPER_DIR" || "$XCODE_DEVELOPER_DIR" != */Contents/Developer ]]; then
+    cat >&2 <<EOF
+Error: full Xcode must be selected; Command Line Tools are not enough.
+Install Xcode, then run:
+  sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer
+EOF
+    exit 1
+fi
+
+if ! command -v xcrun >/dev/null 2>&1 || ! xcrun -sdk macosx metal -help >/dev/null 2>&1; then
+    cat >&2 <<EOF
+Error: the Metal toolchain is unavailable.
+Install it with:
+  xcodebuild -downloadComponent MetalToolchain
+EOF
+    exit 1
+fi
+
+if ! command -v cargo >/dev/null 2>&1 || ! command -v rustup >/dev/null 2>&1; then
+    cat >&2 <<EOF
+Error: cargo and rustup are required.
+Install Rust with:
+  curl --proto '=https' --tlsv1.2 -sSf $RUSTUP_INSTALL_URL | sh
+The repository's rust-toolchain.toml selects the required toolchain automatically.
+EOF
+    exit 1
+fi
+
+if ! command -v cargo-bundle >/dev/null 2>&1; then
+    echo "cargo-bundle is missing; installing the pinned version..."
+    cargo install cargo-bundle \
+        --git=https://github.com/burtonageo/cargo-bundle \
+        --rev "$CARGO_BUNDLE_REV"
+fi
+
+command -v cargo-bundle >/dev/null 2>&1 || \
+    error "cargo-bundle is still unavailable after installation; check that \$HOME/.cargo/bin is on PATH"
+
+WARP_APP_PATH="target/$PROFILE/bundle/osx/WarpOss.app"
+rm -rf "$WARP_APP_PATH"
+
+export WARP_BIN_NAME WARP_CHANNEL FEATURES
+echo "Bundling Warp OSS ($PROFILE)..."
+(
+    cd "$REPO_ROOT/app" || exit 1
+    cargo bundle \
+        --profile "$PROFILE" \
+        --bin "$WARP_BIN_NAME" \
+        --features "$FEATURES"
+)
+
+[[ -d "$WARP_APP_PATH" ]] || error "cargo bundle did not produce $WARP_APP_PATH"
+
+echo "Preparing app bundle..."
+install_name_tool -add_rpath \
+    "@executable_path/../Frameworks" \
+    "$WARP_APP_PATH/Contents/MacOS/$WARP_BIN_NAME"
+
+WARP_PLIST_PATH="$WARP_APP_PATH/Contents/Info.plist" \
+WARP_SCHEME_NAME=warposs \
+    "$REPO_ROOT/script/update_plist"
+
+NO_LICENSES=1 \
+SKIP_SETTINGS_SCHEMA=1 \
+    "$REPO_ROOT/script/prepare_bundled_resources" \
+    "$WARP_APP_PATH/Contents/Resources" \
+    "$WARP_CHANNEL" \
+    "$PROFILE"
+
+"$REPO_ROOT/script/compile_icon" "$WARP_CHANNEL" "$WARP_APP_PATH"
+
+echo "Ad-hoc codesigning app bundle..."
+codesign \
+    --force \
+    --deep \
+    --sign - \
+    --options runtime \
+    --entitlements "$REPO_ROOT/script/Debug-Entitlements.plist" \
+    "$WARP_APP_PATH"
+
+FINAL_APP_PATH="$WARP_APP_PATH"
+if [[ "$NO_INSTALL" = false ]]; then
+    DESTINATION_APP="$DEST_DIR/WarpOss.app"
+    echo "Installing app to $DESTINATION_APP..."
+    mkdir -p "$DEST_DIR"
+    rm -rf "$DESTINATION_APP"
+    cp -R "$WARP_APP_PATH" "$DESTINATION_APP"
+    FINAL_APP_PATH="$DESTINATION_APP"
+fi
+
+if [[ "$NO_INSTALL" = true ]]; then
+    echo "Built and prepared Warp OSS at $FINAL_APP_PATH"
+else
+    echo "Installed Warp OSS at $FINAL_APP_PATH"
+fi
+echo "Launch with: open \"$FINAL_APP_PATH\""
+
+if [[ "$OPEN_APP" = true ]]; then
+    open "$FINAL_APP_PATH"
+fi
